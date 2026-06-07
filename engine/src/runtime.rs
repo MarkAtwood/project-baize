@@ -1,0 +1,512 @@
+use indexmap::IndexMap;
+
+use crate::definition::{
+    Capacity, Dimensions, GameDefinition, InformationType, Players, Zone, ZoneType,
+};
+use crate::error::{BaizeError, Result};
+use crate::state::{
+    CellContents, ComponentInstance, Facing, GameState, GameStatus, PlayerState, ZoneState,
+};
+
+/// Compact component identifier (index into ComponentTable).
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub struct ComponentId(pub u32);
+
+/// A game session: static definition + mutable runtime state.
+#[derive(Debug, Clone)]
+pub struct GameSession {
+    pub definition: GameDefinition,
+    pub runtime: RuntimeState,
+}
+
+/// The mutable runtime state of a game in progress.
+#[derive(Debug, Clone)]
+pub struct RuntimeState {
+    pub status: GameStatus,
+    pub turn_index: usize,
+    pub phase_index: usize,
+    pub sequence: u64,
+    pub move_count: u64,
+    pub halfmove_clock: u64,
+    pub components: ComponentTable,
+    pub zones: IndexMap<String, RuntimeZone>,
+    pub players: IndexMap<String, RuntimePlayer>,
+    pub counters: IndexMap<String, i64>,
+    pub history_hashes: Vec<String>,
+}
+
+/// Arena of all component instances in the game.
+#[derive(Debug, Clone)]
+pub struct ComponentTable {
+    entries: Vec<ComponentData>,
+}
+
+/// Internal representation of a single component instance.
+#[derive(Debug, Clone)]
+pub struct ComponentData {
+    pub id: ComponentId,
+    pub string_id: String,
+    pub component_type: String,
+    pub owner: Option<String>,
+    pub facing: Option<Facing>,
+    pub state: Option<String>,
+    pub properties: IndexMap<String, serde_json::Value>,
+}
+
+/// Runtime zone — efficient storage for each zone type.
+#[derive(Debug, Clone)]
+pub enum RuntimeZone {
+    Grid {
+        width: u32,
+        height: u32,
+        cells: Vec<Option<ComponentId>>,
+    },
+    OrderedStack {
+        components: Vec<ComponentId>,
+    },
+    Set {
+        components: Vec<ComponentId>,
+    },
+    SingleSlot {
+        component: Option<ComponentId>,
+    },
+    Counter {
+        value: i64,
+    },
+    Track {
+        positions: Vec<Vec<ComponentId>>,
+    },
+}
+
+/// Per-player runtime state.
+#[derive(Debug, Clone)]
+pub struct RuntimePlayer {
+    pub seat: String,
+    pub active: bool,
+    pub score: i64,
+    pub counters: IndexMap<String, i64>,
+    pub zones: IndexMap<String, RuntimeZone>,
+}
+
+// --- ComponentTable ---
+
+impl ComponentTable {
+    pub fn new() -> Self {
+        Self { entries: Vec::new() }
+    }
+
+    pub fn insert(&mut self, data: ComponentData) -> ComponentId {
+        let id = ComponentId(self.entries.len() as u32);
+        self.entries.push(data);
+        self.entries.last_mut().unwrap().id = id;
+        id
+    }
+
+    pub fn get(&self, id: ComponentId) -> Option<&ComponentData> {
+        self.entries.get(id.0 as usize)
+    }
+
+    pub fn get_mut(&mut self, id: ComponentId) -> Option<&mut ComponentData> {
+        self.entries.get_mut(id.0 as usize)
+    }
+
+    pub fn len(&self) -> usize {
+        self.entries.len()
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.entries.is_empty()
+    }
+
+    pub fn iter(&self) -> impl Iterator<Item = &ComponentData> {
+        self.entries.iter()
+    }
+}
+
+// --- RuntimeZone ---
+
+impl RuntimeZone {
+    /// Create an empty zone from a zone definition.
+    pub fn from_definition(zone_def: &Zone) -> Result<Self> {
+        match zone_def.zone_type {
+            ZoneType::Grid | ZoneType::HexGrid => {
+                let (w, h) = match zone_def.dimensions {
+                    Some(Dimensions::Grid([w, h])) => (w, h),
+                    Some(Dimensions::Single(s)) => (s, s),
+                    None if zone_def.dynamic == Some(true) => (0, 0),
+                    None => {
+                        return Err(BaizeError::Validation(
+                            "grid zone requires dimensions".into(),
+                        ))
+                    }
+                };
+                Ok(RuntimeZone::Grid {
+                    width: w,
+                    height: h,
+                    cells: vec![None; (w * h) as usize],
+                })
+            }
+            ZoneType::OrderedStack => Ok(RuntimeZone::OrderedStack {
+                components: Vec::new(),
+            }),
+            ZoneType::Set => Ok(RuntimeZone::Set {
+                components: Vec::new(),
+            }),
+            ZoneType::Queue => Ok(RuntimeZone::OrderedStack {
+                components: Vec::new(),
+            }),
+            ZoneType::SingleSlot => Ok(RuntimeZone::SingleSlot { component: None }),
+            ZoneType::Counter => Ok(RuntimeZone::Counter { value: 0 }),
+            ZoneType::Track => {
+                let len = zone_def.length.or(zone_def.points).unwrap_or(1) as usize;
+                Ok(RuntimeZone::Track {
+                    positions: vec![Vec::new(); len],
+                })
+            }
+            ZoneType::Graph => Ok(RuntimeZone::Set {
+                components: Vec::new(),
+            }),
+        }
+    }
+
+    /// Number of components currently in this zone.
+    pub fn count(&self) -> usize {
+        match self {
+            RuntimeZone::Grid { cells, .. } => cells.iter().filter(|c| c.is_some()).count(),
+            RuntimeZone::OrderedStack { components } | RuntimeZone::Set { components } => {
+                components.len()
+            }
+            RuntimeZone::SingleSlot { component } => usize::from(component.is_some()),
+            RuntimeZone::Counter { .. } => 0,
+            RuntimeZone::Track { positions } => positions.iter().map(|p| p.len()).sum(),
+        }
+    }
+
+    /// Check if a zone is at capacity.
+    pub fn is_full(&self, capacity: Option<&Capacity>) -> bool {
+        match capacity {
+            None | Some(Capacity::Unlimited(_)) => false,
+            Some(Capacity::Limit(max)) => self.count() >= *max as usize,
+        }
+    }
+}
+
+// --- Grid helpers ---
+
+impl RuntimeZone {
+    /// Get component at grid coordinate. Returns None if out of bounds or empty.
+    pub fn grid_get(&self, col: u32, row: u32) -> Option<ComponentId> {
+        match self {
+            RuntimeZone::Grid {
+                width,
+                height,
+                cells,
+            } => {
+                if col >= *width || row >= *height {
+                    return None;
+                }
+                cells[(row * width + col) as usize]
+            }
+            _ => None,
+        }
+    }
+
+    /// Place a component at a grid coordinate. Returns the displaced component if any.
+    pub fn grid_set(
+        &mut self,
+        col: u32,
+        row: u32,
+        component: Option<ComponentId>,
+    ) -> Option<ComponentId> {
+        match self {
+            RuntimeZone::Grid {
+                width,
+                height,
+                cells,
+            } => {
+                if col >= *width || row >= *height {
+                    return None;
+                }
+                let idx = (row * *width + col) as usize;
+                let prev = cells[idx];
+                cells[idx] = component;
+                prev
+            }
+            _ => None,
+        }
+    }
+
+    /// Push a component onto a stack (top = end).
+    pub fn stack_push(&mut self, component: ComponentId) {
+        if let RuntimeZone::OrderedStack { components } = self {
+            components.push(component);
+        }
+    }
+
+    /// Pop the top component from a stack.
+    pub fn stack_pop(&mut self) -> Option<ComponentId> {
+        if let RuntimeZone::OrderedStack { components } = self {
+            components.pop()
+        } else {
+            None
+        }
+    }
+
+    /// Add a component to a set.
+    pub fn set_add(&mut self, component: ComponentId) {
+        if let RuntimeZone::Set { components } = self {
+            components.push(component);
+        }
+    }
+
+    /// Remove a component from a set by ID. Returns true if found.
+    pub fn set_remove(&mut self, component: ComponentId) -> bool {
+        if let RuntimeZone::Set { components } = self {
+            if let Some(pos) = components.iter().position(|c| *c == component) {
+                components.swap_remove(pos);
+                return true;
+            }
+        }
+        false
+    }
+}
+
+// --- GameSession ---
+
+impl GameSession {
+    /// Initialize a new game session from a definition.
+    /// Creates empty zones and players; does not deal cards or place pieces.
+    pub fn new(definition: GameDefinition) -> Result<Self> {
+        let mut zones = IndexMap::new();
+        let mut player_zones = IndexMap::new();
+
+        for (name, zone_def) in &definition.zones {
+            if zone_def.per_player == Some(true) {
+                player_zones.insert(name.clone(), zone_def);
+            } else {
+                zones.insert(name.clone(), RuntimeZone::from_definition(zone_def)?);
+            }
+        }
+
+        let player_names = match &definition.game.players {
+            Players::Named(names) => names.clone(),
+            Players::Range { min, .. } => (0..*min).map(|i| format!("player_{i}")).collect(),
+        };
+
+        let mut players = IndexMap::new();
+        for name in &player_names {
+            let mut pzones = IndexMap::new();
+            for (zname, zdef) in &player_zones {
+                pzones.insert(zname.clone(), RuntimeZone::from_definition(zdef)?);
+            }
+            players.insert(
+                name.clone(),
+                RuntimePlayer {
+                    seat: name.clone(),
+                    active: true,
+                    score: 0,
+                    counters: IndexMap::new(),
+                    zones: pzones,
+                },
+            );
+        }
+
+        Ok(GameSession {
+            runtime: RuntimeState {
+                status: GameStatus::Setup,
+                turn_index: 0,
+                phase_index: 0,
+                sequence: 0,
+                move_count: 0,
+                halfmove_clock: 0,
+                components: ComponentTable::new(),
+                zones,
+                players,
+                counters: IndexMap::new(),
+                history_hashes: Vec::new(),
+            },
+            definition,
+        })
+    }
+
+    /// The name of the player whose turn it is.
+    pub fn current_player(&self) -> Option<&str> {
+        match &self.definition.game.players {
+            Players::Named(names) => names.get(self.runtime.turn_index).map(|s| s.as_str()),
+            Players::Range { .. } => self
+                .runtime
+                .players
+                .get_index(self.runtime.turn_index)
+                .map(|(name, _)| name.as_str()),
+        }
+    }
+
+    /// Whether this is a perfect-information game.
+    pub fn is_perfect_information(&self) -> bool {
+        self.definition.game.information == Some(InformationType::Perfect)
+    }
+
+    /// Advance the turn to the next player.
+    pub fn advance_turn(&mut self) {
+        let player_count = self.runtime.players.len();
+        if player_count > 0 {
+            self.runtime.turn_index = (self.runtime.turn_index + 1) % player_count;
+        }
+        self.runtime.sequence += 1;
+        self.runtime.move_count += 1;
+    }
+
+    /// Compute a BLAKE3 hash of the current state for repetition detection.
+    pub fn compute_state_hash(&self) -> String {
+        let state = self.to_wire_state();
+        state.compute_hash()
+    }
+
+    /// Convert runtime state to wire-format GameState for serialization.
+    pub fn to_wire_state(&self) -> GameState {
+        let turn = self.current_player().unwrap_or("").to_string();
+        let phase = self
+            .definition
+            .phases
+            .get(self.runtime.phase_index)
+            .map(|p| p.name.clone())
+            .unwrap_or_else(|| "main".to_string());
+
+        let mut wire_zones = IndexMap::new();
+        for (name, zone) in &self.runtime.zones {
+            wire_zones.insert(name.clone(), self.zone_to_wire(zone));
+        }
+
+        let mut wire_players = IndexMap::new();
+        for (name, player) in &self.runtime.players {
+            let mut pzones = IndexMap::new();
+            for (zname, zone) in &player.zones {
+                pzones.insert(zname.clone(), self.zone_to_wire(zone));
+            }
+            wire_players.insert(
+                name.clone(),
+                PlayerState {
+                    user_id: None,
+                    seat: Some(player.seat.clone()),
+                    active: Some(player.active),
+                    connected: None,
+                    score: Some(serde_json::Number::from(player.score)),
+                    counters: player
+                        .counters
+                        .iter()
+                        .map(|(k, v)| (k.clone(), serde_json::Number::from(*v)))
+                        .collect(),
+                    zones: pzones,
+                    clock: None,
+                },
+            );
+        }
+
+        GameState {
+            game_id: String::new(),
+            schema_ref: String::new(),
+            sequence: self.runtime.sequence,
+            state_hash: None,
+            status: self.runtime.status,
+            result: None,
+            turn,
+            phase,
+            move_count: Some(self.runtime.move_count),
+            halfmove_clock: Some(self.runtime.halfmove_clock),
+            zones: wire_zones,
+            players: wire_players,
+            counters: self
+                .runtime
+                .counters
+                .iter()
+                .map(|(k, v)| (k.clone(), serde_json::Number::from(*v)))
+                .collect(),
+            pending_actions: Vec::new(),
+            history_hash: self.runtime.history_hashes.last().cloned(),
+            timestamp: None,
+        }
+    }
+
+    fn zone_to_wire(&self, zone: &RuntimeZone) -> ZoneState {
+        match zone {
+            RuntimeZone::Grid {
+                width,
+                height,
+                cells,
+            } => {
+                let mut wire_cells = IndexMap::new();
+                for row in 0..*height {
+                    for col in 0..*width {
+                        let idx = (row * width + col) as usize;
+                        if let Some(cid) = cells[idx] {
+                            let coord = format!("{},{}", col, row);
+                            if let Some(data) = self.runtime.components.get(cid) {
+                                wire_cells
+                                    .insert(coord, CellContents::Single(data.to_wire_instance()));
+                            }
+                        }
+                    }
+                }
+                ZoneState::Grid { cells: wire_cells }
+            }
+            RuntimeZone::OrderedStack { components } => ZoneState::OrderedStack {
+                components: components
+                    .iter()
+                    .filter_map(|cid| self.runtime.components.get(*cid))
+                    .map(|d| d.to_wire_instance())
+                    .collect(),
+                count: None,
+            },
+            RuntimeZone::Set { components } => ZoneState::Set {
+                components: components
+                    .iter()
+                    .filter_map(|cid| self.runtime.components.get(*cid))
+                    .map(|d| d.to_wire_instance())
+                    .collect(),
+                count: None,
+            },
+            RuntimeZone::SingleSlot { component } => ZoneState::SingleSlot {
+                component: component
+                    .and_then(|cid| self.runtime.components.get(cid))
+                    .map(|d| d.to_wire_instance()),
+            },
+            RuntimeZone::Counter { value } => ZoneState::Counter {
+                value: serde_json::Number::from(*value),
+            },
+            RuntimeZone::Track { positions } => {
+                let mut wire_positions = IndexMap::new();
+                for (i, pos) in positions.iter().enumerate() {
+                    if !pos.is_empty() {
+                        wire_positions.insert(
+                            i.to_string(),
+                            pos.iter()
+                                .filter_map(|cid| self.runtime.components.get(*cid))
+                                .map(|d| d.to_wire_instance())
+                                .collect(),
+                        );
+                    }
+                }
+                ZoneState::Track {
+                    positions: wire_positions,
+                }
+            }
+        }
+    }
+}
+
+impl ComponentData {
+    fn to_wire_instance(&self) -> ComponentInstance {
+        ComponentInstance {
+            id: self.string_id.clone(),
+            component_type: self.component_type.clone(),
+            owner: self.owner.clone(),
+            facing: self.facing,
+            state: self.state.clone(),
+            properties: if self.properties.is_empty() {
+                None
+            } else {
+                Some(self.properties.clone())
+            },
+        }
+    }
+}
