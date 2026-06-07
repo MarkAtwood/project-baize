@@ -1,0 +1,7 @@
+{
+  "database": "dolt",
+  "backend": "dolt",
+  "dolt_mode": "embedded",
+  "dolt_database": "baize",
+  "project_id": "8278ecdf-d89e-4afb-a9cf-5c4b19d64e07"
+}
