@@ -272,20 +272,8 @@
   },
   "$defs": {
     "shape": {
-      "oneOf": [
-        {
-          "enum": [
-            "circle", "square", "rounded_rect", "hexagon", "meeple",
-            "disc", "cone", "cylinder", "house", "pentagon", "octagon",
-            "star", "shield", "laurel", "cube", "narrow_rectangle",
-            "rectangle"
-          ]
-        },
-        {
-          "type": "string",
-          "description": "Custom shape name or parameterized shape (e.g. \"rectangle(2:1)\")."
-        }
-      ]
+      "type": "string",
+      "description": "Shape name. Common values: circle, square, rounded_rect, hexagon, meeple, disc, cone, cylinder, house, pentagon, octagon, star, shield, laurel, cube, narrow_rectangle, rectangle. Custom or parameterized shapes also accepted (e.g. \"rectangle(2:1)\")."
     },
 
     "variant": {
@@ -294,10 +282,8 @@
         "shape": { "$ref": "#/$defs/shape" },
         "fill": { "type": "string" },
         "stroke": {
-          "oneOf": [
-            { "type": "string" },
-            { "const": "none" }
-          ]
+          "type": "string",
+          "description": "Stroke color, or \"none\" for no stroke."
         },
         "glyph": { "type": "string" },
         "glyph_color": { "type": "string" },
