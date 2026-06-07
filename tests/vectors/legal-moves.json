@@ -1,0 +1,730 @@
+{
+  "_comment": "Cross-implementation legal move test vectors for the Baize game engine. Each test case defines a board state and the exhaustive set of legal moves. Moves are sorted lexicographically by (component, from, to) for deterministic comparison.",
+  "_version": "1.0.0",
+
+  "test_cases": [
+    {
+      "name": "king_center_empty_board",
+      "description": "King at center of 8x8 board, all 8 adjacent squares available",
+      "game_definition": {
+        "game": { "name": "Chess Moves Test", "players": ["white", "black"], "information": "perfect" },
+        "zones": {
+          "board": { "zone_type": "grid", "dimensions": [8, 8], "visibility": "public" }
+        },
+        "components": {
+          "king": {
+            "owner": "per_player",
+            "count": 1,
+            "movement": [{ "primitive": "step", "direction": "adjacent" }]
+          }
+        },
+        "turn_order": { "type": "alternating", "players": ["white", "black"], "actions_per_turn": 1, "mandatory": true },
+        "end_conditions": [{ "result": "win", "condition": "checkmate" }],
+        "authority": { "server_only": [], "client_verifiable": ["all"] }
+      },
+      "setup": [
+        { "string_id": "wk", "component_type": "king", "owner": "white", "col": 4, "row": 4 }
+      ],
+      "current_player": "white",
+      "expected_move_count": 8,
+      "expected_moves": [
+        { "component": "wk", "from": "4,4", "to": "3,3" },
+        { "component": "wk", "from": "4,4", "to": "3,4" },
+        { "component": "wk", "from": "4,4", "to": "3,5" },
+        { "component": "wk", "from": "4,4", "to": "4,3" },
+        { "component": "wk", "from": "4,4", "to": "4,5" },
+        { "component": "wk", "from": "4,4", "to": "5,3" },
+        { "component": "wk", "from": "4,4", "to": "5,4" },
+        { "component": "wk", "from": "4,4", "to": "5,5" }
+      ]
+    },
+
+    {
+      "name": "king_corner",
+      "description": "King at (0,0) corner, only 3 squares reachable",
+      "game_definition": {
+        "game": { "name": "Chess Moves Test", "players": ["white", "black"], "information": "perfect" },
+        "zones": {
+          "board": { "zone_type": "grid", "dimensions": [8, 8], "visibility": "public" }
+        },
+        "components": {
+          "king": {
+            "owner": "per_player",
+            "count": 1,
+            "movement": [{ "primitive": "step", "direction": "adjacent" }]
+          }
+        },
+        "turn_order": { "type": "alternating", "players": ["white", "black"], "actions_per_turn": 1, "mandatory": true },
+        "end_conditions": [{ "result": "win", "condition": "checkmate" }],
+        "authority": { "server_only": [], "client_verifiable": ["all"] }
+      },
+      "setup": [
+        { "string_id": "wk", "component_type": "king", "owner": "white", "col": 0, "row": 0 }
+      ],
+      "current_player": "white",
+      "expected_move_count": 3,
+      "expected_moves": [
+        { "component": "wk", "from": "0,0", "to": "0,1" },
+        { "component": "wk", "from": "0,0", "to": "1,0" },
+        { "component": "wk", "from": "0,0", "to": "1,1" }
+      ]
+    },
+
+    {
+      "name": "king_edge",
+      "description": "King at (0,4) left edge, 5 squares reachable",
+      "game_definition": {
+        "game": { "name": "Chess Moves Test", "players": ["white", "black"], "information": "perfect" },
+        "zones": {
+          "board": { "zone_type": "grid", "dimensions": [8, 8], "visibility": "public" }
+        },
+        "components": {
+          "king": {
+            "owner": "per_player",
+            "count": 1,
+            "movement": [{ "primitive": "step", "direction": "adjacent" }]
+          }
+        },
+        "turn_order": { "type": "alternating", "players": ["white", "black"], "actions_per_turn": 1, "mandatory": true },
+        "end_conditions": [{ "result": "win", "condition": "checkmate" }],
+        "authority": { "server_only": [], "client_verifiable": ["all"] }
+      },
+      "setup": [
+        { "string_id": "wk", "component_type": "king", "owner": "white", "col": 0, "row": 4 }
+      ],
+      "current_player": "white",
+      "expected_move_count": 5,
+      "expected_moves": [
+        { "component": "wk", "from": "0,4", "to": "0,3" },
+        { "component": "wk", "from": "0,4", "to": "0,5" },
+        { "component": "wk", "from": "0,4", "to": "1,3" },
+        { "component": "wk", "from": "0,4", "to": "1,4" },
+        { "component": "wk", "from": "0,4", "to": "1,5" }
+      ]
+    },
+
+    {
+      "name": "rook_center_empty_board",
+      "description": "Rook at (4,4) on empty 8x8 board: 14 orthogonal slides",
+      "game_definition": {
+        "game": { "name": "Chess Moves Test", "players": ["white", "black"], "information": "perfect" },
+        "zones": {
+          "board": { "zone_type": "grid", "dimensions": [8, 8], "visibility": "public" }
+        },
+        "components": {
+          "rook": {
+            "owner": "per_player",
+            "count": 2,
+            "movement": [{ "primitive": "slide", "direction": "orthogonal" }]
+          }
+        },
+        "turn_order": { "type": "alternating", "players": ["white", "black"], "actions_per_turn": 1, "mandatory": true },
+        "end_conditions": [{ "result": "win", "condition": "checkmate" }],
+        "authority": { "server_only": [], "client_verifiable": ["all"] }
+      },
+      "setup": [
+        { "string_id": "wr", "component_type": "rook", "owner": "white", "col": 4, "row": 4 }
+      ],
+      "current_player": "white",
+      "expected_move_count": 14,
+      "expected_moves": [
+        { "component": "wr", "from": "4,4", "to": "0,4" },
+        { "component": "wr", "from": "4,4", "to": "1,4" },
+        { "component": "wr", "from": "4,4", "to": "2,4" },
+        { "component": "wr", "from": "4,4", "to": "3,4" },
+        { "component": "wr", "from": "4,4", "to": "4,0" },
+        { "component": "wr", "from": "4,4", "to": "4,1" },
+        { "component": "wr", "from": "4,4", "to": "4,2" },
+        { "component": "wr", "from": "4,4", "to": "4,3" },
+        { "component": "wr", "from": "4,4", "to": "4,5" },
+        { "component": "wr", "from": "4,4", "to": "4,6" },
+        { "component": "wr", "from": "4,4", "to": "4,7" },
+        { "component": "wr", "from": "4,4", "to": "5,4" },
+        { "component": "wr", "from": "4,4", "to": "6,4" },
+        { "component": "wr", "from": "4,4", "to": "7,4" }
+      ]
+    },
+
+    {
+      "name": "rook_blocked_by_friendly",
+      "description": "Rook at (0,0) blocked vertically by friendly king at (0,2). Rook has 8 moves. King has 5 moves. Total 13.",
+      "game_definition": {
+        "game": { "name": "Chess Moves Test", "players": ["white", "black"], "information": "perfect" },
+        "zones": {
+          "board": { "zone_type": "grid", "dimensions": [8, 8], "visibility": "public" }
+        },
+        "components": {
+          "king": {
+            "owner": "per_player",
+            "count": 1,
+            "movement": [{ "primitive": "step", "direction": "adjacent" }]
+          },
+          "rook": {
+            "owner": "per_player",
+            "count": 2,
+            "movement": [{ "primitive": "slide", "direction": "orthogonal" }]
+          }
+        },
+        "turn_order": { "type": "alternating", "players": ["white", "black"], "actions_per_turn": 1, "mandatory": true },
+        "end_conditions": [{ "result": "win", "condition": "checkmate" }],
+        "authority": { "server_only": [], "client_verifiable": ["all"] }
+      },
+      "setup": [
+        { "string_id": "wr", "component_type": "rook", "owner": "white", "col": 0, "row": 0 },
+        { "string_id": "wk", "component_type": "king", "owner": "white", "col": 0, "row": 2 }
+      ],
+      "current_player": "white",
+      "expected_move_count": 13,
+      "expected_moves": [
+        { "component": "wk", "from": "0,2", "to": "0,1" },
+        { "component": "wk", "from": "0,2", "to": "0,3" },
+        { "component": "wk", "from": "0,2", "to": "1,1" },
+        { "component": "wk", "from": "0,2", "to": "1,2" },
+        { "component": "wk", "from": "0,2", "to": "1,3" },
+        { "component": "wr", "from": "0,0", "to": "0,1" },
+        { "component": "wr", "from": "0,0", "to": "1,0" },
+        { "component": "wr", "from": "0,0", "to": "2,0" },
+        { "component": "wr", "from": "0,0", "to": "3,0" },
+        { "component": "wr", "from": "0,0", "to": "4,0" },
+        { "component": "wr", "from": "0,0", "to": "5,0" },
+        { "component": "wr", "from": "0,0", "to": "6,0" },
+        { "component": "wr", "from": "0,0", "to": "7,0" }
+      ]
+    },
+
+    {
+      "name": "rook_captures_enemy",
+      "description": "Rook at (0,0) with enemy king at (0,3). Rook can slide to (0,1), (0,2), and capture on (0,3). Plus 7 horizontal. Total rook moves 10, no other white pieces.",
+      "game_definition": {
+        "game": { "name": "Chess Moves Test", "players": ["white", "black"], "information": "perfect" },
+        "zones": {
+          "board": { "zone_type": "grid", "dimensions": [8, 8], "visibility": "public" }
+        },
+        "components": {
+          "king": {
+            "owner": "per_player",
+            "count": 1,
+            "movement": [{ "primitive": "step", "direction": "adjacent" }]
+          },
+          "rook": {
+            "owner": "per_player",
+            "count": 2,
+            "movement": [{ "primitive": "slide", "direction": "orthogonal" }]
+          }
+        },
+        "turn_order": { "type": "alternating", "players": ["white", "black"], "actions_per_turn": 1, "mandatory": true },
+        "end_conditions": [{ "result": "win", "condition": "checkmate" }],
+        "authority": { "server_only": [], "client_verifiable": ["all"] }
+      },
+      "setup": [
+        { "string_id": "wr", "component_type": "rook", "owner": "white", "col": 0, "row": 0 },
+        { "string_id": "bk", "component_type": "king", "owner": "black", "col": 0, "row": 3 }
+      ],
+      "current_player": "white",
+      "expected_move_count": 10,
+      "expected_moves": [
+        { "component": "wr", "from": "0,0", "to": "0,1" },
+        { "component": "wr", "from": "0,0", "to": "0,2" },
+        { "component": "wr", "from": "0,0", "to": "0,3" },
+        { "component": "wr", "from": "0,0", "to": "1,0" },
+        { "component": "wr", "from": "0,0", "to": "2,0" },
+        { "component": "wr", "from": "0,0", "to": "3,0" },
+        { "component": "wr", "from": "0,0", "to": "4,0" },
+        { "component": "wr", "from": "0,0", "to": "5,0" },
+        { "component": "wr", "from": "0,0", "to": "6,0" },
+        { "component": "wr", "from": "0,0", "to": "7,0" }
+      ]
+    },
+
+    {
+      "name": "knight_center",
+      "description": "Knight at (4,4) on 8x8: all 8 L-shaped jumps in bounds",
+      "game_definition": {
+        "game": { "name": "Chess Moves Test", "players": ["white", "black"], "information": "perfect" },
+        "zones": {
+          "board": { "zone_type": "grid", "dimensions": [8, 8], "visibility": "public" }
+        },
+        "components": {
+          "knight": {
+            "owner": "per_player",
+            "count": 2,
+            "movement": [{ "primitive": "leap", "dx": 1, "dy": 2 }]
+          }
+        },
+        "turn_order": { "type": "alternating", "players": ["white", "black"], "actions_per_turn": 1, "mandatory": true },
+        "end_conditions": [{ "result": "win", "condition": "checkmate" }],
+        "authority": { "server_only": [], "client_verifiable": ["all"] }
+      },
+      "setup": [
+        { "string_id": "wn", "component_type": "knight", "owner": "white", "col": 4, "row": 4 }
+      ],
+      "current_player": "white",
+      "expected_move_count": 8,
+      "expected_moves": [
+        { "component": "wn", "from": "4,4", "to": "2,3" },
+        { "component": "wn", "from": "4,4", "to": "2,5" },
+        { "component": "wn", "from": "4,4", "to": "3,2" },
+        { "component": "wn", "from": "4,4", "to": "3,6" },
+        { "component": "wn", "from": "4,4", "to": "5,2" },
+        { "component": "wn", "from": "4,4", "to": "5,6" },
+        { "component": "wn", "from": "4,4", "to": "6,3" },
+        { "component": "wn", "from": "4,4", "to": "6,5" }
+      ]
+    },
+
+    {
+      "name": "knight_corner",
+      "description": "Knight at (0,0): only 2 L-shaped jumps in bounds: (1,2) and (2,1)",
+      "game_definition": {
+        "game": { "name": "Chess Moves Test", "players": ["white", "black"], "information": "perfect" },
+        "zones": {
+          "board": { "zone_type": "grid", "dimensions": [8, 8], "visibility": "public" }
+        },
+        "components": {
+          "knight": {
+            "owner": "per_player",
+            "count": 2,
+            "movement": [{ "primitive": "leap", "dx": 1, "dy": 2 }]
+          }
+        },
+        "turn_order": { "type": "alternating", "players": ["white", "black"], "actions_per_turn": 1, "mandatory": true },
+        "end_conditions": [{ "result": "win", "condition": "checkmate" }],
+        "authority": { "server_only": [], "client_verifiable": ["all"] }
+      },
+      "setup": [
+        { "string_id": "wn", "component_type": "knight", "owner": "white", "col": 0, "row": 0 }
+      ],
+      "current_player": "white",
+      "expected_move_count": 2,
+      "expected_moves": [
+        { "component": "wn", "from": "0,0", "to": "1,2" },
+        { "component": "wn", "from": "0,0", "to": "2,1" }
+      ]
+    },
+
+    {
+      "name": "bishop_center_empty_board",
+      "description": "Bishop at (4,4) on empty 8x8: diagonal slides. NE(+1,+1): 3, SE(+1,-1): 3, NW(-1,+1): 3, SW(-1,-1): 4. Total 13.",
+      "game_definition": {
+        "game": { "name": "Chess Moves Test", "players": ["white", "black"], "information": "perfect" },
+        "zones": {
+          "board": { "zone_type": "grid", "dimensions": [8, 8], "visibility": "public" }
+        },
+        "components": {
+          "bishop": {
+            "owner": "per_player",
+            "count": 2,
+            "movement": [{ "primitive": "slide", "direction": "diagonal" }]
+          }
+        },
+        "turn_order": { "type": "alternating", "players": ["white", "black"], "actions_per_turn": 1, "mandatory": true },
+        "end_conditions": [{ "result": "win", "condition": "checkmate" }],
+        "authority": { "server_only": [], "client_verifiable": ["all"] }
+      },
+      "setup": [
+        { "string_id": "wb", "component_type": "bishop", "owner": "white", "col": 4, "row": 4 }
+      ],
+      "current_player": "white",
+      "expected_move_count": 13,
+      "expected_moves": [
+        { "component": "wb", "from": "4,4", "to": "0,0" },
+        { "component": "wb", "from": "4,4", "to": "1,1" },
+        { "component": "wb", "from": "4,4", "to": "1,7" },
+        { "component": "wb", "from": "4,4", "to": "2,2" },
+        { "component": "wb", "from": "4,4", "to": "2,6" },
+        { "component": "wb", "from": "4,4", "to": "3,3" },
+        { "component": "wb", "from": "4,4", "to": "3,5" },
+        { "component": "wb", "from": "4,4", "to": "5,3" },
+        { "component": "wb", "from": "4,4", "to": "5,5" },
+        { "component": "wb", "from": "4,4", "to": "6,2" },
+        { "component": "wb", "from": "4,4", "to": "6,6" },
+        { "component": "wb", "from": "4,4", "to": "7,1" },
+        { "component": "wb", "from": "4,4", "to": "7,7" }
+      ]
+    },
+
+    {
+      "name": "pawn_forward_one",
+      "description": "Pawn-like piece with forward step (condition: empty) at (3,3). One move to (3,4).",
+      "game_definition": {
+        "game": { "name": "Pawn Test", "players": ["white", "black"], "information": "perfect" },
+        "zones": {
+          "board": { "zone_type": "grid", "dimensions": [8, 8], "visibility": "public" }
+        },
+        "components": {
+          "pawn": {
+            "owner": "per_player",
+            "count": 8,
+            "movement": [
+              { "primitive": "step", "direction": "forward", "condition": "empty" }
+            ]
+          }
+        },
+        "turn_order": { "type": "alternating", "players": ["white", "black"], "actions_per_turn": 1, "mandatory": true },
+        "end_conditions": [{ "result": "win", "condition": "checkmate" }],
+        "authority": { "server_only": [], "client_verifiable": ["all"] }
+      },
+      "setup": [
+        { "string_id": "wp", "component_type": "pawn", "owner": "white", "col": 3, "row": 3 }
+      ],
+      "current_player": "white",
+      "expected_move_count": 1,
+      "expected_moves": [
+        { "component": "wp", "from": "3,3", "to": "3,4" }
+      ]
+    },
+
+    {
+      "name": "pawn_forward_two_from_start",
+      "description": "Pawn with both forward-1 and forward-2 step primitives at (3,1). Two moves: (3,2) and (3,3).",
+      "game_definition": {
+        "game": { "name": "Pawn Test", "players": ["white", "black"], "information": "perfect" },
+        "zones": {
+          "board": { "zone_type": "grid", "dimensions": [8, 8], "visibility": "public" }
+        },
+        "components": {
+          "pawn": {
+            "owner": "per_player",
+            "count": 8,
+            "movement": [
+              { "primitive": "step", "direction": "forward", "condition": "empty" },
+              { "primitive": "step", "direction": "forward", "distance": 2, "condition": "empty" }
+            ]
+          }
+        },
+        "turn_order": { "type": "alternating", "players": ["white", "black"], "actions_per_turn": 1, "mandatory": true },
+        "end_conditions": [{ "result": "win", "condition": "checkmate" }],
+        "authority": { "server_only": [], "client_verifiable": ["all"] }
+      },
+      "setup": [
+        { "string_id": "wp", "component_type": "pawn", "owner": "white", "col": 3, "row": 1 }
+      ],
+      "current_player": "white",
+      "expected_move_count": 2,
+      "expected_moves": [
+        { "component": "wp", "from": "3,1", "to": "3,2" },
+        { "component": "wp", "from": "3,1", "to": "3,3" }
+      ]
+    },
+
+    {
+      "name": "pawn_diagonal_capture",
+      "description": "Pawn with forward step (empty) and forward-diagonal step (enemy). Pawn at (3,3), enemy at (4,4). Two moves: forward (3,4) and capture (4,4).",
+      "game_definition": {
+        "game": { "name": "Pawn Test", "players": ["white", "black"], "information": "perfect" },
+        "zones": {
+          "board": { "zone_type": "grid", "dimensions": [8, 8], "visibility": "public" }
+        },
+        "components": {
+          "pawn": {
+            "owner": "per_player",
+            "count": 8,
+            "movement": [
+              { "primitive": "step", "direction": "forward", "condition": "empty" },
+              { "primitive": "step", "direction": "forward_diagonal", "condition": "enemy" }
+            ]
+          }
+        },
+        "turn_order": { "type": "alternating", "players": ["white", "black"], "actions_per_turn": 1, "mandatory": true },
+        "end_conditions": [{ "result": "win", "condition": "checkmate" }],
+        "authority": { "server_only": [], "client_verifiable": ["all"] }
+      },
+      "setup": [
+        { "string_id": "wp", "component_type": "pawn", "owner": "white", "col": 3, "row": 3 },
+        { "string_id": "bp", "component_type": "pawn", "owner": "black", "col": 4, "row": 4 }
+      ],
+      "current_player": "white",
+      "expected_move_count": 2,
+      "expected_moves": [
+        { "component": "wp", "from": "3,3", "to": "3,4" },
+        { "component": "wp", "from": "3,3", "to": "4,4" }
+      ]
+    },
+
+    {
+      "name": "pawn_blocked_no_capture",
+      "description": "Pawn with forward step (empty) at (3,3), friendly piece at (3,4) blocks. No diagonal capture targets. Zero moves.",
+      "game_definition": {
+        "game": { "name": "Pawn Test", "players": ["white", "black"], "information": "perfect" },
+        "zones": {
+          "board": { "zone_type": "grid", "dimensions": [8, 8], "visibility": "public" }
+        },
+        "components": {
+          "pawn": {
+            "owner": "per_player",
+            "count": 8,
+            "movement": [
+              { "primitive": "step", "direction": "forward", "condition": "empty" },
+              { "primitive": "step", "direction": "forward_diagonal", "condition": "enemy" }
+            ]
+          }
+        },
+        "turn_order": { "type": "alternating", "players": ["white", "black"], "actions_per_turn": 1, "mandatory": true },
+        "end_conditions": [{ "result": "win", "condition": "checkmate" }],
+        "authority": { "server_only": [], "client_verifiable": ["all"] }
+      },
+      "setup": [
+        { "string_id": "wp1", "component_type": "pawn", "owner": "white", "col": 3, "row": 3 },
+        { "string_id": "wp2", "component_type": "pawn", "owner": "white", "col": 3, "row": 4 }
+      ],
+      "current_player": "white",
+      "_note": "wp1 cannot move forward (blocked by wp2, not empty) and has no enemy diagonals. wp2 can move forward to (3,5). Total: 1 move.",
+      "expected_move_count": 1,
+      "expected_moves": [
+        { "component": "wp2", "from": "3,4", "to": "3,5" }
+      ]
+    },
+
+    {
+      "name": "no_legal_moves_surrounded",
+      "description": "King surrounded by friendly pieces, no moves for king. Friendly pieces also have no moves. Tests zero-move edge case.",
+      "game_definition": {
+        "game": { "name": "Edge Case Test", "players": ["white", "black"], "information": "perfect" },
+        "zones": {
+          "board": { "zone_type": "grid", "dimensions": [3, 3], "visibility": "public" }
+        },
+        "components": {
+          "king": {
+            "owner": "per_player",
+            "count": 1,
+            "movement": [{ "primitive": "step", "direction": "adjacent" }]
+          },
+          "wall": {
+            "owner": "per_player",
+            "count": 8,
+            "movement": []
+          }
+        },
+        "turn_order": { "type": "alternating", "players": ["white", "black"], "actions_per_turn": 1, "mandatory": true },
+        "end_conditions": [{ "result": "draw", "condition": "no_legal_moves" }],
+        "authority": { "server_only": [], "client_verifiable": ["all"] }
+      },
+      "setup": [
+        { "string_id": "wk", "component_type": "king", "owner": "white", "col": 1, "row": 1 },
+        { "string_id": "w1", "component_type": "wall", "owner": "white", "col": 0, "row": 0 },
+        { "string_id": "w2", "component_type": "wall", "owner": "white", "col": 1, "row": 0 },
+        { "string_id": "w3", "component_type": "wall", "owner": "white", "col": 2, "row": 0 },
+        { "string_id": "w4", "component_type": "wall", "owner": "white", "col": 0, "row": 1 },
+        { "string_id": "w5", "component_type": "wall", "owner": "white", "col": 2, "row": 1 },
+        { "string_id": "w6", "component_type": "wall", "owner": "white", "col": 0, "row": 2 },
+        { "string_id": "w7", "component_type": "wall", "owner": "white", "col": 1, "row": 2 },
+        { "string_id": "w8", "component_type": "wall", "owner": "white", "col": 2, "row": 2 }
+      ],
+      "current_player": "white",
+      "expected_move_count": 0,
+      "expected_moves": []
+    },
+
+    {
+      "name": "single_legal_move",
+      "description": "King at (0,0) with friendly pieces blocking all but one exit. Single move available.",
+      "game_definition": {
+        "game": { "name": "Edge Case Test", "players": ["white", "black"], "information": "perfect" },
+        "zones": {
+          "board": { "zone_type": "grid", "dimensions": [8, 8], "visibility": "public" }
+        },
+        "components": {
+          "king": {
+            "owner": "per_player",
+            "count": 1,
+            "movement": [{ "primitive": "step", "direction": "adjacent" }]
+          },
+          "wall": {
+            "owner": "per_player",
+            "count": 8,
+            "movement": []
+          }
+        },
+        "turn_order": { "type": "alternating", "players": ["white", "black"], "actions_per_turn": 1, "mandatory": true },
+        "end_conditions": [{ "result": "win", "condition": "checkmate" }],
+        "authority": { "server_only": [], "client_verifiable": ["all"] }
+      },
+      "setup": [
+        { "string_id": "wk", "component_type": "king", "owner": "white", "col": 0, "row": 0 },
+        { "string_id": "w1", "component_type": "wall", "owner": "white", "col": 1, "row": 0 },
+        { "string_id": "w2", "component_type": "wall", "owner": "white", "col": 1, "row": 1 }
+      ],
+      "current_player": "white",
+      "expected_move_count": 1,
+      "expected_moves": [
+        { "component": "wk", "from": "0,0", "to": "0,1" }
+      ]
+    },
+
+    {
+      "name": "only_current_player_moves",
+      "description": "Both players have kings on board, only current player's king generates moves. White king at (4,4) = 8 moves, black king at (0,0) produces 0 (not white's turn).",
+      "game_definition": {
+        "game": { "name": "Turn Test", "players": ["white", "black"], "information": "perfect" },
+        "zones": {
+          "board": { "zone_type": "grid", "dimensions": [8, 8], "visibility": "public" }
+        },
+        "components": {
+          "king": {
+            "owner": "per_player",
+            "count": 1,
+            "movement": [{ "primitive": "step", "direction": "adjacent" }]
+          }
+        },
+        "turn_order": { "type": "alternating", "players": ["white", "black"], "actions_per_turn": 1, "mandatory": true },
+        "end_conditions": [{ "result": "win", "condition": "checkmate" }],
+        "authority": { "server_only": [], "client_verifiable": ["all"] }
+      },
+      "setup": [
+        { "string_id": "wk", "component_type": "king", "owner": "white", "col": 4, "row": 4 },
+        { "string_id": "bk", "component_type": "king", "owner": "black", "col": 0, "row": 0 }
+      ],
+      "current_player": "white",
+      "expected_move_count": 8,
+      "expected_moves": [
+        { "component": "wk", "from": "4,4", "to": "3,3" },
+        { "component": "wk", "from": "4,4", "to": "3,4" },
+        { "component": "wk", "from": "4,4", "to": "3,5" },
+        { "component": "wk", "from": "4,4", "to": "4,3" },
+        { "component": "wk", "from": "4,4", "to": "4,5" },
+        { "component": "wk", "from": "4,4", "to": "5,3" },
+        { "component": "wk", "from": "4,4", "to": "5,4" },
+        { "component": "wk", "from": "4,4", "to": "5,5" }
+      ]
+    },
+
+    {
+      "name": "king_captures_enemy_adjacent",
+      "description": "King at (4,4) with enemy piece at (5,5). King can move to all 8 adjacent squares including capture on (5,5).",
+      "game_definition": {
+        "game": { "name": "Capture Test", "players": ["white", "black"], "information": "perfect" },
+        "zones": {
+          "board": { "zone_type": "grid", "dimensions": [8, 8], "visibility": "public" }
+        },
+        "components": {
+          "king": {
+            "owner": "per_player",
+            "count": 1,
+            "movement": [{ "primitive": "step", "direction": "adjacent" }]
+          }
+        },
+        "turn_order": { "type": "alternating", "players": ["white", "black"], "actions_per_turn": 1, "mandatory": true },
+        "end_conditions": [{ "result": "win", "condition": "checkmate" }],
+        "authority": { "server_only": [], "client_verifiable": ["all"] }
+      },
+      "setup": [
+        { "string_id": "wk", "component_type": "king", "owner": "white", "col": 4, "row": 4 },
+        { "string_id": "bk", "component_type": "king", "owner": "black", "col": 5, "row": 5 }
+      ],
+      "current_player": "white",
+      "expected_move_count": 8,
+      "expected_moves": [
+        { "component": "wk", "from": "4,4", "to": "3,3" },
+        { "component": "wk", "from": "4,4", "to": "3,4" },
+        { "component": "wk", "from": "4,4", "to": "3,5" },
+        { "component": "wk", "from": "4,4", "to": "4,3" },
+        { "component": "wk", "from": "4,4", "to": "4,5" },
+        { "component": "wk", "from": "4,4", "to": "5,3" },
+        { "component": "wk", "from": "4,4", "to": "5,4" },
+        { "component": "wk", "from": "4,4", "to": "5,5" }
+      ]
+    },
+
+    {
+      "name": "tic_tac_toe_placement_unimplemented",
+      "description": "Tic-tac-toe empty board with place primitive. Placement from supply is not yet implemented, so zero moves are expected.",
+      "game_definition": {
+        "game": { "name": "Tic-Tac-Toe", "players": ["X", "O"], "information": "perfect" },
+        "zones": {
+          "board": { "zone_type": "grid", "dimensions": [3, 3], "visibility": "public" }
+        },
+        "components": {
+          "mark": {
+            "owner": "per_player",
+            "count": 5,
+            "movement": [{ "primitive": "place", "target_zone": "board", "condition": "empty" }]
+          }
+        },
+        "turn_order": { "type": "alternating", "players": ["X", "O"], "actions_per_turn": 1, "mandatory": true },
+        "end_conditions": [{ "result": "win", "condition": "three_in_a_row" }],
+        "authority": { "server_only": [], "client_verifiable": ["all"] }
+      },
+      "setup": [],
+      "current_player": "X",
+      "_note": "Placement from supply is currently stubbed in both Rust and Python engines. This test documents the current behavior.",
+      "expected_move_count": 0,
+      "expected_moves": []
+    },
+
+    {
+      "name": "small_board_step_center",
+      "description": "Step piece at center of 3x3 board. 8 adjacent moves available.",
+      "game_definition": {
+        "game": { "name": "Small Board Test", "players": ["white", "black"], "information": "perfect" },
+        "zones": {
+          "board": { "zone_type": "grid", "dimensions": [3, 3], "visibility": "public" }
+        },
+        "components": {
+          "piece": {
+            "owner": "per_player",
+            "count": 1,
+            "movement": [{ "primitive": "step", "direction": "adjacent" }]
+          }
+        },
+        "turn_order": { "type": "alternating", "players": ["white", "black"], "actions_per_turn": 1, "mandatory": true },
+        "end_conditions": [{ "result": "win", "condition": "capture_all" }],
+        "authority": { "server_only": [], "client_verifiable": ["all"] }
+      },
+      "setup": [
+        { "string_id": "wp", "component_type": "piece", "owner": "white", "col": 1, "row": 1 }
+      ],
+      "current_player": "white",
+      "expected_move_count": 8,
+      "expected_moves": [
+        { "component": "wp", "from": "1,1", "to": "0,0" },
+        { "component": "wp", "from": "1,1", "to": "0,1" },
+        { "component": "wp", "from": "1,1", "to": "0,2" },
+        { "component": "wp", "from": "1,1", "to": "1,0" },
+        { "component": "wp", "from": "1,1", "to": "1,2" },
+        { "component": "wp", "from": "1,1", "to": "2,0" },
+        { "component": "wp", "from": "1,1", "to": "2,1" },
+        { "component": "wp", "from": "1,1", "to": "2,2" }
+      ]
+    },
+
+    {
+      "name": "small_board_partially_filled",
+      "description": "3x3 board with white piece at center, friendly at (0,0) and enemy at (2,2). Center piece has 8 moves (7 empty + 1 capture). (0,0) piece has 3 moves (all empty/enemy neighbors).",
+      "game_definition": {
+        "game": { "name": "Small Board Test", "players": ["white", "black"], "information": "perfect" },
+        "zones": {
+          "board": { "zone_type": "grid", "dimensions": [3, 3], "visibility": "public" }
+        },
+        "components": {
+          "piece": {
+            "owner": "per_player",
+            "count": 4,
+            "movement": [{ "primitive": "step", "direction": "adjacent" }]
+          }
+        },
+        "turn_order": { "type": "alternating", "players": ["white", "black"], "actions_per_turn": 1, "mandatory": true },
+        "end_conditions": [{ "result": "win", "condition": "capture_all" }],
+        "authority": { "server_only": [], "client_verifiable": ["all"] }
+      },
+      "setup": [
+        { "string_id": "wp1", "component_type": "piece", "owner": "white", "col": 1, "row": 1 },
+        { "string_id": "wp2", "component_type": "piece", "owner": "white", "col": 0, "row": 0 },
+        { "string_id": "bp1", "component_type": "piece", "owner": "black", "col": 2, "row": 2 }
+      ],
+      "current_player": "white",
+      "_note": "wp1 at (1,1): 8 adjacent, (0,0) is friendly so blocked, (2,2) is enemy so capture. 7 moves. wp2 at (0,0): 3 adjacent, (1,1) is friendly so blocked. 2 moves. Total: 9.",
+      "expected_move_count": 9,
+      "expected_moves": [
+        { "component": "wp1", "from": "1,1", "to": "0,1" },
+        { "component": "wp1", "from": "1,1", "to": "0,2" },
+        { "component": "wp1", "from": "1,1", "to": "1,0" },
+        { "component": "wp1", "from": "1,1", "to": "1,2" },
+        { "component": "wp1", "from": "1,1", "to": "2,0" },
+        { "component": "wp1", "from": "1,1", "to": "2,1" },
+        { "component": "wp1", "from": "1,1", "to": "2,2" },
+        { "component": "wp2", "from": "0,0", "to": "0,1" },
+        { "component": "wp2", "from": "0,0", "to": "1,0" }
+      ]
+    }
+  ]
+}

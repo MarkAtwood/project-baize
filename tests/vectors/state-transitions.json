@@ -1,0 +1,433 @@
+{
+  "$schema": "https://baize.dev/schema/v1/test-vectors.schema.json",
+  "description": "Cross-implementation state transition test vectors. Both Rust and Python engines must produce identical results for each (state, action) pair.",
+  "test_cases": [
+    {
+      "name": "ttt_place_x_center",
+      "description": "Tic-tac-toe: X places a mark at center (1,1). Turn advances to O.",
+      "game_definition": {
+        "game": { "name": "Tic-Tac-Toe", "players": ["X", "O"], "information": "perfect" },
+        "zones": {
+          "board": { "zone_type": "grid", "dimensions": [3, 3], "visibility": "public" }
+        },
+        "components": {
+          "mark": { "owner": "per_player", "count": "unlimited" }
+        },
+        "turn_order": { "type": "alternating", "players": ["X", "O"], "actions_per_turn": 1, "mandatory": true },
+        "end_conditions": [
+          { "result": "win", "player": "current", "condition": "three_in_line" },
+          { "result": "draw", "condition": "board_is_full" }
+        ],
+        "authority": { "server_only": [], "client_verifiable": ["all"] }
+      },
+      "initial_setup": [],
+      "actions": [
+        {
+          "action": {
+            "action_type": "place",
+            "component_type": "mark",
+            "to": { "zone": "board", "cell": "1,1" }
+          },
+          "expected": {
+            "acting_player": "X",
+            "status": "in_progress",
+            "next_turn": "O",
+            "sequence": 1,
+            "move_count": 1,
+            "events": [
+              { "event_type": "place", "player": "X", "component_id": "mark-X-0", "to": "1,1" },
+              { "event_type": "turn_advance", "player": "O" }
+            ],
+            "board_cells": {
+              "1,1": { "id": "mark-X-0", "component_type": "mark", "owner": "X" }
+            },
+            "hash_chain": {
+              "history_length": 1,
+              "prev_hash_is_null": true
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "ttt_two_moves",
+      "description": "Tic-tac-toe: X places at (1,1), then O places at (0,0). Two full turns.",
+      "game_definition": {
+        "game": { "name": "Tic-Tac-Toe", "players": ["X", "O"], "information": "perfect" },
+        "zones": {
+          "board": { "zone_type": "grid", "dimensions": [3, 3], "visibility": "public" }
+        },
+        "components": {
+          "mark": { "owner": "per_player", "count": "unlimited" }
+        },
+        "turn_order": { "type": "alternating", "players": ["X", "O"], "actions_per_turn": 1, "mandatory": true },
+        "end_conditions": [
+          { "result": "win", "player": "current", "condition": "three_in_line" },
+          { "result": "draw", "condition": "board_is_full" }
+        ],
+        "authority": { "server_only": [], "client_verifiable": ["all"] }
+      },
+      "initial_setup": [],
+      "actions": [
+        {
+          "action": {
+            "action_type": "place",
+            "component_type": "mark",
+            "to": { "zone": "board", "cell": "1,1" }
+          },
+          "expected": {
+            "acting_player": "X",
+            "status": "in_progress",
+            "next_turn": "O",
+            "sequence": 1,
+            "move_count": 1,
+            "events": [
+              { "event_type": "place", "player": "X", "component_id": "mark-X-0", "to": "1,1" },
+              { "event_type": "turn_advance", "player": "O" }
+            ],
+            "board_cells": {
+              "1,1": { "id": "mark-X-0", "component_type": "mark", "owner": "X" }
+            },
+            "hash_chain": {
+              "history_length": 1,
+              "prev_hash_is_null": true
+            }
+          }
+        },
+        {
+          "action": {
+            "action_type": "place",
+            "component_type": "mark",
+            "to": { "zone": "board", "cell": "0,0" }
+          },
+          "expected": {
+            "acting_player": "O",
+            "status": "in_progress",
+            "next_turn": "X",
+            "sequence": 2,
+            "move_count": 2,
+            "events": [
+              { "event_type": "place", "player": "O", "component_id": "mark-O-1", "to": "0,0" },
+              { "event_type": "turn_advance", "player": "X" }
+            ],
+            "board_cells": {
+              "1,1": { "id": "mark-X-0", "component_type": "mark", "owner": "X" },
+              "0,0": { "id": "mark-O-1", "component_type": "mark", "owner": "O" }
+            },
+            "hash_chain": {
+              "history_length": 2,
+              "prev_hash_is_null": false,
+              "hashes_are_distinct": true
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "move_piece_on_grid",
+      "description": "Chess-like: move a pre-placed white rook from (0,0) to (0,5).",
+      "game_definition": {
+        "game": { "name": "ChessTest", "players": ["white", "black"], "information": "perfect" },
+        "zones": {
+          "board": { "zone_type": "grid", "dimensions": [8, 8], "visibility": "public" }
+        },
+        "components": {
+          "rook": { "owner": "per_player", "count": 2 }
+        },
+        "turn_order": { "type": "alternating", "players": ["white", "black"] },
+        "end_conditions": [{ "result": "win", "condition": "checkmate" }],
+        "authority": { "server_only": [], "client_verifiable": ["all"] }
+      },
+      "initial_setup": [
+        { "string_id": "wr1", "component_type": "rook", "owner": "white", "zone": "board", "col": 0, "row": 0 }
+      ],
+      "actions": [
+        {
+          "action": {
+            "action_type": "move_piece",
+            "from": { "zone": "board", "cell": "0,0" },
+            "to": { "zone": "board", "cell": "0,5" }
+          },
+          "expected": {
+            "acting_player": "white",
+            "status": "in_progress",
+            "next_turn": "black",
+            "sequence": 1,
+            "move_count": 1,
+            "events": [
+              { "event_type": "move_piece", "player": "white", "component_id": "wr1", "from": "0,0", "to": "0,5" },
+              { "event_type": "turn_advance", "player": "black" }
+            ],
+            "board_cells": {
+              "0,5": { "id": "wr1", "component_type": "rook", "owner": "white" }
+            },
+            "board_empty_cells": ["0,0"],
+            "hash_chain": {
+              "history_length": 1,
+              "prev_hash_is_null": true
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "capture_enemy_piece",
+      "description": "Chess-like: white rook at (0,0) captures black rook at (0,5).",
+      "game_definition": {
+        "game": { "name": "ChessTest", "players": ["white", "black"], "information": "perfect" },
+        "zones": {
+          "board": { "zone_type": "grid", "dimensions": [8, 8], "visibility": "public" }
+        },
+        "components": {
+          "rook": { "owner": "per_player", "count": 2 }
+        },
+        "turn_order": { "type": "alternating", "players": ["white", "black"] },
+        "end_conditions": [{ "result": "win", "condition": "checkmate" }],
+        "authority": { "server_only": [], "client_verifiable": ["all"] }
+      },
+      "initial_setup": [
+        { "string_id": "wr1", "component_type": "rook", "owner": "white", "zone": "board", "col": 0, "row": 0 },
+        { "string_id": "br1", "component_type": "rook", "owner": "black", "zone": "board", "col": 0, "row": 5 }
+      ],
+      "actions": [
+        {
+          "action": {
+            "action_type": "move_piece",
+            "from": { "zone": "board", "cell": "0,0" },
+            "to": { "zone": "board", "cell": "0,5" }
+          },
+          "expected": {
+            "acting_player": "white",
+            "status": "in_progress",
+            "next_turn": "black",
+            "sequence": 1,
+            "move_count": 1,
+            "events": [
+              { "event_type": "capture", "player": "white", "component_id": "br1", "to": "0,5" },
+              { "event_type": "move_piece", "player": "white", "component_id": "wr1", "from": "0,0", "to": "0,5" },
+              { "event_type": "turn_advance", "player": "black" }
+            ],
+            "board_cells": {
+              "0,5": { "id": "wr1", "component_type": "rook", "owner": "white" }
+            },
+            "board_empty_cells": ["0,0"],
+            "hash_chain": {
+              "history_length": 1,
+              "prev_hash_is_null": true
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "resign_ends_game",
+      "description": "Tic-tac-toe: X resigns immediately. Game status becomes finished.",
+      "game_definition": {
+        "game": { "name": "Tic-Tac-Toe", "players": ["X", "O"], "information": "perfect" },
+        "zones": {
+          "board": { "zone_type": "grid", "dimensions": [3, 3], "visibility": "public" }
+        },
+        "components": {
+          "mark": { "owner": "per_player", "count": "unlimited" }
+        },
+        "turn_order": { "type": "alternating", "players": ["X", "O"], "actions_per_turn": 1, "mandatory": true },
+        "end_conditions": [
+          { "result": "win", "player": "current", "condition": "three_in_line" },
+          { "result": "draw", "condition": "board_is_full" }
+        ],
+        "authority": { "server_only": [], "client_verifiable": ["all"] }
+      },
+      "initial_setup": [],
+      "actions": [
+        {
+          "action": {
+            "action_type": "resign"
+          },
+          "expected": {
+            "acting_player": "X",
+            "status": "finished",
+            "next_turn": "O",
+            "sequence": 1,
+            "move_count": 1,
+            "events": [
+              { "event_type": "resign", "player": "X" },
+              { "event_type": "turn_advance", "player": "O" }
+            ],
+            "board_cells": {},
+            "hash_chain": {
+              "history_length": 1,
+              "prev_hash_is_null": true
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "pass_advances_turn",
+      "description": "Tic-tac-toe: X passes. Turn advances to O without board change.",
+      "game_definition": {
+        "game": { "name": "Tic-Tac-Toe", "players": ["X", "O"], "information": "perfect" },
+        "zones": {
+          "board": { "zone_type": "grid", "dimensions": [3, 3], "visibility": "public" }
+        },
+        "components": {
+          "mark": { "owner": "per_player", "count": "unlimited" }
+        },
+        "turn_order": { "type": "alternating", "players": ["X", "O"], "actions_per_turn": 1, "mandatory": true },
+        "end_conditions": [
+          { "result": "win", "player": "current", "condition": "three_in_line" },
+          { "result": "draw", "condition": "board_is_full" }
+        ],
+        "authority": { "server_only": [], "client_verifiable": ["all"] }
+      },
+      "initial_setup": [],
+      "actions": [
+        {
+          "action": {
+            "action_type": "pass"
+          },
+          "expected": {
+            "acting_player": "X",
+            "status": "in_progress",
+            "next_turn": "O",
+            "sequence": 1,
+            "move_count": 1,
+            "events": [
+              { "event_type": "pass", "player": "X" },
+              { "event_type": "turn_advance", "player": "O" }
+            ],
+            "board_cells": {},
+            "hash_chain": {
+              "history_length": 1,
+              "prev_hash_is_null": true
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "flip_component",
+      "description": "Flip a face-up token to face-down. Verifies facing state toggle.",
+      "game_definition": {
+        "game": { "name": "FlipTest", "players": ["alice", "bob"], "information": "perfect" },
+        "zones": {
+          "board": { "zone_type": "grid", "dimensions": [4, 4], "visibility": "public" }
+        },
+        "components": {
+          "token": { "owner": "per_player", "count": 4 }
+        },
+        "turn_order": { "type": "alternating", "players": ["alice", "bob"] },
+        "end_conditions": [{ "result": "win", "condition": "all_flipped" }],
+        "authority": { "server_only": [], "client_verifiable": ["all"] }
+      },
+      "initial_setup": [
+        { "string_id": "t1", "component_type": "token", "owner": "alice", "facing": "face_up", "zone": "board", "col": 1, "row": 1 }
+      ],
+      "actions": [
+        {
+          "action": {
+            "action_type": "flip",
+            "component_id": "t1"
+          },
+          "expected": {
+            "acting_player": "alice",
+            "status": "in_progress",
+            "next_turn": "bob",
+            "sequence": 1,
+            "move_count": 1,
+            "events": [
+              { "event_type": "flip", "player": "alice", "component_id": "t1" },
+              { "event_type": "turn_advance", "player": "bob" }
+            ],
+            "component_state": {
+              "t1": { "facing": "face_down" }
+            },
+            "hash_chain": {
+              "history_length": 1,
+              "prev_hash_is_null": true
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "hash_chain_three_moves",
+      "description": "Three sequential tic-tac-toe moves. Verifies hash chain integrity: each state hash is unique, and prev_hash links correctly.",
+      "game_definition": {
+        "game": { "name": "Tic-Tac-Toe", "players": ["X", "O"], "information": "perfect" },
+        "zones": {
+          "board": { "zone_type": "grid", "dimensions": [3, 3], "visibility": "public" }
+        },
+        "components": {
+          "mark": { "owner": "per_player", "count": "unlimited" }
+        },
+        "turn_order": { "type": "alternating", "players": ["X", "O"], "actions_per_turn": 1, "mandatory": true },
+        "end_conditions": [
+          { "result": "win", "player": "current", "condition": "three_in_line" },
+          { "result": "draw", "condition": "board_is_full" }
+        ],
+        "authority": { "server_only": [], "client_verifiable": ["all"] }
+      },
+      "initial_setup": [],
+      "actions": [
+        {
+          "action": {
+            "action_type": "place",
+            "component_type": "mark",
+            "to": { "zone": "board", "cell": "1,1" }
+          },
+          "expected": {
+            "acting_player": "X",
+            "status": "in_progress",
+            "next_turn": "O",
+            "sequence": 1,
+            "move_count": 1,
+            "hash_chain": {
+              "history_length": 1,
+              "prev_hash_is_null": true
+            }
+          }
+        },
+        {
+          "action": {
+            "action_type": "place",
+            "component_type": "mark",
+            "to": { "zone": "board", "cell": "0,0" }
+          },
+          "expected": {
+            "acting_player": "O",
+            "status": "in_progress",
+            "next_turn": "X",
+            "sequence": 2,
+            "move_count": 2,
+            "hash_chain": {
+              "history_length": 2,
+              "prev_hash_is_null": false,
+              "hashes_are_distinct": true
+            }
+          }
+        },
+        {
+          "action": {
+            "action_type": "place",
+            "component_type": "mark",
+            "to": { "zone": "board", "cell": "2,2" }
+          },
+          "expected": {
+            "acting_player": "X",
+            "status": "in_progress",
+            "next_turn": "O",
+            "sequence": 3,
+            "move_count": 3,
+            "hash_chain": {
+              "history_length": 3,
+              "prev_hash_is_null": false,
+              "hashes_are_distinct": true,
+              "all_hashes_unique": true
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

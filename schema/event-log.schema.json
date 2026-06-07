@@ -1,0 +1,191 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://baize.dev/schema/v1/event-log.schema.json",
+  "title": "Baize Event Log Entry",
+  "description": "Schema for a single line in a Baize JSONL event log. Each line is an independent JSON object. Events are hash-chained: each entry includes the BLAKE3 hash of the previous entry, forming a tamper-evident Merkle chain for tournament integrity and mechanical diffing between Rust and Python implementations.",
+  "type": "object",
+  "required": [
+    "game_id",
+    "sequence",
+    "event_type",
+    "player",
+    "state_hash",
+    "prev_hash",
+    "event_hash",
+    "payload"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "game_id": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Unique identifier for the game session this event belongs to."
+    },
+    "sequence": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Zero-based monotonically increasing sequence number within this game's event log."
+    },
+    "timestamp": {
+      "type": "string",
+      "format": "date-time",
+      "description": "ISO 8601 timestamp of when the event was emitted. Optional for deterministic replay; required for tournament logs."
+    },
+    "event_type": {
+      "$ref": "#/$defs/event_type",
+      "description": "The category of event."
+    },
+    "player": {
+      "type": "string",
+      "description": "The player who triggered or is affected by this event. Empty string for system events (game_over with no specific actor)."
+    },
+    "state_hash": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$",
+      "description": "BLAKE3 hash of the game state after this event has been applied."
+    },
+    "prev_hash": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$",
+      "description": "BLAKE3 hash of the previous event (event_hash of sequence N-1). The first event uses the genesis hash: 64 zero characters."
+    },
+    "event_hash": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$",
+      "description": "BLAKE3 hash of this event's canonical form, computed over the JSON serialization of {game_id, sequence, event_type, player, state_hash, prev_hash, payload} with keys sorted, compact separators (',', ':'), and UTF-8 encoding."
+    },
+    "payload": {
+      "$ref": "#/$defs/payload",
+      "description": "Event-type-specific data."
+    }
+  },
+  "$defs": {
+    "event_type": {
+      "enum": [
+        "move_applied",
+        "state_transition",
+        "game_over",
+        "random_value",
+        "visibility_check"
+      ],
+      "description": "High-level event categories. move_applied: a player action was validated and applied. state_transition: engine-generated state change (turn advance, phase change, chain reaction). game_over: the game has ended. random_value: a random value was generated or revealed. visibility_check: a visibility query or hidden-state reveal occurred."
+    },
+    "payload": {
+      "type": "object",
+      "description": "Event-specific payload. Fields vary by event_type. All fields are optional to allow forward compatibility.",
+      "properties": {
+        "action": {
+          "$ref": "#/$defs/action_type",
+          "description": "The specific action that was applied (for move_applied events)."
+        },
+        "component_id": {
+          "type": "string",
+          "description": "Identifier of the component acted upon."
+        },
+        "from": {
+          "type": "string",
+          "description": "Source position as a coordinate string (e.g. '1,0')."
+        },
+        "to": {
+          "type": "string",
+          "description": "Destination position as a coordinate string (e.g. '1,2')."
+        },
+        "captured": {
+          "type": "string",
+          "description": "Identifier of a captured or removed component."
+        },
+        "detail": {
+          "type": "string",
+          "description": "Free-form detail string for additional context."
+        },
+        "transition": {
+          "$ref": "#/$defs/transition_type",
+          "description": "The specific state transition (for state_transition events)."
+        },
+        "next_player": {
+          "type": "string",
+          "description": "The player whose turn it is after a turn_advance transition."
+        },
+        "outcome": {
+          "enum": ["win", "draw", "abandoned"],
+          "description": "How the game ended (for game_over events)."
+        },
+        "winner": {
+          "type": "string",
+          "description": "The winning player (for game_over events with outcome 'win')."
+        },
+        "condition": {
+          "type": "string",
+          "description": "Name of the end condition that triggered (e.g. 'three_in_a_row', 'checkmate')."
+        },
+        "random_type": {
+          "type": "string",
+          "description": "Kind of randomness (e.g. 'roll', 'draw', 'shuffle') for random_value events."
+        },
+        "random_result": {
+          "description": "The random value produced. Type varies: integer for dice, string for card draws, array for shuffles.",
+          "oneOf": [
+            { "type": "integer" },
+            { "type": "number" },
+            { "type": "string" },
+            {
+              "type": "array",
+              "items": {}
+            }
+          ]
+        },
+        "zone": {
+          "type": "string",
+          "description": "Zone name relevant to this event."
+        },
+        "visibility": {
+          "enum": ["public", "private", "hidden"],
+          "description": "Visibility tier for visibility_check events."
+        },
+        "revealed_to": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Players who can see the revealed information."
+        },
+        "final_scores": {
+          "type": "object",
+          "additionalProperties": {
+            "oneOf": [
+              { "type": "integer" },
+              { "type": "number" }
+            ]
+          },
+          "description": "Final scores per player (for game_over events)."
+        }
+      },
+      "additionalProperties": false
+    },
+    "action_type": {
+      "enum": [
+        "move_piece",
+        "place",
+        "capture",
+        "draw",
+        "play_card",
+        "discard",
+        "flip",
+        "promote",
+        "swap",
+        "remove",
+        "pass",
+        "resign"
+      ],
+      "description": "Specific player actions. These correspond to the action types in the Rust EventType enum and Python EventTypeLiteral (excluding engine-generated events turn_advance and game_end, which map to state_transition and game_over respectively)."
+    },
+    "transition_type": {
+      "enum": [
+        "turn_advance",
+        "phase_change",
+        "chain_reaction",
+        "auto_capture",
+        "promotion_required"
+      ],
+      "description": "Engine-generated state transitions that are not direct player actions."
+    }
+  }
+}
