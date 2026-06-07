@@ -1,0 +1,54 @@
+{
+  "$schema": "../schema/game-definition.schema.json",
+  "game": {
+    "name": "Tic-Tac-Toe",
+    "players": ["X", "O"],
+    "information": "perfect"
+  },
+  "zones": {
+    "board": {
+      "zone_type": "grid",
+      "dimensions": [3, 3],
+      "visibility": "public",
+      "labels": {
+        "files": ["a", "b", "c"],
+        "ranks": [1, 2, 3]
+      }
+    }
+  },
+  "components": {
+    "mark": {
+      "owner": "per_player",
+      "count": "unlimited"
+    }
+  },
+  "turn_order": {
+    "type": "alternating",
+    "players": ["X", "O"],
+    "actions_per_turn": 1,
+    "mandatory": true
+  },
+  "rules": {
+    "placement": {
+      "action": "place(mark, board/cell)",
+      "constraint": "cell is empty"
+    }
+  },
+  "end_conditions": [
+    {
+      "result": "win",
+      "player": "current",
+      "condition": "three_in_line(current.marks, row OR column OR diagonal)",
+      "name": "three_in_a_row"
+    },
+    {
+      "result": "draw",
+      "condition": "all_cells_occupied(board)",
+      "name": "board_full"
+    }
+  ],
+  "authority": {
+    "server_only": [],
+    "client_verifiable": ["place(mark, board/cell)"]
+  }
+}

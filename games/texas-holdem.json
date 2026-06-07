@@ -1,0 +1,141 @@
+{
+  "$schema": "../schema/game-definition.schema.json",
+  "game": {
+    "name": "Texas Hold'em",
+    "players": { "min": 2, "max": 10 },
+    "information": "imperfect"
+  },
+  "zones": {
+    "deck": {
+      "zone_type": "ordered_stack",
+      "capacity": 52,
+      "visibility": "hidden",
+      "note": "shuffled deck, only server knows order"
+    },
+    "community": {
+      "zone_type": "set",
+      "capacity": 5,
+      "visibility": "public",
+      "note": "shared community cards"
+    },
+    "hand": {
+      "zone_type": "set",
+      "per_player": true,
+      "capacity": 2,
+      "visibility": { "private": "owner" },
+      "note": "hole cards, only owner sees"
+    },
+    "pot": {
+      "zone_type": "counter",
+      "visibility": "public"
+    },
+    "player_chips": {
+      "zone_type": "counter",
+      "per_player": true,
+      "visibility": "public"
+    },
+    "discard": {
+      "zone_type": "set",
+      "visibility": "hidden",
+      "note": "burn cards"
+    }
+  },
+  "components": {
+    "card": {
+      "registry": "standard:french-52",
+      "properties": {
+        "suit": ["hearts", "diamonds", "clubs", "spades"],
+        "rank": ["2", "3", "4", "5", "6", "7", "8", "9", "10", "J", "Q", "K", "A"]
+      },
+      "facing": "face_down",
+      "count": 52
+    }
+  },
+  "turn_order": {
+    "type": "round_robin"
+  },
+  "phases": [
+    {
+      "name": "deal",
+      "server_action": "deal(deck, hand, count:2, to:each_player)"
+    },
+    {
+      "name": "preflop",
+      "type": "betting_round",
+      "starts_with": "player_after(big_blind)"
+    },
+    {
+      "name": "flop",
+      "server_action": [
+        "burn(deck, discard, count:1)",
+        "reveal(deck, community, count:3)"
+      ],
+      "then": "betting_round(starts_with: first_active_after(dealer))"
+    },
+    {
+      "name": "turn",
+      "server_action": [
+        "burn(deck, discard, count:1)",
+        "reveal(deck, community, count:1)"
+      ],
+      "then": "betting_round(starts_with: first_active_after(dealer))"
+    },
+    {
+      "name": "river",
+      "server_action": [
+        "burn(deck, discard, count:1)",
+        "reveal(deck, community, count:1)"
+      ],
+      "then": "betting_round(starts_with: first_active_after(dealer))"
+    },
+    {
+      "name": "showdown",
+      "action": "reveal(hand, to:all) for remaining players",
+      "resolve": "best_hand(hand + community) wins pot"
+    }
+  ],
+  "hand_rankings": [
+    "royal_flush",
+    "straight_flush",
+    "four_of_a_kind",
+    "full_house",
+    "flush",
+    "straight",
+    "three_of_a_kind",
+    "two_pair",
+    "one_pair",
+    "high_card"
+  ],
+  "betting_round": {
+    "actions": ["fold", "check", "call", "raise", "all_in"],
+    "ends_when": "all active players have acted and bets are equal"
+  },
+  "end_conditions": [
+    {
+      "result": "win",
+      "condition": "last_player_standing (all others folded)",
+      "name": "all_fold"
+    },
+    {
+      "result": "win",
+      "condition": "best_hand(hand + community) at showdown",
+      "name": "showdown"
+    }
+  ],
+  "authority": {
+    "server_only": [
+      "shuffle(deck)",
+      "deal(deck, hand)",
+      "burn(deck, discard)",
+      "reveal(deck, community)",
+      "resolve_side_pots"
+    ],
+    "client_verifiable": [
+      "fold()",
+      "check()",
+      "call()",
+      "raise(amount)",
+      "hand_comparison()"
+    ]
+  }
+}
