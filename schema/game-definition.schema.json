@@ -269,13 +269,8 @@
           "description": "Inherit from a registry entry and override/add properties."
         },
         "owner": {
-          "oneOf": [
-            { "const": "per_player" },
-            { "const": "neutral" },
-            { "const": "shared" },
-            { "type": "string" }
-          ],
-          "description": "Which player owns this component, or \"per_player\" for one-per-player."
+          "type": "string",
+          "description": "Which player owns this component. Common values: \"per_player\", \"neutral\", \"shared\", or a specific player name."
         },
         "count": {
           "oneOf": [
@@ -422,18 +417,13 @@
     "direction": {
       "oneOf": [
         {
-          "enum": ["orthogonal", "diagonal", "adjacent", "forward", "forward_diagonal", "backward", "backward_diagonal"]
+          "type": "string",
+          "description": "Direction name. Common values: orthogonal, diagonal, adjacent, forward, forward_diagonal, backward, backward_diagonal, or a game-specific name."
         },
         {
           "type": "array",
-          "items": {
-            "enum": ["orthogonal", "diagonal"]
-          },
+          "items": { "type": "string" },
           "description": "Combination of directions."
-        },
-        {
-          "type": "string",
-          "description": "Named direction specific to the game."
         }
       ]
     },
