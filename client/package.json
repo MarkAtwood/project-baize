@@ -1,0 +1,18 @@
+{
+  "name": "@baize/client",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Baize game client — Web Components + WASM engine",
+  "type": "module",
+  "main": "dist/baize.js",
+  "scripts": {
+    "build": "esbuild src/index.ts --bundle --format=esm --outfile=dist/baize.js --sourcemap",
+    "build:iife": "esbuild src/index.ts --bundle --format=iife --global-name=Baize --outfile=dist/baize.iife.js --sourcemap",
+    "typecheck": "tsc --noEmit",
+    "dev": "esbuild src/index.ts --bundle --format=esm --outfile=dist/baize.js --sourcemap --watch --servedir=."
+  },
+  "devDependencies": {
+    "esbuild": "^0.25.0",
+    "typescript": "^5.7.0"
+  }
+}
