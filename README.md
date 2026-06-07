@@ -89,3 +89,9 @@ In practice:
 | Your game server using Baize | AGPL-3.0 | Yes |
 | Your standalone desktop client | AGPL-3.0 | Yes |
 | Your fork of the reference server | AGPL-3.0 | Yes |
+
+**Your game definitions** (the JSON files describing your game) are yours
+to license however you want. But consider: a client needs to fetch, parse,
+and cache your game schema to play it. A server needs to read it to host it.
+If your license prohibits that, nobody can play your game. We recommend
+CC-BY-SA or something similarly permissive for game definitions.
