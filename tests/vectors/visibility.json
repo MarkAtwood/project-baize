@@ -1,0 +1,327 @@
+{
+  "_comment": "Visibility model test vectors for Baize (baize-562.4). Each test case defines a game state and specifies what a given viewer should and should not see.",
+
+  "game_definition": {
+    "game": {
+      "name": "Visibility Test Game",
+      "players": ["alice", "bob"],
+      "information": "imperfect"
+    },
+    "zones": {
+      "community": {
+        "zone_type": "set",
+        "visibility": "public",
+        "capacity": 5
+      },
+      "deck": {
+        "zone_type": "ordered_stack",
+        "visibility": "hidden",
+        "capacity": 52
+      },
+      "discard": {
+        "zone_type": "set",
+        "visibility": "hidden"
+      },
+      "hand": {
+        "zone_type": "set",
+        "per_player": true,
+        "capacity": 5,
+        "visibility": { "private": "owner" }
+      },
+      "score": {
+        "zone_type": "counter",
+        "per_player": true,
+        "visibility": "public"
+      }
+    },
+    "components": {
+      "card": { "count": 52 }
+    },
+    "turn_order": { "type": "alternating", "players": ["alice", "bob"] },
+    "end_conditions": [
+      { "result": "win", "condition": "hand_empty" }
+    ],
+    "authority": {
+      "server_only": ["shuffle", "deal"],
+      "client_verifiable": ["play_card"]
+    }
+  },
+
+  "setup": {
+    "_comment": "Component placements. Each entry names a component and its location.",
+    "components": [
+      {
+        "id": "card-AH",
+        "component_type": "card",
+        "properties": { "suit": "hearts", "rank": "A" },
+        "zone": "community",
+        "owner": null
+      },
+      {
+        "id": "card-KH",
+        "component_type": "card",
+        "properties": { "suit": "hearts", "rank": "K" },
+        "zone": "community",
+        "owner": null
+      },
+      {
+        "id": "card-QS",
+        "component_type": "card",
+        "properties": { "suit": "spades", "rank": "Q" },
+        "zone": "community",
+        "owner": null
+      },
+      {
+        "id": "card-2D",
+        "component_type": "card",
+        "properties": { "suit": "diamonds", "rank": "2" },
+        "zone": "deck",
+        "owner": null
+      },
+      {
+        "id": "card-3D",
+        "component_type": "card",
+        "properties": { "suit": "diamonds", "rank": "3" },
+        "zone": "deck",
+        "owner": null
+      },
+      {
+        "id": "card-4C",
+        "component_type": "card",
+        "properties": { "suit": "clubs", "rank": "4" },
+        "zone": "deck",
+        "owner": null
+      },
+      {
+        "id": "card-7H",
+        "component_type": "card",
+        "properties": { "suit": "hearts", "rank": "7" },
+        "zone": "discard",
+        "owner": null
+      },
+      {
+        "id": "card-JD",
+        "component_type": "card",
+        "properties": { "suit": "diamonds", "rank": "J" },
+        "zone": "hand",
+        "owner": "alice"
+      },
+      {
+        "id": "card-10S",
+        "component_type": "card",
+        "properties": { "suit": "spades", "rank": "10" },
+        "zone": "hand",
+        "owner": "alice"
+      },
+      {
+        "id": "card-5C",
+        "component_type": "card",
+        "properties": { "suit": "clubs", "rank": "5" },
+        "zone": "hand",
+        "owner": "bob"
+      },
+      {
+        "id": "card-9H",
+        "component_type": "card",
+        "properties": { "suit": "hearts", "rank": "9" },
+        "zone": "hand",
+        "owner": "bob"
+      },
+      {
+        "id": "card-KD",
+        "component_type": "card",
+        "properties": { "suit": "diamonds", "rank": "K" },
+        "zone": "hand",
+        "owner": "bob"
+      }
+    ]
+  },
+
+  "test_cases": [
+    {
+      "name": "public_zone_visible_to_all",
+      "description": "All players can see all components in a public zone (community cards).",
+      "viewer": "alice",
+      "expected_visible": {
+        "zones": {
+          "community": ["card-AH", "card-KH", "card-QS"]
+        }
+      },
+      "expected_hidden": {
+        "zones": {}
+      }
+    },
+    {
+      "name": "public_zone_visible_to_other_player",
+      "description": "The other player also sees all public zone components.",
+      "viewer": "bob",
+      "expected_visible": {
+        "zones": {
+          "community": ["card-AH", "card-KH", "card-QS"]
+        }
+      },
+      "expected_hidden": {
+        "zones": {}
+      }
+    },
+    {
+      "name": "hidden_zone_invisible_to_alice",
+      "description": "No player can see components in a hidden zone (deck). The zone exists but components are redacted.",
+      "viewer": "alice",
+      "expected_visible": {
+        "zones": {}
+      },
+      "expected_hidden": {
+        "zones": {
+          "deck": ["card-2D", "card-3D", "card-4C"],
+          "discard": ["card-7H"]
+        }
+      }
+    },
+    {
+      "name": "hidden_zone_invisible_to_bob",
+      "description": "Bob also cannot see hidden zone contents.",
+      "viewer": "bob",
+      "expected_visible": {
+        "zones": {}
+      },
+      "expected_hidden": {
+        "zones": {
+          "deck": ["card-2D", "card-3D", "card-4C"],
+          "discard": ["card-7H"]
+        }
+      }
+    },
+    {
+      "name": "private_zone_visible_to_owner",
+      "description": "Alice can see her own hand (private zone with owner visibility).",
+      "viewer": "alice",
+      "expected_visible": {
+        "player_zones": {
+          "alice": {
+            "hand": ["card-JD", "card-10S"]
+          }
+        }
+      },
+      "expected_hidden": {
+        "player_zones": {}
+      }
+    },
+    {
+      "name": "private_zone_hidden_from_non_owner",
+      "description": "Alice MUST NOT see Bob's hand. This is the critical security invariant.",
+      "viewer": "alice",
+      "expected_visible": {
+        "player_zones": {
+          "alice": {
+            "hand": ["card-JD", "card-10S"]
+          }
+        }
+      },
+      "expected_hidden": {
+        "player_zones": {
+          "bob": {
+            "hand": ["card-5C", "card-9H", "card-KD"]
+          }
+        }
+      }
+    },
+    {
+      "name": "private_zone_symmetric_for_bob",
+      "description": "Bob sees his own hand but not Alice's. Symmetry of privacy.",
+      "viewer": "bob",
+      "expected_visible": {
+        "player_zones": {
+          "bob": {
+            "hand": ["card-5C", "card-9H", "card-KD"]
+          }
+        }
+      },
+      "expected_hidden": {
+        "player_zones": {
+          "alice": {
+            "hand": ["card-JD", "card-10S"]
+          }
+        }
+      }
+    },
+    {
+      "name": "server_sees_everything",
+      "description": "The server view includes all components in all zones regardless of visibility.",
+      "viewer": "__server__",
+      "expected_visible": {
+        "zones": {
+          "community": ["card-AH", "card-KH", "card-QS"],
+          "deck": ["card-2D", "card-3D", "card-4C"],
+          "discard": ["card-7H"]
+        },
+        "player_zones": {
+          "alice": {
+            "hand": ["card-JD", "card-10S"]
+          },
+          "bob": {
+            "hand": ["card-5C", "card-9H", "card-KD"]
+          }
+        }
+      },
+      "expected_hidden": {
+        "zones": {},
+        "player_zones": {}
+      }
+    },
+    {
+      "name": "hidden_zone_count_only",
+      "description": "For hidden zones, the player view may include the count but not the component identities or properties.",
+      "viewer": "alice",
+      "expected_visible": {
+        "zone_counts": {
+          "deck": 3,
+          "discard": 1
+        }
+      },
+      "expected_hidden": {
+        "zones": {
+          "deck": ["card-2D", "card-3D", "card-4C"],
+          "discard": ["card-7H"]
+        }
+      }
+    },
+    {
+      "name": "private_zone_count_for_non_owner",
+      "description": "A non-owner may see the count of a private zone but not the contents.",
+      "viewer": "alice",
+      "expected_visible": {
+        "player_zone_counts": {
+          "bob": {
+            "hand": 3
+          }
+        }
+      },
+      "expected_hidden": {
+        "player_zones": {
+          "bob": {
+            "hand": ["card-5C", "card-9H", "card-KD"]
+          }
+        }
+      }
+    },
+    {
+      "name": "public_counter_visible",
+      "description": "Public per-player counters (like chip counts) are visible to all players.",
+      "viewer": "alice",
+      "expected_visible": {
+        "player_zones": {
+          "alice": {
+            "score": "counter"
+          },
+          "bob": {
+            "score": "counter"
+          }
+        }
+      },
+      "expected_hidden": {
+        "player_zones": {}
+      }
+    }
+  ]
+}
