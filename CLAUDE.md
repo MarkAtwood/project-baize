@@ -52,18 +52,44 @@ bd close <id>         # Complete work
 
 ## Build & Test
 
-_Add your build and test commands here_
-
 ```bash
-# Example:
-# npm install
-# npm test
+# Rust engine (28 tests)
+cd engine && cargo test
+
+# Rust server (builds, no tests yet)
+cd server && cargo build
+
+# Python (30 tests)
+cd python && python3 -m pytest tests/ -v
+
+# TypeScript client (type-check only, no runtime tests)
+cd client && npx tsc --noEmit
 ```
 
 ## Architecture Overview
 
-_Add a brief overview of your project architecture_
+Baize is a declarative board game engine with a three-tier trust architecture:
+
+- **Tier 1 — Declarative Schema**: JSON game definitions (`games/*.json`) validated against JSON Schema (`schema/*.json`). Covers zones, components, movement, turn order, phases, end conditions, authority.
+- **Tier 2 — WASM Extensions**: Optional game-specific logic via `GameExtension` trait for complex scoring, chain reactions, custom validation. Compiled to WASM, runs on both client and server.
+- **Tier 3 — Server Authority**: Hidden state vault, cryptographic randomness (ChaCha20Rng), move sequencing. The server's irreducible responsibility.
+
+Key directories:
+- `schema/` — JSON Schema definitions (draft 2020-12)
+- `games/` — Reference game definitions (tic-tac-toe, chess, poker, etc.)
+- `registry/` — Reusable component definitions (cards, dice, pieces, boards)
+- `engine/` — Rust core engine (compiles to native + WASM via wasm-bindgen)
+- `python/` — Python reference implementation (3.12+, strict mypy)
+- `server/` — Axum WebSocket game server
+- `client/` — TypeScript Web Components (`<baize-game>`, `<baize-board>`, etc.)
+- `tests/vectors/` — Cross-implementation test vectors (JSON)
 
 ## Conventions & Patterns
 
-_Add your project-specific conventions here_
+- **Deterministic engine**: Pure function `(state, action) → (state, events)`. No side effects. Seeded PRNG.
+- **Event logging**: JSONL with BLAKE3 hash chaining for tournament integrity.
+- **Component IDs**: Arena-based `ComponentId(usize)` in both Rust and Python.
+- **Grid indexing**: Flat `Vec<Option<ComponentId>>` indexed by `row * width + col`.
+- **Serde patterns**: `#[serde(tag = "...")]` for discriminated unions, `#[serde(untagged)]` for polymorphic types.
+- **Python style**: Dataclasses, no inheritance trees, `from_dict()`/`to_dict()` for serialization.
+- **Schema `oneOf` rule**: Never combine `{const: "foo"}` with `{type: "string"}` in a `oneOf` — use a single `{type: "string"}` with descriptive text instead.
