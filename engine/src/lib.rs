@@ -1,6 +1,7 @@
 pub mod action;
 pub mod definition;
 pub mod error;
+pub mod extension;
 pub mod moves;
 pub mod registry;
 pub mod runtime;
