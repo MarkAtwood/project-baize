@@ -1,0 +1,34 @@
+{
+  "$schema": "https://baize.dev/schema/v1/component-registry.schema.json",
+  "id": "standard:chess-pieces",
+  "name": "International Chess Pieces",
+  "component_type": "piece_set",
+  "glyphs": {
+    "white": {
+      "king": "\u2654",
+      "queen": "\u2655",
+      "rook": "\u2656",
+      "bishop": "\u2657",
+      "knight": "\u2658",
+      "pawn": "\u2659"
+    },
+    "black": {
+      "king": "\u265a",
+      "queen": "\u265b",
+      "rook": "\u265c",
+      "bishop": "\u265d",
+      "knight": "\u265e",
+      "pawn": "\u265f"
+    }
+  },
+  "movement": {
+    "king": "step(adjacent, 1)",
+    "queen": "slide(orthogonal | diagonal)",
+    "rook": "slide(orthogonal)",
+    "bishop": "slide(diagonal)",
+    "knight": "leap(1,2) | leap(2,1)",
+    "pawn": "step(forward, 1, if:empty) | step(forward, 2, if:first_move AND empty) | step(forward_diagonal, 1, if:enemy)"
+  },
+  "count": 32,
+  "note": "Standard Staunton-style chess set: 16 pieces per side (1 king, 1 queen, 2 rooks, 2 bishops, 2 knights, 8 pawns)."
+}

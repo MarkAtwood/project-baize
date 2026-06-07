@@ -1,0 +1,18 @@
+{
+  "$schema": "https://baize.dev/schema/v1/component-registry.schema.json",
+  "id": "standard:board-go-19",
+  "name": "Standard Go Board (19x19)",
+  "component_type": "tile_set",
+  "composition": {
+    "topology_type": "grid",
+    "size": [19, 19],
+    "intersections": true,
+    "star_points": [
+      [4, 4], [4, 10], [4, 16],
+      [10, 4], [10, 10], [10, 16],
+      [16, 4], [16, 10], [16, 16]
+    ]
+  },
+  "count": 361,
+  "note": "Standard 19x19 Go board. Pieces are placed on intersections, not cells. Nine star points (hoshi) mark reference positions including the center (tengen)."
+}
