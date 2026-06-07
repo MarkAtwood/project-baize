@@ -6,6 +6,7 @@
 
 # Rust
 engine/target/
+server/target/
 
 # Python
 python/.venv/
@@ -13,3 +14,7 @@ python/*.egg-info/
 python/baize.egg-info/
 __pycache__/
 *.pyc
+
+# TypeScript
+client/node_modules/
+client/dist/
