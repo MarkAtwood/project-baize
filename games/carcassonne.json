@@ -1,0 +1,166 @@
+{
+  "$schema": "../schema/game-definition.schema.json",
+  "game": {
+    "name": "Carcassonne",
+    "players": { "min": 2, "max": 5 },
+    "information": "imperfect"
+  },
+  "zones": {
+    "draw_pile": {
+      "zone_type": "ordered_stack",
+      "capacity": 71,
+      "visibility": "hidden",
+      "note": "71 remaining tiles (1 start tile pre-placed); only server knows order"
+    },
+    "play_area": {
+      "zone_type": "grid",
+      "visibility": "public",
+      "dynamic": true,
+      "adjacency": "orthogonal_4",
+      "cell_type": "tile_slot",
+      "note": "grows as tiles are placed; starts with one tile at origin"
+    },
+    "meeple_supply": {
+      "zone_type": "set",
+      "per_player": true,
+      "capacity": 7,
+      "visibility": "public",
+      "note": "each player's unplaced meeples"
+    },
+    "scoring_track": {
+      "zone_type": "track",
+      "visibility": "public",
+      "length": 50,
+      "lanes": "per_player",
+      "note": "score wraps; points beyond 50 continue around the track"
+    }
+  },
+  "components": {
+    "landscape_tile": {
+      "owner": "neutral",
+      "count": 72,
+      "properties": {
+        "edges": ["city", "road", "field"],
+        "has_pennant": false,
+        "has_monastery": false
+      },
+      "note": "each tile has 4 edges typed as city/road/field; 24 distinct tile configurations in base game"
+    },
+    "meeple": {
+      "owner": "per_player",
+      "count": 7,
+      "note": "placed on features (city, road, monastery, field) of a just-placed tile"
+    }
+  },
+  "turn_order": {
+    "type": "round_robin",
+    "actions_per_turn": [
+      { "draw_tile": 1 },
+      { "place_tile": 1 },
+      { "place_meeple": "0 or 1" }
+    ],
+    "mandatory": true
+  },
+  "phases": [
+    {
+      "name": "draw_tile",
+      "server_action": "draw(draw_pile, current_player, count:1)",
+      "action": "reveal drawn tile to all players"
+    },
+    {
+      "name": "place_tile",
+      "action": "place(landscape_tile, play_area/cell)",
+      "note": "tile must be placed adjacent to an existing tile with all edges matching neighbors"
+    },
+    {
+      "name": "place_meeple",
+      "action": "place(meeple, landscape_tile/feature)",
+      "trigger": "after place_tile, if player has meeple in supply",
+      "note": "meeple goes on one feature (city, road, monastery, or field) of the tile just placed; feature must not already have a meeple on any connected segment"
+    },
+    {
+      "name": "score_completed",
+      "server_action": "wasm:check_completed_features(play_area)",
+      "resolve": "wasm:score_completed_features",
+      "note": "server checks if tile placement completed any cities, roads, or monasteries; scores and returns meeples"
+    }
+  ],
+  "rules": {
+    "tile_placement": {
+      "action": "place(landscape_tile, play_area/cell)",
+      "constraints": [
+        "cell must be empty",
+        "cell must be orthogonally adjacent to at least one placed tile",
+        "all edges touching adjacent tiles must match terrain type (city-city, road-road, field-field)"
+      ],
+      "note": "edge matching is validated by WASM module"
+    },
+    "meeple_placement": {
+      "action": "place(meeple, landscape_tile/feature)",
+      "constraints": [
+        "player must have at least one meeple in supply",
+        "meeple is placed on the tile just placed this turn",
+        "chosen feature (city, road, monastery, field) must not already be occupied by any meeple on connected segments"
+      ],
+      "note": "connected feature occupancy check requires WASM flood-fill"
+    },
+    "city_scoring": {
+      "trigger": "city feature is completely enclosed",
+      "effect": "2 points per tile in city + 2 per pennant; return meeples to owners",
+      "note": "incomplete cities score 1 per tile + 1 per pennant at game end"
+    },
+    "road_scoring": {
+      "trigger": "road feature connects two endpoints (intersection, city, or dead end)",
+      "effect": "1 point per tile in road; return meeples to owners",
+      "note": "incomplete roads score 1 per tile at game end"
+    },
+    "monastery_scoring": {
+      "trigger": "monastery tile is completely surrounded (8 adjacent tiles placed)",
+      "effect": "9 points (1 for monastery + 8 surrounding); return meeple to owner",
+      "note": "incomplete monasteries score 1 + number of surrounding tiles at game end"
+    },
+    "field_scoring": {
+      "trigger": "end of game only",
+      "effect": "3 points per completed city adjacent to the field",
+      "note": "fields never return meeples; field adjacency to cities requires WASM analysis"
+    },
+    "majority_rule": {
+      "definition": "when a feature has multiple meeples (via merging), the player(s) with the most meeples score",
+      "effect": "tied players all receive full points"
+    },
+    "tile_rotation": {
+      "definition": "tiles may be rotated 0, 90, 180, or 270 degrees before placement"
+    }
+  },
+  "end_conditions": [
+    {
+      "result": "win",
+      "player": "highest_score",
+      "condition": "draw_pile is empty AND final scoring complete",
+      "name": "all_tiles_placed"
+    }
+  ],
+  "authority": {
+    "server_only": [
+      "shuffle(draw_pile)",
+      "draw(draw_pile)",
+      "score_completed_features",
+      "final_scoring"
+    ],
+    "client_verifiable": [
+      "place_tile(position, rotation)",
+      "place_meeple(feature)"
+    ],
+    "wasm_required": [
+      "edge_matching_validation",
+      "feature_connectivity",
+      "feature_completion_detection",
+      "city_scoring",
+      "road_scoring",
+      "monastery_scoring",
+      "field_scoring",
+      "majority_resolution"
+    ]
+  },
+  "wasm_module": "carcassonne.wasm"
+}

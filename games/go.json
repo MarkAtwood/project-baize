@@ -1,0 +1,105 @@
+{
+  "$schema": "../schema/game-definition.schema.json",
+  "game": {
+    "name": "Go",
+    "players": ["black", "white"],
+    "information": "perfect"
+  },
+  "zones": {
+    "board": {
+      "zone_type": "grid",
+      "dimensions": [19, 19],
+      "visibility": "public",
+      "intersections": true,
+      "adjacency": "orthogonal_4",
+      "labels": {
+        "files": ["A","B","C","D","E","F","G","H","J","K","L","M","N","O","P","Q","R","S","T"],
+        "ranks": [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19]
+      },
+      "star_points": [
+        [4, 4], [4, 10], [4, 16],
+        [10, 4], [10, 10], [10, 16],
+        [16, 4], [16, 10], [16, 16]
+      ]
+    },
+    "captured_black": {
+      "zone_type": "counter",
+      "visibility": "public",
+      "note": "Count of black stones captured by white"
+    },
+    "captured_white": {
+      "zone_type": "counter",
+      "visibility": "public",
+      "note": "Count of white stones captured by black"
+    }
+  },
+  "components": {
+    "stone": {
+      "owner": "per_player",
+      "count": "unlimited",
+      "movement": [
+        {
+          "primitive": "place",
+          "target_zone": "board",
+          "condition": "intersection is empty"
+        }
+      ]
+    }
+  },
+  "turn_order": {
+    "type": "alternating",
+    "players": ["black", "white"],
+    "actions_per_turn": 1,
+    "mandatory": false
+  },
+  "rules": {
+    "placement": {
+      "action": "place(stone, board/intersection)",
+      "constraint": "intersection is empty"
+    },
+    "capture": {
+      "trigger": "after stone placement",
+      "definition": "a group of connected same-color stones with no empty adjacent intersections (liberties) is captured",
+      "effect": "remove captured group from board; increment captor prisoner count"
+    },
+    "suicide": {
+      "definition": "placing a stone that would leave own group with zero liberties after resolving opponent captures",
+      "constraint": "forbidden unless placement captures at least one opponent group"
+    },
+    "ko": {
+      "definition": "board position must not repeat the immediately previous board state",
+      "constraint": "placement that recreates the previous board position is forbidden"
+    },
+    "pass": {
+      "definition": "a player may pass instead of placing a stone",
+      "effect": "turn passes to opponent with no board change"
+    },
+    "komi": {
+      "definition": "white receives 6.5 points compensation for moving second"
+    },
+    "scoring": {
+      "definition": "territory (empty intersections enclosed by one color) plus prisoners captured; white adds komi",
+      "note": "Japanese rules by default; Chinese area scoring is an alternative"
+    }
+  },
+  "end_conditions": [
+    {
+      "result": "win",
+      "player": "higher_score",
+      "condition": "both_players_pass_consecutively",
+      "name": "double_pass"
+    },
+    {
+      "result": "win",
+      "player": "opponent_of_current",
+      "condition": "current_player_resigns",
+      "name": "resignation"
+    }
+  ],
+  "authority": {
+    "server_only": ["scoring", "life_death_determination"],
+    "client_verifiable": ["place(stone, board/intersection)", "pass"],
+    "wasm_required": ["capture_detection", "liberty_counting", "ko_detection", "territory_scoring", "life_death_analysis"]
+  },
+  "wasm_module": "go.wasm"
+}
