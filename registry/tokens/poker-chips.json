@@ -1,0 +1,23 @@
+{
+  "$schema": "https://baize.dev/schema/v1/component-registry.schema.json",
+  "id": "standard:poker-chips",
+  "name": "Poker Chips",
+  "component_type": "counter",
+  "denominations": {
+    "white": 1,
+    "red": 5,
+    "blue": 10,
+    "green": 25,
+    "black": 100,
+    "purple": 500,
+    "orange": 1000
+  },
+  "supply": "configurable",
+  "physical": {
+    "size_mm": [39, 39],
+    "thickness_mm": 3.3,
+    "material": "plastic",
+    "weight_g": 11.5
+  },
+  "note": "Standard poker chip denominations. Colors follow the most common casino convention."
+}

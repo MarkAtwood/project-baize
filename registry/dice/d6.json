@@ -1,0 +1,16 @@
+{
+  "$schema": "https://baize.dev/schema/v1/component-registry.schema.json",
+  "id": "standard:d6",
+  "name": "Standard 6-Sided Die",
+  "component_type": "die",
+  "faces": 6,
+  "values": [1, 2, 3, 4, 5, 6],
+  "display": "pip_pattern",
+  "physical_form": "d6_standard",
+  "physical": {
+    "size_mm": [16, 16],
+    "thickness_mm": 16.0,
+    "material": "plastic",
+    "shape": "cube"
+  }
+}
