@@ -1,0 +1,667 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://baize.dev/schema/v1/game-definition.schema.json",
+  "title": "Baize Game Definition",
+  "description": "Declarative game definition describing metadata, topology, components, movement primitives, turn structure, visibility rules, win/loss/draw conditions, and authority declarations.",
+  "type": "object",
+  "required": ["game", "zones", "components", "turn_order", "end_conditions", "authority"],
+  "additionalProperties": false,
+  "properties": {
+    "$schema": {
+      "type": "string"
+    },
+    "game": {
+      "$ref": "#/$defs/game_metadata"
+    },
+    "zones": {
+      "type": "object",
+      "additionalProperties": {
+        "$ref": "#/$defs/zone"
+      },
+      "minProperties": 1
+    },
+    "components": {
+      "type": "object",
+      "additionalProperties": {
+        "$ref": "#/$defs/component"
+      },
+      "minProperties": 1
+    },
+    "turn_order": {
+      "$ref": "#/$defs/turn_order"
+    },
+    "phases": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/phase"
+      },
+      "minItems": 1
+    },
+    "rules": {
+      "type": "object",
+      "additionalProperties": {
+        "$ref": "#/$defs/rule"
+      }
+    },
+    "end_conditions": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/end_condition"
+      },
+      "minItems": 1
+    },
+    "authority": {
+      "$ref": "#/$defs/authority"
+    },
+    "wasm_module": {
+      "type": "string",
+      "description": "Path or URI to a WASM module for Tier 2 logic (complex scoring, chain reactions, custom phase logic)."
+    },
+    "hand_rankings": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Ordered list of hand rankings for card games (best to worst)."
+    },
+    "betting_round": {
+      "$ref": "#/$defs/betting_round"
+    }
+  },
+  "$defs": {
+    "game_metadata": {
+      "type": "object",
+      "required": ["name", "players"],
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "players": {
+          "oneOf": [
+            {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "minLength": 1
+              },
+              "minItems": 1,
+              "description": "Named player seats (e.g. [\"white\", \"black\"])."
+            },
+            {
+              "type": "object",
+              "required": ["min", "max"],
+              "additionalProperties": false,
+              "properties": {
+                "min": {
+                  "type": "integer",
+                  "minimum": 1
+                },
+                "max": {
+                  "type": "integer",
+                  "minimum": 1
+                }
+              },
+              "description": "Variable player count with min/max bounds."
+            }
+          ]
+        },
+        "information": {
+          "enum": ["perfect", "imperfect"],
+          "description": "Whether all game state is visible to all players."
+        }
+      }
+    },
+
+    "visibility": {
+      "oneOf": [
+        {
+          "enum": ["public", "hidden"],
+          "description": "Public: all players see it. Hidden: only the server sees it."
+        },
+        {
+          "type": "object",
+          "required": ["private"],
+          "additionalProperties": false,
+          "properties": {
+            "private": {
+              "type": "string",
+              "description": "Visible only to the named role (typically \"owner\")."
+            }
+          }
+        }
+      ]
+    },
+
+    "zone": {
+      "type": "object",
+      "required": ["zone_type", "visibility"],
+      "properties": {
+        "zone_type": {
+          "enum": ["grid", "hex_grid", "graph", "ordered_stack", "set", "queue", "single_slot", "track", "counter"],
+          "description": "The structural type of this zone."
+        },
+        "visibility": {
+          "$ref": "#/$defs/visibility"
+        },
+        "per_player": {
+          "type": "boolean",
+          "description": "If true, each player gets their own instance of this zone."
+        },
+        "capacity": {
+          "oneOf": [
+            { "type": "integer", "minimum": 0 },
+            { "const": "unlimited" }
+          ],
+          "description": "Maximum number of components this zone can hold."
+        },
+        "dimensions": {
+          "oneOf": [
+            {
+              "type": "array",
+              "items": { "type": "integer", "minimum": 1 },
+              "minItems": 2,
+              "maxItems": 2,
+              "description": "Grid dimensions [width, height]."
+            },
+            {
+              "type": "integer",
+              "minimum": 1,
+              "description": "Single dimension for hex grids or square grids."
+            }
+          ]
+        },
+        "intersections": {
+          "type": "boolean",
+          "description": "If true, components are placed on intersections rather than cells (e.g. Go)."
+        },
+        "labels": {
+          "type": "object",
+          "properties": {
+            "files": {
+              "type": "array",
+              "items": { "type": "string" }
+            },
+            "ranks": {
+              "type": "array",
+              "items": {
+                "oneOf": [
+                  { "type": "string" },
+                  { "type": "integer" }
+                ]
+              }
+            }
+          },
+          "description": "Axis labels for grid zones."
+        },
+        "coloring": {
+          "type": "string",
+          "description": "Visual pattern for grid cells (e.g. \"alternating\")."
+        },
+        "adjacency": {
+          "enum": ["orthogonal_4", "orthogonal_8", "hex_6"],
+          "description": "How cells connect to their neighbors."
+        },
+        "star_points": {
+          "type": "array",
+          "items": {
+            "type": "array",
+            "items": { "type": "integer" },
+            "minItems": 2,
+            "maxItems": 2
+          },
+          "description": "Notable board positions (e.g. Go star points)."
+        },
+        "draw_visibility": {
+          "$ref": "#/$defs/visibility",
+          "description": "Visibility tier of items drawn from this zone."
+        },
+        "dynamic": {
+          "type": "boolean",
+          "description": "If true, the grid grows as tiles are placed (e.g. Carcassonne)."
+        },
+        "length": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "Length of a track zone."
+        },
+        "lanes": {
+          "type": "string",
+          "description": "Track lane ownership (e.g. \"per_player\")."
+        },
+        "points": {
+          "type": "integer",
+          "description": "Number of points on a track (e.g. 24 for backgammon)."
+        },
+        "connectivity": {
+          "type": "integer",
+          "description": "Number of neighbors per cell (e.g. 6 for hex)."
+        },
+        "edge_ownership": {
+          "type": "object",
+          "description": "Which player owns which board edges (for connection games like Hex)."
+        },
+        "cell_type": {
+          "type": "string",
+          "description": "What kind of content cells hold (e.g. \"tile_slot\")."
+        },
+        "direction": {
+          "type": "string",
+          "description": "Movement direction on a track (e.g. \"per_player\")."
+        },
+        "note": {
+          "type": "string",
+          "description": "Human-readable note about this zone."
+        }
+      }
+    },
+
+    "component": {
+      "type": "object",
+      "properties": {
+        "registry": {
+          "type": "string",
+          "description": "Reference to a standard registry entry (e.g. \"standard:french-52\")."
+        },
+        "extends": {
+          "type": "string",
+          "description": "Inherit from a registry entry and override/add properties."
+        },
+        "owner": {
+          "oneOf": [
+            { "const": "per_player" },
+            { "const": "neutral" },
+            { "const": "shared" },
+            { "type": "string" }
+          ],
+          "description": "Which player owns this component, or \"per_player\" for one-per-player."
+        },
+        "count": {
+          "oneOf": [
+            { "type": "integer", "minimum": 0 },
+            { "const": "unlimited" }
+          ],
+          "description": "Number of instances of this component."
+        },
+        "movement": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/movement_primitive"
+          },
+          "description": "Legal movement primitives for this component."
+        },
+        "properties": {
+          "type": "object",
+          "additionalProperties": {
+            "oneOf": [
+              {
+                "type": "array",
+                "items": {
+                  "oneOf": [
+                    { "type": "string" },
+                    { "type": "integer" }
+                  ]
+                }
+              },
+              { "type": "string" },
+              { "type": "boolean" }
+            ]
+          },
+          "description": "Component-specific properties (suit, rank, orientation, etc.)."
+        },
+        "facing": {
+          "type": "string",
+          "description": "Default facing (e.g. \"face_up\", \"face_down\")."
+        },
+        "promotion": {
+          "$ref": "#/$defs/promotion"
+        },
+        "constraints": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Movement constraints (e.g. \"cannot_move_into_check\")."
+        },
+        "special": {
+          "type": "string",
+          "description": "Special rule tag (e.g. \"castling_participant\")."
+        },
+        "types": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "object"
+          },
+          "description": "Sub-types with their own properties (e.g. ship types in Battleship)."
+        },
+        "one_of_each": {
+          "type": "boolean",
+          "description": "If true, exactly one instance of each type exists."
+        },
+        "supply": {
+          "oneOf": [
+            { "type": "integer", "minimum": 0 },
+            { "const": "unlimited" },
+            { "const": "configurable" }
+          ],
+          "description": "How many are available in the supply."
+        },
+        "adds": {
+          "type": "object",
+          "description": "Additional component types to add when extending a registry entry."
+        },
+        "note": {
+          "type": "string"
+        }
+      }
+    },
+
+    "movement_primitive": {
+      "type": "object",
+      "required": ["primitive"],
+      "properties": {
+        "primitive": {
+          "enum": ["step", "slide", "hop", "leap", "place", "draw", "move_to", "swap", "remove", "promote", "flip", "castle"],
+          "description": "The atomic movement type."
+        },
+        "direction": {
+          "$ref": "#/$defs/direction"
+        },
+        "distance": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "Number of cells to move."
+        },
+        "dx": {
+          "type": "integer",
+          "description": "Horizontal offset for leap."
+        },
+        "dy": {
+          "type": "integer",
+          "description": "Vertical offset for leap."
+        },
+        "target_zone": {
+          "type": "string",
+          "description": "Destination zone for place/draw/move_to."
+        },
+        "condition": {
+          "type": "string",
+          "description": "Condition expression (e.g. \"empty\", \"enemy\", \"first_move AND empty\")."
+        },
+        "repeat": {
+          "oneOf": [
+            { "type": "integer", "minimum": 1 },
+            {
+              "type": "object",
+              "required": ["min", "max"],
+              "properties": {
+                "min": { "type": "integer", "minimum": 0 },
+                "max": { "type": "integer", "minimum": 1 }
+              }
+            },
+            { "const": "unlimited" }
+          ],
+          "description": "How many times this primitive can repeat."
+        },
+        "after": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Effects triggered after this move (capture, promote, score, end_turn)."
+        },
+        "side": {
+          "enum": ["kingside", "queenside"],
+          "description": "Which side for castling."
+        },
+        "over": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "Number of pieces to jump over (for hop)."
+        }
+      }
+    },
+
+    "direction": {
+      "oneOf": [
+        {
+          "enum": ["orthogonal", "diagonal", "adjacent", "forward", "forward_diagonal", "backward", "backward_diagonal"]
+        },
+        {
+          "type": "array",
+          "items": {
+            "enum": ["orthogonal", "diagonal"]
+          },
+          "description": "Combination of directions."
+        },
+        {
+          "type": "string",
+          "description": "Named direction specific to the game."
+        }
+      ]
+    },
+
+    "promotion": {
+      "type": "object",
+      "required": ["trigger", "choices"],
+      "additionalProperties": false,
+      "properties": {
+        "trigger": {
+          "type": "string",
+          "description": "Condition expression that triggers promotion."
+        },
+        "choices": {
+          "type": "array",
+          "items": { "type": "string" },
+          "minItems": 1,
+          "description": "Component types the player may promote to."
+        }
+      }
+    },
+
+    "turn_order": {
+      "type": "object",
+      "required": ["type"],
+      "additionalProperties": false,
+      "properties": {
+        "type": {
+          "enum": ["alternating", "round_robin", "simultaneous", "reactive"],
+          "description": "How turn order advances."
+        },
+        "players": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Explicit player order (required for alternating/round_robin)."
+        },
+        "actions_per_turn": {
+          "oneOf": [
+            { "type": "integer", "minimum": 1 },
+            {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/turn_action_slot"
+              }
+            }
+          ],
+          "description": "How many actions a player takes per turn, or a structured list of action slots."
+        },
+        "mandatory": {
+          "type": "boolean",
+          "description": "If true, the player must make a legal move or trigger an end condition."
+        }
+      }
+    },
+
+    "turn_action_slot": {
+      "type": "object",
+      "additionalProperties": {
+        "oneOf": [
+          { "type": "integer" },
+          { "type": "string" }
+        ]
+      },
+      "description": "Named action slot with count or constraint (e.g. {\"draw_tile\": 1, \"place_meeple\": \"0 or 1\"})."
+    },
+
+    "phase": {
+      "type": "object",
+      "required": ["name"],
+      "properties": {
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "type": {
+          "type": "string",
+          "description": "Phase archetype (e.g. \"betting_round\")."
+        },
+        "simultaneous": {
+          "type": "boolean",
+          "description": "If true, all players act at the same time."
+        },
+        "server_action": {
+          "oneOf": [
+            { "type": "string" },
+            { "type": "array", "items": { "type": "string" } }
+          ],
+          "description": "Server-initiated actions at the start of this phase."
+        },
+        "action": {
+          "type": "string",
+          "description": "The action players take in this phase."
+        },
+        "actions_per_turn": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "starts_with": {
+          "type": "string",
+          "description": "Which player acts first in this phase."
+        },
+        "trigger": {
+          "type": "string",
+          "description": "Condition that activates this phase."
+        },
+        "choices": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Available choices in this phase."
+        },
+        "ends_when": {
+          "type": "string",
+          "description": "Condition that ends this phase."
+        },
+        "then": {
+          "type": "string",
+          "description": "What happens after the server action (e.g. a betting round)."
+        },
+        "resolve": {
+          "type": "string",
+          "description": "Resolution logic at the end of this phase."
+        }
+      }
+    },
+
+    "rule": {
+      "type": "object",
+      "properties": {
+        "definition": {
+          "type": "string",
+          "description": "What this rule means."
+        },
+        "action": {
+          "type": "string",
+          "description": "The action this rule governs."
+        },
+        "constraint": {
+          "type": "string",
+          "description": "Single constraint expression."
+        },
+        "constraints": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Multiple constraint expressions (all must hold)."
+        },
+        "trigger": {
+          "type": "string",
+          "description": "Event or condition that activates this rule."
+        },
+        "window": {
+          "type": "string",
+          "description": "Time window during which the rule applies."
+        },
+        "effect": {
+          "type": "string",
+          "description": "What happens when the rule fires."
+        },
+        "requires": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Preconditions that must all be true."
+        },
+        "server_resolves": {
+          "type": "string",
+          "description": "Server-side resolution logic."
+        }
+      }
+    },
+
+    "end_condition": {
+      "type": "object",
+      "required": ["result", "condition"],
+      "properties": {
+        "result": {
+          "enum": ["win", "loss", "draw"],
+          "description": "The outcome type."
+        },
+        "player": {
+          "type": "string",
+          "description": "Who this outcome applies to (e.g. \"current\", \"opponent_of_current\", a specific player name)."
+        },
+        "condition": {
+          "type": "string",
+          "description": "Predicate expression over game state that triggers this outcome."
+        },
+        "name": {
+          "type": "string",
+          "description": "Human-readable name for this condition (e.g. \"checkmate\", \"stalemate\")."
+        }
+      }
+    },
+
+    "authority": {
+      "type": "object",
+      "required": ["server_only", "client_verifiable"],
+      "additionalProperties": false,
+      "properties": {
+        "server_only": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Operations that only the server can perform (hidden state, randomness, sequencing)."
+        },
+        "client_verifiable": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Operations that the client can validate locally."
+        },
+        "wasm_required": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Operations that require WASM module execution (complex scoring, flood-fill, etc.)."
+        }
+      }
+    },
+
+    "betting_round": {
+      "type": "object",
+      "properties": {
+        "actions": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Legal betting actions (fold, check, call, raise, all_in)."
+        },
+        "ends_when": {
+          "type": "string",
+          "description": "Condition that ends the betting round."
+        }
+      }
+    }
+  }
+}

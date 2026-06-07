@@ -28,6 +28,31 @@ The server's irreducible role is:
 
 Everything else can run on the client.
 
+## Platform Requirements
+
+Baize clients require a user agent that supports WebAssembly, WebSocket
+(RFC 6455), inline SVG, and Web Components (Custom Elements v1, Shadow
+DOM). These are baseline web platform features available in all major
+browsers since 2020. No polyfills are provided or supported.
+
+The intended embedding model is a set of custom elements:
+
+```html
+<script src="https://cdn.example.com/baize.js"></script>
+<baize-game src="chess.json" server="wss://play.example.com/game/42">
+  <baize-board></baize-board>
+  <baize-hand player="1"></baize-hand>
+  <baize-score></baize-score>
+  <baize-clock></baize-clock>
+</baize-game>
+```
+
+One script tag registers the custom elements and bundles the WASM engine.
+Shadow DOM isolates game styles from the host page. No framework dependency
+— works in React, WordPress, raw HTML, or anything that renders DOM. Game
+designers can rearrange child elements to customize layout without touching
+game logic.
+
 ## Architecture: Three Tiers
 
 ### Tier 1: Declarative Schema (parsed, not executed)

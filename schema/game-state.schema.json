@@ -1,0 +1,379 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://baize.dev/schema/v1/game-state.schema.json",
+  "title": "Baize Game State",
+  "description": "Runtime game state representing board positions, player hands, draw piles, scores, turn pointer, and phase. This is what flows between client and server. Clients receive public facts plus their own private facts; the server holds the full state including hidden facts.",
+  "type": "object",
+  "required": ["game_id", "schema_ref", "sequence", "status", "turn", "phase", "zones", "players"],
+  "additionalProperties": false,
+  "properties": {
+    "$schema": {
+      "type": "string"
+    },
+    "game_id": {
+      "type": "string",
+      "description": "Unique identifier for this game session."
+    },
+    "schema_ref": {
+      "type": "string",
+      "description": "URI or path to the game definition schema this state conforms to."
+    },
+    "sequence": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Monotonically increasing sequence number. Incremented on every state change."
+    },
+    "state_hash": {
+      "type": "string",
+      "description": "Hash of the full state for integrity verification and desync detection."
+    },
+    "status": {
+      "enum": ["setup", "in_progress", "finished"],
+      "description": "Overall game lifecycle status."
+    },
+    "result": {
+      "$ref": "#/$defs/game_result",
+      "description": "Final outcome (only present when status is \"finished\")."
+    },
+    "turn": {
+      "type": "string",
+      "description": "Identifier of the player whose turn it is."
+    },
+    "phase": {
+      "type": "string",
+      "description": "Current game phase name."
+    },
+    "move_count": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Total number of moves played."
+    },
+    "halfmove_clock": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Moves since last irreversible action (for draw rules like fifty-move rule)."
+    },
+    "zones": {
+      "type": "object",
+      "additionalProperties": {
+        "$ref": "#/$defs/zone_state"
+      },
+      "description": "Current state of each zone, keyed by zone name from the game definition."
+    },
+    "players": {
+      "type": "object",
+      "additionalProperties": {
+        "$ref": "#/$defs/player_state"
+      },
+      "description": "Per-player state, keyed by player identifier."
+    },
+    "counters": {
+      "type": "object",
+      "additionalProperties": {
+        "oneOf": [
+          { "type": "integer" },
+          { "type": "number" }
+        ]
+      },
+      "description": "Named global counters (pot, round number, etc.)."
+    },
+    "pending_actions": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/pending_action"
+      },
+      "description": "Actions awaiting resolution (simultaneous moves, reveals)."
+    },
+    "history_hash": {
+      "type": "string",
+      "description": "Hash chain linking this state to the previous state for tournament integrity."
+    },
+    "timestamp": {
+      "type": "string",
+      "format": "date-time",
+      "description": "ISO 8601 timestamp of this state snapshot."
+    }
+  },
+  "$defs": {
+    "zone_state": {
+      "description": "Runtime contents of a zone. Structure depends on zone_type from the game definition.",
+      "oneOf": [
+        { "$ref": "#/$defs/grid_state" },
+        { "$ref": "#/$defs/stack_state" },
+        { "$ref": "#/$defs/set_state" },
+        { "$ref": "#/$defs/slot_state" },
+        { "$ref": "#/$defs/counter_state" },
+        { "$ref": "#/$defs/track_state" }
+      ]
+    },
+
+    "grid_state": {
+      "type": "object",
+      "required": ["zone_type", "cells"],
+      "additionalProperties": false,
+      "properties": {
+        "zone_type": {
+          "const": "grid"
+        },
+        "cells": {
+          "type": "object",
+          "additionalProperties": {
+            "oneOf": [
+              { "$ref": "#/$defs/component_instance" },
+              {
+                "type": "array",
+                "items": { "$ref": "#/$defs/component_instance" }
+              },
+              { "type": "null" }
+            ]
+          },
+          "description": "Cell contents keyed by coordinate string (e.g. \"a1\", \"3,7\")."
+        }
+      }
+    },
+
+    "stack_state": {
+      "type": "object",
+      "required": ["zone_type", "components"],
+      "additionalProperties": false,
+      "properties": {
+        "zone_type": {
+          "const": "ordered_stack"
+        },
+        "components": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/component_instance" },
+          "description": "Ordered list of components; index 0 is top of stack."
+        },
+        "count": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Number of items (useful when contents are hidden and items are omitted)."
+        }
+      }
+    },
+
+    "set_state": {
+      "type": "object",
+      "required": ["zone_type", "components"],
+      "additionalProperties": false,
+      "properties": {
+        "zone_type": {
+          "const": "set"
+        },
+        "components": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/component_instance" },
+          "description": "Unordered collection of components."
+        },
+        "count": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Number of items (useful when contents are hidden)."
+        }
+      }
+    },
+
+    "slot_state": {
+      "type": "object",
+      "required": ["zone_type"],
+      "additionalProperties": false,
+      "properties": {
+        "zone_type": {
+          "const": "single_slot"
+        },
+        "component": {
+          "oneOf": [
+            { "$ref": "#/$defs/component_instance" },
+            { "type": "null" }
+          ],
+          "description": "The single component occupying this slot, or null if empty."
+        }
+      }
+    },
+
+    "counter_state": {
+      "type": "object",
+      "required": ["zone_type", "value"],
+      "additionalProperties": false,
+      "properties": {
+        "zone_type": {
+          "const": "counter"
+        },
+        "value": {
+          "oneOf": [
+            { "type": "integer" },
+            { "type": "number" }
+          ],
+          "description": "Current counter value."
+        }
+      }
+    },
+
+    "track_state": {
+      "type": "object",
+      "required": ["zone_type", "positions"],
+      "additionalProperties": false,
+      "properties": {
+        "zone_type": {
+          "const": "track"
+        },
+        "positions": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "array",
+            "items": { "$ref": "#/$defs/component_instance" }
+          },
+          "description": "Components at each track position, keyed by position index."
+        }
+      }
+    },
+
+    "component_instance": {
+      "type": "object",
+      "required": ["id", "component_type"],
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique instance identifier within this game session."
+        },
+        "component_type": {
+          "type": "string",
+          "description": "Component type name from the game definition."
+        },
+        "owner": {
+          "type": "string",
+          "description": "Player who owns this instance."
+        },
+        "facing": {
+          "enum": ["face_up", "face_down"],
+          "description": "Current facing."
+        },
+        "state": {
+          "type": "string",
+          "description": "Type-specific state (e.g. \"promoted\", \"tapped\", \"exhausted\")."
+        },
+        "properties": {
+          "type": "object",
+          "description": "Instance-specific properties (suit, rank, hit points, etc.)."
+        }
+      }
+    },
+
+    "player_state": {
+      "type": "object",
+      "properties": {
+        "user_id": {
+          "type": "string",
+          "description": "External user identity."
+        },
+        "seat": {
+          "type": "string",
+          "description": "Player seat name from the game definition."
+        },
+        "active": {
+          "type": "boolean",
+          "description": "Whether this player is still in the game (not folded/eliminated)."
+        },
+        "connected": {
+          "type": "boolean",
+          "description": "Whether this player's client is currently connected."
+        },
+        "score": {
+          "oneOf": [
+            { "type": "integer" },
+            { "type": "number" }
+          ],
+          "description": "Player's current score."
+        },
+        "counters": {
+          "type": "object",
+          "additionalProperties": {
+            "oneOf": [
+              { "type": "integer" },
+              { "type": "number" }
+            ]
+          },
+          "description": "Per-player named counters (chips, mana, actions remaining, etc.)."
+        },
+        "zones": {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/$defs/zone_state"
+          },
+          "description": "Per-player zone instances (hand, own_grid, etc.)."
+        },
+        "clock": {
+          "$ref": "#/$defs/clock_state",
+          "description": "Time control state for this player."
+        }
+      }
+    },
+
+    "clock_state": {
+      "type": "object",
+      "properties": {
+        "remaining_ms": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Milliseconds remaining on this player's clock."
+        },
+        "increment_ms": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Milliseconds added per move (Fischer increment)."
+        },
+        "running": {
+          "type": "boolean",
+          "description": "Whether the clock is currently ticking."
+        }
+      }
+    },
+
+    "pending_action": {
+      "type": "object",
+      "required": ["player", "action_type"],
+      "properties": {
+        "player": {
+          "type": "string"
+        },
+        "action_type": {
+          "type": "string"
+        },
+        "submitted": {
+          "type": "boolean",
+          "description": "Whether the player has submitted their action (for simultaneous phases)."
+        }
+      }
+    },
+
+    "game_result": {
+      "type": "object",
+      "required": ["outcome"],
+      "properties": {
+        "outcome": {
+          "enum": ["win", "draw", "abandoned"],
+          "description": "How the game ended."
+        },
+        "winner": {
+          "type": "string",
+          "description": "Winning player (if outcome is \"win\")."
+        },
+        "condition": {
+          "type": "string",
+          "description": "Name of the end condition that triggered (e.g. \"checkmate\")."
+        },
+        "final_scores": {
+          "type": "object",
+          "additionalProperties": {
+            "oneOf": [
+              { "type": "integer" },
+              { "type": "number" }
+            ]
+          },
+          "description": "Final score per player."
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,288 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://baize.dev/schema/v1/move-action.schema.json",
+  "title": "Baize Move/Action",
+  "description": "Schema for player actions submitted to the server and server responses. Covers movement, card play, dice rolls, meta-actions (pass, resign), and betting. Each action carries an authority tag indicating whether the client can verify it locally.",
+  "oneOf": [
+    { "$ref": "#/$defs/client_message" },
+    { "$ref": "#/$defs/server_message" }
+  ],
+  "$defs": {
+    "client_message": {
+      "type": "object",
+      "required": ["message_type", "game_id", "player"],
+      "properties": {
+        "message_type": {
+          "enum": ["submit_move", "request_random", "acknowledge_state"],
+          "description": "Client-to-server message type."
+        },
+        "game_id": {
+          "type": "string"
+        },
+        "player": {
+          "type": "string",
+          "description": "Seat identifier of the acting player."
+        },
+        "sequence": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "State sequence number this action was computed against."
+        },
+        "action": {
+          "$ref": "#/$defs/action",
+          "description": "The action being submitted (for submit_move)."
+        },
+        "random_request": {
+          "$ref": "#/$defs/random_request",
+          "description": "Randomness request details (for request_random)."
+        },
+        "state_hash": {
+          "type": "string",
+          "description": "Hash of the client's current state (for acknowledge_state)."
+        }
+      }
+    },
+
+    "server_message": {
+      "type": "object",
+      "required": ["message_type", "game_id"],
+      "properties": {
+        "message_type": {
+          "enum": ["move_confirmed", "move_rejected", "random_result", "reveal", "state_sync"],
+          "description": "Server-to-client message type."
+        },
+        "game_id": {
+          "type": "string"
+        },
+        "sequence": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "New state sequence number after this event."
+        },
+        "action": {
+          "$ref": "#/$defs/action",
+          "description": "The action that was confirmed (for move_confirmed)."
+        },
+        "result_state": {
+          "type": "object",
+          "description": "The resulting game state after the action (partial or full)."
+        },
+        "reason": {
+          "type": "string",
+          "description": "Why the move was rejected (for move_rejected)."
+        },
+        "random_type": {
+          "type": "string",
+          "description": "Type of random result (for random_result)."
+        },
+        "random_value": {
+          "description": "The random outcome (for random_result).",
+          "oneOf": [
+            { "type": "integer" },
+            { "type": "string" },
+            { "type": "array" },
+            { "type": "object" }
+          ]
+        },
+        "reveal_to": {
+          "type": "string",
+          "description": "Player receiving the revelation (for reveal)."
+        },
+        "facts": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/fact" },
+          "description": "Facts being revealed (hidden -> private/public transition)."
+        },
+        "full_state": {
+          "type": "object",
+          "description": "Complete state snapshot (for state_sync on reconnect or desync)."
+        }
+      }
+    },
+
+    "action": {
+      "type": "object",
+      "required": ["action_type"],
+      "properties": {
+        "action_type": {
+          "enum": [
+            "move_piece", "place", "draw", "play_card", "discard",
+            "roll_dice", "flip", "promote", "swap", "remove",
+            "pass", "resign", "offer_draw", "accept_draw", "decline_draw",
+            "fold", "check", "call", "raise", "all_in",
+            "place_ship", "fire",
+            "castle", "en_passant",
+            "declare_action",
+            "custom"
+          ],
+          "description": "The type of action being performed."
+        },
+        "authority": {
+          "enum": ["client_verifiable", "server_only"],
+          "description": "Whether the client can validate this action locally."
+        },
+        "component_id": {
+          "type": "string",
+          "description": "Instance ID of the component being acted upon."
+        },
+        "component_type": {
+          "type": "string",
+          "description": "Type name when instance ID is not known (e.g. for placement from supply)."
+        },
+        "from": {
+          "$ref": "#/$defs/position",
+          "description": "Source position."
+        },
+        "to": {
+          "$ref": "#/$defs/position",
+          "description": "Destination position."
+        },
+        "zone": {
+          "type": "string",
+          "description": "Target zone for place/draw/move_to actions."
+        },
+        "count": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "Number of items to draw/deal."
+        },
+        "promote_to": {
+          "type": "string",
+          "description": "Component type to promote to."
+        },
+        "orientation": {
+          "enum": ["horizontal", "vertical"],
+          "description": "Orientation for ship placement or tile placement."
+        },
+        "rotation": {
+          "type": "integer",
+          "enum": [0, 90, 180, 270],
+          "description": "Rotation in degrees for tile placement."
+        },
+        "amount": {
+          "oneOf": [
+            { "type": "integer", "minimum": 0 },
+            { "type": "number", "minimum": 0 }
+          ],
+          "description": "Bet amount (for raise/call)."
+        },
+        "side": {
+          "enum": ["kingside", "queenside"],
+          "description": "Castling side."
+        },
+        "dice_count": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "Number of dice to roll."
+        },
+        "dice_type": {
+          "type": "string",
+          "description": "Type of dice (e.g. \"d6\", \"d20\")."
+        },
+        "swap_with": {
+          "type": "string",
+          "description": "Instance ID of the component to swap with."
+        },
+        "declaration": {
+          "type": "string",
+          "description": "What is being declared (for declare_action)."
+        },
+        "custom_data": {
+          "type": "object",
+          "description": "Arbitrary payload for custom actions defined by WASM modules."
+        }
+      }
+    },
+
+    "position": {
+      "oneOf": [
+        {
+          "type": "string",
+          "description": "Coordinate string (e.g. \"a1\", \"3,7\") or zone/position path (e.g. \"board/a2\")."
+        },
+        {
+          "type": "object",
+          "properties": {
+            "zone": {
+              "type": "string",
+              "description": "Zone name."
+            },
+            "cell": {
+              "type": "string",
+              "description": "Cell coordinate within the zone."
+            },
+            "index": {
+              "type": "integer",
+              "description": "Position index within ordered zones."
+            }
+          }
+        }
+      ]
+    },
+
+    "random_request": {
+      "type": "object",
+      "required": ["random_type"],
+      "properties": {
+        "random_type": {
+          "enum": ["roll", "draw", "shuffle"],
+          "description": "The kind of randomness requested."
+        },
+        "dice_type": {
+          "type": "string",
+          "description": "Die type for rolls (e.g. \"d6\")."
+        },
+        "dice_count": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "Number of dice to roll."
+        },
+        "draw_from": {
+          "type": "string",
+          "description": "Zone to draw from."
+        },
+        "draw_count": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "Number of items to draw."
+        },
+        "shuffle_zone": {
+          "type": "string",
+          "description": "Zone to shuffle."
+        }
+      }
+    },
+
+    "fact": {
+      "type": "object",
+      "required": ["fact_type"],
+      "properties": {
+        "fact_type": {
+          "type": "string",
+          "description": "What kind of fact is being revealed."
+        },
+        "component_id": {
+          "type": "string"
+        },
+        "zone": {
+          "type": "string"
+        },
+        "position": {
+          "$ref": "#/$defs/position"
+        },
+        "properties": {
+          "type": "object",
+          "description": "The revealed property values."
+        },
+        "previous_visibility": {
+          "enum": ["hidden", "private"],
+          "description": "What visibility tier this fact had before revelation."
+        },
+        "new_visibility": {
+          "enum": ["public", "private"],
+          "description": "What visibility tier this fact now has."
+        }
+      }
+    }
+  }
+}

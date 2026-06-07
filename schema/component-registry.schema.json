@@ -1,0 +1,430 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://baize.dev/schema/v1/component-registry.schema.json",
+  "title": "Baize Component Registry",
+  "description": "Schema for component registry entries defining reusable game pieces (cards, dice, tiles, pawns, boards). Covers the instantiation hierarchy: template (registry SVG) -> type (game schema) -> instance (runtime) -> placement (state).",
+  "type": "object",
+  "required": ["id", "component_type"],
+  "properties": {
+    "$schema": {
+      "type": "string"
+    },
+    "id": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9]*:[a-z][a-z0-9_-]*$",
+      "description": "Namespaced identifier (e.g. \"standard:french-52\", \"community:my-deck\")."
+    },
+    "name": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Human-readable name."
+    },
+    "component_type": {
+      "enum": [
+        "stone", "disc", "pawn", "token", "die", "card_deck",
+        "tile", "piece_set", "counter", "card", "tile_set"
+      ],
+      "description": "The fundamental component category."
+    },
+    "extends": {
+      "type": "string",
+      "description": "Inherit from another registry entry (e.g. \"standard:french-52\")."
+    },
+    "subset_of": {
+      "type": "string",
+      "description": "This entry is a subset of another (e.g. piquet deck is a subset of french-52)."
+    },
+    "shape": {
+      "$ref": "#/$defs/shape"
+    },
+    "parameterized_by": {
+      "type": "string",
+      "description": "The parameter that generates variants (e.g. \"color\")."
+    },
+    "available_colors": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "Colors available when parameterized_by is \"color\"."
+    },
+    "supply": {
+      "oneOf": [
+        { "type": "integer", "minimum": 0 },
+        { "const": "unlimited" },
+        { "const": "configurable" }
+      ]
+    },
+    "count": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Total number of components in this set."
+    },
+    "total": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Alias for count (used for composite sets)."
+    },
+    "facing": {
+      "type": "string",
+      "description": "Facing options (e.g. \"face_up | face_down\")."
+    },
+    "flip": {
+      "type": "boolean",
+      "description": "Whether this component can be flipped."
+    },
+    "variants": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/$defs/variant"
+          },
+          "description": "Named variants (e.g. black/white stones)."
+        },
+        {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/variant"
+          },
+          "description": "Ordered list of variants."
+        }
+      ]
+    },
+    "properties": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "Properties each instance carries (e.g. [\"position\"])."
+    },
+    "sides": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "object"
+      },
+      "description": "Multi-sided component (e.g. reversible discs, two-player piece sets)."
+    },
+    "suits": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "Suit names for card decks."
+    },
+    "suit_symbols": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "Unicode symbols for each suit."
+    },
+    "suit_colors": {
+      "type": "object",
+      "additionalProperties": { "type": "string" },
+      "description": "Color assignment per suit."
+    },
+    "ranks": {
+      "type": "array",
+      "items": {
+        "oneOf": [
+          { "type": "string" },
+          { "type": "integer" }
+        ]
+      },
+      "description": "Rank values for card decks."
+    },
+    "rank_values": {
+      "type": "object",
+      "additionalProperties": {
+        "oneOf": [
+          { "type": "integer" },
+          {
+            "type": "array",
+            "items": { "type": "integer" }
+          }
+        ]
+      },
+      "description": "Numeric values for each rank (may have multiple values, e.g. Ace = 1 or 14)."
+    },
+    "extra": {
+      "type": "array",
+      "items": { "type": "object" },
+      "description": "Additional cards beyond the base set (e.g. jokers)."
+    },
+    "composition": {
+      "type": "object",
+      "description": "Breakdown of a composite set into sub-groups (e.g. major/minor arcana, suited/honor tiles).",
+      "additionalProperties": true
+    },
+    "faces": {
+      "type": "integer",
+      "minimum": 2,
+      "description": "Number of faces on a die."
+    },
+    "values": {
+      "type": "array",
+      "items": {
+        "oneOf": [
+          { "type": "string" },
+          { "type": "integer" }
+        ]
+      },
+      "description": "Possible values for a die or token."
+    },
+    "display": {
+      "type": "string",
+      "description": "How values are displayed (e.g. \"pip_pattern\" for dice)."
+    },
+    "glyphs": {
+      "type": "object",
+      "description": "Unicode glyphs for piece sets, keyed by player/side."
+    },
+    "pieces": {
+      "type": "object",
+      "additionalProperties": {
+        "$ref": "#/$defs/piece_definition"
+      },
+      "description": "Individual piece definitions within a piece set."
+    },
+    "movement": {
+      "type": "object",
+      "additionalProperties": { "type": "string" },
+      "description": "Movement rules per piece type (shorthand notation)."
+    },
+    "owner_indicated_by": {
+      "type": "string",
+      "description": "How ownership is shown (e.g. \"direction\" for Shogi)."
+    },
+    "special_rules": {
+      "type": "object",
+      "description": "Game-mechanic rules bundled with the component (e.g. Shogi drops)."
+    },
+    "board_constraints": {
+      "type": "object",
+      "description": "Board-level constraints bundled with pieces (e.g. Xiangqi palace/river)."
+    },
+    "distribution": {
+      "type": "object",
+      "additionalProperties": {
+        "$ref": "#/$defs/tile_distribution_entry"
+      },
+      "description": "Per-glyph count and point values (for letter tiles, etc.)."
+    },
+    "denominations": {
+      "type": "object",
+      "additionalProperties": {
+        "oneOf": [
+          { "type": "integer" },
+          { "$ref": "#/$defs/denomination_entry" }
+        ]
+      },
+      "description": "Value denominations (chips, coins, bills)."
+    },
+    "physical_form": {
+      "type": "string",
+      "description": "Reference to a physical form factor (e.g. \"poker_card\", \"d6_standard\")."
+    },
+    "physical": {
+      "$ref": "#/$defs/physical_form"
+    },
+    "style": {
+      "type": "string",
+      "description": "Visual style hint (e.g. \"gradient\" for glass beads)."
+    },
+    "note": {
+      "type": "string",
+      "description": "Human-readable notes about this component."
+    },
+    "visual_style": {
+      "type": "string"
+    },
+    "halves": {
+      "type": "integer",
+      "description": "Number of value-bearing sections (e.g. 2 for dominoes)."
+    },
+    "pip_range": {
+      "type": "array",
+      "items": { "type": "integer" },
+      "minItems": 2,
+      "maxItems": 2,
+      "description": "Range of pip values [min, max] for dominoes."
+    },
+    "months": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "Month names for Hanafuda-style decks."
+    },
+    "cards_per_month": {
+      "type": "integer"
+    },
+    "card_types": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "removes": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "Sub-groups removed from the parent set."
+    },
+    "adds": {
+      "type": "object",
+      "description": "Components added to the parent set."
+    },
+    "count_per_variant": {
+      "oneOf": [
+        { "type": "integer" },
+        { "type": "string" }
+      ]
+    }
+  },
+  "$defs": {
+    "shape": {
+      "oneOf": [
+        {
+          "enum": [
+            "circle", "square", "rounded_rect", "hexagon", "meeple",
+            "disc", "cone", "cylinder", "house", "pentagon", "octagon",
+            "star", "shield", "laurel", "cube", "narrow_rectangle",
+            "rectangle"
+          ]
+        },
+        {
+          "type": "string",
+          "description": "Custom shape name or parameterized shape (e.g. \"rectangle(2:1)\")."
+        }
+      ]
+    },
+
+    "variant": {
+      "type": "object",
+      "properties": {
+        "shape": { "$ref": "#/$defs/shape" },
+        "fill": { "type": "string" },
+        "stroke": {
+          "oneOf": [
+            { "type": "string" },
+            { "const": "none" }
+          ]
+        },
+        "glyph": { "type": "string" },
+        "glyph_color": { "type": "string" },
+        "label": { "type": "string" },
+        "size": { "type": "string" },
+        "color": { "type": "string" },
+        "pattern": { "type": "string" }
+      }
+    },
+
+    "piece_definition": {
+      "type": "object",
+      "properties": {
+        "glyph": {
+          "type": "string",
+          "description": "Unicode glyph for this piece."
+        },
+        "promoted": {
+          "oneOf": [
+            { "type": "null" },
+            {
+              "type": "object",
+              "properties": {
+                "glyph": { "type": "string" },
+                "moves_as": { "type": "string" },
+                "gains": { "type": "string" }
+              }
+            }
+          ],
+          "description": "Promoted form of this piece, or null if it cannot promote."
+        }
+      }
+    },
+
+    "tile_distribution_entry": {
+      "type": "object",
+      "required": ["count", "points"],
+      "properties": {
+        "count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "points": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "wildcard": {
+          "type": "boolean"
+        }
+      }
+    },
+
+    "denomination_entry": {
+      "type": "object",
+      "properties": {
+        "color": { "type": "string" },
+        "glyph": { "type": "string" }
+      }
+    },
+
+    "physical_form": {
+      "type": "object",
+      "properties": {
+        "size_mm": {
+          "type": "array",
+          "items": { "type": "number" },
+          "minItems": 2,
+          "maxItems": 2,
+          "description": "Dimensions [width, height] in millimeters."
+        },
+        "thickness_mm": {
+          "type": "number",
+          "description": "Thickness in millimeters."
+        },
+        "material": {
+          "type": "string",
+          "description": "Material (e.g. \"cardstock\", \"wood\", \"plastic\", \"chipboard\", \"metal\")."
+        },
+        "shape": {
+          "type": "string"
+        },
+        "weight_g": {
+          "type": "number",
+          "description": "Weight per unit in grams."
+        }
+      },
+      "description": "Physical manufacturing metadata for print-and-play or manufacturing export."
+    },
+
+    "board_topology": {
+      "type": "object",
+      "required": ["topology_type"],
+      "properties": {
+        "topology_type": {
+          "enum": ["grid", "hex_grid", "graph", "track"],
+          "description": "Board structure type."
+        },
+        "size": {
+          "oneOf": [
+            {
+              "type": "array",
+              "items": { "type": "integer", "minimum": 1 },
+              "minItems": 2,
+              "maxItems": 2
+            },
+            { "type": "integer", "minimum": 1 }
+          ]
+        },
+        "intersections": { "type": "boolean" },
+        "coloring": { "type": "string" },
+        "labels": { "type": "object" },
+        "star_points": {
+          "type": "array",
+          "items": {
+            "type": "array",
+            "items": { "type": "integer" }
+          }
+        },
+        "connectivity": { "type": "integer" },
+        "edge_ownership": { "type": "object" },
+        "river": { "type": "string" },
+        "palace": { "type": "string" },
+        "points": { "type": "integer" },
+        "length": { "type": "integer" },
+        "lanes": { "type": "string" },
+        "direction": { "type": "string" }
+      }
+    }
+  }
+}
