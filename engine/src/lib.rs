@@ -6,6 +6,7 @@ pub mod registry;
 pub mod runtime;
 pub mod state;
 pub mod transition;
+pub mod wasm;
 
 pub use definition::GameDefinition;
 pub use error::BaizeError;
