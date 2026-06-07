@@ -1,0 +1,146 @@
+{
+  "$schema": "../schema/game-definition.schema.json",
+  "game": {
+    "name": "Backgammon",
+    "players": ["White", "Black"],
+    "information": "perfect"
+  },
+  "zones": {
+    "board": {
+      "zone_type": "track",
+      "points": 24,
+      "direction": "per_player",
+      "visibility": "public",
+      "note": "24 narrow triangles (points) numbered 1-24; White moves from 24 toward 1, Black moves from 1 toward 24"
+    },
+    "bar": {
+      "zone_type": "set",
+      "per_player": true,
+      "capacity": 15,
+      "visibility": "public",
+      "note": "Checkers hit by the opponent are placed here and must re-enter before any other move"
+    },
+    "bearing_off": {
+      "zone_type": "set",
+      "per_player": true,
+      "capacity": 15,
+      "visibility": "public",
+      "note": "Checkers that have been borne off the board"
+    }
+  },
+  "components": {
+    "checker": {
+      "owner": "per_player",
+      "count": 15,
+      "movement": [
+        {
+          "primitive": "step",
+          "direction": "forward",
+          "condition": "destination has 0 or 1 opponent checkers OR destination has friendly checkers"
+        },
+        {
+          "primitive": "move_to",
+          "target_zone": "bearing_off",
+          "condition": "all own checkers are in home board"
+        }
+      ],
+      "note": "Each player has 15 checkers; moved forward along the track by dice values"
+    },
+    "dice": {
+      "owner": "shared",
+      "count": 2,
+      "properties": {
+        "faces": [1, 2, 3, 4, 5, 6]
+      },
+      "note": "Two standard six-sided dice rolled each turn"
+    }
+  },
+  "turn_order": {
+    "type": "alternating",
+    "players": ["White", "Black"],
+    "mandatory": true
+  },
+  "phases": [
+    {
+      "name": "roll",
+      "server_action": "roll(dice, 2d6)",
+      "note": "Player rolls both dice; doubles grant 4 uses of the rolled value instead of 2"
+    },
+    {
+      "name": "move",
+      "action": "move(checker, board, by:die_value)",
+      "ends_when": "all die values used OR no legal moves remain",
+      "note": "Player must use as many die values as legally possible; if only one can be used, the higher value must be chosen"
+    }
+  ],
+  "rules": {
+    "initial_setup": {
+      "definition": "White: 2 on point 1, 5 on point 12, 3 on point 17, 5 on point 19. Black: mirrored (2 on point 24, 5 on point 13, 3 on point 8, 5 on point 6)."
+    },
+    "movement": {
+      "action": "move(checker, board, by:die_value)",
+      "constraints": [
+        "each die value is used as a separate move",
+        "a checker may land on a point that is empty, has friendly checkers, or has exactly 1 opponent checker",
+        "a point with 2 or more opponent checkers is blocked"
+      ]
+    },
+    "doubles": {
+      "trigger": "dice show same value",
+      "effect": "player gets 4 moves of that value instead of 2"
+    },
+    "hitting": {
+      "trigger": "checker lands on a point occupied by exactly 1 opponent checker",
+      "effect": "opponent checker is moved to bar"
+    },
+    "re_entry": {
+      "constraint": "a player with checkers on the bar must re-enter them before moving any other checker",
+      "action": "move(checker, bar -> board, by:die_value)",
+      "effect": "checker enters opponent's home board at the point matching the die value"
+    },
+    "bearing_off": {
+      "requires": ["all 15 of the player's checkers are in their home board (points 1-6 for White, 19-24 for Black)"],
+      "action": "move(checker, board -> bearing_off, by:die_value)",
+      "constraints": [
+        "a checker on the point matching the die value may be borne off",
+        "if no checker is on the exact point, a checker from the highest occupied point lower than the die value may be borne off"
+      ]
+    },
+    "must_use_all_dice": {
+      "constraint": "player must use as many die values as legally possible; if both values can be used but not both, the higher must be used"
+    }
+  },
+  "end_conditions": [
+    {
+      "result": "win",
+      "player": "current",
+      "condition": "all 15 of current player's checkers are in bearing_off",
+      "name": "bear_off_all"
+    },
+    {
+      "result": "win",
+      "player": "current",
+      "condition": "all 15 of current player's checkers are in bearing_off AND opponent has checkers on the bar or in current player's home board",
+      "name": "backgammon"
+    },
+    {
+      "result": "win",
+      "player": "current",
+      "condition": "all 15 of current player's checkers are in bearing_off AND opponent has not borne off any checkers",
+      "name": "gammon"
+    }
+  ],
+  "authority": {
+    "server_only": [
+      "roll(dice)",
+      "move(checker, bar -> board)"
+    ],
+    "client_verifiable": [
+      "move(checker, board, by:die_value)",
+      "move(checker, board -> bearing_off)",
+      "hit(opponent_checker -> bar)",
+      "validate_blocked_point",
+      "validate_must_use_all_dice"
+    ]
+  }
+}
