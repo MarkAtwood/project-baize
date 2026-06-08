@@ -6,6 +6,10 @@ rust-version = "1.85"
 license = "AGPL-3.0-or-later"
 description = "Baize WebSocket game server — routes moves through the engine, manages hidden state and randomness"
 
+[lib]
+name = "baize_server"
+path = "src/lib.rs"
+
 [[bin]]
 name = "baize-server"
 path = "src/main.rs"
