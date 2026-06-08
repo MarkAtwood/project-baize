@@ -331,6 +331,52 @@ fn reject_unknown_turn_player() {
 }
 
 #[test]
+fn reject_duplicate_player_names() {
+    let json = r#"{
+        "game": { "name": "Bad", "players": ["A", "B", "A"] },
+        "zones": {},
+        "components": {},
+        "turn_order": { "type": "alternating" },
+        "end_conditions": [{"result": "draw", "condition": "x"}],
+        "authority": { "server_only": [], "client_verifiable": [] }
+    }"#;
+    let err = GameDefinition::from_json(json).unwrap_err();
+    assert!(matches!(err, BaizeError::Validation(_)));
+}
+
+#[test]
+fn reject_zero_dimension() {
+    let json = r#"{
+        "game": { "name": "Bad", "players": ["A"] },
+        "zones": {
+            "board": { "zone_type": "grid", "dimensions": [0, 3], "visibility": "public" }
+        },
+        "components": {},
+        "turn_order": { "type": "alternating" },
+        "end_conditions": [{"result": "draw", "condition": "x"}],
+        "authority": { "server_only": [], "client_verifiable": [] }
+    }"#;
+    let err = GameDefinition::from_json(json).unwrap_err();
+    assert!(matches!(err, BaizeError::Validation(_)));
+}
+
+#[test]
+fn reject_oversized_dimension() {
+    let json = r#"{
+        "game": { "name": "Bad", "players": ["A"] },
+        "zones": {
+            "board": { "zone_type": "grid", "dimensions": [5000, 3], "visibility": "public" }
+        },
+        "components": {},
+        "turn_order": { "type": "alternating" },
+        "end_conditions": [{"result": "draw", "condition": "x"}],
+        "authority": { "server_only": [], "client_verifiable": [] }
+    }"#;
+    let err = GameDefinition::from_json(json).unwrap_err();
+    assert!(matches!(err, BaizeError::Validation(_)));
+}
+
+#[test]
 fn accept_valid_minimal_definition() {
     let json = r#"{
         "game": { "name": "Minimal", "players": ["A"] },

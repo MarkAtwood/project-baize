@@ -484,11 +484,17 @@ impl GameDefinition {
                         "game must have at least one player".into(),
                     ));
                 }
+                let mut seen = std::collections::HashSet::new();
                 for name in names {
                     if name.trim().is_empty() {
                         return Err(BaizeError::Validation(
                             "player names must not be empty".into(),
                         ));
+                    }
+                    if !seen.insert(name.as_str()) {
+                        return Err(BaizeError::Validation(format!(
+                            "duplicate player name {name:?}"
+                        )));
                     }
                 }
                 names.iter().map(|s| s.as_str()).collect()
@@ -524,7 +530,9 @@ impl GameDefinition {
             }
         }
 
-        // Grid zones must have dimensions (unless dynamic)
+        // Grid zones must have dimensions (unless dynamic), and dimensions
+        // must be positive and bounded to prevent memory exhaustion.
+        const MAX_GRID_DIMENSION: u32 = 1000;
         for (name, zone) in &self.zones {
             if matches!(zone.zone_type, ZoneType::Grid | ZoneType::HexGrid)
                 && zone.dimensions.is_none()
@@ -533,6 +541,24 @@ impl GameDefinition {
                 return Err(BaizeError::Validation(format!(
                     "grid zone {name:?} requires dimensions or dynamic: true"
                 )));
+            }
+            if let Some(ref dims) = zone.dimensions {
+                let values: &[u32] = match dims {
+                    Dimensions::Grid(arr) => arr.as_slice(),
+                    Dimensions::Single(v) => std::slice::from_ref(v),
+                };
+                for (i, &d) in values.iter().enumerate() {
+                    if d == 0 {
+                        return Err(BaizeError::Validation(format!(
+                            "zone {name:?} dimension[{i}] must be > 0"
+                        )));
+                    }
+                    if d > MAX_GRID_DIMENSION {
+                        return Err(BaizeError::Validation(format!(
+                            "zone {name:?} dimension[{i}] = {d} exceeds maximum ({MAX_GRID_DIMENSION})"
+                        )));
+                    }
+                }
             }
         }
 
