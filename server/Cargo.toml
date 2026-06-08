@@ -18,7 +18,7 @@ serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 rand = "0.9"
 rand_chacha = "0.9"
-wasmtime = { version = "29", optional = true }
+wasmtime = { version = "34", optional = true }
 
 [features]
 default = []
