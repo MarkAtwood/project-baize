@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+  <g class="baize-die">
+    <!-- Die face -->
+    <rect x="2" y="2" width="96" height="96" rx="12" ry="12"
+      fill="var(--die-fill, #ffffff)" stroke="var(--die-border, #333333)" stroke-width="2"/>
+    <!-- Pips: four corners + center -->
+    <circle cx="28" cy="28" r="8" fill="var(--die-pip, #333333)"/>
+    <circle cx="72" cy="28" r="8" fill="var(--die-pip, #333333)"/>
+    <circle cx="50" cy="50" r="8" fill="var(--die-pip, #333333)"/>
+    <circle cx="28" cy="72" r="8" fill="var(--die-pip, #333333)"/>
+    <circle cx="72" cy="72" r="8" fill="var(--die-pip, #333333)"/>
+  </g>
+</svg>

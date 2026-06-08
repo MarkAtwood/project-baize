@@ -1,0 +1,33 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 63 88">
+  <g class="baize-card">
+    <!-- Card body -->
+    <rect x="0.5" y="0.5" width="62" height="87" rx="4" ry="4"
+      fill="var(--card-face-fill, #ffffff)" stroke="var(--card-border, #333333)" stroke-width="1"/>
+
+    <!-- Top-left rank -->
+    <text class="card-rank" x="6" y="16"
+      font-family="var(--card-font, serif)" font-size="12" font-weight="bold"
+      fill="var(--card-color, #000000)" text-anchor="start">A</text>
+
+    <!-- Top-left suit -->
+    <text class="card-suit" x="6" y="28"
+      font-family="var(--card-font, serif)" font-size="10"
+      fill="var(--card-color, #000000)" text-anchor="start">&spades;</text>
+
+    <!-- Center suit (large) -->
+    <text class="card-center-suit" x="31.5" y="52"
+      font-family="var(--card-font, serif)" font-size="28"
+      fill="var(--card-color, #000000)" text-anchor="middle">&spades;</text>
+
+    <!-- Bottom-right rank (inverted) -->
+    <g transform="rotate(180, 31.5, 44)">
+      <text class="card-rank" x="6" y="16"
+        font-family="var(--card-font, serif)" font-size="12" font-weight="bold"
+        fill="var(--card-color, #000000)" text-anchor="start">A</text>
+      <!-- Bottom-right suit (inverted) -->
+      <text class="card-suit" x="6" y="28"
+        font-family="var(--card-font, serif)" font-size="10"
+        fill="var(--card-color, #000000)" text-anchor="start">&spades;</text>
+    </g>
+  </g>
+</svg>

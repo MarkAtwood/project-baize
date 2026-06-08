@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 63 88">
+  <defs>
+    <pattern id="card-back-pattern" x="0" y="0" width="8" height="8" patternUnits="userSpaceOnUse">
+      <rect width="8" height="8" fill="var(--card-back-bg, #1a5276)"/>
+      <path d="M0 4l4-4 4 4-4 4z" fill="var(--card-back-pattern, #1e6fa0)" opacity="0.4"/>
+    </pattern>
+  </defs>
+  <g class="baize-card">
+    <!-- Card shape -->
+    <rect x="0.5" y="0.5" width="62" height="87" rx="4" ry="4"
+      fill="var(--card-back-fill, #ffffff)" stroke="var(--card-border, #333333)" stroke-width="1"/>
+    <!-- Inner border -->
+    <rect x="3" y="3" width="57" height="82" rx="2" ry="2"
+      fill="url(#card-back-pattern)" stroke="var(--card-back-border, #ffffff)" stroke-width="1"/>
+    <!-- Center diamond -->
+    <path d="M31.5 20l12 24-12 24-12-24z"
+      fill="none" stroke="var(--card-back-accent, #ffffff)" stroke-width="1.5" opacity="0.6"/>
+  </g>
+</svg>

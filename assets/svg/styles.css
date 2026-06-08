@@ -1,0 +1,192 @@
+/* Baize SVG Asset Styles
+ * Base component styles, interaction states, and theming via CSS custom properties.
+ */
+
+/* === Custom Properties === */
+
+:root {
+  /* Chess */
+  --chess-white: #ffffff;
+  --chess-black: #333333;
+  --chess-stroke: #222222;
+
+  /* Go stones */
+  --stone-black-fill: #1a1a1a;
+  --stone-black-highlight: #555555;
+  --stone-black-shadow: #000000;
+  --stone-white-fill: #f5f5f5;
+  --stone-white-highlight: #ffffff;
+  --stone-white-shadow: #cccccc;
+  --stone-white-stroke: #cccccc;
+
+  /* Cards */
+  --card-face-fill: #ffffff;
+  --card-back-fill: #ffffff;
+  --card-back-bg: #1a5276;
+  --card-back-pattern: #1e6fa0;
+  --card-back-border: #ffffff;
+  --card-back-accent: #ffffff;
+  --card-border: #333333;
+  --card-color-black: #222222;
+  --card-color-red: #cc0000;
+  --card-font: Georgia, "Times New Roman", serif;
+
+  /* Dice */
+  --die-fill: #ffffff;
+  --die-border: #333333;
+  --die-pip: #333333;
+
+  /* Tokens */
+  --token-fill: #888888;
+  --token-border: #555555;
+  --token-inner-border: #aaaaaa;
+  --token-highlight: #ffffff;
+
+  /* Tiles */
+  --tile-fill: #f0e6d2;
+  --tile-border: #8b7355;
+  --tile-inner-border: #c4a97d;
+
+  /* Interaction */
+  --selected-color: #ffd700;
+  --selected-glow-size: 4px;
+  --legal-target-color: #00cc44;
+  --legal-target-glow-size: 6px;
+  --dragging-opacity: 0.6;
+  --captured-opacity: 0.15;
+  --captured-transition: opacity 0.4s ease-out;
+}
+
+/* === Base Component Styles === */
+
+.baize-piece {
+  transition: transform 0.15s ease, filter 0.15s ease, opacity 0.15s ease;
+  cursor: pointer;
+}
+
+.baize-card {
+  transition: transform 0.15s ease, filter 0.15s ease, opacity 0.15s ease;
+  cursor: pointer;
+}
+
+.baize-die {
+  transition: transform 0.15s ease, filter 0.15s ease;
+  cursor: pointer;
+}
+
+.baize-token {
+  transition: transform 0.15s ease, filter 0.15s ease, opacity 0.15s ease;
+  cursor: pointer;
+}
+
+.baize-tile {
+  transition: transform 0.15s ease, filter 0.15s ease;
+}
+
+/* === Interaction States === */
+
+/* Selected: golden highlight glow */
+.selected .baize-piece,
+.selected .baize-card,
+.selected .baize-die,
+.selected .baize-token,
+.selected .baize-tile,
+.baize-piece.selected,
+.baize-card.selected,
+.baize-die.selected,
+.baize-token.selected,
+.baize-tile.selected {
+  filter: drop-shadow(0 0 var(--selected-glow-size) var(--selected-color))
+          drop-shadow(0 0 calc(var(--selected-glow-size) / 2) var(--selected-color));
+}
+
+/* Legal target: green glow indicating valid move/placement */
+.legal-target .baize-piece,
+.legal-target .baize-card,
+.legal-target .baize-die,
+.legal-target .baize-token,
+.legal-target .baize-tile,
+.baize-piece.legal-target,
+.baize-card.legal-target,
+.baize-die.legal-target,
+.baize-token.legal-target,
+.baize-tile.legal-target {
+  filter: drop-shadow(0 0 var(--legal-target-glow-size) var(--legal-target-color))
+          drop-shadow(0 0 calc(var(--legal-target-glow-size) / 2) var(--legal-target-color));
+  animation: pulse-glow 1.5s ease-in-out infinite;
+}
+
+/* Dragging: semi-transparent with slight scale-up */
+.dragging .baize-piece,
+.dragging .baize-card,
+.dragging .baize-die,
+.dragging .baize-token,
+.dragging .baize-tile,
+.baize-piece.dragging,
+.baize-card.dragging,
+.baize-die.dragging,
+.baize-token.dragging,
+.baize-tile.dragging {
+  opacity: var(--dragging-opacity);
+  transform: scale(1.05);
+  cursor: grabbing;
+}
+
+/* Captured: fade out */
+.captured .baize-piece,
+.captured .baize-card,
+.captured .baize-token,
+.baize-piece.captured,
+.baize-card.captured,
+.baize-token.captured {
+  opacity: var(--captured-opacity);
+  transition: var(--captured-transition);
+  pointer-events: none;
+}
+
+/* === Animations === */
+
+@keyframes pulse-glow {
+  0%, 100% {
+    filter: drop-shadow(0 0 var(--legal-target-glow-size) var(--legal-target-color))
+            drop-shadow(0 0 calc(var(--legal-target-glow-size) / 2) var(--legal-target-color));
+  }
+  50% {
+    filter: drop-shadow(0 0 calc(var(--legal-target-glow-size) * 1.5) var(--legal-target-color))
+            drop-shadow(0 0 var(--legal-target-glow-size) var(--legal-target-color));
+  }
+}
+
+/* === Color Variants (applied via parent class or data attribute) === */
+
+/* Chess color switching: set currentColor via the parent element's color property */
+.white-piece { color: var(--chess-white); }
+.black-piece { color: var(--chess-black); }
+
+/* Go stone variants */
+.black-stone {
+  --stone-fill: var(--stone-black-fill);
+  --stone-highlight: var(--stone-black-highlight);
+  --stone-shadow: var(--stone-black-shadow);
+  --stone-stroke: none;
+}
+
+.white-stone {
+  --stone-fill: var(--stone-white-fill);
+  --stone-highlight: var(--stone-white-highlight);
+  --stone-shadow: var(--stone-white-shadow);
+  --stone-stroke: var(--stone-white-stroke);
+}
+
+/* Card suit colors */
+.suit-spades, .suit-clubs   { --card-color: var(--card-color-black); }
+.suit-hearts, .suit-diamonds { --card-color: var(--card-color-red); }
+
+/* Poker chip denominations */
+.chip-white  { --token-fill: #f5f5f5; --token-border: #cccccc; --token-inner-border: #dddddd; }
+.chip-red    { --token-fill: #cc2222; --token-border: #991111; --token-inner-border: #dd5555; }
+.chip-blue   { --token-fill: #2255bb; --token-border: #113388; --token-inner-border: #4477cc; }
+.chip-green  { --token-fill: #228833; --token-border: #116622; --token-inner-border: #44aa55; }
+.chip-black  { --token-fill: #222222; --token-border: #111111; --token-inner-border: #444444; }
+.chip-purple { --token-fill: #772299; --token-border: #551177; --token-inner-border: #9944bb; }
+.chip-orange { --token-fill: #dd7711; --token-border: #aa5500; --token-inner-border: #ee9933; }

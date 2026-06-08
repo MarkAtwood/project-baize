@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+  <defs>
+    <radialGradient id="token-gradient" cx="40%" cy="40%" r="60%">
+      <stop offset="0%" stop-color="var(--token-highlight, #ffffff)" stop-opacity="0.3"/>
+      <stop offset="100%" stop-color="var(--token-fill, #888888)" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  <g class="baize-token">
+    <!-- Token body -->
+    <circle cx="50" cy="50" r="44"
+      fill="var(--token-fill, #888888)" stroke="var(--token-border, #555555)" stroke-width="2"/>
+    <!-- Edge detail -->
+    <circle cx="50" cy="50" r="38"
+      fill="none" stroke="var(--token-inner-border, #aaaaaa)" stroke-width="1" stroke-dasharray="4 3"/>
+    <!-- Highlight -->
+    <circle cx="50" cy="50" r="44" fill="url(#token-gradient)"/>
+  </g>
+</svg>
