@@ -79,6 +79,8 @@ class Action:
 
     @staticmethod
     def from_dict(d: dict[str, Any]) -> Action:
+        if "action_type" not in d:
+            raise ValueError("action dict missing required 'action_type' key")
         return Action(
             action_type=d["action_type"],
             authority=d.get("authority"),
@@ -154,6 +156,8 @@ class RandomRequest:
 
     @staticmethod
     def from_dict(d: dict[str, Any]) -> RandomRequest:
+        if "random_type" not in d:
+            raise ValueError("random request dict missing required 'random_type' key")
         return RandomRequest(
             random_type=d["random_type"],
             dice_type=d.get("dice_type"),
@@ -194,6 +198,8 @@ class Fact:
 
     @staticmethod
     def from_dict(d: dict[str, Any]) -> Fact:
+        if "fact_type" not in d:
+            raise ValueError("fact dict missing required 'fact_type' key")
         return Fact(
             fact_type=d["fact_type"],
             component_id=d.get("component_id"),
@@ -251,6 +257,9 @@ class ClientMessage:
         from baize.error import ParseError
 
         try:
+            for required in ("message_type", "game_id", "player"):
+                if required not in d:
+                    raise KeyError(f"client message missing required key: {required!r}")
             action_raw = d.get("action")
             action = Action.from_dict(action_raw) if action_raw is not None else None
             rr_raw = d.get("random_request")
@@ -264,7 +273,7 @@ class ClientMessage:
                 random_request=random_request,
                 state_hash=d.get("state_hash"),
             )
-        except (KeyError, TypeError, ValueError) as exc:
+        except (KeyError, TypeError, ValueError, AttributeError) as exc:
             raise ParseError(str(exc)) from exc
 
     def to_json(self, indent: int | None = 2) -> str:
@@ -322,6 +331,9 @@ class ServerMessage:
         from baize.error import ParseError
 
         try:
+            for required in ("message_type", "game_id"):
+                if required not in d:
+                    raise KeyError(f"server message missing required key: {required!r}")
             action_raw = d.get("action")
             action = Action.from_dict(action_raw) if action_raw is not None else None
             facts = [Fact.from_dict(f) for f in d.get("facts", [])]
@@ -338,7 +350,7 @@ class ServerMessage:
                 facts=facts,
                 full_state=d.get("full_state"),
             )
-        except (KeyError, TypeError, ValueError) as exc:
+        except (KeyError, TypeError, ValueError, AttributeError) as exc:
             raise ParseError(str(exc)) from exc
 
     def to_json(self, indent: int | None = 2) -> str:

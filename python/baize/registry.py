@@ -321,7 +321,7 @@ class RegistryEntry:
                 visibility=visibility,
                 note=d.get("note"),
             )
-        except (KeyError, TypeError, ValueError) as exc:
+        except (KeyError, TypeError, ValueError, AttributeError) as exc:
             raise ParseError(str(exc)) from exc
 
     def to_json(self, indent: int | None = 2) -> str:

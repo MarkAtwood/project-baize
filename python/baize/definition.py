@@ -33,6 +33,10 @@ def _visibility_from_raw(raw: object) -> Visibility:
             raise ValueError(f"invalid visibility tier: {raw!r}")
         return raw  # type: ignore[return-value]
     if isinstance(raw, dict):
+        if "private" not in raw:
+            raise ValueError(
+                f"visibility dict must contain 'private' key, got {raw!r}"
+            )
         return PrivateVisibility(private=raw["private"])
     raise ValueError(f"invalid visibility value: {raw!r}")
 
@@ -120,6 +124,10 @@ class Promotion:
 
     @staticmethod
     def from_dict(d: dict[str, Any]) -> Promotion:
+        if "trigger" not in d:
+            raise ValueError("promotion dict missing required 'trigger' key")
+        if "choices" not in d:
+            raise ValueError("promotion dict missing required 'choices' key")
         return Promotion(trigger=d["trigger"], choices=d["choices"])
 
     def to_dict(self) -> dict[str, Any]:
@@ -146,6 +154,8 @@ class MovementPrimitive:
 
     @staticmethod
     def from_dict(d: dict[str, Any]) -> MovementPrimitive:
+        if "primitive" not in d:
+            raise ValueError("movement dict missing required 'primitive' key")
         return MovementPrimitive(
             primitive=d["primitive"],
             direction=d.get("direction"),
@@ -214,6 +224,10 @@ class Zone:
 
     @staticmethod
     def from_dict(d: dict[str, Any]) -> Zone:
+        if "zone_type" not in d:
+            raise ValueError("zone dict missing required 'zone_type' key")
+        if "visibility" not in d:
+            raise ValueError("zone dict missing required 'visibility' key")
         labels_raw = d.get("labels")
         labels = GridLabels.from_dict(labels_raw) if labels_raw is not None else None
         draw_vis_raw = d.get("draw_visibility")
@@ -390,6 +404,8 @@ class TurnOrder:
 
     @staticmethod
     def from_dict(d: dict[str, Any]) -> TurnOrder:
+        if "type" not in d:
+            raise ValueError("turn_order dict missing required 'type' key")
         return TurnOrder(
             type=d["type"],
             players=d.get("players"),
@@ -544,6 +560,10 @@ class EndCondition:
 
     @staticmethod
     def from_dict(d: dict[str, Any]) -> EndCondition:
+        if "result" not in d:
+            raise ValueError("end_condition dict missing required 'result' key")
+        if "condition" not in d:
+            raise ValueError("end_condition dict missing required 'condition' key")
         return EndCondition(
             result=d["result"],
             condition=d["condition"],
@@ -575,6 +595,10 @@ class Authority:
 
     @staticmethod
     def from_dict(d: dict[str, Any]) -> Authority:
+        if "server_only" not in d:
+            raise ValueError("authority dict missing required 'server_only' key")
+        if "client_verifiable" not in d:
+            raise ValueError("authority dict missing required 'client_verifiable' key")
         return Authority(
             server_only=d["server_only"],
             client_verifiable=d["client_verifiable"],
@@ -633,7 +657,25 @@ def _players_from_raw(raw: object) -> Players:
     if isinstance(raw, list):
         return raw
     if isinstance(raw, dict):
-        return PlayerRange(min=raw["min"], max=raw["max"])
+        if "min" not in raw or "max" not in raw:
+            raise ValueError(
+                f"player range dict must contain 'min' and 'max' keys, got {raw!r}"
+            )
+        p_min = raw["min"]
+        p_max = raw["max"]
+        if not isinstance(p_min, int) or not isinstance(p_max, int):
+            raise ValueError(
+                f"player range min/max must be integers, got min={p_min!r}, max={p_max!r}"
+            )
+        if p_min < 0 or p_max < 0:
+            raise ValueError(
+                f"player range values must be non-negative, got min={p_min}, max={p_max}"
+            )
+        if p_min > p_max:
+            raise ValueError(
+                f"player range min ({p_min}) must not exceed max ({p_max})"
+            )
+        return PlayerRange(min=p_min, max=p_max)
     raise ValueError(f"invalid players value: {raw!r}")
 
 
@@ -655,6 +697,10 @@ class GameMetadata:
 
     @staticmethod
     def from_dict(d: dict[str, Any]) -> GameMetadata:
+        if "name" not in d:
+            raise ValueError("game metadata dict missing required 'name' key")
+        if "players" not in d:
+            raise ValueError("game metadata dict missing required 'players' key")
         return GameMetadata(
             name=d["name"],
             players=_players_from_raw(d["players"]),
@@ -705,6 +751,10 @@ class GameDefinition:
         from baize.error import ParseError
 
         try:
+            for required in ("game", "zones", "components", "turn_order",
+                             "end_conditions", "authority"):
+                if required not in d:
+                    raise KeyError(f"game definition missing required key: {required!r}")
             zones = {k: Zone.from_dict(v) for k, v in d["zones"].items()}
             components = {k: Component.from_dict(v) for k, v in d["components"].items()}
             phases = [Phase.from_dict(p) for p in d.get("phases", [])]
@@ -726,7 +776,7 @@ class GameDefinition:
                 hand_rankings=d.get("hand_rankings", []),
                 betting_round=betting_round,
             )
-        except (KeyError, TypeError, ValueError) as exc:
+        except (KeyError, TypeError, ValueError, AttributeError) as exc:
             raise ParseError(str(exc)) from exc
 
     def to_json(self, indent: int | None = 2) -> str:

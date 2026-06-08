@@ -38,6 +38,10 @@ class ComponentInstance:
 
     @staticmethod
     def from_dict(d: dict[str, Any]) -> ComponentInstance:
+        if "id" not in d:
+            raise ValueError("component instance dict missing required 'id' key")
+        if "component_type" not in d:
+            raise ValueError("component instance dict missing required 'component_type' key")
         return ComponentInstance(
             id=d["id"],
             component_type=d["component_type"],
@@ -164,6 +168,8 @@ class CounterState:
 
     @staticmethod
     def from_dict(d: dict[str, Any]) -> CounterState:
+        if "value" not in d:
+            raise ValueError("counter state dict missing required 'value' key")
         return CounterState(value=d["value"])
 
     def to_dict(self) -> dict[str, Any]:
@@ -192,6 +198,8 @@ ZoneState = GridState | StackState | SetState | SlotState | CounterState | Track
 
 
 def _zone_state_from_dict(d: dict[str, Any]) -> ZoneState:
+    if "zone_type" not in d:
+        raise ValueError(f"zone state dict missing 'zone_type' key: {d!r}")
     zt = d["zone_type"]
     if zt == "grid":
         return GridState.from_dict(d)
@@ -308,6 +316,10 @@ class PendingAction:
 
     @staticmethod
     def from_dict(d: dict[str, Any]) -> PendingAction:
+        if "player" not in d:
+            raise ValueError("pending action dict missing required 'player' key")
+        if "action_type" not in d:
+            raise ValueError("pending action dict missing required 'action_type' key")
         return PendingAction(
             player=d["player"],
             action_type=d["action_type"],
@@ -337,6 +349,8 @@ class GameResult:
 
     @staticmethod
     def from_dict(d: dict[str, Any]) -> GameResult:
+        if "outcome" not in d:
+            raise ValueError("game result dict missing required 'outcome' key")
         return GameResult(
             outcome=d["outcome"],
             winner=d.get("winner"),
@@ -394,6 +408,10 @@ class GameState:
         from baize.error import ParseError
 
         try:
+            for required in ("game_id", "schema_ref", "sequence", "status",
+                             "turn", "phase", "zones", "players"):
+                if required not in d:
+                    raise KeyError(f"game state missing required key: {required!r}")
             zones = {k: _zone_state_from_dict(v) for k, v in d["zones"].items()}
             players = {k: PlayerState.from_dict(v) for k, v in d["players"].items()}
             result_raw = d.get("result")
@@ -418,7 +436,7 @@ class GameState:
                 history_hash=d.get("history_hash"),
                 timestamp=d.get("timestamp"),
             )
-        except (KeyError, TypeError, ValueError) as exc:
+        except (KeyError, TypeError, ValueError, AttributeError) as exc:
             raise ParseError(str(exc)) from exc
 
     def to_json(self, indent: int | None = 2) -> str:
@@ -426,24 +444,26 @@ class GameState:
         return json.dumps(self._to_dict(), indent=indent)
 
     def _to_dict(self) -> dict[str, Any]:
+        # Field order must match Rust's serde struct declaration order
+        # for cross-implementation hash consistency.
         out: dict[str, Any] = {
             "game_id": self.game_id,
             "schema_ref": self.schema_ref,
             "sequence": self.sequence,
-            "status": self.status,
-            "turn": self.turn,
-            "phase": self.phase,
-            "zones": {k: _zone_state_to_dict(v) for k, v in self.zones.items()},
-            "players": {k: v.to_dict() for k, v in self.players.items()},
         }
         if self.state_hash is not None:
             out["state_hash"] = self.state_hash
+        out["status"] = self.status
         if self.result is not None:
             out["result"] = self.result.to_dict()
+        out["turn"] = self.turn
+        out["phase"] = self.phase
         if self.move_count is not None:
             out["move_count"] = self.move_count
         if self.halfmove_clock is not None:
             out["halfmove_clock"] = self.halfmove_clock
+        out["zones"] = {k: _zone_state_to_dict(v) for k, v in self.zones.items()}
+        out["players"] = {k: v.to_dict() for k, v in self.players.items()}
         if self.counters is not None:
             out["counters"] = self.counters
         if self.pending_actions:

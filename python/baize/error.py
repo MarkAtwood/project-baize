@@ -35,3 +35,29 @@ class IllegalActionError(BaizeError):
     def __init__(self, reason: str) -> None:
         super().__init__(f"illegal action: {reason}")
         self.reason = reason
+
+
+class InvalidComponentIdError(BaizeError):
+    """A ComponentId value is out of range or otherwise invalid."""
+
+    def __init__(self, component_id: int, table_size: int) -> None:
+        super().__init__(
+            f"invalid component id: {component_id} "
+            f"(table size: {table_size})"
+        )
+        self.component_id = component_id
+        self.table_size = table_size
+
+
+class InvalidCoordinateError(BaizeError):
+    """Grid coordinates are out of bounds or negative."""
+
+    def __init__(self, col: int, row: int, width: int, height: int) -> None:
+        super().__init__(
+            f"coordinate ({col}, {row}) out of bounds "
+            f"for grid {width}x{height}"
+        )
+        self.col = col
+        self.row = row
+        self.width = width
+        self.height = height

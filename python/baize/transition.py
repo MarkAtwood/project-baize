@@ -14,13 +14,21 @@ from dataclasses import dataclass
 from typing import Any, Literal
 
 from baize.action import Action, Position
-from baize.error import IllegalActionError, UnknownZoneError
+from baize.error import IllegalActionError, InvalidCoordinateError, UnknownZoneError
 from baize.runtime import (
     ComponentData,
     ComponentId,
     GameSession,
     GridZone,
 )
+
+
+def _validate_grid_coords(
+    zone: GridZone, col: int, row: int, zone_name: str
+) -> None:
+    """Raise InvalidCoordinateError if (col, row) is outside the grid."""
+    if col < 0 or row < 0 or col >= zone.width or row >= zone.height:
+        raise InvalidCoordinateError(col, row, zone.width, zone.height)
 
 
 # ---------------------------------------------------------------------------
@@ -123,6 +131,9 @@ def apply_action(session: GameSession, action: Action) -> list[GameEvent]:
         if not isinstance(zone, GridZone):
             raise IllegalActionError(f"zone {zone_name} is not a grid")
 
+        _validate_grid_coords(zone, from_col, from_row, zone_name)
+        _validate_grid_coords(zone, to_col, to_row, zone_name)
+
         cid = zone.grid_get(from_col, from_row)
         if cid is None:
             raise IllegalActionError("no piece at source")
@@ -184,6 +195,7 @@ def apply_action(session: GameSession, action: Action) -> list[GameEvent]:
             raise UnknownZoneError(zone_name)
         if not isinstance(zone, GridZone):
             raise IllegalActionError(f"zone {zone_name} is not a grid")
+        _validate_grid_coords(zone, to_col, to_row, zone_name)
         zone.grid_set(to_col, to_row, cid)
 
         events.append(
@@ -298,6 +310,10 @@ def _parse_coord_str(s: str) -> tuple[int, int]:
         row = int(parts[1].strip())
     except ValueError as exc:
         raise IllegalActionError(f"invalid coordinate: {s}") from exc
+    if col < 0 or row < 0:
+        raise IllegalActionError(
+            f"coordinates must be non-negative, got ({col}, {row})"
+        )
     return col, row
 
 
