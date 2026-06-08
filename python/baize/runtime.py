@@ -21,7 +21,12 @@ from baize.definition import (
     PlayerRange,
     Zone,
 )
-from baize.error import IllegalActionError, UnknownZoneError, ValidationError
+from baize.error import (
+    IllegalActionError,
+    InvalidComponentIdError,
+    UnknownZoneError,
+    ValidationError,
+)
 from baize.state import (
     ComponentInstance,
     CounterState,
@@ -47,6 +52,16 @@ class ComponentId:
     """Compact component identifier (index into ComponentTable)."""
 
     value: int
+
+    def __post_init__(self) -> None:
+        if not isinstance(self.value, int):
+            raise ValidationError(
+                f"ComponentId value must be an int, got {type(self.value).__name__}"
+            )
+        if self.value < 0:
+            raise ValidationError(
+                f"ComponentId value must be non-negative, got {self.value}"
+            )
 
     def __eq__(self, other: object) -> bool:
         if isinstance(other, ComponentId):
@@ -106,6 +121,10 @@ class ComponentTable:
 
     def get(self, cid: ComponentId) -> ComponentData | None:
         """Get a component by ID, or None if out of range."""
+        if not isinstance(cid, ComponentId):
+            raise ValidationError(
+                f"expected ComponentId, got {type(cid).__name__}"
+            )
         if 0 <= cid.value < len(self._entries):
             return self._entries[cid.value]
         return None
@@ -154,7 +173,10 @@ class GridZone:
     def is_full(self, capacity: Capacity | None) -> bool:
         if capacity is None or capacity == "unlimited":
             return False
-        assert isinstance(capacity, int)
+        if not isinstance(capacity, int):
+            raise ValidationError(
+                f"capacity must be an int or 'unlimited', got {type(capacity).__name__}"
+            )
         return self.count() >= capacity
 
 
@@ -178,7 +200,10 @@ class StackZone:
     def is_full(self, capacity: Capacity | None) -> bool:
         if capacity is None or capacity == "unlimited":
             return False
-        assert isinstance(capacity, int)
+        if not isinstance(capacity, int):
+            raise ValidationError(
+                f"capacity must be an int or 'unlimited', got {type(capacity).__name__}"
+            )
         return self.count() >= capacity
 
 
@@ -206,7 +231,10 @@ class SetZone:
     def is_full(self, capacity: Capacity | None) -> bool:
         if capacity is None or capacity == "unlimited":
             return False
-        assert isinstance(capacity, int)
+        if not isinstance(capacity, int):
+            raise ValidationError(
+                f"capacity must be an int or 'unlimited', got {type(capacity).__name__}"
+            )
         return self.count() >= capacity
 
 
@@ -222,7 +250,10 @@ class SlotZone:
     def is_full(self, capacity: Capacity | None) -> bool:
         if capacity is None or capacity == "unlimited":
             return False
-        assert isinstance(capacity, int)
+        if not isinstance(capacity, int):
+            raise ValidationError(
+                f"capacity must be an int or 'unlimited', got {type(capacity).__name__}"
+            )
         return self.count() >= capacity
 
 
@@ -251,7 +282,10 @@ class TrackZone:
     def is_full(self, capacity: Capacity | None) -> bool:
         if capacity is None or capacity == "unlimited":
             return False
-        assert isinstance(capacity, int)
+        if not isinstance(capacity, int):
+            raise ValidationError(
+                f"capacity must be an int or 'unlimited', got {type(capacity).__name__}"
+            )
         return self.count() >= capacity
 
 
@@ -271,6 +305,14 @@ def runtime_zone_from_definition(zone_def: Zone) -> RuntimeZone:
             w, h = 0, 0
         else:
             raise ValidationError("grid zone requires dimensions")
+        if not isinstance(w, int) or not isinstance(h, int):
+            raise ValidationError(
+                f"grid dimensions must be integers, got ({type(w).__name__}, {type(h).__name__})"
+            )
+        if w < 0 or h < 0:
+            raise ValidationError(
+                f"grid dimensions must be non-negative, got ({w}, {h})"
+            )
         return GridZone(width=w, height=h, cells=[None] * (w * h))
     if zt == "ordered_stack":
         return StackZone()
@@ -284,6 +326,10 @@ def runtime_zone_from_definition(zone_def: Zone) -> RuntimeZone:
         return CounterZone()
     if zt == "track":
         length = zone_def.length or zone_def.points or 1
+        if not isinstance(length, int) or length < 1:
+            raise ValidationError(
+                f"track length must be a positive integer, got {length!r}"
+            )
         return TrackZone(positions=[[] for _ in range(length)])
     if zt == "graph":
         return SetZone()
@@ -351,11 +397,18 @@ class GameSession:
         # Determine player names
         if isinstance(definition.game.players, list):
             player_names: list[str] = definition.game.players
-        else:
-            assert isinstance(definition.game.players, PlayerRange)
+        elif isinstance(definition.game.players, PlayerRange):
+            if definition.game.players.min < 0:
+                raise ValidationError(
+                    f"player range min must be non-negative, got {definition.game.players.min}"
+                )
             player_names = [
                 f"player_{i}" for i in range(definition.game.players.min)
             ]
+        else:
+            raise ValidationError(
+                f"players must be a list or PlayerRange, got {type(definition.game.players).__name__}"
+            )
 
         players: dict[str, RuntimePlayer] = {}
         for pname in player_names:
@@ -396,9 +449,15 @@ class GameSession:
         self.runtime.move_count += 1
 
     def compute_state_hash(self) -> str:
-        """Compute a BLAKE3 hash of the current state for repetition detection."""
+        """Compute a BLAKE3 hash of the current state for repetition detection.
+
+        Uses compact JSON (no whitespace) with field order matching
+        the Rust serde serialization for cross-implementation consistency.
+        """
         state = self.to_wire_state()
-        canonical = state.to_json(indent=None)
+        canonical = json.dumps(
+            state._to_dict(), separators=(",", ":"), sort_keys=False
+        )
         return blake3.blake3(canonical.encode("utf-8")).hexdigest()
 
     def to_wire_state(self) -> GameState:

@@ -11,6 +11,8 @@ from baize.error import (
     UnknownZoneError,
     UnknownComponentError,
     IllegalActionError,
+    InvalidComponentIdError,
+    InvalidCoordinateError,
 )
 from baize.events import EventLog, Event
 from baize import analysis
@@ -27,6 +29,8 @@ __all__ = [
     "UnknownZoneError",
     "UnknownComponentError",
     "IllegalActionError",
+    "InvalidComponentIdError",
+    "InvalidCoordinateError",
     "EventLog",
     "Event",
     "analysis",
