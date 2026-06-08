@@ -29,3 +29,7 @@ pub const MAX_DRAW_COUNT: u32 = 1000;
 
 /// Maximum zone name length for random requests.
 pub const MAX_ZONE_NAME_LENGTH: usize = 128;
+
+/// Maximum outbound message queue depth per player connection.
+/// If a player's queue is full, the connection is dropped.
+pub const MAX_OUTBOUND_QUEUE: usize = 256;
