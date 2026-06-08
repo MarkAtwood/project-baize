@@ -16,6 +16,7 @@ jobs:
         uses: dtolnay/rust-toolchain@master
         with:
           toolchain: "1.85"
+          components: clippy
 
       - name: Cache cargo registry and build artifacts
         uses: actions/cache@v4
@@ -29,9 +30,17 @@ jobs:
           restore-keys: |
             rust-${{ runner.os }}-cargo-
 
+      - name: Clippy engine
+        working-directory: engine
+        run: cargo clippy -- -D warnings
+
       - name: Test engine
         working-directory: engine
         run: cargo test
+
+      - name: Clippy server
+        working-directory: server
+        run: cargo clippy -- -D warnings
 
       - name: Build server
         working-directory: server
@@ -57,7 +66,10 @@ jobs:
             pip-${{ runner.os }}-
 
       - name: Install dependencies
-        run: pip install blake3 pytest hypothesis jsonschema
+        run: pip install blake3 pytest hypothesis jsonschema mypy
+
+      - name: Type-check Python
+        run: python3 -m mypy python/baize/ --strict
 
       - name: Run Python tests
         working-directory: python

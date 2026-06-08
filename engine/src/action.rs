@@ -4,6 +4,7 @@ use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(tag = "message_type", rename_all = "snake_case")]
+#[allow(clippy::large_enum_variant)]
 pub enum ClientMessage {
     SubmitMove {
         game_id: String,

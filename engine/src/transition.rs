@@ -297,6 +297,7 @@ fn position_zone(pos: Option<&Position>) -> Option<String> {
     }
 }
 
+#[allow(clippy::too_many_arguments)]
 fn make_event(
     sequence: u64,
     event_type: EventType,

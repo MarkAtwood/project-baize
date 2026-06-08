@@ -84,6 +84,7 @@ pub fn legal_moves(session: &GameSession) -> Vec<LegalMove> {
 }
 
 /// Generate moves for a piece on a grid using its movement primitives.
+#[allow(clippy::too_many_arguments)]
 fn generate_grid_moves(
     session: &GameSession,
     zone_name: &str,

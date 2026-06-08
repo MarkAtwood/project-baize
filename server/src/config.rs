@@ -1,4 +1,4 @@
-/// Server-wide security configuration with sensible defaults.
+//! Server-wide security configuration with sensible defaults.
 
 /// Maximum WebSocket message size in bytes (64 KB).
 pub const MAX_MESSAGE_SIZE: usize = 64 * 1024;

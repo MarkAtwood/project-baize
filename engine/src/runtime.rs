@@ -90,6 +90,12 @@ pub struct RuntimePlayer {
 
 // --- ComponentTable ---
 
+impl Default for ComponentTable {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl ComponentTable {
     pub fn new() -> Self {
         Self { entries: Vec::new() }

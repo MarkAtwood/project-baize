@@ -235,7 +235,15 @@ def verify_log(path: str | Path) -> VerifyResult:
     seen_sequences: set[int] = set()
 
     for i, event in enumerate(events):
-        seq = event.get("sequence")
+        raw_seq = event.get("sequence")
+        if not isinstance(raw_seq, int):
+            return VerifyResult(
+                valid=False,
+                events_checked=i,
+                error=f"missing or non-integer sequence at index {i}",
+                divergence_index=i,
+            )
+        seq: int = raw_seq
 
         # Check for duplicate sequence number
         if seq in seen_sequences:
