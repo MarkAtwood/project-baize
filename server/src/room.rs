@@ -50,6 +50,9 @@ impl RoomRegistry {
     pub async fn acquire_ip_slot(&self, ip: IpAddr) -> Result<IpConnectionGuard, String> {
         let counter = {
             let mut map = self.ip_connections.write().await;
+            // Lazy pruning: remove stale entries (counter == 0) to prevent
+            // unbounded HashMap growth from unique IPs that have disconnected.
+            map.retain(|_, c| c.load(Ordering::SeqCst) > 0);
             map.entry(ip)
                 .or_insert_with(|| Arc::new(AtomicUsize::new(0)))
                 .clone()
@@ -113,8 +116,11 @@ impl RoomRegistry {
     /// Get a room by ID, creating it with a default placeholder definition if
     /// it does not exist yet. In production, rooms would be created explicitly
     /// via an API; this fallback keeps the skeleton functional.
+    ///
+    /// Uses a single write lock to avoid TOCTOU races where two concurrent
+    /// requests could overwrite each other's room.
     pub async fn get_or_create_room(&self, room_id: &str) -> Result<Arc<Mutex<Room>>, String> {
-        // Fast path: room exists
+        // Fast path: room exists (read lock)
         {
             let rooms = self.rooms.read().await;
             if let Some(room) = rooms.get(room_id) {
@@ -122,16 +128,42 @@ impl RoomRegistry {
             }
         }
 
-        // Slow path: create with a minimal placeholder definition
-        let definition_json = default_definition();
-        self.create_room(room_id.to_string(), &definition_json)
-            .await?;
+        // Slow path: acquire write lock and re-check before creating
+        let mut rooms = self.rooms.write().await;
 
-        let rooms = self.rooms.read().await;
-        rooms
-            .get(room_id)
-            .cloned()
-            .ok_or_else(|| format!("room {room_id} vanished after creation"))
+        // Re-check under write lock to handle concurrent creation
+        if let Some(room) = rooms.get(room_id) {
+            return Ok(Arc::clone(room));
+        }
+
+        if rooms.len() >= config::MAX_ROOMS {
+            return Err(format!(
+                "server at room capacity (max {max})",
+                max = config::MAX_ROOMS
+            ));
+        }
+
+        let definition_json = default_definition();
+        let definition =
+            GameDefinition::from_json(&definition_json).map_err(|e| e.to_string())?;
+        let max_players = match &definition.game.players {
+            baize_engine::definition::Players::Named(names) => names.len(),
+            baize_engine::definition::Players::Range { max, .. } => *max as usize,
+        };
+        let session = GameSession::new(definition).map_err(|e| e.to_string())?;
+        let vault = Vault::new();
+
+        let room = Room {
+            id: room_id.to_string(),
+            session,
+            vault,
+            players: HashMap::new(),
+            max_players,
+        };
+
+        let arc = Arc::new(Mutex::new(room));
+        rooms.insert(room_id.to_string(), Arc::clone(&arc));
+        Ok(arc)
     }
 
     /// List all room IDs.

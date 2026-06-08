@@ -11,6 +11,9 @@ import type { ServerMessage, ServerMessageType } from "./types.js";
 /** Maximum allowed length for any single string field. */
 const MAX_STRING_LENGTH = 10_240; // 10 KB
 
+/** Maximum allowed length for any array field (facts, random_value). */
+const MAX_ARRAY_LENGTH = 10_000;
+
 /** Known server message types. */
 const KNOWN_MESSAGE_TYPES: ReadonlySet<string> = new Set<ServerMessageType>([
   "move_confirmed",
@@ -76,6 +79,7 @@ export function validateServerMessage(data: unknown): ServerMessage | null {
         if (!isReasonableString(rv)) return null;
         msg["random_value"] = rv;
       } else if (Array.isArray(rv)) {
+        if (rv.length > MAX_ARRAY_LENGTH) return null;
         msg["random_value"] = rv;
       } else if (isPlainObject(rv)) {
         msg["random_value"] = rv;
@@ -105,9 +109,10 @@ export function validateServerMessage(data: unknown): ServerMessage | null {
       msg["result_state"] = data["result_state"];
     }
 
-    // facts: optional array of objects
+    // facts: optional array of objects (bounded)
     if ("facts" in data && data["facts"] !== undefined) {
       if (!Array.isArray(data["facts"])) return null;
+      if (data["facts"].length > MAX_ARRAY_LENGTH) return null;
       const validatedFacts = validateFacts(data["facts"]);
       if (validatedFacts === null) return null;
       msg["facts"] = validatedFacts;
