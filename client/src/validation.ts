@@ -307,8 +307,34 @@ function validateGameState(
     }
   }
 
-  // Pass through — deep validation of zones/players/result is not
-  // necessary for security; the type system + rendering sanitization
-  // handles the rest.
-  return data;
+  // Build a clean copy with only known fields — strip unknown properties.
+  const state: Record<string, unknown> = {
+    game_id: data["game_id"],
+    schema_ref: data["schema_ref"],
+    sequence: data["sequence"],
+    status: data["status"],
+    turn: data["turn"],
+    phase: data["phase"],
+    zones: data["zones"],
+    players: data["players"],
+  };
+
+  for (const field of ["move_count", "halfmove_clock"] as const) {
+    if (field in data && data[field] !== undefined) {
+      state[field] = data[field];
+    }
+  }
+
+  for (const field of [
+    "state_hash",
+    "history_hash",
+    "timestamp",
+    "result",
+  ] as const) {
+    if (field in data && data[field] !== undefined) {
+      state[field] = data[field];
+    }
+  }
+
+  return state;
 }

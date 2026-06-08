@@ -42,9 +42,9 @@ jobs:
         working-directory: server
         run: cargo clippy -- -D warnings
 
-      - name: Build server
+      - name: Test server
         working-directory: server
-        run: cargo build
+        run: cargo test
 
   python:
     name: Python (library + cross-implementation tests)
