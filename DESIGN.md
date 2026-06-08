@@ -399,43 +399,80 @@ entire protocol. The server is a notary.
 | **Board Game Arena** | Static material / dynamic state separation; Deck/Stock/Zone framework | Rules are imperative PHP, closed ecosystem |
 | **Tabletopia** | Real-world dimensions as component metadata; .OBJ 3D models | No rules, shared-whiteboard model |
 
-## Open Questions
+## Event Logging
 
-1. ~~**Syntax**~~ — **Decided: JSON.** Zero-dependency parsing in all three
+Every state transition produces a structured JSONL event with BLAKE3 hash
+chaining. Each event's hash includes the previous event's hash, forming a
+tamper-evident log suitable for tournament integrity verification.
+
+```
+{"game_id":"g1","sequence":0,"event_type":"move","player":"white",
+ "state_hash":"ab12...","prev_hash":"0000...","event_hash":"cd34...",
+ "payload":{...}}
+```
+
+Both Rust and Python implementations produce identical hashes for the same
+state (verified by cross-implementation test vectors).
+
+## Server Security Model
+
+The server enforces defense-in-depth:
+
+- **Rate limiting**: 30 messages/second per connection (sliding window)
+- **Message size**: 64 KB maximum WebSocket message
+- **Per-IP limits**: 10 connections per IP address
+- **Idle timeout**: 5 minutes of inactivity disconnects
+- **Room capacity**: 100 rooms maximum, player count per game definition
+- **Move limits**: 10,000 moves per game maximum
+- **Bounded channels**: 256-message outbound queue per player; slow clients dropped
+- **Input validation**: All action fields bounded (256 chars), dice/draw counts capped
+- **Spectator isolation**: Spectators cannot submit moves or request random values
+- **Private replies**: MoveRejected and StateSync sent only to the requesting player,
+  preventing information leaks in imperfect-information games
+- **Turn enforcement**: RequestRandom requires it to be the requesting player's turn
+
+## Decided Questions
+
+1. ~~**Syntax**~~ — **JSON.** Zero-dependency parsing in all three
    implementation languages, no ambiguity, JSON Schema for validation.
 
-2. **WASM ABI**: What's the exact serialization format for passing game state
-   to/from WASM? Flatbuffers? JSON? Custom binary? (JSON is the default
-   candidate given the schema format decision.)
+2. ~~**WASM ABI**~~ — **JSON strings.** State and actions serialized as JSON,
+   passed via `alloc`/`dealloc` in WASM linear memory. Length-prefixed
+   (4 bytes LE + UTF-8). Deterministic across client and server.
 
-3. **Randomness commitment**: For competitive play, the server should commit
+3. ~~**Simultaneous moves**~~ — **Compose from existing primitives.** Phase
+   with `simultaneous: true` + visibility model + server submission gate.
+   No new turn_order type. Phase collects private actions, server waits
+   for all players, then reveals. Covers RPS, Diplomacy, sealed bids.
+
+4. ~~**Infinite/unbounded games**~~ — **Dynamic zones.** Zones with
+   `dynamic: true` can grow at runtime (deck-builders, procedural maps).
+   Grid zones require explicit dimensions; dynamic zones do not.
+
+5. ~~**Spectator mode**~~ — **Public state only.** Spectators receive public
+   zone contents and scores. Delayed revelation (broadcast delay) is a
+   server transport concern, not a schema concern.
+
+6. ~~**Undo/takeback**~~ — **Schema-declared.** The schema can declare
+   `undo: permitted | forbidden`. Server enforces. Undo replays from
+   the event log.
+
+7. ~~**Time controls**~~ — **Split responsibility.** Schema declares
+   `time_control` type and `timeout_result` (loss/draw/none — the game
+   rule). Server overrides `seconds` and `increment` at room creation.
+   Server owns clock state and enforcement. Client displays
+   server-provided clock.
+
+## Open Questions
+
+1. **Randomness commitment**: For competitive play, the server should commit
    to random values before they're needed (commit-reveal). How does the
    schema express this?
 
-4. **Simultaneous moves**: Some games have simultaneous action selection
-   (Rock-Paper-Scissors, Diplomacy). The schema needs to express "both
-   players submit secretly, then reveal." This is a server-authority
-   operation that the visibility model handles, but the turn structure
-   needs to express it.
-
-5. **Infinite/unbounded games**: The schema assumes finite state. How do we
-   handle games with unbounded state (deck-builders that add cards during
-   play, procedurally generated maps)?
-
-6. **Spectator mode**: Spectators see public state. But some games have
-   delayed revelation for spectators (poker tournament broadcast delay).
-   Does the schema express this?
-
-7. **Undo/takeback**: Should the schema declare whether undo is permitted?
-   This affects the server protocol (can a confirmed move be rescinded?).
-
-8. **Time controls**: Chess clocks, shot clocks, turn timers. Are these part
-   of the schema or a transport concern?
-
-9. **Rating/matchmaking**: Out of scope, but the schema's complexity
+2. **Rating/matchmaking**: Out of scope, but the schema's complexity
    metadata (branching factor, average game length, hidden information
    ratio) could feed rating systems. TAG already computes these metrics.
 
-10. **Mod support**: Can a WASM module extend the declarative schema (add new
-    movement primitives, new component types)? Or is the schema fixed and
-    WASM is only for validation logic?
+3. **Mod support**: Can a WASM module extend the declarative schema (add new
+   movement primitives, new component types)? Or is the schema fixed and
+   WASM is only for validation logic?
