@@ -2,6 +2,7 @@ mod config;
 mod connection;
 mod protocol;
 mod room;
+#[allow(dead_code)]
 mod vault;
 #[cfg(feature = "wasm-host")]
 mod wasm_host;
