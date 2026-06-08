@@ -197,16 +197,20 @@ export class BaizeHandElement extends HTMLElement {
 
     const label = isFaceDown
       ? "?"
-      : component.component_type.charAt(0).toUpperCase();
+      : BaizeHandElement.escapeSvg(
+          component.component_type.charAt(0).toUpperCase(),
+        );
+
+    const safeId = BaizeHandElement.escapeSvgAttr(component.id);
 
     const subtitle = isFaceDown
       ? ""
       : `<text x="${x + CARD_WIDTH / 2}" y="${y + CARD_HEIGHT / 2 + 14}" ` +
         `text-anchor="middle" font-size="9" fill="#999">` +
-        `${component.component_type}</text>`;
+        `${BaizeHandElement.escapeSvg(component.component_type)}</text>`;
 
     return (
-      `<g class="card" data-component-id="${component.id}">` +
+      `<g class="card" data-component-id="${safeId}">` +
       `<rect x="${x}" y="${y}" width="${CARD_WIDTH}" height="${CARD_HEIGHT}" ` +
       `rx="4" ry="4" fill="${fill}" stroke="#999" stroke-width="1" />` +
       `<text x="${x + CARD_WIDTH / 2}" y="${y + CARD_HEIGHT / 2 + 5}" ` +
@@ -215,5 +219,22 @@ export class BaizeHandElement extends HTMLElement {
       subtitle +
       `</g>`
     );
+  }
+
+  /** Escape text content for safe SVG/XML embedding. */
+  private static escapeSvg(text: string): string {
+    return text
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;");
+  }
+
+  /** Escape a value for safe use inside an SVG/HTML attribute. */
+  private static escapeSvgAttr(text: string): string {
+    return text
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;");
   }
 }

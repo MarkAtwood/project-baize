@@ -108,13 +108,14 @@ export class BaizeScoreElement extends HTMLElement {
   private renderStatus(state: GameState): string {
     if (state.status === "finished" && state.result !== undefined) {
       const { outcome, winner, condition } = state.result;
+      const safeCondition = condition !== undefined ? this.escapeHtml(condition) : undefined;
       if (outcome === "draw") {
-        return `<div class="game-result draw">Draw${condition !== undefined ? ` (${condition})` : ""}</div>`;
+        return `<div class="game-result draw">Draw${safeCondition !== undefined ? ` (${safeCondition})` : ""}</div>`;
       }
       if (outcome === "win" && winner !== undefined) {
-        return `<div class="game-result win">${this.escapeHtml(winner)} wins${condition !== undefined ? ` (${condition})` : ""}!</div>`;
+        return `<div class="game-result win">${this.escapeHtml(winner)} wins${safeCondition !== undefined ? ` (${safeCondition})` : ""}!</div>`;
       }
-      return `<div class="game-result">Game over: ${outcome}</div>`;
+      return `<div class="game-result">Game over: ${this.escapeHtml(outcome)}</div>`;
     }
     if (state.status === "setup") {
       return `<div class="game-status">Setting up...</div>`;

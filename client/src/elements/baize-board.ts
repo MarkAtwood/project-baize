@@ -614,16 +614,17 @@ export class BaizeBoardElement extends HTMLElement {
         const fill = isDark ? COLORS.darkCell : COLORS.lightCell;
         const isHighlighted = this.legalMoveTargets.has(coord);
 
+        const safeCoord = BaizeBoardElement.escapeSvgAttr(coord);
         cells.push(
           `<rect x="${x}" y="${y}" width="${CELL_SIZE}" height="${CELL_SIZE}" ` +
             `fill="${fill}" stroke="${COLORS.gridLine}" stroke-width="0.5" ` +
-            `data-cell="${coord}" />`,
+            `data-cell="${safeCoord}" />`,
         );
 
         if (isHighlighted) {
           cells.push(
             `<rect x="${x}" y="${y}" width="${CELL_SIZE}" height="${CELL_SIZE}" ` +
-              `fill="${COLORS.highlight}" data-highlight="${coord}" pointer-events="none" />`,
+              `fill="${COLORS.highlight}" data-highlight="${safeCoord}" pointer-events="none" />`,
           );
         }
 
@@ -644,9 +645,10 @@ export class BaizeBoardElement extends HTMLElement {
       if (files !== undefined) {
         for (let c = 0; c < Math.min(cols, files.length); c++) {
           const x = c * CELL_SIZE + ox + CELL_SIZE / 2;
+          const safeLabel = BaizeBoardElement.escapeSvg(String(files[c] ?? ""));
           labels.push(
             `<text x="${x}" y="${svgHeight + 16}" text-anchor="middle" ` +
-              `font-size="12" fill="${COLORS.text}">${files[c]}</text>`,
+              `font-size="12" fill="${COLORS.text}">${safeLabel}</text>`,
           );
         }
       }
@@ -655,9 +657,10 @@ export class BaizeBoardElement extends HTMLElement {
           const y = r * CELL_SIZE + oy + CELL_SIZE / 2 + 4;
           const rankIdx = ranks.length - 1 - r;
           const label = ranks[rankIdx];
+          const safeLabel = BaizeBoardElement.escapeSvg(String(label ?? ""));
           labels.push(
             `<text x="${ox - 6}" y="${y}" text-anchor="end" ` +
-              `font-size="12" fill="${COLORS.text}">${label ?? ""}</text>`,
+              `font-size="12" fill="${COLORS.text}">${safeLabel}</text>`,
           );
         }
       }
@@ -784,14 +787,34 @@ export class BaizeBoardElement extends HTMLElement {
     const stroke =
       fill === COLORS.pieceLight ? COLORS.pieceDark : COLORS.pieceLight;
 
-    const label = component.component_type.charAt(0).toUpperCase();
+    const label = BaizeBoardElement.escapeSvg(
+      component.component_type.charAt(0).toUpperCase(),
+    );
+    const safeCoord = BaizeBoardElement.escapeSvgAttr(coord);
 
     return (
-      `<g data-piece="${coord}">` +
+      `<g data-piece="${safeCoord}">` +
       `<circle cx="${cx}" cy="${cy}" r="${r}" fill="${fill}" stroke="${stroke}" stroke-width="2" />` +
       `<text x="${cx}" y="${cy + 5}" text-anchor="middle" font-size="14" ` +
       `font-weight="bold" fill="${stroke}">${label}</text>` +
       `</g>`
     );
+  }
+
+  /** Escape text content for safe SVG/XML embedding. */
+  private static escapeSvg(text: string): string {
+    return text
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;");
+  }
+
+  /** Escape a value for safe use inside an SVG/HTML attribute. */
+  private static escapeSvgAttr(text: string): string {
+    return text
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;");
   }
 }
