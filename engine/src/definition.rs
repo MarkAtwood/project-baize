@@ -161,10 +161,12 @@ pub struct GridLabels {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(rename_all = "snake_case")]
 pub enum Adjacency {
+    #[serde(rename = "orthogonal_4")]
     Orthogonal4,
+    #[serde(rename = "orthogonal_8")]
     Orthogonal8,
+    #[serde(rename = "hex_6")]
     Hex6,
 }
 
