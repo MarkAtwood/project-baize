@@ -225,52 +225,28 @@ pub fn handle_client_message(
 
 /// Validate action fields for sanity.
 fn validate_action(action: &baize_engine::action::Action) -> Result<(), String> {
-    // component_id, if present, must be non-empty
-    if let Some(ref id) = action.component_id {
-        if id.is_empty() {
-            return Err("component_id must not be empty".to_string());
-        }
-    }
-
-    // component_type, if present, must be non-empty
-    if let Some(ref ct) = action.component_type {
-        if ct.is_empty() {
-            return Err("component_type must not be empty".to_string());
-        }
-    }
-
-    // zone, if present, must be non-empty
-    if let Some(ref z) = action.zone {
-        if z.is_empty() {
-            return Err("zone must not be empty".to_string());
-        }
-    }
-
-    // promote_to, if present, must be non-empty
-    if let Some(ref p) = action.promote_to {
-        if p.is_empty() {
-            return Err("promote_to must not be empty".to_string());
-        }
-    }
-
-    // swap_with, if present, must be non-empty
-    if let Some(ref s) = action.swap_with {
-        if s.is_empty() {
-            return Err("swap_with must not be empty".to_string());
-        }
-    }
-
-    // declaration, if present, must be non-empty
-    if let Some(ref d) = action.declaration {
-        if d.is_empty() {
-            return Err("declaration must not be empty".to_string());
-        }
-    }
-
-    // dice_type, if present, must be non-empty
-    if let Some(ref dt) = action.dice_type {
-        if dt.is_empty() {
-            return Err("dice_type must not be empty".to_string());
+    // Validate string fields: non-empty and bounded length
+    let string_fields: &[(&str, &Option<String>)] = &[
+        ("component_id", &action.component_id),
+        ("component_type", &action.component_type),
+        ("zone", &action.zone),
+        ("promote_to", &action.promote_to),
+        ("swap_with", &action.swap_with),
+        ("declaration", &action.declaration),
+        ("dice_type", &action.dice_type),
+    ];
+    for (name, field) in string_fields {
+        if let Some(v) = field {
+            if v.is_empty() {
+                return Err(format!("{name} must not be empty"));
+            }
+            if v.len() > config::MAX_ACTION_FIELD_LENGTH {
+                return Err(format!(
+                    "{name} too long ({} chars, max {})",
+                    v.len(),
+                    config::MAX_ACTION_FIELD_LENGTH
+                ));
+            }
         }
     }
 
@@ -374,6 +350,22 @@ fn handle_submit_move(
             game_id,
             action,
             reason: "game is finished".to_string(),
+        }]);
+    }
+
+    // Enforce max moves per game to prevent indefinite resource consumption
+    if room.session.runtime.sequence >= config::MAX_MOVES_PER_GAME {
+        eprintln!(
+            "[security] game in room '{game_id}' exceeded max move count ({})",
+            config::MAX_MOVES_PER_GAME
+        );
+        return HandleResult::Reply(vec![ServerMessage::MoveRejected {
+            game_id,
+            action,
+            reason: format!(
+                "game exceeded maximum move count ({})",
+                config::MAX_MOVES_PER_GAME
+            ),
         }]);
     }
 

@@ -33,3 +33,9 @@ pub const MAX_ZONE_NAME_LENGTH: usize = 128;
 /// Maximum outbound message queue depth per player connection.
 /// If a player's queue is full, the connection is dropped.
 pub const MAX_OUTBOUND_QUEUE: usize = 256;
+
+/// Maximum moves per game before auto-finish (DoS prevention).
+pub const MAX_MOVES_PER_GAME: u64 = 10_000;
+
+/// Maximum length for action string fields (component_id, zone, etc.).
+pub const MAX_ACTION_FIELD_LENGTH: usize = 256;
