@@ -78,7 +78,7 @@ fn setup_session(tc: &TestCase) -> GameSession {
             facing: None,
             state: None,
             properties: IndexMap::new(),
-        });
+        }).unwrap();
         session
             .runtime
             .zones

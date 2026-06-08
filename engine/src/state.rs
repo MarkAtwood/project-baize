@@ -165,8 +165,17 @@ impl GameState {
     }
 
     /// Compute a BLAKE3 hash of the canonical JSON serialization.
+    ///
+    /// Serialization of a well-formed `GameState` is infallible (all fields
+    /// are plain data types), so this unwrap is safe in practice.  We keep
+    /// `unwrap` rather than returning `Result` because every call-site needs
+    /// a `String`, and a serialization failure here would indicate a bug in
+    /// the struct definition, not user-supplied data.
     pub fn compute_hash(&self) -> String {
-        let canonical = serde_json::to_string(self).expect("GameState is always serializable");
+        // Safety rationale: GameState contains only String, u64, Option,
+        // Vec, IndexMap<String, _>, and serde_json::Number — all of which
+        // are infallibly serializable by serde_json.
+        let canonical = serde_json::to_string(self).unwrap();
         blake3::hash(canonical.as_bytes()).to_hex().to_string()
     }
 }

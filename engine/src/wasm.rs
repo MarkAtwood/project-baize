@@ -69,8 +69,11 @@ impl BaizeEngine {
         // Return events as JSONL (one JSON object per line)
         let lines: Vec<String> = events
             .iter()
-            .map(|e| serde_json::to_string(e).unwrap_or_default())
-            .collect();
+            .map(|e| {
+                serde_json::to_string(e)
+                    .map_err(|e| JsError::new(&e.to_string()))
+            })
+            .collect::<std::result::Result<Vec<_>, _>>()?;
         Ok(lines.join("\n"))
     }
 

@@ -95,11 +95,15 @@ impl ComponentTable {
         Self { entries: Vec::new() }
     }
 
-    pub fn insert(&mut self, data: ComponentData) -> ComponentId {
-        let id = ComponentId(self.entries.len() as u32);
+    pub fn insert(&mut self, data: ComponentData) -> Result<ComponentId> {
+        let len: u32 = self.entries.len().try_into().map_err(|_| {
+            BaizeError::Overflow("component table exceeds u32::MAX entries".into())
+        })?;
+        let id = ComponentId(len);
         self.entries.push(data);
+        // Safe: push guarantees entries is non-empty, so last_mut always succeeds.
         self.entries.last_mut().unwrap().id = id;
-        id
+        Ok(id)
     }
 
     pub fn get(&self, id: ComponentId) -> Option<&ComponentData> {
@@ -140,10 +144,15 @@ impl RuntimeZone {
                         ))
                     }
                 };
+                let cell_count = (w as usize).checked_mul(h as usize).ok_or_else(|| {
+                    BaizeError::Overflow(format!(
+                        "grid dimensions {w}x{h} overflow cell count"
+                    ))
+                })?;
                 Ok(RuntimeZone::Grid {
                     width: w,
                     height: h,
-                    cells: vec![None; (w * h) as usize],
+                    cells: vec![None; cell_count],
                 })
             }
             ZoneType::OrderedStack => Ok(RuntimeZone::OrderedStack {
@@ -205,7 +214,10 @@ impl RuntimeZone {
                 if col >= *width || row >= *height {
                     return None;
                 }
-                cells[(row * width + col) as usize]
+                let idx = (row as usize)
+                    .checked_mul(*width as usize)
+                    .and_then(|v| v.checked_add(col as usize))?;
+                cells.get(idx).copied().flatten()
             }
             _ => None,
         }
@@ -227,9 +239,13 @@ impl RuntimeZone {
                 if col >= *width || row >= *height {
                     return None;
                 }
-                let idx = (row * *width + col) as usize;
-                let prev = cells[idx];
-                cells[idx] = component;
+                let idx = (row as usize)
+                    .checked_mul(*width as usize)
+                    .and_then(|v| v.checked_add(col as usize))?;
+                let prev = cells.get(idx).copied().flatten();
+                if let Some(cell) = cells.get_mut(idx) {
+                    *cell = component;
+                }
                 prev
             }
             _ => None,
@@ -352,8 +368,8 @@ impl GameSession {
         if player_count > 0 {
             self.runtime.turn_index = (self.runtime.turn_index + 1) % player_count;
         }
-        self.runtime.sequence += 1;
-        self.runtime.move_count += 1;
+        self.runtime.sequence = self.runtime.sequence.saturating_add(1);
+        self.runtime.move_count = self.runtime.move_count.saturating_add(1);
     }
 
     /// Compute a BLAKE3 hash of the current state for repetition detection.
@@ -437,10 +453,16 @@ impl GameSession {
                 let mut wire_cells = IndexMap::new();
                 for row in 0..*height {
                     for col in 0..*width {
-                        let idx = (row * width + col) as usize;
-                        if let Some(cid) = cells[idx] {
+                        let idx = match (row as usize)
+                            .checked_mul(*width as usize)
+                            .and_then(|v| v.checked_add(col as usize))
+                        {
+                            Some(i) => i,
+                            None => continue,
+                        };
+                        if let Some(Some(cid)) = cells.get(idx) {
                             let coord = format!("{},{}", col, row);
-                            if let Some(data) = self.runtime.components.get(cid) {
+                            if let Some(data) = self.runtime.components.get(*cid) {
                                 wire_cells
                                     .insert(coord, CellContents::Single(data.to_wire_instance()));
                             }

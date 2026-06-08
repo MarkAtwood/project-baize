@@ -1,0 +1,140 @@
+{
+  "$schema": "../schema/game-definition.schema.json",
+  "game": {
+    "name": "Chess",
+    "players": ["white", "black"],
+    "information": "perfect"
+  },
+  "zones": {
+    "board": {
+      "zone_type": "grid",
+      "dimensions": [8, 8],
+      "visibility": "public",
+      "coloring": "alternating",
+      "labels": {
+        "files": ["a", "b", "c", "d", "e", "f", "g", "h"],
+        "ranks": [1, 2, 3, 4, 5, 6, 7, 8]
+      }
+    }
+  },
+  "components": {
+    "king": {
+      "registry": "standard:chess-pieces",
+      "owner": "per_player",
+      "count": 1,
+      "movement": [
+        { "primitive": "step", "direction": "adjacent" },
+        { "primitive": "castle", "side": "kingside" },
+        { "primitive": "castle", "side": "queenside" }
+      ],
+      "constraints": ["cannot_move_into_check"]
+    },
+    "queen": {
+      "registry": "standard:chess-pieces",
+      "owner": "per_player",
+      "count": 1,
+      "movement": [
+        { "primitive": "slide", "direction": ["orthogonal", "diagonal"] }
+      ]
+    },
+    "rook": {
+      "registry": "standard:chess-pieces",
+      "owner": "per_player",
+      "count": 2,
+      "movement": [
+        { "primitive": "slide", "direction": "orthogonal" }
+      ],
+      "special": "castling_participant"
+    },
+    "bishop": {
+      "registry": "standard:chess-pieces",
+      "owner": "per_player",
+      "count": 2,
+      "movement": [
+        { "primitive": "slide", "direction": "diagonal" }
+      ]
+    },
+    "knight": {
+      "registry": "standard:chess-pieces",
+      "owner": "per_player",
+      "count": 2,
+      "movement": [
+        { "primitive": "leap", "dx": 1, "dy": 2 }
+      ]
+    },
+    "pawn": {
+      "registry": "standard:chess-pieces",
+      "owner": "per_player",
+      "count": 8,
+      "movement": [
+        { "primitive": "step", "direction": "forward", "distance": 1, "condition": "empty" },
+        { "primitive": "step", "direction": "forward", "distance": 2, "condition": "empty AND first_move" },
+        { "primitive": "step", "direction": "forward_diagonal", "distance": 1, "condition": "enemy" },
+        { "primitive": "step", "direction": "forward_diagonal", "distance": 1, "condition": "en_passant" }
+      ],
+      "promotion": {
+        "trigger": "reaches_last_rank",
+        "choices": ["queen", "rook", "bishop", "knight"]
+      }
+    }
+  },
+  "turn_order": {
+    "type": "alternating",
+    "players": ["white", "black"],
+    "actions_per_turn": 1,
+    "mandatory": true
+  },
+  "rules": {
+    "check": {
+      "definition": "king is attacked by opponent piece",
+      "constraint": "player in check MUST resolve check this turn"
+    },
+    "en_passant": {
+      "trigger": "opponent pawn advances 2 from start",
+      "window": "next_turn_only",
+      "effect": "capture as if pawn advanced 1"
+    },
+    "castling": {
+      "requires": [
+        "king has not moved",
+        "participating rook has not moved",
+        "no pieces between king and rook",
+        "king not in check",
+        "king does not pass through check",
+        "king does not land in check"
+      ]
+    }
+  },
+  "end_conditions": [
+    {
+      "result": "win",
+      "player": "opponent_of_current",
+      "condition": "in_check(current) AND no_legal_moves(current)",
+      "name": "checkmate"
+    },
+    {
+      "result": "draw",
+      "condition": "NOT in_check(current) AND no_legal_moves(current)",
+      "name": "stalemate"
+    },
+    {
+      "result": "draw",
+      "condition": "repetition(position, 3)",
+      "name": "threefold_repetition"
+    },
+    {
+      "result": "draw",
+      "condition": "halfmove_clock >= 100",
+      "name": "fifty_move_rule"
+    },
+    {
+      "result": "draw",
+      "condition": "insufficient_material",
+      "name": "insufficient_material"
+    }
+  ],
+  "authority": {
+    "server_only": [],
+    "client_verifiable": ["all"]
+  }
+}

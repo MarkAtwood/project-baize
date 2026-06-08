@@ -57,7 +57,7 @@ fn build_session(vectors: &Value) -> GameSession {
             facing: None,
             state: None,
             properties,
-        });
+        }).unwrap();
 
         // Place into the correct zone.
         // Per-player zones live under player.zones; shared zones under session.runtime.zones.

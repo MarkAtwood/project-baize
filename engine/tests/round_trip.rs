@@ -128,7 +128,7 @@ fn setup_session(tc: &TestCase) -> GameSession {
             facing,
             state: comp.state.clone(),
             properties,
-        });
+        }).unwrap();
         cids.push(cid);
     }
 

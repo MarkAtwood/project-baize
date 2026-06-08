@@ -1,0 +1,12 @@
+{
+  "message_type": "submit_move",
+  "game_id": "game-002",
+  "player": "white",
+  "sequence": 1,
+  "action": {
+    "action_type": "move_piece",
+    "component_id": "pawn-white-0",
+    "from": { "zone": "board", "cell": "4,1" },
+    "to": { "zone": "board", "cell": "4,3" }
+  }
+}

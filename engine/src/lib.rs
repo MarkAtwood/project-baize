@@ -7,6 +7,7 @@ pub mod registry;
 pub mod runtime;
 pub mod state;
 pub mod transition;
+pub mod verify;
 pub mod wasm;
 
 pub use definition::GameDefinition;

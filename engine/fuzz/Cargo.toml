@@ -1,0 +1,46 @@
+[package]
+name = "baize-engine-fuzz"
+version = "0.0.0"
+publish = false
+edition = "2024"
+
+[package.metadata]
+cargo-fuzz = true
+
+[dependencies]
+libfuzzer-sys = "0.4"
+serde_json = "1"
+
+[dependencies.baize-engine]
+path = ".."
+
+[workspace]
+members = ["."]
+
+[profile.release]
+debug = 1
+
+[[bin]]
+name = "fuzz_definition"
+path = "fuzz_targets/fuzz_definition.rs"
+doc = false
+
+[[bin]]
+name = "fuzz_state"
+path = "fuzz_targets/fuzz_state.rs"
+doc = false
+
+[[bin]]
+name = "fuzz_action"
+path = "fuzz_targets/fuzz_action.rs"
+doc = false
+
+[[bin]]
+name = "fuzz_transition"
+path = "fuzz_targets/fuzz_transition.rs"
+doc = false
+
+[[bin]]
+name = "fuzz_moves"
+path = "fuzz_targets/fuzz_moves.rs"
+doc = false

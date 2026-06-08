@@ -1,0 +1,23 @@
+{
+  "$schema": "https://baize.dev/schema/v1/component-registry.schema.json",
+  "id": "standard:go-stones",
+  "name": "Go Stones",
+  "component_type": "stone",
+  "variants": {
+    "black": {
+      "fill": "#1a1a1a"
+    },
+    "white": {
+      "fill": "#f5f5f5",
+      "stroke": "#cccccc"
+    }
+  },
+  "supply": "unlimited",
+  "properties": ["position"],
+  "physical": {
+    "size_mm": [22, 22],
+    "thickness_mm": 9.2,
+    "material": "glass"
+  },
+  "note": "Traditional Go stones. Black is slightly larger than white in tournament sets. Standard supply is 181 black and 180 white."
+}

@@ -33,8 +33,15 @@ pub fn legal_moves(session: &GameSession) -> Vec<LegalMove> {
             } => {
                 for row in 0..*height {
                     for col in 0..*width {
-                        let idx = (row * width + col) as usize;
-                        if let Some(cid) = cells[idx] {
+                        let idx = match (row as usize)
+                            .checked_mul(*width as usize)
+                            .and_then(|v| v.checked_add(col as usize))
+                        {
+                            Some(i) => i,
+                            None => continue,
+                        };
+                        if let Some(Some(cid)) = cells.get(idx) {
+                            let cid = *cid;
                             if let Some(comp_data) = session.runtime.components.get(cid) {
                                 if comp_data.owner.as_deref() != Some(&player) {
                                     continue;

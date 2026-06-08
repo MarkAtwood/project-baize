@@ -141,7 +141,7 @@ fn move_piece_on_grid() {
         facing: None,
         state: None,
         properties: IndexMap::new(),
-    });
+    }).unwrap();
     session
         .runtime
         .zones
@@ -183,7 +183,7 @@ fn capture_enemy_piece() {
         facing: None,
         state: None,
         properties: IndexMap::new(),
-    });
+    }).unwrap();
     let br = session.runtime.components.insert(ComponentData {
         id: ComponentId(0),
         string_id: "br1".into(),
@@ -192,7 +192,7 @@ fn capture_enemy_piece() {
         facing: None,
         state: None,
         properties: IndexMap::new(),
-    });
+    }).unwrap();
 
     let board = session.runtime.zones.get_mut("board").unwrap();
     board.grid_set(0, 0, Some(wr));

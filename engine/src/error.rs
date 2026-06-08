@@ -16,6 +16,18 @@ pub enum BaizeError {
 
     #[error("illegal action: {0}")]
     IllegalAction(String),
+
+    #[error("out of bounds: {0}")]
+    OutOfBounds(String),
+
+    #[error("invalid component id: {0}")]
+    InvalidComponentId(String),
+
+    #[error("invalid player: {0}")]
+    InvalidPlayer(String),
+
+    #[error("integer overflow: {0}")]
+    Overflow(String),
 }
 
 pub type Result<T> = std::result::Result<T, BaizeError>;

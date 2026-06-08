@@ -1,0 +1,11 @@
+{
+  "message_type": "submit_move",
+  "game_id": "game-001",
+  "player": "X",
+  "sequence": 0,
+  "action": {
+    "action_type": "place",
+    "component_type": "mark",
+    "to": { "zone": "board", "cell": "1,1" }
+  }
+}
