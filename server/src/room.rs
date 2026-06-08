@@ -27,7 +27,7 @@ pub struct Room {
 /// Tracks a connected player's WebSocket sender.
 pub struct PlayerConnection {
     pub seat: String,
-    pub tx: tokio::sync::mpsc::UnboundedSender<String>,
+    pub tx: tokio::sync::mpsc::Sender<String>,
 }
 
 /// Registry of all active rooms, with per-IP connection tracking.
@@ -178,12 +178,14 @@ pub fn room_has_capacity(room: &Room) -> bool {
     room.players.len() < room.max_players
 }
 
-/// Join a room as a player. Returns an unbounded receiver for outbound messages.
+/// Join a room as a player. Returns a bounded receiver for outbound messages.
+/// The channel has MAX_OUTBOUND_QUEUE capacity; if a client falls behind,
+/// the send will fail and the connection should be dropped.
 pub fn join_room(
     room: &mut Room,
     seat: String,
-) -> tokio::sync::mpsc::UnboundedReceiver<String> {
-    let (tx, rx) = tokio::sync::mpsc::unbounded_channel();
+) -> tokio::sync::mpsc::Receiver<String> {
+    let (tx, rx) = tokio::sync::mpsc::channel(config::MAX_OUTBOUND_QUEUE);
     room.players.insert(
         seat.clone(),
         PlayerConnection {
@@ -195,16 +197,28 @@ pub fn join_room(
 }
 
 /// Broadcast a JSON message to all connected players in a room.
+/// Uses try_send to avoid blocking; if a player's queue is full,
+/// the message is dropped and a warning is logged (the connection
+/// handler will detect the closed channel and disconnect).
 pub fn broadcast(room: &Room, message: &str) {
     for conn in room.players.values() {
-        let _ = conn.tx.send(message.to_string());
+        if conn.tx.try_send(message.to_string()).is_err() {
+            eprintln!(
+                "[warning] outbound queue full for player '{}', message dropped",
+                conn.seat
+            );
+        }
     }
 }
 
 /// Send a JSON message to a specific player.
 pub fn send_to_player(room: &Room, seat: &str, message: &str) {
     if let Some(conn) = room.players.get(seat) {
-        let _ = conn.tx.send(message.to_string());
+        if conn.tx.try_send(message.to_string()).is_err() {
+            eprintln!(
+                "[warning] outbound queue full for player '{seat}', message dropped"
+            );
+        }
     }
 }
 
