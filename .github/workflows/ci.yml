@@ -57,7 +57,7 @@ jobs:
             pip-${{ runner.os }}-
 
       - name: Install dependencies
-        run: pip install blake3 pytest
+        run: pip install blake3 pytest hypothesis jsonschema
 
       - name: Run Python tests
         working-directory: python
