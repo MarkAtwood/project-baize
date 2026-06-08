@@ -445,10 +445,130 @@ pub struct BettingRound {
 
 impl GameDefinition {
     pub fn from_json(json: &str) -> crate::error::Result<Self> {
-        serde_json::from_str(json).map_err(Into::into)
+        let def: Self = serde_json::from_str(json)?;
+        def.validate()?;
+        Ok(def)
     }
 
     pub fn from_value(value: serde_json::Value) -> crate::error::Result<Self> {
-        serde_json::from_value(value).map_err(Into::into)
+        let def: Self = serde_json::from_value(value)?;
+        def.validate()?;
+        Ok(def)
+    }
+
+    /// Semantic validation beyond what serde can enforce.
+    ///
+    /// Checks:
+    /// - Players list is non-empty
+    /// - Game name is non-empty
+    /// - At least one end condition exists
+    /// - Grid zones have dimensions
+    /// - Turn order player references match game.players
+    /// - Movement target_zone references exist
+    /// - No empty component names or zone names
+    pub fn validate(&self) -> crate::error::Result<()> {
+        use crate::error::BaizeError;
+
+        // Game name must be non-empty
+        if self.game.name.trim().is_empty() {
+            return Err(BaizeError::Validation("game name must not be empty".into()));
+        }
+
+        // Players: at least one
+        let player_names: Vec<&str> = match &self.game.players {
+            Players::Named(names) => {
+                if names.is_empty() {
+                    return Err(BaizeError::Validation(
+                        "game must have at least one player".into(),
+                    ));
+                }
+                for name in names {
+                    if name.trim().is_empty() {
+                        return Err(BaizeError::Validation(
+                            "player names must not be empty".into(),
+                        ));
+                    }
+                }
+                names.iter().map(|s| s.as_str()).collect()
+            }
+            Players::Range { min, max } => {
+                if *min == 0 {
+                    return Err(BaizeError::Validation(
+                        "min players must be at least 1".into(),
+                    ));
+                }
+                if *max < *min {
+                    return Err(BaizeError::Validation(
+                        "max players must be >= min players".into(),
+                    ));
+                }
+                Vec::new() // can't enumerate at parse time
+            }
+        };
+
+        // At least one end condition
+        if self.end_conditions.is_empty() {
+            return Err(BaizeError::Validation(
+                "game must have at least one end condition".into(),
+            ));
+        }
+
+        // Zone names must be non-empty
+        for name in self.zones.keys() {
+            if name.trim().is_empty() {
+                return Err(BaizeError::Validation(
+                    "zone names must not be empty".into(),
+                ));
+            }
+        }
+
+        // Grid zones must have dimensions (unless dynamic)
+        for (name, zone) in &self.zones {
+            if matches!(zone.zone_type, ZoneType::Grid | ZoneType::HexGrid)
+                && zone.dimensions.is_none()
+                && zone.dynamic != Some(true)
+            {
+                return Err(BaizeError::Validation(format!(
+                    "grid zone {name:?} requires dimensions or dynamic: true"
+                )));
+            }
+        }
+
+        // Component names must be non-empty
+        for name in self.components.keys() {
+            if name.trim().is_empty() {
+                return Err(BaizeError::Validation(
+                    "component names must not be empty".into(),
+                ));
+            }
+        }
+
+        // Movement target_zone references must exist in zones
+        for (comp_name, comp) in &self.components {
+            for prim in &comp.movement {
+                if let Some(ref target) = prim.target_zone {
+                    if !self.zones.contains_key(target) {
+                        return Err(BaizeError::Validation(format!(
+                            "component {comp_name:?} references unknown zone {target:?}"
+                        )));
+                    }
+                }
+            }
+        }
+
+        // Turn order player references (if named) must match game.players
+        if let Some(ref turn_players) = self.turn_order.players {
+            if !player_names.is_empty() {
+                for tp in turn_players {
+                    if !player_names.contains(&tp.as_str()) {
+                        return Err(BaizeError::Validation(format!(
+                            "turn_order references unknown player {tp:?}"
+                        )));
+                    }
+                }
+            }
+        }
+
+        Ok(())
     }
 }

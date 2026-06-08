@@ -7,7 +7,59 @@ from __future__ import annotations
 
 import json
 from dataclasses import dataclass, field
+from pathlib import Path
 from typing import Any, Literal, Union
+
+# ---------------------------------------------------------------------------
+# JSON Schema validation (lazy-loaded)
+# ---------------------------------------------------------------------------
+
+_SCHEMA_CACHE: dict[str, Any] | None = None
+
+
+def _load_schema() -> dict[str, Any]:
+    """Load the game-definition JSON Schema, caching after first read."""
+    global _SCHEMA_CACHE
+    if _SCHEMA_CACHE is not None:
+        return _SCHEMA_CACHE
+    schema_path = Path(__file__).resolve().parent.parent.parent / "schema" / "game-definition.schema.json"
+    if not schema_path.exists():
+        return {}  # Schema file not found — skip validation gracefully
+    _SCHEMA_CACHE = json.loads(schema_path.read_text(encoding="utf-8"))
+    return _SCHEMA_CACHE
+
+
+def _validate_against_schema(data: Any) -> None:
+    """Validate a parsed dict against the game-definition JSON Schema.
+
+    Raises ParseError with all validation errors if validation fails.
+    Silently succeeds if the jsonschema package is not installed or
+    the schema file is not found.
+    """
+    from baize.error import ParseError
+
+    schema = _load_schema()
+    if not schema:
+        return
+
+    try:
+        import jsonschema
+    except ImportError:
+        return  # jsonschema not installed — skip validation
+
+    validator_cls = jsonschema.validators.validator_for(schema)
+    validator = validator_cls(schema)
+    errors = sorted(validator.iter_errors(data), key=lambda e: list(e.absolute_path))
+
+    if errors:
+        messages = []
+        for err in errors[:10]:  # Cap at 10 errors to avoid flooding
+            path = ".".join(str(p) for p in err.absolute_path) or "(root)"
+            messages.append(f"  {path}: {err.message}")
+        raise ParseError(
+            f"Game definition failed schema validation ({len(errors)} error(s)):\n"
+            + "\n".join(messages)
+        )
 
 
 # ---------------------------------------------------------------------------
@@ -736,14 +788,24 @@ class GameDefinition:
     betting_round: BettingRound | None = None
 
     @classmethod
-    def from_json(cls, json_str: str) -> GameDefinition:
-        """Parse a GameDefinition from a JSON string."""
+    def from_json(cls, json_str: str, *, validate_schema: bool = True) -> GameDefinition:
+        """Parse a GameDefinition from a JSON string.
+
+        Args:
+            json_str: JSON string to parse.
+            validate_schema: If True (default), validate against the JSON Schema
+                before parsing into dataclasses.
+        """
         from baize.error import ParseError
 
         try:
             raw = json.loads(json_str)
         except json.JSONDecodeError as exc:
             raise ParseError(str(exc)) from exc
+
+        if validate_schema:
+            _validate_against_schema(raw)
+
         return cls._from_dict(raw)
 
     @classmethod
