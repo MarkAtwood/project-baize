@@ -2,6 +2,8 @@ mod connection;
 mod protocol;
 mod room;
 mod vault;
+#[cfg(feature = "wasm-host")]
+mod wasm_host;
 
 use std::sync::Arc;
 
