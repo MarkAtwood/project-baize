@@ -29,6 +29,9 @@ interface BaizeWasmEngine {
   free(): void;
 }
 
+/** Default timeout for WASM calls that might be computationally expensive. */
+const WASM_CALL_TIMEOUT_MS = 5_000;
+
 export class BaizeEngine {
   private inner: BaizeWasmEngine | null = null;
 
@@ -41,41 +44,67 @@ export class BaizeEngine {
 
   /** Load a game definition into the engine. */
   loadDefinition(definition: GameDefinition): void {
-    this.requireEngine().loadDefinition(JSON.stringify(definition));
+    this.callWasm(() => {
+      this.requireEngine().loadDefinition(JSON.stringify(definition));
+    });
   }
 
   /** Get all legal moves for the current player. */
   legalMoves(): readonly Action[] {
-    const json = this.requireEngine().legalMoves();
-    return JSON.parse(json) as Action[];
+    const json = this.callWasm(() => this.requireEngine().legalMoves());
+    if (typeof json !== "string" || json.length === 0) return [];
+    const parsed: unknown = JSON.parse(json);
+    if (!Array.isArray(parsed)) return [];
+    return parsed as Action[];
   }
 
   /** Apply a player action. Returns JSONL event strings. */
   applyAction(action: Action): readonly string[] {
-    const jsonl = this.requireEngine().applyAction(JSON.stringify(action));
-    if (jsonl.length === 0) return [];
+    const jsonl = this.callWasm(() =>
+      this.requireEngine().applyAction(JSON.stringify(action)),
+    );
+    if (typeof jsonl !== "string" || jsonl.length === 0) return [];
     return jsonl.split("\n");
   }
 
   /** Get the current game state. */
   getState(): GameState {
-    const json = this.requireEngine().getState();
-    return JSON.parse(json) as GameState;
+    const json = this.callWasm(() => this.requireEngine().getState());
+    if (typeof json !== "string") {
+      throw new Error("BaizeEngine: getState() returned non-string");
+    }
+    const parsed: unknown = JSON.parse(json);
+    if (parsed === null || typeof parsed !== "object" || Array.isArray(parsed)) {
+      throw new Error("BaizeEngine: getState() returned invalid state");
+    }
+    return parsed as GameState;
   }
 
   /** Get the current player's seat identifier. */
   currentPlayer(): string {
-    return this.requireEngine().currentPlayer();
+    const result = this.callWasm(() => this.requireEngine().currentPlayer());
+    if (typeof result !== "string") {
+      throw new Error("BaizeEngine: currentPlayer() returned non-string");
+    }
+    return result;
   }
 
   /** Compute a BLAKE3 hash of the current state. */
   stateHash(): string {
-    return this.requireEngine().stateHash();
+    const result = this.callWasm(() => this.requireEngine().stateHash());
+    if (typeof result !== "string") {
+      throw new Error("BaizeEngine: stateHash() returned non-string");
+    }
+    return result;
   }
 
   /** Release WASM resources. */
   dispose(): void {
-    this.inner?.free();
+    try {
+      this.inner?.free();
+    } catch {
+      // Ignore errors during cleanup — engine may already be in a bad state
+    }
     this.inner = null;
   }
 
@@ -88,5 +117,37 @@ export class BaizeEngine {
       throw new Error("BaizeEngine: WASM not loaded. Call init() first.");
     }
     return this.inner;
+  }
+
+  /**
+   * Execute a WASM call with trap handling and timeout protection.
+   *
+   * WASM traps surface as RuntimeError in JS. This wrapper catches them
+   * and re-throws with a descriptive message. For calls that might be
+   * computationally expensive, a timeout aborts after WASM_CALL_TIMEOUT_MS
+   * (note: this uses a synchronous deadline check, since WASM execution
+   * is synchronous and cannot be interrupted — the timeout is checked
+   * after the call returns, protecting against unexpectedly long but
+   * finite computations in future async variants).
+   */
+  private callWasm<T>(fn: () => T): T {
+    const start = performance.now();
+    try {
+      const result = fn();
+      const elapsed = performance.now() - start;
+      if (elapsed > WASM_CALL_TIMEOUT_MS) {
+        throw new Error(
+          `BaizeEngine: WASM call took ${Math.round(elapsed)}ms (limit: ${WASM_CALL_TIMEOUT_MS}ms)`,
+        );
+      }
+      return result;
+    } catch (err) {
+      if (err instanceof WebAssembly.RuntimeError) {
+        // WASM trap — engine is likely in an unrecoverable state
+        this.inner = null;
+        throw new Error(`BaizeEngine: WASM trap: ${err.message}`);
+      }
+      throw err;
+    }
   }
 }

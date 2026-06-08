@@ -15,6 +15,7 @@ import type {
   ServerMessage,
   ServerMessageType,
 } from "./types.js";
+import { validateServerMessage } from "./validation.js";
 
 export type ConnectionStatus = "disconnected" | "connecting" | "connected";
 
@@ -28,13 +29,22 @@ export interface ConnectionOptions {
   readonly reconnectBaseDelay?: number;
   /** Maximum delay in ms between reconnect attempts. */
   readonly reconnectMaxDelay?: number;
+  /** Connection timeout in ms (default 10000). */
+  readonly connectTimeout?: number;
+  /** Maximum incoming message size in bytes (default 1MB). */
+  readonly maxMessageSize?: number;
 }
 
 const DEFAULT_OPTIONS: Required<ConnectionOptions> = {
   maxReconnectAttempts: 0,
   reconnectBaseDelay: 1000,
   reconnectMaxDelay: 30000,
+  connectTimeout: 10_000,
+  maxMessageSize: 1_048_576, // 1 MB
 };
+
+/** Allowed WebSocket URL protocols. */
+const ALLOWED_WS_PROTOCOLS: ReadonlySet<string> = new Set(["ws:", "wss:"]);
 
 export class BaizeConnection {
   private ws: WebSocket | null = null;
@@ -44,6 +54,7 @@ export class BaizeConnection {
   private currentSequence = 0;
   private reconnectAttempts = 0;
   private reconnectTimer: ReturnType<typeof setTimeout> | null = null;
+  private connectTimer: ReturnType<typeof setTimeout> | null = null;
   private intentionalClose = false;
   private readonly options: Required<ConnectionOptions>;
 
@@ -61,10 +72,26 @@ export class BaizeConnection {
     player: string,
     options?: ConnectionOptions,
   ) {
+    BaizeConnection.validateServerUrl(serverUrl);
     this.serverUrl = serverUrl;
     this.gameId = gameId;
     this.player = player;
     this.options = { ...DEFAULT_OPTIONS, ...options };
+  }
+
+  /** Validate that the server URL uses an allowed WebSocket protocol. */
+  private static validateServerUrl(url: string): void {
+    let parsed: URL;
+    try {
+      parsed = new URL(url);
+    } catch {
+      throw new Error(`BaizeConnection: invalid server URL: ${url}`);
+    }
+    if (!ALLOWED_WS_PROTOCOLS.has(parsed.protocol)) {
+      throw new Error(
+        `BaizeConnection: server URL must use ws:// or wss:// (got ${parsed.protocol})`,
+      );
+    }
   }
 
   get status(): ConnectionStatus {
@@ -100,11 +127,25 @@ export class BaizeConnection {
   connect(): void {
     if (this.ws !== null) return;
     this.intentionalClose = false;
+
+    // Clear stale state on every connection attempt to prevent leaks
+    this.clearState();
+
     this.setStatus("connecting");
 
     this.ws = new WebSocket(this.serverUrl);
 
+    // Connection timeout: if the socket does not open within the
+    // configured window, close it and treat as a failed attempt.
+    this.connectTimer = setTimeout(() => {
+      this.connectTimer = null;
+      if (this.ws !== null && this.ws.readyState !== WebSocket.OPEN) {
+        this.ws.close();
+      }
+    }, this.options.connectTimeout);
+
     this.ws.onopen = () => {
+      this.clearConnectTimer();
       this.reconnectAttempts = 0;
       this.setStatus("connected");
     };
@@ -114,6 +155,7 @@ export class BaizeConnection {
     };
 
     this.ws.onclose = () => {
+      this.clearConnectTimer();
       this.ws = null;
       this.setStatus("disconnected");
       if (!this.intentionalClose) {
@@ -129,12 +171,14 @@ export class BaizeConnection {
   /** Gracefully close the connection. */
   disconnect(): void {
     this.intentionalClose = true;
+    this.clearConnectTimer();
     if (this.reconnectTimer !== null) {
       clearTimeout(this.reconnectTimer);
       this.reconnectTimer = null;
     }
     this.ws?.close();
     this.ws = null;
+    this.clearState();
     this.setStatus("disconnected");
   }
 
@@ -189,12 +233,19 @@ export class BaizeConnection {
     const data = event.data;
     if (typeof data !== "string") return;
 
-    let msg: ServerMessage;
+    // Reject oversized messages before parsing
+    if (data.length > this.options.maxMessageSize) return;
+
+    let parsed: unknown;
     try {
-      msg = JSON.parse(data) as ServerMessage;
+      parsed = JSON.parse(data) as unknown;
     } catch {
       return;
     }
+
+    // Validate and sanitize the parsed JSON before use
+    const msg = validateServerMessage(parsed);
+    if (msg === null) return;
 
     if (msg.sequence !== undefined) {
       this.currentSequence = msg.sequence;
@@ -213,6 +264,18 @@ export class BaizeConnection {
     this._status = status;
     for (const handler of this.statusHandlers) {
       handler(status);
+    }
+  }
+
+  /** Clear connection-scoped state to prevent stale data leaks. */
+  private clearState(): void {
+    this.currentSequence = 0;
+  }
+
+  private clearConnectTimer(): void {
+    if (this.connectTimer !== null) {
+      clearTimeout(this.connectTimer);
+      this.connectTimer = null;
     }
   }
 

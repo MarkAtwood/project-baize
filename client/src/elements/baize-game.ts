@@ -20,6 +20,13 @@ import type { Action, GameDefinition, GameState, ServerMessage } from "../types.
 const WASM_URL_ATTR = "wasm";
 const DEFAULT_WASM_PATH = "baize_engine_bg.wasm";
 
+/** Protocols that must never be loaded as resource URLs. */
+const BLOCKED_PROTOCOLS: ReadonlySet<string> = new Set([
+  "javascript:",
+  "data:",
+  "vbscript:",
+]);
+
 export class BaizeGameElement extends HTMLElement {
   static readonly observedAttributes = ["src", "server", "player"] as const;
 
@@ -84,6 +91,9 @@ export class BaizeGameElement extends HTMLElement {
     if (src === null) return;
 
     try {
+      if (!BaizeGameElement.isSafeResourceUrl(src)) {
+        throw new Error(`Blocked unsafe src URL: ${src}`);
+      }
       await this.loadDefinition(src);
       await this.initEngine();
       if (server !== null) {
@@ -110,6 +120,11 @@ export class BaizeGameElement extends HTMLElement {
     this.engine = new BaizeEngine();
 
     const wasmUrl = this.getAttribute(WASM_URL_ATTR) ?? DEFAULT_WASM_PATH;
+
+    if (!BaizeGameElement.isSafeResourceUrl(wasmUrl)) {
+      // Unsafe WASM URL — skip loading, same as WASM-unavailable path.
+      return;
+    }
 
     try {
       await this.engine.init(wasmUrl);
@@ -191,6 +206,29 @@ export class BaizeGameElement extends HTMLElement {
         bubbles: false,
       }),
     );
+  }
+
+  /**
+   * Check whether a URL is safe to load as a resource (fetch / import).
+   * Blocks javascript:, data:, and vbscript: protocols.
+   * Relative URLs are always allowed.
+   */
+  private static isSafeResourceUrl(url: string): boolean {
+    // Relative URLs are safe (no protocol to abuse)
+    try {
+      const parsed = new URL(url, "https://dummy.invalid/");
+      // If the URL string itself contains a blocked protocol prefix
+      // (not just when resolved against the dummy base), reject it.
+      const colonIdx = url.indexOf(":");
+      if (colonIdx > 0) {
+        const protocol = url.slice(0, colonIdx + 1).toLowerCase();
+        if (BLOCKED_PROTOCOLS.has(protocol)) return false;
+      }
+      if (BLOCKED_PROTOCOLS.has(parsed.protocol)) return false;
+    } catch {
+      return false;
+    }
+    return true;
   }
 
   private extractGameId(url: string): string {

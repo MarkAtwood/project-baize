@@ -20,6 +20,7 @@ import { BaizeScoreElement } from "./elements/baize-score.js";
 
 export { BaizeEngine } from "./engine.js";
 export { BaizeConnection } from "./connection.js";
+export { validateServerMessage } from "./validation.js";
 export { BaizeGameElement } from "./elements/baize-game.js";
 export { BaizeBoardElement } from "./elements/baize-board.js";
 export { BaizeHandElement } from "./elements/baize-hand.js";
