@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+  <defs>
+    <radialGradient id="stone-gradient" cx="35%" cy="35%" r="60%">
+      <stop offset="0%" stop-color="var(--stone-highlight, #ffffff)" stop-opacity="0.8"/>
+      <stop offset="50%" stop-color="var(--stone-fill, #1a1a1a)" stop-opacity="0.9"/>
+      <stop offset="100%" stop-color="var(--stone-shadow, #000000)" stop-opacity="1"/>
+    </radialGradient>
+    <filter id="stone-shadow">
+      <feDropShadow dx="2" dy="2" stdDeviation="2" flood-opacity="0.3"/>
+    </filter>
+  </defs>
+  <circle class="baize-piece" cx="50" cy="50" r="44"
+    fill="url(#stone-gradient)"
+    stroke="var(--stone-stroke, none)"
+    stroke-width="0.5"
+    filter="url(#stone-shadow)"/>
+</svg>
