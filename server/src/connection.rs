@@ -251,6 +251,13 @@ async fn handle_socket(
                                     room::broadcast(&room_guard, &json);
                                 }
                             }
+                            HandleResult::Reply(responses) => {
+                                for response in responses {
+                                    let json =
+                                        serde_json::to_string(&response).unwrap_or_default();
+                                    room::send_to_player(&room_guard, &seat, &json);
+                                }
+                            }
                             HandleResult::Error(err_json) => {
                                 room::send_to_player(&room_guard, &seat, &err_json);
                             }

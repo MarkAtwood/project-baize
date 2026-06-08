@@ -21,6 +21,8 @@ fn error_response(game_id: &str, code: &str, detail: &str) -> String {
 pub enum HandleResult {
     /// Broadcast these server messages to all players.
     Broadcast(Vec<ServerMessage>),
+    /// Send a reply only to the originating player (not broadcast).
+    Reply(Vec<ServerMessage>),
     /// Send an error only to the originating player.
     Error(String),
 }
@@ -119,11 +121,21 @@ pub fn handle_client_message(
         *expected_seq = seq + 1;
     }
 
+    // Reject game-altering messages from spectators
+    let is_spectator = seat.starts_with("spectator_");
+
     // Dispatch to handlers
     match msg {
         ClientMessage::SubmitMove {
             action, player, ..
         } => {
+            if is_spectator {
+                return HandleResult::Error(error_response(
+                    &game_id,
+                    "spectator_not_allowed",
+                    "spectators cannot submit moves",
+                ));
+            }
             // Validate action fields
             if let Err(e) = validate_action(&action) {
                 eprintln!(
@@ -135,7 +147,7 @@ pub fn handle_client_message(
                     &e,
                 ));
             }
-            HandleResult::Broadcast(handle_submit_move(room, seat, &player, action))
+            handle_submit_move(room, seat, &player, action)
         }
 
         ClientMessage::RequestRandom {
@@ -143,6 +155,28 @@ pub fn handle_client_message(
             player,
             ..
         } => {
+            if is_spectator {
+                return HandleResult::Error(error_response(
+                    &game_id,
+                    "spectator_not_allowed",
+                    "spectators cannot request random values",
+                ));
+            }
+            // Turn check: only the current player may request random values
+            let current = room
+                .session
+                .current_player()
+                .unwrap_or("")
+                .to_string();
+            if current != player {
+                return HandleResult::Error(error_response(
+                    &game_id,
+                    "not_your_turn",
+                    &format!(
+                        "not your turn to request random (current: {current})"
+                    ),
+                ));
+            }
             if let Err(e) = validate_random_request(&random_request) {
                 eprintln!(
                     "[security] invalid random request from seat '{seat}' \
@@ -177,7 +211,9 @@ pub fn handle_client_message(
                     "state_hash must be a 64-character hex string",
                 ));
             }
-            HandleResult::Broadcast(handle_acknowledge_state(
+            // StateSync is sent only to the requesting player to prevent
+            // leaking hidden/private zone contents to other players.
+            HandleResult::Reply(handle_acknowledge_state(
                 room,
                 seat,
                 &player,
@@ -323,22 +359,22 @@ fn validate_random_request(request: &RandomRequest) -> Result<(), String> {
 /// Process a submit_move message:
 /// 1. Verify it is this player's turn
 /// 2. Apply the action through the engine
-/// 3. Return move_confirmed or move_rejected
+/// 3. Broadcast move_confirmed to all, or reply move_rejected to sender only
 fn handle_submit_move(
     room: &mut Room,
     _seat: &str,
     player: &str,
     action: baize_engine::action::Action,
-) -> Vec<ServerMessage> {
+) -> HandleResult {
     let game_id = room.id.clone();
 
     // Check game is in progress or setup
     if room.session.runtime.status == GameStatus::Finished {
-        return vec![ServerMessage::MoveRejected {
+        return HandleResult::Reply(vec![ServerMessage::MoveRejected {
             game_id,
             action,
             reason: "game is finished".to_string(),
-        }];
+        }]);
     }
 
     // Check it is this player's turn
@@ -348,11 +384,11 @@ fn handle_submit_move(
         .unwrap_or("")
         .to_string();
     if current != player {
-        return vec![ServerMessage::MoveRejected {
+        return HandleResult::Reply(vec![ServerMessage::MoveRejected {
             game_id,
             action,
             reason: format!("not your turn (current: {current})"),
-        }];
+        }]);
     }
 
     // Apply through the engine
@@ -362,18 +398,18 @@ fn handle_submit_move(
             let sequence = wire_state.sequence;
             let result_state = serde_json::to_value(&wire_state).ok();
 
-            vec![ServerMessage::MoveConfirmed {
+            HandleResult::Broadcast(vec![ServerMessage::MoveConfirmed {
                 game_id,
                 sequence,
                 action,
                 result_state,
-            }]
+            }])
         }
-        Err(e) => vec![ServerMessage::MoveRejected {
+        Err(e) => HandleResult::Reply(vec![ServerMessage::MoveRejected {
             game_id,
             action,
             reason: e.to_string(),
-        }],
+        }]),
     }
 }
 
