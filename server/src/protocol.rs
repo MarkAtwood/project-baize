@@ -5,39 +5,221 @@ use baize_engine::transition::apply_action;
 use crate::room::Room;
 use crate::vault;
 
+/// Structured error sent to the client for protocol violations.
+fn error_response(game_id: &str, code: &str, detail: &str) -> String {
+    serde_json::json!({
+        "message_type": "error",
+        "game_id": game_id,
+        "error_code": code,
+        "detail": detail,
+    })
+    .to_string()
+}
+
+/// Outcome of handling a client message.
+pub enum HandleResult {
+    /// Broadcast these server messages to all players.
+    Broadcast(Vec<ServerMessage>),
+    /// Send an error only to the originating player.
+    Error(String),
+}
+
 /// Handle an incoming client message (JSON text) and return server responses.
-/// In the full implementation, some responses go only to the acting player
-/// (e.g., move_rejected) while others broadcast (move_confirmed).
-/// For the skeleton, we return a Vec and let the caller broadcast all of them.
-pub fn handle_client_message(room: &mut Room, seat: &str, raw: &str) -> Vec<ServerMessage> {
+///
+/// Validates:
+/// - JSON parse
+/// - Player name matches the connection's assigned seat
+/// - Sequence number is monotonically increasing (if present)
+///
+/// `expected_seq` is the next expected sequence number for this connection.
+/// Updated in-place on success.
+pub fn handle_client_message(
+    room: &mut Room,
+    seat: &str,
+    raw: &str,
+    expected_seq: &mut u64,
+) -> HandleResult {
+    let game_id = room.id.clone();
+
+    // Parse JSON
     let msg: ClientMessage = match serde_json::from_str(raw) {
         Ok(m) => m,
         Err(e) => {
-            eprintln!("invalid client message from {seat}: {e}");
-            return Vec::new();
+            eprintln!("[security] malformed JSON from seat '{seat}' in room '{game_id}': {e}");
+            return HandleResult::Error(error_response(
+                &game_id,
+                "invalid_message",
+                &format!("malformed JSON: {e}"),
+            ));
         }
     };
 
+    // Extract common fields for validation
+    let (msg_player, msg_game_id, msg_seq) = match &msg {
+        ClientMessage::SubmitMove {
+            game_id,
+            player,
+            sequence,
+            ..
+        } => (player.as_str(), game_id.as_str(), *sequence),
+        ClientMessage::RequestRandom {
+            game_id, player, ..
+        } => (player.as_str(), game_id.as_str(), None),
+        ClientMessage::AcknowledgeState {
+            game_id, player, ..
+        } => (player.as_str(), game_id.as_str(), None),
+    };
+
+    // Validate player name matches seat
+    if msg_player != seat {
+        eprintln!(
+            "[security] seat mismatch in room '{game_id}': seat='{seat}', \
+             claimed player='{msg_player}'"
+        );
+        return HandleResult::Error(error_response(
+            &game_id,
+            "seat_mismatch",
+            &format!(
+                "you are seated as '{seat}' but claimed to be '{msg_player}'"
+            ),
+        ));
+    }
+
+    // Validate game_id matches the room
+    if msg_game_id != game_id {
+        eprintln!(
+            "[security] game_id mismatch from seat '{seat}': \
+             room='{game_id}', message='{msg_game_id}'"
+        );
+        return HandleResult::Error(error_response(
+            &game_id,
+            "game_id_mismatch",
+            &format!(
+                "this room is '{game_id}' but message targets '{msg_game_id}'"
+            ),
+        ));
+    }
+
+    // Validate sequence number (if present): must be monotonically increasing
+    if let Some(seq) = msg_seq {
+        if seq < *expected_seq {
+            eprintln!(
+                "[security] replayed/out-of-order sequence from seat '{seat}' \
+                 in room '{game_id}': got {seq}, expected >= {expected_seq}"
+            );
+            return HandleResult::Error(error_response(
+                &game_id,
+                "sequence_error",
+                &format!(
+                    "sequence {seq} is out of order (expected >= {expected_seq})"
+                ),
+            ));
+        }
+        *expected_seq = seq + 1;
+    }
+
+    // Dispatch to handlers
     match msg {
         ClientMessage::SubmitMove {
-            game_id: _,
-            player,
-            sequence: _,
-            action,
-        } => handle_submit_move(room, seat, &player, action),
+            action, player, ..
+        } => {
+            // Validate action fields
+            if let Err(e) = validate_action(&action) {
+                eprintln!(
+                    "[security] invalid action from seat '{seat}' in room '{game_id}': {e}"
+                );
+                return HandleResult::Error(error_response(
+                    &game_id,
+                    "invalid_action",
+                    &e,
+                ));
+            }
+            HandleResult::Broadcast(handle_submit_move(room, seat, &player, action))
+        }
 
         ClientMessage::RequestRandom {
-            game_id: _,
-            player,
             random_request,
-        } => handle_request_random(room, seat, &player, random_request),
+            player,
+            ..
+        } => HandleResult::Broadcast(handle_request_random(
+            room,
+            seat,
+            &player,
+            random_request,
+        )),
 
         ClientMessage::AcknowledgeState {
-            game_id: _,
-            player,
             state_hash,
-        } => handle_acknowledge_state(room, seat, &player, &state_hash),
+            player,
+            ..
+        } => HandleResult::Broadcast(handle_acknowledge_state(
+            room,
+            seat,
+            &player,
+            &state_hash,
+        )),
     }
+}
+
+/// Validate action fields for sanity.
+fn validate_action(action: &baize_engine::action::Action) -> Result<(), String> {
+    // component_id, if present, must be non-empty
+    if let Some(ref id) = action.component_id {
+        if id.is_empty() {
+            return Err("component_id must not be empty".to_string());
+        }
+    }
+
+    // component_type, if present, must be non-empty
+    if let Some(ref ct) = action.component_type {
+        if ct.is_empty() {
+            return Err("component_type must not be empty".to_string());
+        }
+    }
+
+    // zone, if present, must be non-empty
+    if let Some(ref z) = action.zone {
+        if z.is_empty() {
+            return Err("zone must not be empty".to_string());
+        }
+    }
+
+    // promote_to, if present, must be non-empty
+    if let Some(ref p) = action.promote_to {
+        if p.is_empty() {
+            return Err("promote_to must not be empty".to_string());
+        }
+    }
+
+    // swap_with, if present, must be non-empty
+    if let Some(ref s) = action.swap_with {
+        if s.is_empty() {
+            return Err("swap_with must not be empty".to_string());
+        }
+    }
+
+    // declaration, if present, must be non-empty
+    if let Some(ref d) = action.declaration {
+        if d.is_empty() {
+            return Err("declaration must not be empty".to_string());
+        }
+    }
+
+    // dice_type, if present, must be non-empty
+    if let Some(ref dt) = action.dice_type {
+        if dt.is_empty() {
+            return Err("dice_type must not be empty".to_string());
+        }
+    }
+
+    // rotation, if present, must be a valid value (0-359 degrees)
+    if let Some(rot) = action.rotation {
+        if rot >= 360 {
+            return Err(format!("rotation {rot} out of range (0-359)"));
+        }
+    }
+
+    Ok(())
 }
 
 /// Process a submit_move message:
@@ -164,10 +346,10 @@ fn handle_acknowledge_state(
     let server_hash = room.session.compute_state_hash();
 
     if client_hash == server_hash {
-        // Hashes match — no response needed
+        // Hashes match -- no response needed
         Vec::new()
     } else {
-        // Desync detected — send full state
+        // Desync detected -- send full state
         eprintln!(
             "state desync in room {game_id}: client={client_hash}, server={server_hash}"
         );

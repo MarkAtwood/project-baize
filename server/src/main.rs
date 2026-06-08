@@ -1,3 +1,4 @@
+mod config;
 mod connection;
 mod protocol;
 mod room;
@@ -5,6 +6,7 @@ mod vault;
 #[cfg(feature = "wasm-host")]
 mod wasm_host;
 
+use std::net::SocketAddr;
 use std::sync::Arc;
 
 use axum::Router;
@@ -25,9 +27,12 @@ async fn main() {
         .expect("failed to bind port 8080");
 
     eprintln!("baize-server listening on 0.0.0.0:8080");
-    axum::serve(listener, app)
-        .await
-        .expect("server error");
+    axum::serve(
+        listener,
+        app.into_make_service_with_connect_info::<SocketAddr>(),
+    )
+    .await
+    .expect("server error");
 }
 
 async fn health() -> &'static str {
