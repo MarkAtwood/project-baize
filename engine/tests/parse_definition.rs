@@ -1,4 +1,4 @@
-use baize_engine::GameDefinition;
+use baize_engine::{BaizeError, GameDefinition};
 
 const TIC_TAC_TOE: &str = r#"{
     "game": {
@@ -254,4 +254,91 @@ fn parse_poker_imperfect_info() {
 
     assert_eq!(def.phases.len(), 3);
     assert_eq!(def.authority.server_only.len(), 4);
+}
+
+// --- Validation rejection tests ---
+
+#[test]
+fn reject_empty_players() {
+    let json = r#"{
+        "game": { "name": "Bad", "players": [] },
+        "zones": {},
+        "components": {},
+        "turn_order": { "type": "alternating" },
+        "end_conditions": [{"result": "draw", "condition": "never"}],
+        "authority": { "server_only": [], "client_verifiable": [] }
+    }"#;
+    let err = GameDefinition::from_json(json).unwrap_err();
+    assert!(matches!(err, BaizeError::Validation(_)));
+}
+
+#[test]
+fn reject_empty_game_name() {
+    let json = r#"{
+        "game": { "name": "  ", "players": ["A"] },
+        "zones": {},
+        "components": {},
+        "turn_order": { "type": "alternating" },
+        "end_conditions": [{"result": "draw", "condition": "x"}],
+        "authority": { "server_only": [], "client_verifiable": [] }
+    }"#;
+    let err = GameDefinition::from_json(json).unwrap_err();
+    assert!(matches!(err, BaizeError::Validation(_)));
+}
+
+#[test]
+fn reject_no_end_conditions() {
+    let json = r#"{
+        "game": { "name": "Bad", "players": ["A"] },
+        "zones": {},
+        "components": {},
+        "turn_order": { "type": "alternating" },
+        "end_conditions": [],
+        "authority": { "server_only": [], "client_verifiable": [] }
+    }"#;
+    let err = GameDefinition::from_json(json).unwrap_err();
+    assert!(matches!(err, BaizeError::Validation(_)));
+}
+
+#[test]
+fn reject_grid_without_dimensions() {
+    let json = r#"{
+        "game": { "name": "Bad", "players": ["A"] },
+        "zones": {
+            "board": { "zone_type": "grid", "visibility": "public" }
+        },
+        "components": {},
+        "turn_order": { "type": "alternating" },
+        "end_conditions": [{"result": "draw", "condition": "x"}],
+        "authority": { "server_only": [], "client_verifiable": [] }
+    }"#;
+    let err = GameDefinition::from_json(json).unwrap_err();
+    assert!(matches!(err, BaizeError::Validation(_)));
+}
+
+#[test]
+fn reject_unknown_turn_player() {
+    let json = r#"{
+        "game": { "name": "Bad", "players": ["A", "B"] },
+        "zones": {},
+        "components": {},
+        "turn_order": { "type": "alternating", "players": ["A", "C"] },
+        "end_conditions": [{"result": "draw", "condition": "x"}],
+        "authority": { "server_only": [], "client_verifiable": [] }
+    }"#;
+    let err = GameDefinition::from_json(json).unwrap_err();
+    assert!(matches!(err, BaizeError::Validation(_)));
+}
+
+#[test]
+fn accept_valid_minimal_definition() {
+    let json = r#"{
+        "game": { "name": "Minimal", "players": ["A"] },
+        "zones": {},
+        "components": {},
+        "turn_order": { "type": "alternating" },
+        "end_conditions": [{"result": "draw", "condition": "always"}],
+        "authority": { "server_only": [], "client_verifiable": [] }
+    }"#;
+    GameDefinition::from_json(json).expect("valid minimal definition should parse");
 }
