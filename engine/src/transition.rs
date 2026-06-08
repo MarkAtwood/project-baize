@@ -145,7 +145,7 @@ pub fn apply_action(session: &mut GameSession, action: &Action) -> Result<Vec<Ga
                 facing: None,
                 state: None,
                 properties: IndexMap::new(),
-            });
+            })?;
 
             let zone = session
                 .runtime

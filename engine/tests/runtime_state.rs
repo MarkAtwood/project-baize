@@ -63,7 +63,7 @@ fn grid_operations() {
         facing: None,
         state: None,
         properties: Default::default(),
-    });
+    }).unwrap();
 
     let board = session.runtime.zones.get_mut("board").unwrap();
     assert!(board.grid_get(1, 1).is_none());
@@ -128,7 +128,7 @@ fn wire_round_trip() {
         facing: None,
         state: None,
         properties: Default::default(),
-    });
+    }).unwrap();
     session
         .runtime
         .zones

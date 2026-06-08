@@ -68,7 +68,7 @@ fn place_piece(
         facing: None,
         state: None,
         properties: IndexMap::new(),
-    });
+    }).unwrap();
     session
         .runtime
         .zones

@@ -1,0 +1,18 @@
+{
+  "game_id": "game-001",
+  "schema_ref": "v1",
+  "sequence": 0,
+  "status": "setup",
+  "turn": "X",
+  "phase": "main",
+  "zones": {
+    "board": {
+      "zone_type": "grid",
+      "cells": {}
+    }
+  },
+  "players": {
+    "X": { "seat": "X", "active": true, "score": 0 },
+    "O": { "seat": "O", "active": true, "score": 0 }
+  }
+}

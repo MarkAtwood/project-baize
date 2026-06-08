@@ -1,0 +1,24 @@
+{
+  "game_id": "game-002",
+  "schema_ref": "v1",
+  "sequence": 3,
+  "status": "in_progress",
+  "turn": "O",
+  "phase": "main",
+  "move_count": 3,
+  "halfmove_clock": 3,
+  "zones": {
+    "board": {
+      "zone_type": "grid",
+      "cells": {
+        "0,0": { "id": "mark-X-0", "component_type": "mark", "owner": "X" },
+        "1,1": { "id": "mark-O-1", "component_type": "mark", "owner": "O" },
+        "2,0": { "id": "mark-X-2", "component_type": "mark", "owner": "X" }
+      }
+    }
+  },
+  "players": {
+    "X": { "seat": "X", "active": true, "score": 0 },
+    "O": { "seat": "O", "active": true, "score": 0 }
+  }
+}
