@@ -1,0 +1,244 @@
+{
+  "description": "Round-trip serialization test vectors. Each test case defines a game definition and setup instructions. Both Rust and Python runners build a GameSession, set up the described state, call to_wire_state(), serialize to JSON, parse back, re-serialize, and assert the two JSON outputs are identical.",
+  "test_cases": [
+    {
+      "name": "empty_tic_tac_toe",
+      "description": "Empty tic-tac-toe board, setup status, no components placed",
+      "game_definition": {
+        "game": { "name": "Tic-Tac-Toe", "players": ["X", "O"], "information": "perfect" },
+        "zones": {
+          "board": { "zone_type": "grid", "dimensions": [3, 3], "visibility": "public" }
+        },
+        "components": {
+          "mark": { "owner": "per_player", "count": "unlimited" }
+        },
+        "turn_order": { "type": "alternating", "players": ["X", "O"], "actions_per_turn": 1, "mandatory": true },
+        "end_conditions": [
+          { "result": "win", "player": "current", "condition": "three_in_line" },
+          { "result": "draw", "condition": "board_is_full" }
+        ],
+        "authority": { "server_only": [], "client_verifiable": ["all"] }
+      },
+      "setup": {
+        "status": "setup",
+        "components": [],
+        "placements": [],
+        "counters": {},
+        "advance_turns": 0
+      }
+    },
+    {
+      "name": "mid_game_tic_tac_toe",
+      "description": "Tic-tac-toe with X at center and corners, O at edges. 4 turns advanced.",
+      "game_definition": {
+        "game": { "name": "Tic-Tac-Toe", "players": ["X", "O"], "information": "perfect" },
+        "zones": {
+          "board": { "zone_type": "grid", "dimensions": [3, 3], "visibility": "public" }
+        },
+        "components": {
+          "mark": { "owner": "per_player", "count": "unlimited" }
+        },
+        "turn_order": { "type": "alternating", "players": ["X", "O"], "actions_per_turn": 1, "mandatory": true },
+        "end_conditions": [
+          { "result": "win", "player": "current", "condition": "three_in_line" },
+          { "result": "draw", "condition": "board_is_full" }
+        ],
+        "authority": { "server_only": [], "client_verifiable": ["all"] }
+      },
+      "setup": {
+        "status": "in_progress",
+        "components": [
+          { "string_id": "mark-x-0", "component_type": "mark", "owner": "X" },
+          { "string_id": "mark-o-0", "component_type": "mark", "owner": "O" },
+          { "string_id": "mark-x-1", "component_type": "mark", "owner": "X" },
+          { "string_id": "mark-o-1", "component_type": "mark", "owner": "O" },
+          { "string_id": "mark-x-2", "component_type": "mark", "owner": "X" }
+        ],
+        "placements": [
+          { "component_index": 0, "zone": "board", "col": 1, "row": 1 },
+          { "component_index": 1, "zone": "board", "col": 0, "row": 1 },
+          { "component_index": 2, "zone": "board", "col": 0, "row": 0 },
+          { "component_index": 3, "zone": "board", "col": 2, "row": 1 },
+          { "component_index": 4, "zone": "board", "col": 2, "row": 2 }
+        ],
+        "counters": {},
+        "advance_turns": 4
+      }
+    },
+    {
+      "name": "chess_opening",
+      "description": "Chess-like 8x8 board with multiple piece types: kings, a queen, rooks, bishops, knights, and pawns placed on the board.",
+      "game_definition": {
+        "game": { "name": "Chess", "players": ["white", "black"], "information": "perfect" },
+        "zones": {
+          "board": { "zone_type": "grid", "dimensions": [8, 8], "visibility": "public" }
+        },
+        "components": {
+          "king": { "owner": "per_player", "count": 1 },
+          "queen": { "owner": "per_player", "count": 1 },
+          "rook": { "owner": "per_player", "count": 2 },
+          "bishop": { "owner": "per_player", "count": 2 },
+          "knight": { "owner": "per_player", "count": 2 },
+          "pawn": { "owner": "per_player", "count": 8 }
+        },
+        "turn_order": { "type": "alternating", "players": ["white", "black"], "actions_per_turn": 1, "mandatory": true },
+        "end_conditions": [
+          { "result": "win", "player": "opponent_of_current", "condition": "checkmate" },
+          { "result": "draw", "condition": "stalemate" }
+        ],
+        "authority": { "server_only": [], "client_verifiable": ["all"] }
+      },
+      "setup": {
+        "status": "in_progress",
+        "components": [
+          { "string_id": "wK", "component_type": "king", "owner": "white" },
+          { "string_id": "wQ", "component_type": "queen", "owner": "white" },
+          { "string_id": "wR1", "component_type": "rook", "owner": "white" },
+          { "string_id": "wR2", "component_type": "rook", "owner": "white" },
+          { "string_id": "wB1", "component_type": "bishop", "owner": "white" },
+          { "string_id": "wB2", "component_type": "bishop", "owner": "white" },
+          { "string_id": "wN1", "component_type": "knight", "owner": "white" },
+          { "string_id": "wN2", "component_type": "knight", "owner": "white" },
+          { "string_id": "wP1", "component_type": "pawn", "owner": "white" },
+          { "string_id": "wP2", "component_type": "pawn", "owner": "white" },
+          { "string_id": "bK", "component_type": "king", "owner": "black" },
+          { "string_id": "bQ", "component_type": "queen", "owner": "black" },
+          { "string_id": "bR1", "component_type": "rook", "owner": "black" },
+          { "string_id": "bN1", "component_type": "knight", "owner": "black" },
+          { "string_id": "bP1", "component_type": "pawn", "owner": "black" },
+          { "string_id": "bP2", "component_type": "pawn", "owner": "black" }
+        ],
+        "placements": [
+          { "component_index": 0,  "zone": "board", "col": 4, "row": 0 },
+          { "component_index": 1,  "zone": "board", "col": 3, "row": 0 },
+          { "component_index": 2,  "zone": "board", "col": 0, "row": 0 },
+          { "component_index": 3,  "zone": "board", "col": 7, "row": 0 },
+          { "component_index": 4,  "zone": "board", "col": 2, "row": 0 },
+          { "component_index": 5,  "zone": "board", "col": 5, "row": 0 },
+          { "component_index": 6,  "zone": "board", "col": 1, "row": 0 },
+          { "component_index": 7,  "zone": "board", "col": 6, "row": 0 },
+          { "component_index": 8,  "zone": "board", "col": 3, "row": 1 },
+          { "component_index": 9,  "zone": "board", "col": 4, "row": 1 },
+          { "component_index": 10, "zone": "board", "col": 4, "row": 7 },
+          { "component_index": 11, "zone": "board", "col": 3, "row": 7 },
+          { "component_index": 12, "zone": "board", "col": 0, "row": 7 },
+          { "component_index": 13, "zone": "board", "col": 1, "row": 7 },
+          { "component_index": 14, "zone": "board", "col": 3, "row": 6 },
+          { "component_index": 15, "zone": "board", "col": 4, "row": 6 }
+        ],
+        "counters": {},
+        "advance_turns": 0
+      }
+    },
+    {
+      "name": "poker_like_with_counters",
+      "description": "Poker-like game with global and per-player counters, a hidden deck (ordered_stack), and per-player hand (set) zones with face-down cards.",
+      "game_definition": {
+        "game": { "name": "Poker-Like", "players": { "min": 3, "max": 6 }, "information": "imperfect" },
+        "zones": {
+          "deck": { "zone_type": "ordered_stack", "visibility": "hidden" },
+          "discard": { "zone_type": "ordered_stack", "visibility": "public" },
+          "pot_zone": { "zone_type": "counter", "visibility": "public" },
+          "hand": { "zone_type": "set", "per_player": true, "visibility": { "private": "owner" } }
+        },
+        "components": {
+          "card": { "count": 52 }
+        },
+        "turn_order": { "type": "round_robin" },
+        "end_conditions": [{ "result": "win", "condition": "last_player_standing" }],
+        "authority": { "server_only": ["deal"], "client_verifiable": ["bet", "fold"] }
+      },
+      "setup": {
+        "status": "in_progress",
+        "components": [
+          { "string_id": "card-AH", "component_type": "card", "owner": "player_0", "facing": "face_down", "properties": { "suit": "hearts", "rank": "A" } },
+          { "string_id": "card-KS", "component_type": "card", "owner": "player_0", "facing": "face_down", "properties": { "suit": "spades", "rank": "K" } },
+          { "string_id": "card-QD", "component_type": "card", "owner": "player_1", "facing": "face_down", "properties": { "suit": "diamonds", "rank": "Q" } },
+          { "string_id": "card-JC", "component_type": "card", "owner": "player_1", "facing": "face_down", "properties": { "suit": "clubs", "rank": "J" } },
+          { "string_id": "card-10H", "component_type": "card", "owner": "player_2", "facing": "face_down", "properties": { "suit": "hearts", "rank": "10" } },
+          { "string_id": "card-2S", "component_type": "card", "owner": null, "facing": "face_down" },
+          { "string_id": "card-3S", "component_type": "card", "owner": null, "facing": "face_down" },
+          { "string_id": "card-5D", "component_type": "card", "owner": null, "facing": "face_up" }
+        ],
+        "placements": [
+          { "component_index": 0, "player_zone": { "player": "player_0", "zone": "hand" } },
+          { "component_index": 1, "player_zone": { "player": "player_0", "zone": "hand" } },
+          { "component_index": 2, "player_zone": { "player": "player_1", "zone": "hand" } },
+          { "component_index": 3, "player_zone": { "player": "player_1", "zone": "hand" } },
+          { "component_index": 4, "player_zone": { "player": "player_2", "zone": "hand" } },
+          { "component_index": 5, "zone": "deck" },
+          { "component_index": 6, "zone": "deck" },
+          { "component_index": 7, "zone": "discard" }
+        ],
+        "counters": {
+          "pot": 150,
+          "round": 3
+        },
+        "player_counters": {
+          "player_0": { "chips": 500, "bet": 50 },
+          "player_1": { "chips": 300, "bet": 50 },
+          "player_2": { "chips": 700, "bet": 50 }
+        },
+        "pot_zone_value": 150,
+        "advance_turns": 2
+      }
+    },
+    {
+      "name": "board_game_with_per_player_zones",
+      "description": "A board game with per-player reserve (ordered_stack) and score_track (counter) zones, plus a shared grid board and a track zone.",
+      "game_definition": {
+        "game": { "name": "Zone-Test", "players": ["alpha", "beta"], "information": "perfect" },
+        "zones": {
+          "board": { "zone_type": "grid", "dimensions": [4, 4], "visibility": "public" },
+          "score_track": { "zone_type": "track", "length": 20, "visibility": "public" },
+          "reserve": { "zone_type": "ordered_stack", "per_player": true, "visibility": { "private": "owner" } },
+          "power": { "zone_type": "counter", "per_player": true, "visibility": "public" }
+        },
+        "components": {
+          "piece": { "owner": "per_player", "count": 4 },
+          "token": { "owner": "per_player", "count": 2 }
+        },
+        "turn_order": { "type": "alternating", "players": ["alpha", "beta"], "actions_per_turn": 1, "mandatory": true },
+        "end_conditions": [
+          { "result": "win", "player": "current", "condition": "score_20" }
+        ],
+        "authority": { "server_only": [], "client_verifiable": ["all"] }
+      },
+      "setup": {
+        "status": "in_progress",
+        "components": [
+          { "string_id": "piece-a1", "component_type": "piece", "owner": "alpha" },
+          { "string_id": "piece-a2", "component_type": "piece", "owner": "alpha" },
+          { "string_id": "piece-b1", "component_type": "piece", "owner": "beta" },
+          { "string_id": "piece-b2", "component_type": "piece", "owner": "beta" },
+          { "string_id": "token-a1", "component_type": "token", "owner": "alpha", "state": "charged" },
+          { "string_id": "token-a2", "component_type": "token", "owner": "alpha", "state": "spent" },
+          { "string_id": "token-b1", "component_type": "token", "owner": "beta" },
+          { "string_id": "score-a", "component_type": "token", "owner": "alpha" },
+          { "string_id": "score-b", "component_type": "token", "owner": "beta" }
+        ],
+        "placements": [
+          { "component_index": 0, "zone": "board", "col": 0, "row": 0 },
+          { "component_index": 1, "zone": "board", "col": 1, "row": 1 },
+          { "component_index": 2, "zone": "board", "col": 3, "row": 3 },
+          { "component_index": 3, "zone": "board", "col": 2, "row": 2 },
+          { "component_index": 4, "player_zone": { "player": "alpha", "zone": "reserve" } },
+          { "component_index": 5, "player_zone": { "player": "alpha", "zone": "reserve" } },
+          { "component_index": 6, "player_zone": { "player": "beta", "zone": "reserve" } },
+          { "component_index": 7, "track_zone": { "zone": "score_track", "position": 5 } },
+          { "component_index": 8, "track_zone": { "zone": "score_track", "position": 3 } }
+        ],
+        "counters": {},
+        "player_counters": {
+          "alpha": { "actions": 2 },
+          "beta": { "actions": 1 }
+        },
+        "player_zone_counters": {
+          "alpha": { "power": 7 },
+          "beta": { "power": 3 }
+        },
+        "advance_turns": 1
+      }
+    }
+  ]
+}
