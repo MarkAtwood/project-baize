@@ -1,7 +1,8 @@
-use baize_engine::action::{ClientMessage, RandomType, ServerMessage};
+use baize_engine::action::{ClientMessage, RandomRequest, RandomType, ServerMessage};
 use baize_engine::state::GameStatus;
 use baize_engine::transition::apply_action;
 
+use crate::config;
 use crate::room::Room;
 use crate::vault;
 
@@ -141,23 +142,48 @@ pub fn handle_client_message(
             random_request,
             player,
             ..
-        } => HandleResult::Broadcast(handle_request_random(
-            room,
-            seat,
-            &player,
-            random_request,
-        )),
+        } => {
+            if let Err(e) = validate_random_request(&random_request) {
+                eprintln!(
+                    "[security] invalid random request from seat '{seat}' \
+                     in room '{game_id}': {e}"
+                );
+                return HandleResult::Error(error_response(
+                    &game_id,
+                    "invalid_random_request",
+                    &e,
+                ));
+            }
+            HandleResult::Broadcast(handle_request_random(
+                room,
+                seat,
+                &player,
+                random_request,
+            ))
+        }
 
         ClientMessage::AcknowledgeState {
             state_hash,
             player,
             ..
-        } => HandleResult::Broadcast(handle_acknowledge_state(
-            room,
-            seat,
-            &player,
-            &state_hash,
-        )),
+        } => {
+            // BLAKE3 hex digest is exactly 64 chars
+            if state_hash.len() != 64
+                || !state_hash.chars().all(|c| c.is_ascii_hexdigit())
+            {
+                return HandleResult::Error(error_response(
+                    &game_id,
+                    "invalid_state_hash",
+                    "state_hash must be a 64-character hex string",
+                ));
+            }
+            HandleResult::Broadcast(handle_acknowledge_state(
+                room,
+                seat,
+                &player,
+                &state_hash,
+            ))
+        }
     }
 }
 
@@ -219,6 +245,78 @@ fn validate_action(action: &baize_engine::action::Action) -> Result<(), String> 
         }
     }
 
+    // dice_count on an action must be bounded
+    if let Some(dc) = action.dice_count {
+        if dc > config::MAX_DICE_COUNT {
+            return Err(format!(
+                "dice_count {dc} exceeds maximum ({})",
+                config::MAX_DICE_COUNT
+            ));
+        }
+    }
+
+    Ok(())
+}
+
+/// Validate a random request for sanity and DoS prevention.
+fn validate_random_request(request: &RandomRequest) -> Result<(), String> {
+    match request.random_type {
+        RandomType::Roll => {
+            if let Some(count) = request.dice_count {
+                if count == 0 {
+                    return Err("dice_count must be at least 1".to_string());
+                }
+                if count > config::MAX_DICE_COUNT {
+                    return Err(format!(
+                        "dice_count {count} exceeds maximum ({})",
+                        config::MAX_DICE_COUNT
+                    ));
+                }
+            }
+            if let Some(ref dt) = request.dice_type {
+                if dt.len() > 16 {
+                    return Err("dice_type too long".to_string());
+                }
+                let faces: Option<u32> = dt.strip_prefix('d').and_then(|s| s.parse().ok());
+                if let Some(f) = faces {
+                    if f == 0 {
+                        return Err("dice faces must be at least 1".to_string());
+                    }
+                    if f > config::MAX_DICE_FACES {
+                        return Err(format!(
+                            "dice faces {f} exceeds maximum ({})",
+                            config::MAX_DICE_FACES
+                        ));
+                    }
+                }
+            }
+        }
+        RandomType::Draw => {
+            if let Some(count) = request.draw_count {
+                if count == 0 {
+                    return Err("draw_count must be at least 1".to_string());
+                }
+                if count > config::MAX_DRAW_COUNT {
+                    return Err(format!(
+                        "draw_count {count} exceeds maximum ({})",
+                        config::MAX_DRAW_COUNT
+                    ));
+                }
+            }
+            if let Some(ref zone) = request.draw_from {
+                if zone.len() > config::MAX_ZONE_NAME_LENGTH {
+                    return Err("draw_from zone name too long".to_string());
+                }
+            }
+        }
+        RandomType::Shuffle => {
+            if let Some(ref zone) = request.shuffle_zone {
+                if zone.len() > config::MAX_ZONE_NAME_LENGTH {
+                    return Err("shuffle_zone name too long".to_string());
+                }
+            }
+        }
+    }
     Ok(())
 }
 

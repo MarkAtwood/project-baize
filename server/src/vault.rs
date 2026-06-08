@@ -29,6 +29,12 @@ pub struct HiddenFact {
     pub properties: serde_json::Value,
 }
 
+impl Default for Vault {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl Vault {
     pub fn new() -> Self {
         Self {

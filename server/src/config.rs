@@ -17,3 +17,15 @@ pub const MAX_CONNECTIONS_PER_IP: usize = 10;
 
 /// Maximum room ID length.
 pub const MAX_ROOM_ID_LENGTH: usize = 64;
+
+/// Maximum dice per single roll request.
+pub const MAX_DICE_COUNT: u32 = 100;
+
+/// Maximum dice faces (prevents absurdly large ranges).
+pub const MAX_DICE_FACES: u32 = 1000;
+
+/// Maximum cards per single draw request.
+pub const MAX_DRAW_COUNT: u32 = 1000;
+
+/// Maximum zone name length for random requests.
+pub const MAX_ZONE_NAME_LENGTH: usize = 128;
