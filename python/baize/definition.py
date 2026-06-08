@@ -43,7 +43,7 @@ def _validate_against_schema(data: Any) -> None:
         return
 
     try:
-        import jsonschema
+        import jsonschema  # type: ignore[import-untyped]
     except ImportError:
         return  # jsonschema not installed — skip validation
 

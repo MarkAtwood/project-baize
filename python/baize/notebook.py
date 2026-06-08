@@ -167,14 +167,14 @@ def _render_grid_svg(
 
     # Draw rank labels (row headers)
     if rank_labels:
-        for row, label in enumerate(rank_labels[:h]):
+        for row, rank_label in enumerate(rank_labels[:h]):
             ty = margin + row * cell + cell // 2 + _HEADER_SIZE // 3
             # Left
             parts.append(
                 f'<text x="{margin - 6}" y="{ty}" '
                 f'font-family="sans-serif" font-size="{_HEADER_SIZE}" '
                 f'fill="{_COLORS["text"]}" '
-                f'text-anchor="end">{_escape_xml(str(label))}</text>'
+                f'text-anchor="end">{_escape_xml(str(rank_label))}</text>'
             )
 
     parts.append("</svg>")
