@@ -5,9 +5,15 @@
  * and re-renders the board grid with zone contents and legal move highlights.
  *
  * Supports grid zones with configurable dimensions, labels, and coloring.
+ *
+ * Interaction modes:
+ *   - Click-to-select: click a cell to emit "baize-cell-click" (original)
+ *   - Drag-and-drop: mousedown/touchstart on a piece starts a drag,
+ *     highlights legal targets, and emits "baize-move" on valid drop.
  */
 
 import type {
+  Action,
   ComponentInstance,
   GameDefinition,
   GameState,
@@ -20,12 +26,39 @@ interface StateUpdateDetail {
   readonly definition: GameDefinition | null;
 }
 
+interface CellPosition {
+  readonly row: number;
+  readonly col: number;
+}
+
+interface DragState {
+  /** The zone name being dragged within. */
+  zoneName: string;
+  /** Grid coordinate string of the origin cell (e.g. "e2"). */
+  fromCoord: string;
+  /** Row/col of the origin cell. */
+  from: CellPosition;
+  /** The component being dragged. */
+  component: ComponentInstance;
+  /** Set of coordinate strings that are legal drop targets. */
+  legalTargets: ReadonlySet<string>;
+  /** Current pointer position in SVG user-space. */
+  pointerX: number;
+  pointerY: number;
+  /** Whether the pointer has moved enough to count as a drag (vs click). */
+  hasMoved: boolean;
+}
+
 const CELL_SIZE = 60;
 const LABEL_OFFSET = 20;
+const DRAG_THRESHOLD = 5; // px before mousedown is treated as drag
+const GHOST_OPACITY = 0.7;
+const DIMMED_OPACITY = 0.4;
 const COLORS = {
   lightCell: "#f0d9b5",
   darkCell: "#b58863",
   highlight: "rgba(255, 255, 0, 0.4)",
+  dropTarget: "rgba(0, 200, 80, 0.45)",
   gridLine: "#333",
   text: "#333",
   pieceLight: "#fff",
@@ -37,6 +70,19 @@ export class BaizeBoardElement extends HTMLElement {
   private state: GameState | null = null;
   private legalMoveTargets: ReadonlySet<string> = new Set();
 
+  // Drag state
+  private drag: DragState | null = null;
+  private ghostGroup: SVGGElement | null = null;
+  private startPointerX = 0;
+  private startPointerY = 0;
+
+  // Cached geometry for coordinate lookups during drag
+  private cachedOx = 0;
+  private cachedOy = 0;
+  private cachedCols = 0;
+  private cachedRows = 0;
+  private cachedZoneDef: Zone | null = null;
+
   constructor() {
     super();
     this.attachShadow({ mode: "open" });
@@ -46,11 +92,14 @@ export class BaizeBoardElement extends HTMLElement {
   connectedCallback(): void {
     const parent = this.closest("baize-game");
     parent?.addEventListener("baize-state-update", this.handleStateUpdate);
+    document.addEventListener("keydown", this.handleKeyDown);
   }
 
   disconnectedCallback(): void {
     const parent = this.closest("baize-game");
     parent?.removeEventListener("baize-state-update", this.handleStateUpdate);
+    document.removeEventListener("keydown", this.handleKeyDown);
+    this.cancelDrag();
   }
 
   /** Highlight a set of cell coordinates as legal move targets. */
@@ -65,12 +114,434 @@ export class BaizeBoardElement extends HTMLElement {
     this.renderBoard();
   }
 
+  // ---------------------------------------------------------------------------
+  // State update from parent
+  // ---------------------------------------------------------------------------
+
   private handleStateUpdate = (event: Event): void => {
     const detail = (event as CustomEvent<StateUpdateDetail>).detail;
     this.definition = detail.definition;
     this.state = detail.state;
+    this.cancelDrag();
     this.renderBoard();
   };
+
+  // ---------------------------------------------------------------------------
+  // Legal moves query
+  // ---------------------------------------------------------------------------
+
+  /**
+   * Query the parent <baize-game> engine for legal moves originating from
+   * `fromCoord`, and return the set of target coordinate strings.
+   */
+  private computeLegalTargets(fromCoord: string): ReadonlySet<string> {
+    const gameEl = this.closest("baize-game") as
+      | (HTMLElement & { getEngine?(): { isLoaded: boolean; legalMoves(): readonly Action[] } | null })
+      | null;
+
+    if (gameEl === null || gameEl === undefined) return new Set();
+
+    const engine = gameEl.getEngine?.() ?? null;
+    if (engine === null || !engine.isLoaded) return new Set();
+
+    try {
+      const moves = engine.legalMoves();
+      const targets = new Set<string>();
+      for (const move of moves) {
+        const moveFrom = typeof move.from === "string" ? move.from : move.from?.cell;
+        const moveTo = typeof move.to === "string" ? move.to : move.to?.cell;
+        if (moveFrom === fromCoord && moveTo !== undefined) {
+          targets.add(moveTo);
+        }
+      }
+      return targets;
+    } catch {
+      return new Set();
+    }
+  }
+
+  // ---------------------------------------------------------------------------
+  // Coordinate helpers
+  // ---------------------------------------------------------------------------
+
+  /** Convert a pointer event's client coordinates to SVG user-space. */
+  private clientToSvg(clientX: number, clientY: number): { x: number; y: number } | null {
+    const svg = this.shadowRoot?.querySelector("svg");
+    if (svg === null || svg === undefined) return null;
+    const pt = svg.createSVGPoint();
+    pt.x = clientX;
+    pt.y = clientY;
+    const ctm = svg.getScreenCTM();
+    if (ctm === null) return null;
+    const transformed = pt.matrixTransform(ctm.inverse());
+    return { x: transformed.x, y: transformed.y };
+  }
+
+  /** Convert SVG coordinates to grid col/row (may be out of bounds). */
+  private svgToCell(svgX: number, svgY: number): CellPosition | null {
+    const col = Math.floor((svgX - this.cachedOx) / CELL_SIZE);
+    const row = Math.floor((svgY - this.cachedOy) / CELL_SIZE);
+    if (col < 0 || col >= this.cachedCols || row < 0 || row >= this.cachedRows) {
+      return null;
+    }
+    return { col, row };
+  }
+
+  /** Build a reverse map from coord string to {row, col}. */
+  private coordToPosition(coord: string): CellPosition | null {
+    if (this.cachedZoneDef === null) return null;
+    for (let r = 0; r < this.cachedRows; r++) {
+      for (let c = 0; c < this.cachedCols; c++) {
+        if (this.cellCoord(c, r, this.cachedZoneDef) === coord) {
+          return { row: r, col: c };
+        }
+      }
+    }
+    return null;
+  }
+
+  // ---------------------------------------------------------------------------
+  // Drag lifecycle
+  // ---------------------------------------------------------------------------
+
+  private handlePointerDown = (event: MouseEvent | TouchEvent): void => {
+    // Only handle primary button (left click) for mouse
+    if (event instanceof MouseEvent && event.button !== 0) return;
+
+    const clientPos = this.extractClientPos(event);
+    if (clientPos === null) return;
+
+    const svgPos = this.clientToSvg(clientPos.x, clientPos.y);
+    if (svgPos === null) return;
+
+    const cell = this.svgToCell(svgPos.x, svgPos.y);
+    if (cell === null) return;
+
+    if (this.cachedZoneDef === null) return;
+    const coord = this.cellCoord(cell.col, cell.row, this.cachedZoneDef);
+
+    // Find the board zone entry
+    const boardEntry = this.findBoardZone();
+    if (boardEntry === null) return;
+    const [zoneName] = boardEntry;
+
+    const zoneState = this.state?.zones[zoneName];
+    if (zoneState === undefined || zoneState.zone_type !== "grid") return;
+
+    const component = this.getComponentAt(zoneState, coord);
+    if (component === null) return;
+
+    // Record starting position (to distinguish click from drag)
+    this.startPointerX = svgPos.x;
+    this.startPointerY = svgPos.y;
+
+    // Compute legal targets for this piece
+    const legalTargets = this.computeLegalTargets(coord);
+
+    this.drag = {
+      zoneName,
+      fromCoord: coord,
+      from: cell,
+      component,
+      legalTargets,
+      pointerX: svgPos.x,
+      pointerY: svgPos.y,
+      hasMoved: false,
+    };
+
+    // Bind move/up listeners at the document level so drag continues
+    // even if pointer leaves the SVG
+    document.addEventListener("mousemove", this.handlePointerMove);
+    document.addEventListener("mouseup", this.handlePointerUp);
+    document.addEventListener("touchmove", this.handlePointerMove, { passive: false });
+    document.addEventListener("touchend", this.handlePointerUp);
+    document.addEventListener("touchcancel", this.handlePointerCancel);
+
+    // Prevent text selection and default touch behavior during drag
+    event.preventDefault();
+  };
+
+  private handlePointerMove = (event: MouseEvent | TouchEvent): void => {
+    if (this.drag === null) return;
+
+    const clientPos = this.extractClientPos(event);
+    if (clientPos === null) return;
+
+    const svgPos = this.clientToSvg(clientPos.x, clientPos.y);
+    if (svgPos === null) return;
+
+    // Check drag threshold
+    if (!this.drag.hasMoved) {
+      const dx = svgPos.x - this.startPointerX;
+      const dy = svgPos.y - this.startPointerY;
+      if (Math.sqrt(dx * dx + dy * dy) < DRAG_THRESHOLD) return;
+      this.drag.hasMoved = true;
+      this.onDragStart();
+    }
+
+    this.drag.pointerX = svgPos.x;
+    this.drag.pointerY = svgPos.y;
+    this.updateGhostPosition();
+
+    // Prevent scrolling on touch
+    event.preventDefault();
+  };
+
+  private handlePointerUp = (event: MouseEvent | TouchEvent): void => {
+    this.removeDocumentListeners();
+
+    if (this.drag === null) return;
+
+    if (!this.drag.hasMoved) {
+      // Pointer never moved past threshold: treat as a click
+      const coord = this.drag.fromCoord;
+      const zoneName = this.drag.zoneName;
+      this.drag = null;
+      this.dispatchEvent(
+        new CustomEvent("baize-cell-click", {
+          detail: { cell: coord, zone: zoneName },
+          bubbles: true,
+          composed: true,
+        }),
+      );
+      return;
+    }
+
+    // Determine drop target
+    const clientPos = this.extractClientPos(event);
+    if (clientPos !== null) {
+      const svgPos = this.clientToSvg(clientPos.x, clientPos.y);
+      if (svgPos !== null) {
+        const dropCell = this.svgToCell(svgPos.x, svgPos.y);
+        if (dropCell !== null && this.cachedZoneDef !== null) {
+          const dropCoord = this.cellCoord(dropCell.col, dropCell.row, this.cachedZoneDef);
+          if (this.drag.legalTargets.has(dropCoord)) {
+            this.completeDrag(dropCell, dropCoord);
+            return;
+          }
+        }
+      }
+    }
+
+    // Invalid drop — cancel
+    this.cancelDrag();
+  };
+
+  private handlePointerCancel = (_event: TouchEvent): void => {
+    this.cancelDrag();
+  };
+
+  private handleKeyDown = (event: KeyboardEvent): void => {
+    if (event.key === "Escape" && this.drag !== null) {
+      this.cancelDrag();
+    }
+  };
+
+  /** Called once the pointer has moved past the drag threshold. */
+  private onDragStart(): void {
+    if (this.drag === null) return;
+
+    // Show legal target highlights and dim the board
+    this.showDragOverlays();
+
+    // Create ghost piece that follows the pointer
+    this.createGhost();
+  }
+
+  /** Complete a valid drag-drop move. */
+  private completeDrag(toCell: CellPosition, _toCoord: string): void {
+    if (this.drag === null) return;
+
+    const from = this.drag.from;
+    const componentId = this.drag.component.id;
+
+    this.removeDragOverlays();
+    this.removeGhost();
+    this.drag = null;
+
+    this.dispatchEvent(
+      new CustomEvent("baize-move", {
+        detail: {
+          from: { row: from.row, col: from.col },
+          to: { row: toCell.row, col: toCell.col },
+          component_id: componentId,
+        },
+        bubbles: true,
+        composed: true,
+      }),
+    );
+  }
+
+  /** Cancel an in-progress drag. */
+  private cancelDrag(): void {
+    this.removeDocumentListeners();
+    this.removeDragOverlays();
+    this.removeGhost();
+    this.drag = null;
+  }
+
+  // ---------------------------------------------------------------------------
+  // Ghost piece (follows pointer during drag)
+  // ---------------------------------------------------------------------------
+
+  private createGhost(): void {
+    if (this.drag === null) return;
+    const svg = this.shadowRoot?.querySelector("svg");
+    if (svg === null || svg === undefined) return;
+
+    const ns = "http://www.w3.org/2000/svg";
+    const g = document.createElementNS(ns, "g");
+    g.setAttribute("class", "drag-ghost");
+    g.setAttribute("pointer-events", "none");
+    g.style.opacity = String(GHOST_OPACITY);
+
+    const r = CELL_SIZE * 0.35;
+    const fill =
+      this.drag.component.owner === "white" || this.drag.component.owner === "player1"
+        ? COLORS.pieceLight
+        : COLORS.pieceDark;
+    const stroke = fill === COLORS.pieceLight ? COLORS.pieceDark : COLORS.pieceLight;
+    const label = this.drag.component.component_type.charAt(0).toUpperCase();
+
+    const circle = document.createElementNS(ns, "circle");
+    circle.setAttribute("r", String(r));
+    circle.setAttribute("fill", fill);
+    circle.setAttribute("stroke", stroke);
+    circle.setAttribute("stroke-width", "2");
+
+    const text = document.createElementNS(ns, "text");
+    text.setAttribute("y", "5");
+    text.setAttribute("text-anchor", "middle");
+    text.setAttribute("font-size", "14");
+    text.setAttribute("font-weight", "bold");
+    text.setAttribute("fill", stroke);
+    text.textContent = label;
+
+    g.appendChild(circle);
+    g.appendChild(text);
+    svg.appendChild(g);
+    this.ghostGroup = g;
+
+    // Hide the original piece
+    this.hideSourcePiece();
+
+    this.updateGhostPosition();
+  }
+
+  private updateGhostPosition(): void {
+    if (this.ghostGroup === null || this.drag === null) return;
+    this.ghostGroup.setAttribute(
+      "transform",
+      `translate(${this.drag.pointerX}, ${this.drag.pointerY})`,
+    );
+  }
+
+  private removeGhost(): void {
+    if (this.ghostGroup !== null) {
+      this.ghostGroup.remove();
+      this.ghostGroup = null;
+    }
+    this.showSourcePiece();
+  }
+
+  private hideSourcePiece(): void {
+    if (this.drag === null) return;
+    const svg = this.shadowRoot?.querySelector("svg");
+    if (svg === null || svg === undefined) return;
+    const pieces = svg.querySelectorAll(`[data-piece="${this.drag.fromCoord}"]`);
+    pieces.forEach((el) => {
+      (el as SVGElement).style.visibility = "hidden";
+    });
+  }
+
+  private showSourcePiece(): void {
+    const svg = this.shadowRoot?.querySelector("svg");
+    if (svg === null || svg === undefined) return;
+    const pieces = svg.querySelectorAll("[data-piece]");
+    pieces.forEach((el) => {
+      (el as SVGElement).style.visibility = "";
+    });
+  }
+
+  // ---------------------------------------------------------------------------
+  // Drag overlays (legal target highlights, dimming)
+  // ---------------------------------------------------------------------------
+
+  private showDragOverlays(): void {
+    if (this.drag === null) return;
+    const svg = this.shadowRoot?.querySelector("svg");
+    if (svg === null || svg === undefined) return;
+    const ns = "http://www.w3.org/2000/svg";
+
+    // Dim cells that are NOT legal targets
+    const allCells = svg.querySelectorAll("rect[data-cell]");
+    allCells.forEach((rect) => {
+      const coord = rect.getAttribute("data-cell");
+      if (coord !== null && !this.drag!.legalTargets.has(coord) && coord !== this.drag!.fromCoord) {
+        (rect as SVGElement).style.opacity = String(DIMMED_OPACITY);
+      }
+    });
+
+    // Add bright overlay on legal targets
+    for (const targetCoord of this.drag.legalTargets) {
+      const pos = this.coordToPosition(targetCoord);
+      if (pos === null) continue;
+      const x = pos.col * CELL_SIZE + this.cachedOx;
+      const y = pos.row * CELL_SIZE + this.cachedOy;
+
+      const overlay = document.createElementNS(ns, "rect");
+      overlay.setAttribute("x", String(x));
+      overlay.setAttribute("y", String(y));
+      overlay.setAttribute("width", String(CELL_SIZE));
+      overlay.setAttribute("height", String(CELL_SIZE));
+      overlay.setAttribute("fill", COLORS.dropTarget);
+      overlay.setAttribute("class", "drag-target-overlay");
+      overlay.setAttribute("pointer-events", "none");
+      svg.appendChild(overlay);
+    }
+  }
+
+  private removeDragOverlays(): void {
+    const svg = this.shadowRoot?.querySelector("svg");
+    if (svg === null || svg === undefined) return;
+
+    // Remove target overlays
+    svg.querySelectorAll(".drag-target-overlay").forEach((el) => el.remove());
+
+    // Restore opacity on all cells
+    svg.querySelectorAll("rect[data-cell]").forEach((rect) => {
+      (rect as SVGElement).style.opacity = "";
+    });
+  }
+
+  // ---------------------------------------------------------------------------
+  // Document-level listener management
+  // ---------------------------------------------------------------------------
+
+  private removeDocumentListeners(): void {
+    document.removeEventListener("mousemove", this.handlePointerMove);
+    document.removeEventListener("mouseup", this.handlePointerUp);
+    document.removeEventListener("touchmove", this.handlePointerMove);
+    document.removeEventListener("touchend", this.handlePointerUp);
+    document.removeEventListener("touchcancel", this.handlePointerCancel);
+  }
+
+  // ---------------------------------------------------------------------------
+  // Client position extraction
+  // ---------------------------------------------------------------------------
+
+  private extractClientPos(event: MouseEvent | TouchEvent): { x: number; y: number } | null {
+    if (event instanceof MouseEvent) {
+      return { x: event.clientX, y: event.clientY };
+    }
+    const touch = event.changedTouches[0];
+    if (touch === undefined) return null;
+    return { x: touch.clientX, y: touch.clientY };
+  }
+
+  // ---------------------------------------------------------------------------
+  // Rendering
+  // ---------------------------------------------------------------------------
 
   private renderPlaceholder(): void {
     if (this.shadowRoot === null) return;
@@ -116,9 +587,16 @@ export class BaizeBoardElement extends HTMLElement {
     if (dims === null) return;
     const [cols, rows] = dims;
 
+    // Cache geometry for drag coordinate lookups
     const hasLabels = zoneDef.labels !== undefined;
     const ox = hasLabels ? LABEL_OFFSET : 0;
     const oy = hasLabels ? LABEL_OFFSET : 0;
+    this.cachedOx = ox;
+    this.cachedOy = oy;
+    this.cachedCols = cols;
+    this.cachedRows = rows;
+    this.cachedZoneDef = zoneDef;
+
     const svgWidth = cols * CELL_SIZE + ox;
     const svgHeight = rows * CELL_SIZE + oy;
 
@@ -145,7 +623,7 @@ export class BaizeBoardElement extends HTMLElement {
         if (isHighlighted) {
           cells.push(
             `<rect x="${x}" y="${y}" width="${CELL_SIZE}" height="${CELL_SIZE}" ` +
-              `fill="${COLORS.highlight}" data-highlight="${coord}" />`,
+              `fill="${COLORS.highlight}" data-highlight="${coord}" pointer-events="none" />`,
           );
         }
 
@@ -153,7 +631,7 @@ export class BaizeBoardElement extends HTMLElement {
         if (zoneState !== undefined && zoneState.zone_type === "grid") {
           const component = this.getComponentAt(zoneState, coord);
           if (component !== null) {
-            cells.push(this.renderPiece(component, x, y));
+            cells.push(this.renderPiece(component, x, y, coord));
           }
         }
       }
@@ -194,12 +672,22 @@ export class BaizeBoardElement extends HTMLElement {
         }
         svg {
           display: block;
+          touch-action: none;
+          user-select: none;
+          -webkit-user-select: none;
         }
         rect[data-cell] {
           cursor: pointer;
+          transition: opacity 0.15s ease;
         }
         rect[data-cell]:hover {
           opacity: 0.8;
+        }
+        .drag-ghost {
+          pointer-events: none;
+        }
+        .drag-target-overlay {
+          pointer-events: none;
         }
       </style>
       <svg xmlns="http://www.w3.org/2000/svg"
@@ -210,9 +698,12 @@ export class BaizeBoardElement extends HTMLElement {
       </svg>
     `;
 
-    // Attach click handler for cell selection
+    // Attach click handler for cell selection (fallback when not dragging)
     this.shadowRoot.querySelectorAll("rect[data-cell]").forEach((rect) => {
       rect.addEventListener("click", () => {
+        // If a drag just completed, the drag handlers already consumed the
+        // interaction — skip the click.
+        if (this.drag !== null) return;
         const cell = rect.getAttribute("data-cell");
         if (cell !== null) {
           this.dispatchEvent(
@@ -225,6 +716,13 @@ export class BaizeBoardElement extends HTMLElement {
         }
       });
     });
+
+    // Attach drag start handlers (mouse + touch)
+    const svg = this.shadowRoot.querySelector("svg");
+    if (svg !== null) {
+      svg.addEventListener("mousedown", this.handlePointerDown);
+      svg.addEventListener("touchstart", this.handlePointerDown, { passive: false });
+    }
   }
 
   private findBoardZone(): [string, Zone] | null {
@@ -270,7 +768,12 @@ export class BaizeBoardElement extends HTMLElement {
     return cell as ComponentInstance;
   }
 
-  private renderPiece(component: ComponentInstance, x: number, y: number): string {
+  private renderPiece(
+    component: ComponentInstance,
+    x: number,
+    y: number,
+    coord: string,
+  ): string {
     const cx = x + CELL_SIZE / 2;
     const cy = y + CELL_SIZE / 2;
     const r = CELL_SIZE * 0.35;
@@ -284,9 +787,11 @@ export class BaizeBoardElement extends HTMLElement {
     const label = component.component_type.charAt(0).toUpperCase();
 
     return (
+      `<g data-piece="${coord}">` +
       `<circle cx="${cx}" cy="${cy}" r="${r}" fill="${fill}" stroke="${stroke}" stroke-width="2" />` +
       `<text x="${cx}" y="${cy + 5}" text-anchor="middle" font-size="14" ` +
-      `font-weight="bold" fill="${stroke}">${label}</text>`
+      `font-weight="bold" fill="${stroke}">${label}</text>` +
+      `</g>`
     );
   }
 }
