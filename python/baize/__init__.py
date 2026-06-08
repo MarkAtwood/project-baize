@@ -13,6 +13,7 @@ from baize.error import (
     IllegalActionError,
 )
 from baize.events import EventLog, Event
+from baize import analysis
 
 __all__ = [
     "GameDefinition",
@@ -28,4 +29,5 @@ __all__ = [
     "IllegalActionError",
     "EventLog",
     "Event",
+    "analysis",
 ]
