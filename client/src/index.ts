@@ -15,6 +15,7 @@
 import { BaizeBoardElement } from "./elements/baize-board.js";
 import { BaizeGameElement } from "./elements/baize-game.js";
 import { BaizeHandElement } from "./elements/baize-hand.js";
+import { BaizeClockElement } from "./elements/baize-clock.js";
 import { BaizeScoreElement } from "./elements/baize-score.js";
 
 export { BaizeEngine } from "./engine.js";
@@ -22,6 +23,7 @@ export { BaizeConnection } from "./connection.js";
 export { BaizeGameElement } from "./elements/baize-game.js";
 export { BaizeBoardElement } from "./elements/baize-board.js";
 export { BaizeHandElement } from "./elements/baize-hand.js";
+export { BaizeClockElement } from "./elements/baize-clock.js";
 export { BaizeScoreElement } from "./elements/baize-score.js";
 export type {
   Action,
@@ -67,6 +69,7 @@ function registerElements(): void {
   const elements: ReadonlyArray<readonly [string, CustomElementConstructor]> = [
     ["baize-game", BaizeGameElement],
     ["baize-board", BaizeBoardElement],
+    ["baize-clock", BaizeClockElement],
     ["baize-hand", BaizeHandElement],
     ["baize-score", BaizeScoreElement],
   ];
