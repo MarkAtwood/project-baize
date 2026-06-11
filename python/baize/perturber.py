@@ -18,6 +18,9 @@ from baize.runtime import GameSession
 from baize.transition import apply_action
 
 MAX_FUEL = 10_000
+MAX_REPEAT = 10_000
+MAX_FOREACH_ITEMS = 10_000
+MAX_COUNTER_VALUE = 1_000_000_000
 
 
 def execute_effect(session: GameSession, effect: dict[str, Any]) -> None:
@@ -39,6 +42,10 @@ def execute_effect(session: GameSession, effect: dict[str, Any]) -> None:
     elif "for_each" in effect:
         spec = effect["for_each"]
         items: list[str] = spec.get("in", [])
+        if len(items) > MAX_FOREACH_ITEMS:
+            raise ValueError(
+                f"for_each collection size {len(items)} exceeds maximum {MAX_FOREACH_ITEMS}"
+            )
         filter_expr = spec.get("filter")
         body = effect["do"]
 
@@ -57,7 +64,9 @@ def execute_effect(session: GameSession, effect: dict[str, Any]) -> None:
             execute_effect(session, body)
 
     elif "repeat" in effect:
-        count = int(effect["repeat"])
+        count = min(int(effect["repeat"]), MAX_REPEAT)
+        if count < 0:
+            return
         body = effect["body"]
         for _ in range(count):
             execute_effect(session, body)
@@ -96,12 +105,24 @@ def execute_effect(session: GameSession, effect: dict[str, Any]) -> None:
         spec = effect["add_counter"]
         counter = spec["counter"]
         value = int(spec.get("value", 0))
+        if abs(value) > MAX_COUNTER_VALUE:
+            raise ValueError(
+                f"counter value {value} exceeds maximum {MAX_COUNTER_VALUE}"
+            )
         current = session.runtime.counters.get(counter, 0)
-        session.runtime.counters[counter] = current + value
+        new_value = current + value
+        if abs(new_value) > MAX_COUNTER_VALUE * 10:
+            raise OverflowError("counter addition overflow")
+        session.runtime.counters[counter] = new_value
 
     elif "set_counter" in effect:
         spec = effect["set_counter"]
-        session.runtime.counters[spec["counter"]] = int(spec.get("value", 0))
+        value = int(spec.get("value", 0))
+        if abs(value) > MAX_COUNTER_VALUE:
+            raise ValueError(
+                f"counter value {value} exceeds maximum {MAX_COUNTER_VALUE}"
+            )
+        session.runtime.counters[spec["counter"]] = value
 
 
 def _build_variables(session: GameSession, player: str) -> dict[str, Any]:
