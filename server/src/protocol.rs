@@ -144,8 +144,8 @@ pub fn handle_client_message(
                     "spectators cannot submit moves",
                 ));
             }
-            // Validate action fields
-            if let Err(e) = validate_action(&action) {
+            // Validate action fields against definition
+            if let Err(e) = validate_action(&action, &room.session.definition) {
                 eprintln!(
                     "[security] invalid action from seat '{seat}' in room '{game_id}': {e}"
                 );
@@ -185,7 +185,7 @@ pub fn handle_client_message(
                     ),
                 ));
             }
-            if let Err(e) = validate_random_request(&random_request) {
+            if let Err(e) = validate_random_request(&random_request, &room.session.definition) {
                 eprintln!(
                     "[security] invalid random request from seat '{seat}' \
                      in room '{game_id}': {e}"
@@ -231,8 +231,11 @@ pub fn handle_client_message(
     }
 }
 
-/// Validate action fields for sanity.
-fn validate_action(action: &baize_engine::action::Action) -> Result<(), String> {
+/// Validate action fields for sanity and against the game definition.
+fn validate_action(
+    action: &baize_engine::action::Action,
+    definition: &baize_engine::GameDefinition,
+) -> Result<(), String> {
     // Validate string fields: non-empty and bounded length
     let string_fields: &[(&str, &Option<String>)] = &[
         ("component_id", &action.component_id),
@@ -275,11 +278,35 @@ fn validate_action(action: &baize_engine::action::Action) -> Result<(), String> 
         }
     }
 
+    // Validate zone references against game definition
+    if let Some(ref zone) = action.zone {
+        if !definition.zones.contains_key(zone.as_str()) {
+            return Err(format!("unknown zone: {zone}"));
+        }
+    }
+
+    // Validate component_type against definition
+    if let Some(ref ct) = action.component_type {
+        if !definition.components.contains_key(ct.as_str()) {
+            return Err(format!("unknown component type: {ct}"));
+        }
+    }
+
+    // Validate promote_to target type exists
+    if let Some(ref pt) = action.promote_to {
+        if !definition.components.contains_key(pt.as_str()) {
+            return Err(format!("unknown promote target type: {pt}"));
+        }
+    }
+
     Ok(())
 }
 
 /// Validate a random request for sanity and DoS prevention.
-fn validate_random_request(request: &RandomRequest) -> Result<(), String> {
+fn validate_random_request(
+    request: &RandomRequest,
+    definition: &baize_engine::GameDefinition,
+) -> Result<(), String> {
     match request.random_type {
         RandomType::Roll => {
             if let Some(count) = request.dice_count {
@@ -327,12 +354,18 @@ fn validate_random_request(request: &RandomRequest) -> Result<(), String> {
                 if zone.len() > config::MAX_ZONE_NAME_LENGTH {
                     return Err("draw_from zone name too long".to_string());
                 }
+                if !definition.zones.contains_key(zone.as_str()) {
+                    return Err(format!("unknown draw_from zone: {zone}"));
+                }
             }
         }
         RandomType::Shuffle => {
             if let Some(ref zone) = request.shuffle_zone {
                 if zone.len() > config::MAX_ZONE_NAME_LENGTH {
                     return Err("shuffle_zone name too long".to_string());
+                }
+                if !definition.zones.contains_key(zone.as_str()) {
+                    return Err(format!("unknown shuffle zone: {zone}"));
                 }
             }
         }
