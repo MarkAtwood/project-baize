@@ -17,6 +17,15 @@ use crate::transition::apply_action;
 /// Maximum fuel for repeat_until_stable (safety cap).
 const MAX_FUEL: u64 = 10_000;
 
+/// Maximum repeat count for repeat(n).
+const MAX_REPEAT: u32 = 10_000;
+
+/// Maximum collection size for for_each.
+const MAX_FOREACH_ITEMS: usize = 10_000;
+
+/// Maximum absolute value for counter operations.
+const MAX_COUNTER_VALUE: i64 = 1_000_000_000;
+
 /// A structured effect that mutates game state.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(untagged)]
@@ -120,13 +129,19 @@ pub fn execute_effect(session: &mut GameSession, effect: &Effect) -> Result<()> 
             }
         }
         Effect::ForEach { for_each, body } => {
+            if for_each.collection.len() > MAX_FOREACH_ITEMS {
+                return Err(crate::error::BaizeError::Overflow(format!(
+                    "for_each collection size {} exceeds maximum {}",
+                    for_each.collection.len(),
+                    MAX_FOREACH_ITEMS
+                )));
+            }
             let items: Vec<String> = if let Some(ref filter_expr) = for_each.filter {
                 let player = session.current_player().unwrap_or("").to_string();
                 for_each
                     .collection
                     .iter()
                     .filter(|item| {
-                        // Evaluate filter with $var bound to item
                         let expr = filter_expr.replace(&format!("${}", for_each.var_name), item);
                         crate::cel::try_eval_end_condition(session, &expr, &player)
                             == Some(true)
@@ -142,7 +157,8 @@ pub fn execute_effect(session: &mut GameSession, effect: &Effect) -> Result<()> 
             }
         }
         Effect::Repeat { repeat, body } => {
-            for _ in 0..*repeat {
+            let bounded = (*repeat).min(MAX_REPEAT);
+            for _ in 0..bounded {
                 execute_effect(session, body)?;
             }
         }
@@ -185,18 +201,33 @@ pub fn execute_effect(session: &mut GameSession, effect: &Effect) -> Result<()> 
             let _ = apply_action(session, &action);
         }
         Effect::AddCounter { add_counter } => {
+            if add_counter.value.abs() > MAX_COUNTER_VALUE {
+                return Err(crate::error::BaizeError::Overflow(format!(
+                    "counter value {} exceeds maximum {}",
+                    add_counter.value, MAX_COUNTER_VALUE
+                )));
+            }
             let current = session
                 .runtime
                 .counters
                 .get(&add_counter.counter)
                 .copied()
                 .unwrap_or(0);
+            let new_value = current.checked_add(add_counter.value).ok_or_else(|| {
+                crate::error::BaizeError::Overflow("counter addition overflow".into())
+            })?;
             session
                 .runtime
                 .counters
-                .insert(add_counter.counter.clone(), current + add_counter.value);
+                .insert(add_counter.counter.clone(), new_value);
         }
         Effect::SetCounter { set_counter } => {
+            if set_counter.value.abs() > MAX_COUNTER_VALUE {
+                return Err(crate::error::BaizeError::Overflow(format!(
+                    "counter value {} exceeds maximum {}",
+                    set_counter.value, MAX_COUNTER_VALUE
+                )));
+            }
             session
                 .runtime
                 .counters

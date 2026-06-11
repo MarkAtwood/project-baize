@@ -3,6 +3,13 @@ use std::sync::Arc;
 use cel_interpreter::{Context, Program, Value};
 use crate::runtime::{GameSession, RuntimeZone};
 
+/// Maximum CEL expression length (bytes). Prevents ReDoS-style attacks
+/// on the CEL compiler.
+const MAX_CEL_LENGTH: usize = 4096;
+
+/// Maximum grid cells before skipping CEL grid context population.
+const MAX_CEL_GRID_CELLS: usize = 10_000;
+
 /// Try to evaluate a condition string as a CEL expression for end-condition checking.
 ///
 /// Returns `Some(result)` if the string is valid CEL and evaluates successfully.
@@ -13,6 +20,9 @@ pub fn try_eval_end_condition(
     condition: &str,
     current_player: &str,
 ) -> Option<bool> {
+    if condition.len() > MAX_CEL_LENGTH {
+        return None;
+    }
     let program = Program::compile(condition).ok()?;
     let ctx = build_end_condition_context(session, current_player);
     match program.execute(&ctx) {
@@ -31,6 +41,9 @@ pub fn try_eval_move_condition(
     is_enemy: bool,
     condition: &str,
 ) -> Option<bool> {
+    if condition.len() > MAX_CEL_LENGTH {
+        return None;
+    }
     let program = Program::compile(condition).ok()?;
     let mut ctx = Context::default();
     ctx.add_variable_from_value("empty", is_empty);
@@ -89,6 +102,18 @@ fn populate_grid_lines(ctx: &mut Context<'_>, session: &GameSession) {
         {
             let w = *width as usize;
             let h = *height as usize;
+
+            // Skip CEL grid context for very large grids to prevent memory exhaustion
+            if w * h > MAX_CEL_GRID_CELLS {
+                ctx.add_variable_from_value("board_width", *width as i64);
+                ctx.add_variable_from_value("board_height", *height as i64);
+                ctx.add_variable_from_value("cell_count", (w * h) as i64);
+                ctx.add_variable_from_value(
+                    "occupied_count",
+                    cells.iter().filter(|c| c.is_some()).count() as i64,
+                );
+                break;
+            }
 
             ctx.add_variable_from_value("board_width", *width as i64);
             ctx.add_variable_from_value("board_height", *height as i64);
