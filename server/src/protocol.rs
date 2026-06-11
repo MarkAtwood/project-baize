@@ -1,6 +1,9 @@
+use std::collections::HashMap;
+
 use baize_engine::action::{ClientMessage, RandomRequest, RandomType, ServerMessage};
 use baize_engine::state::GameStatus;
 use baize_engine::transition::apply_action;
+use baize_engine::visibility::filter_for_viewer;
 
 use crate::config;
 use crate::room::Room;
@@ -19,12 +22,17 @@ fn error_response(game_id: &str, code: &str, detail: &str) -> String {
 
 /// Outcome of handling a client message.
 pub enum HandleResult {
-    /// Broadcast these server messages to all players.
+    /// Broadcast these server messages to all players (no state filtering).
     Broadcast(Vec<ServerMessage>),
     /// Send a reply only to the originating player (not broadcast).
     Reply(Vec<ServerMessage>),
     /// Send an error only to the originating player.
     Error(String),
+    /// Send per-player filtered state after a move. Each player receives
+    /// a MoveConfirmed with their own visibility-filtered result_state.
+    FilteredBroadcast {
+        per_player: HashMap<String, ServerMessage>,
+    },
 }
 
 /// Handle an incoming client message (JSON text) and return server responses.
@@ -388,14 +396,24 @@ fn handle_submit_move(
         Ok(_events) => {
             let wire_state = room.session.to_wire_state();
             let sequence = wire_state.sequence;
-            let result_state = serde_json::to_value(&wire_state).ok();
+            let definition = &room.session.definition;
 
-            HandleResult::Broadcast(vec![ServerMessage::MoveConfirmed {
-                game_id,
-                sequence,
-                action,
-                result_state,
-            }])
+            let mut per_player = HashMap::new();
+            for seat_name in room.players.keys() {
+                let filtered = filter_for_viewer(&wire_state, seat_name, definition);
+                let result_state = serde_json::to_value(&filtered).ok();
+                per_player.insert(
+                    seat_name.clone(),
+                    ServerMessage::MoveConfirmed {
+                        game_id: game_id.clone(),
+                        sequence,
+                        action: action.clone(),
+                        result_state,
+                    },
+                );
+            }
+
+            HandleResult::FilteredBroadcast { per_player }
         }
         Err(e) => HandleResult::Reply(vec![ServerMessage::MoveRejected {
             game_id,
@@ -464,7 +482,7 @@ fn handle_request_random(
 /// send a state_sync with the full authoritative state.
 fn handle_acknowledge_state(
     room: &mut Room,
-    _seat: &str,
+    seat: &str,
     _player: &str,
     client_hash: &str,
 ) -> Vec<ServerMessage> {
@@ -475,13 +493,14 @@ fn handle_acknowledge_state(
         // Hashes match -- no response needed
         Vec::new()
     } else {
-        // Desync detected -- send full state
+        // Desync detected -- send filtered state for this player
         eprintln!(
             "state desync in room {game_id}: client={client_hash}, server={server_hash}"
         );
         let wire_state = room.session.to_wire_state();
         let sequence = wire_state.sequence;
-        let full_state = serde_json::to_value(&wire_state).unwrap_or_default();
+        let filtered = filter_for_viewer(&wire_state, seat, &room.session.definition);
+        let full_state = serde_json::to_value(&filtered).unwrap_or_default();
 
         vec![ServerMessage::StateSync {
             game_id,

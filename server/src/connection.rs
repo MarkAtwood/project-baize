@@ -8,6 +8,8 @@ use axum::extract::{ConnectInfo, Path, State, WebSocketUpgrade};
 use axum::response::IntoResponse;
 use tokio::sync::Mutex;
 
+use baize_engine::visibility::filter_for_viewer;
+
 use crate::config;
 use crate::protocol::{self, HandleResult};
 use crate::room::{self, Room, RoomRegistry};
@@ -168,13 +170,18 @@ async fn handle_socket(
         let rx = room::join_room(&mut room_guard, seat.clone());
         eprintln!("player '{seat}' joined room '{room_id}'");
 
-        // Send initial state sync
+        // Send initial state sync (filtered for this player)
         let state = room_guard.session.to_wire_state();
+        let filtered = filter_for_viewer(
+            &state,
+            &seat,
+            &room_guard.session.definition,
+        );
         let sync_msg = serde_json::json!({
             "message_type": "state_sync",
             "game_id": room_guard.id,
             "sequence": state.sequence,
-            "full_state": serde_json::to_value(&state).unwrap_or_default(),
+            "full_state": serde_json::to_value(&filtered).unwrap_or_default(),
         });
         room::send_to_player(&room_guard, &seat, &sync_msg.to_string());
 
@@ -249,6 +256,17 @@ async fn handle_socket(
                                     let json =
                                         serde_json::to_string(&response).unwrap_or_default();
                                     room::broadcast(&room_guard, &json);
+                                }
+                            }
+                            HandleResult::FilteredBroadcast { per_player } => {
+                                for (target_seat, msg) in per_player {
+                                    let json =
+                                        serde_json::to_string(&msg).unwrap_or_default();
+                                    room::send_to_player(
+                                        &room_guard,
+                                        &target_seat,
+                                        &json,
+                                    );
                                 }
                             }
                             HandleResult::Reply(responses) => {

@@ -6,9 +6,10 @@
 //!
 //! Run: cargo test --test visibility  (from the engine/ directory)
 
-use baize_engine::definition::{GameDefinition, Visibility, VisibilityTier};
+use baize_engine::definition::GameDefinition;
 use baize_engine::runtime::*;
 use baize_engine::state::*;
+use baize_engine::visibility::filter_for_viewer;
 use indexmap::IndexMap;
 use serde_json::Value;
 use std::collections::HashSet;
@@ -82,139 +83,6 @@ fn build_session(vectors: &Value) -> GameSession {
     }
 
     session
-}
-
-// ---------------------------------------------------------------------------
-// Visibility filtering (the logic under test)
-// ---------------------------------------------------------------------------
-
-/// Produce a filtered player view of the wire state.
-///
-/// This implements the visibility contract:
-/// - public zones: all components included
-/// - hidden zones: components stripped, only count retained
-/// - private zones: owner sees contents, others see only count
-/// - server ("__server__") sees everything
-fn filter_for_viewer(
-    full_state: &GameState,
-    viewer: &str,
-    definition: &GameDefinition,
-) -> GameState {
-    if viewer == "__server__" {
-        return full_state.clone();
-    }
-
-    let mut filtered = full_state.clone();
-
-    // Filter shared zones
-    for (zone_name, zone_state) in &full_state.zones {
-        let zone_def = definition.zones.get(zone_name);
-        let vis = zone_def.map(|z| &z.visibility);
-
-        match vis {
-            Some(Visibility::Tier(VisibilityTier::Public)) => {
-                // Keep as-is
-            }
-            Some(Visibility::Tier(VisibilityTier::Hidden)) => {
-                // Replace contents with empty + count
-                let count = zone_component_count(zone_state);
-                filtered
-                    .zones
-                    .insert(zone_name.clone(), redacted_zone(zone_state, count));
-            }
-            Some(Visibility::Private { .. }) => {
-                // Shared zone marked private (unusual but possible): treat as hidden for non-owner
-                let count = zone_component_count(zone_state);
-                filtered
-                    .zones
-                    .insert(zone_name.clone(), redacted_zone(zone_state, count));
-            }
-            None => {
-                // No definition found — keep as-is (shouldn't happen)
-            }
-        }
-    }
-
-    // Filter per-player zones
-    for (player_name, player_state) in &full_state.players {
-        let filtered_player = filtered.players.get_mut(player_name).unwrap();
-
-        for (zone_name, zone_state) in &player_state.zones {
-            let zone_def = definition.zones.get(zone_name);
-            let vis = zone_def.map(|z| &z.visibility);
-
-            match vis {
-                Some(Visibility::Tier(VisibilityTier::Public)) => {
-                    // Keep as-is
-                }
-                Some(Visibility::Tier(VisibilityTier::Hidden)) => {
-                    let count = zone_component_count(zone_state);
-                    filtered_player
-                        .zones
-                        .insert(zone_name.clone(), redacted_zone(zone_state, count));
-                }
-                Some(Visibility::Private { private }) => {
-                    let is_owner = private == "owner" && player_name == viewer;
-                    if is_owner {
-                        // Owner sees their own private zone contents
-                    } else {
-                        // Non-owner: redact contents, keep count
-                        let count = zone_component_count(zone_state);
-                        filtered_player
-                            .zones
-                            .insert(zone_name.clone(), redacted_zone(zone_state, count));
-                    }
-                }
-                None => {}
-            }
-        }
-    }
-
-    filtered
-}
-
-/// Count the number of components in a wire zone state.
-fn zone_component_count(zone: &ZoneState) -> u32 {
-    match zone {
-        ZoneState::Grid { cells } => cells.len() as u32,
-        ZoneState::OrderedStack { components, .. } => components.len() as u32,
-        ZoneState::Set { components, .. } => components.len() as u32,
-        ZoneState::SingleSlot { component } => {
-            if component.is_some() {
-                1
-            } else {
-                0
-            }
-        }
-        ZoneState::Counter { .. } => 0,
-        ZoneState::Track { positions } => {
-            positions.values().map(|v| v.len() as u32).sum()
-        }
-    }
-}
-
-/// Return a redacted zone: same type, empty components, but count preserved.
-fn redacted_zone(zone: &ZoneState, count: u32) -> ZoneState {
-    match zone {
-        ZoneState::OrderedStack { .. } => ZoneState::OrderedStack {
-            components: Vec::new(),
-            count: Some(count),
-        },
-        ZoneState::Set { .. } => ZoneState::Set {
-            components: Vec::new(),
-            count: Some(count),
-        },
-        ZoneState::Grid { .. } => ZoneState::Grid {
-            cells: IndexMap::new(),
-        },
-        ZoneState::SingleSlot { .. } => ZoneState::SingleSlot { component: None },
-        ZoneState::Counter { value } => ZoneState::Counter {
-            value: value.clone(),
-        },
-        ZoneState::Track { .. } => ZoneState::Track {
-            positions: IndexMap::new(),
-        },
-    }
 }
 
 /// Collect all component IDs from a wire zone state.
