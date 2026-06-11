@@ -85,9 +85,20 @@ predicates: scoring (Carcassonne fields), chain reactions (Othello flips),
 custom validation (checkmate). Same WASM binary runs on client and server.
 Deterministic, sandboxed, no I/O.
 
-**Tier 3 — Server Authority** (irreducible minimum). Hidden state (deck
-order), cryptographic randomness (ChaCha20Rng), move sequencing, conflict
+**Tier 3 — Trust Services** (irreducible minimum — but the provider is
+replaceable). Hidden state, randomness, move sequencing, conflict
 resolution. For perfect-information games the server is just a notary.
+
+For imperfect-information games, the default is a trusted server. But
+the authority declaration is a transport-independent interface — it
+describes *what trust is needed*, not *who provides it*. Every
+`server_only` operation has a known cryptographic replacement:
+commit-reveal for dice rolls (2 rounds), mental poker for card shuffling
+(SRA 1979, Barnett & Smart 2003), commit-reveal for simultaneous moves.
+The schema doesn't change between a trusted server and a peer-to-peer
+cryptographic protocol. Commit-reveal for randomness ships in the
+earliest releases to hold the protocol space open in every client
+implementation, even before full mental poker support.
 
 ## Status
 
