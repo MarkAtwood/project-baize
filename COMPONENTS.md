@@ -2,7 +2,9 @@
 
 The component registry defines reusable, well-known game pieces that any
 game can reference by identifier. Clients cache these once and render any
-game that uses them.
+game that uses them. Implemented registry entries are JSON files in
+`registry/` validated against `schema/component-registry.schema.json`.
+The examples below use YAML pseudocode for readability.
 
 ## Design Principle: Primitives, Not Products
 

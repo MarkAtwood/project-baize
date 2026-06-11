@@ -249,7 +249,7 @@ round-trip, and how does the schema communicate this split?
 | Screentop.gg | No | Client/Server | No | Yes | No | Yes | No |
 | The Game Crafter | No | No | No | Yes (2967) | No | Mfg only | No |
 | Tabletopia | No | Client/Server | No | Yes | No | Yes | No |
-| **Ours** | **Yes** | **Yes** | **Yes** | **Yes** | **Yes** | **Goal** | **Yes** |
+| **Baize** | **Yes** | **Yes** | **Yes** | **Yes** | **Yes** | **Goal** | **Yes** |
 
 ## What We Steal
 

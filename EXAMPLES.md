@@ -2,7 +2,9 @@
 
 These examples show the declarative schema applied to real games of
 increasing complexity. Each demonstrates different aspects of the
-language.
+language. Examples use YAML pseudocode for readability; actual game
+definitions are JSON files in `games/` validated against
+`schema/game-definition.schema.json`.
 
 ## Chess (perfect information, movement-heavy)
 
