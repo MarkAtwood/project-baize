@@ -124,6 +124,42 @@ def execute_effect(session: GameSession, effect: dict[str, Any]) -> None:
             )
         session.runtime.counters[spec["counter"]] = value
 
+    elif "cycle" in effect:
+        positions = effect["cycle"]
+        if len(positions) < 2:
+            return
+        if len(positions) > 1000:
+            raise ValueError(
+                f"cycle length {len(positions)} exceeds maximum 1000"
+            )
+        # Parse and validate all positions
+        parsed: list[tuple[str, int, int]] = []
+        for cp in positions:
+            zone_name = cp["zone"]
+            if zone_name not in session.runtime.zones:
+                raise ValueError(f"unknown zone: {zone_name}")
+            col, row = _parse_cycle_pos(cp["pos"])
+            parsed.append((zone_name, col, row))
+        # Read current occupants
+        saved = [
+            session.runtime.zones[z].grid_get(c, r)
+            for z, c, r in parsed
+        ]
+        # Write shifted: pos[i] receives what was at pos[i-1]
+        n = len(parsed)
+        for i in range(n):
+            src_idx = n - 1 if i == 0 else i - 1
+            zone_name, col, row = parsed[i]
+            session.runtime.zones[zone_name].grid_set(col, row, saved[src_idx])
+
+
+def _parse_cycle_pos(pos: str) -> tuple[int, int]:
+    """Parse a 'col,row' position string."""
+    parts = pos.split(",")
+    if len(parts) != 2:
+        raise ValueError(f"invalid cycle position format: {pos}")
+    return int(parts[0].strip()), int(parts[1].strip())
+
 
 def _build_variables(session: GameSession, player: str) -> dict[str, Any]:
     """Build CEL variables for condition evaluation within perturbers."""
