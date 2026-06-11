@@ -113,6 +113,24 @@ def _populate_grid_lines(
         variables["occupied_count"] = sum(
             1 for c in zone.cells if c is not None
         )
+
+        # Component-type-based rows/cols (for placement constraints)
+        def type_at(col: int, row: int) -> str:
+            cid = zone.grid_get(col, row)
+            if cid is None:
+                return ""
+            comp = session.runtime.components.get(cid)
+            if comp is None:
+                return ""
+            return comp.component_type
+
+        variables["type_rows"] = [
+            [type_at(c, r) for c in range(w)] for r in range(h)
+        ]
+        variables["type_cols"] = [
+            [type_at(c, r) for r in range(h)] for c in range(w)
+        ]
+
         break  # Use the first grid zone
 
 

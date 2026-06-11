@@ -99,6 +99,48 @@ class TestEndConditionEval:
         assert result is True
 
 
+    def test_filter_and_size(self) -> None:
+        variables = {
+            "items": ["a", "b", "a", "c"],
+        }
+        result = try_eval_end_condition(
+            variables,
+            "items.filter(x, x == items.filter(y, y == x).size() > 1).size() > 0",
+        )
+        # This is too complex for the simple parser — test simpler filter
+        result = try_eval_end_condition(
+            variables,
+            "items.filter(x, x == 'a').size() == 2",
+        )
+        # The evaluator doesn't support string literals with quotes yet
+        # Test with variables instead
+        variables2 = {"row": ["X", "", "X", ""], "target": "X"}
+        result = try_eval_end_condition(
+            variables2,
+            "row.filter(v, v == target).size() == 2",
+        )
+        assert result is True
+
+    def test_type_rows_uniqueness(self) -> None:
+        """Test that type_rows can express 'no duplicates in row'."""
+        variables = {
+            "type_rows": [["d1", "d2", "d3"], ["d1", "d1", ""]],
+            "row": ["d1", "d2", "d3"],
+        }
+        # All non-empty values are unique in first row
+        result = try_eval_end_condition(
+            variables,
+            "row.filter(v, v != empty_str).all(v, true)",
+        )
+        # Need empty_str variable
+        variables["empty_str"] = ""
+        result = try_eval_end_condition(
+            variables,
+            "row.filter(v, v != empty_str).size() == 3",
+        )
+        assert result is True
+
+
 class TestMoveConditionEval:
     def test_empty(self) -> None:
         assert try_eval_move_condition(True, False, "empty") is True

@@ -74,8 +74,9 @@ def _eval_expression(expr: str, variables: dict[str, Any]) -> bool | None:
 _TOKEN_RE = re.compile(
     r"""
     \s*(?:
-        (&&|\|\||[!(){},\.])     # operators/punctuation (includes dot)
-        | (>=|<=|!=|==|>|<)      # comparisons
+        (&&|\|\|)                # multi-char boolean operators (before single-char)
+        | (>=|<=|!=|==|>|<)      # comparisons (before single-char ! and =)
+        | ([!(){},\.])           # single-char operators/punctuation
         | (-?\d+)                # integer literal
         | (true|false)           # boolean literal
         | ([a-zA-Z_]\w*)         # identifier
@@ -98,11 +99,13 @@ def _tokenize(expr: str) -> list[tuple[str, str]]:
         elif m.group(2):
             tokens.append(("CMP", m.group(2)))
         elif m.group(3):
-            tokens.append(("INT", m.group(3)))
+            tokens.append(("OP", m.group(3)))
         elif m.group(4):
-            tokens.append(("BOOL", m.group(4)))
+            tokens.append(("INT", m.group(4)))
         elif m.group(5):
-            tokens.append(("IDENT", m.group(5)))
+            tokens.append(("BOOL", m.group(5)))
+        elif m.group(6):
+            tokens.append(("IDENT", m.group(6)))
         pos = m.end()
     return tokens
 
@@ -219,7 +222,7 @@ def _parse_postfix(
         method = tokens[pos + 1][1]
         pos += 2  # skip dot and method name
 
-        if method in ("exists", "all") and isinstance(value, list):
+        if method in ("exists", "all", "filter") and isinstance(value, list):
             # Expect: (var_name, predicate_expr...)
             if pos >= len(tokens) or tokens[pos] != ("OP", "("):
                 raise ValueError(f"expected ( after .{method}")
@@ -249,18 +252,31 @@ def _parse_postfix(
             pred_tokens = tokens[pred_start:pos]
             pos += 1  # skip closing )
 
-            # Evaluate predicate for each list element
-            results = []
-            for item in value:
-                inner_vars = dict(variables)
-                inner_vars[bind_var] = item
-                pred_result, _ = _parse_or(pred_tokens, 0, inner_vars)
-                results.append(bool(pred_result))
+            if method == "filter":
+                filtered = []
+                for item in value:
+                    inner_vars = dict(variables)
+                    inner_vars[bind_var] = item
+                    pred_result, _ = _parse_or(pred_tokens, 0, inner_vars)
+                    if bool(pred_result):
+                        filtered.append(item)
+                value = filtered
+            else:
+                results = []
+                for item in value:
+                    inner_vars = dict(variables)
+                    inner_vars[bind_var] = item
+                    pred_result, _ = _parse_or(pred_tokens, 0, inner_vars)
+                    results.append(bool(pred_result))
+                value = any(results) if method == "exists" else all(results)
 
-            if method == "exists":
-                value = any(results)
-            else:  # all
-                value = all(results)
+        elif method == "size" and isinstance(value, (list, str)):
+            # .size() — no args needed
+            if pos < len(tokens) and tokens[pos] == ("OP", "("):
+                pos += 1  # skip (
+                if pos < len(tokens) and tokens[pos] == ("OP", ")"):
+                    pos += 1  # skip )
+            value = len(value)
         else:
             raise ValueError(f"unsupported method: .{method}")
 
