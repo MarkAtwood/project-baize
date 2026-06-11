@@ -86,7 +86,7 @@ The WASM module receives game state as input and returns:
 - Next state given a move
 - Game-over conditions
 
-### Tier 3: Server Authority (irreducible minimum)
+### Tier 3: Server Authority (irreducible minimum — or is it?)
 
 Only what cannot be computed locally:
 
@@ -99,6 +99,12 @@ For perfect-information games (chess, Go, checkers), Tier 3 is just a
 sequencer — a message bus that stamps move order. For imperfect-information
 games (poker, Battleship), Tier 3 holds the hidden state and reveals it
 according to the schema's visibility rules.
+
+But none of these operations *inherently* require a trusted third party.
+Every `server_only` operation has a known cryptographic protocol that
+replaces the server with peer-to-peer computation (see "Serverless Play"
+below). The authority declaration is designed as a transport-independent
+interface: the schema says *what* needs to happen, not *who* does it.
 
 ## Authority Declaration
 
@@ -637,6 +643,102 @@ The server enforces defense-in-depth:
   preventing information leaks in imperfect-information games
 - **Turn enforcement**: RequestRandom requires it to be the requesting player's turn
 
+## Serverless Play: Cryptographic Protocols
+
+The server's secret-keeping role is architecturally replaceable. The
+authority declaration identifies exactly which operations require trust;
+cryptographic protocols can provide that trust without a central server.
+
+### Every server_only operation has a crypto replacement
+
+| Server operation | Cryptographic protocol | Latency cost |
+|-----------------|----------------------|-------------|
+| `shuffle(deck)` | Mental poker — commutative encryption shuffle (SRA 1979, Barnett & Smart 2003) | O(n²) rounds for n cards |
+| `deal(card)` | Threshold decryption — all parties must cooperate to reveal | 1 round per card |
+| `roll(dice)` | Commit-reveal — each party commits `hash(nonce)`, reveal, XOR for result | 2 rounds |
+| `reveal(card)` | Owner removes their encryption layer | 1 round |
+| `resolve_simultaneous()` | Commit-reveal — commit `hash(action)`, then reveal | 2 rounds |
+| Move sequencing | Consensus protocol or designated-verifier ordering | Varies |
+
+For perfect-information games, the server is already just a sequencer
+and can be replaced by any message ordering mechanism (turn-based
+WebRTC, blockchain, or even email).
+
+For imperfect-information games (poker, Battleship), the full mental
+poker protocol replaces the server as card dealer. The 1979 SRA protocol
+uses commutative encryption: each player encrypts every card with their
+own key, they shuffle in encrypted form, and a card is revealed only
+when all players agree to decrypt their layer. Modern variants (Barnett
+& Smart 2003, Geometry of Shuffling) reduce this to efficient elliptic
+curve operations.
+
+### How the schema supports this
+
+The schema is already transport-independent. The authority declaration
+is the interface:
+
+1. A **trusted server** transport reads `server_only` and implements
+   those operations centrally. Fastest, simplest, current default.
+
+2. A **commit-reveal** transport implements `roll(dice)` and
+   `resolve_simultaneous()` as peer-to-peer commit-reveal. Covers
+   randomness and simultaneous moves with minimal overhead (2 extra
+   rounds). This is the practical near-term extension.
+
+3. A **mental poker** transport implements `shuffle`, `deal`, and
+   `reveal` using commutative encryption. Covers all card games
+   without any trusted party. Higher latency but provably fair.
+
+The game definition does not change between transports. A poker game
+that declares `server_only: [shuffle(deck), deal(deck, hand)]` works
+identically whether those operations are performed by a trusted server
+or by a mental poker protocol between peers. The schema describes the
+*trust requirements*; the transport binding satisfies them.
+
+### Commit-reveal for randomness
+
+The simplest and most immediately useful crypto extension. For any
+`server_only` operation that generates randomness:
+
+```
+1. Server commits: broadcasts hash(random_value || nonce)
+2. Players acknowledge the commitment
+3. Server reveals: broadcasts random_value and nonce
+4. Clients verify: hash(random_value || nonce) == commitment
+```
+
+This prevents the server from choosing random values after seeing player
+actions. It's a one-way upgrade: existing clients that ignore commitments
+still work; clients that verify commitments get stronger guarantees.
+
+**Commit-reveal for randomness ships in the earliest releases.** This is
+a deliberate architectural forcing function: every client implementation
+must have the protocol space for serverless cryptography from day one,
+even before full mental poker support. Adding commit-reveal later would
+require breaking protocol changes in every client. Adding mental poker
+later, on top of an existing commit-reveal flow, is a compatible
+extension.
+
+For full serverless randomness (no trusted server at all), each player
+contributes a committed nonce and the final random value is XOR of all
+nonces — no single party controls the outcome.
+
+### What this means for the architecture
+
+The three tiers are not about *who* performs computation. They're about
+*what kind* of computation is needed:
+
+- **Tier 1**: Deterministic, visible-state predicates and effects
+- **Tier 2**: Deterministic, complex computation (WASM)
+- **Tier 3**: Operations requiring *trust* — which can be provided by a
+  server, by cryptographic protocols, or by a combination
+
+The authority declaration is the interface between game logic and trust
+provision. This is what makes it the key novel contribution: it doesn't
+just tell clients what to validate locally. It tells *any trust provider*
+— server, peer-to-peer protocol, blockchain, or future mechanism —
+exactly what trust services the game requires.
+
 ## Decided Questions
 
 1. ~~**Syntax**~~ — **JSON.** Zero-dependency parsing in all three
@@ -672,7 +774,15 @@ The server enforces defense-in-depth:
    with a fuel budget. No `while`, no recursion. WASM tier is now only
    needed for computed scoring and search-dependent predicates.
 
-8. ~~**Time controls**~~ — **Split responsibility.** Schema declares
+8. ~~**Randomness commitment**~~ — **Commit-reveal, transport-level.**
+   The server commits `hash(value || nonce)` before players act, then
+   reveals. Verification is optional for clients (backwards compatible).
+   For serverless play, all parties contribute committed nonces; final
+   value is XOR. The schema declares what randomness is needed
+   (`server_only: roll, shuffle`); the transport binding decides whether
+   a trusted server or commit-reveal protocol provides it.
+
+9. ~~**Time controls**~~ — **Split responsibility.** Schema declares
    `time_control` type and `timeout_result` (loss/draw/none — the game
    rule). Server overrides `seconds` and `increment` at room creation.
    Server owns clock state and enforcement. Client displays
@@ -708,16 +818,12 @@ the same inputs.
 
 ## Open Questions
 
-1. **Randomness commitment**: For competitive play, the server should commit
-   to random values before they're needed (commit-reveal). How does the
-   schema express this?
-
-2. **Rating/matchmaking**: Out of scope, but the schema's complexity
+1. **Rating/matchmaking**: Out of scope, but the schema's complexity
    metadata (branching factor, average game length, hidden information
    ratio) could feed rating systems. TAG already computes these metrics.
    The Python `analysis` module already computes branching factor,
    complexity profiles, and hidden information ratio.
 
-3. **Mod support**: Can a WASM module extend the declarative schema (add new
+2. **Mod support**: Can a WASM module extend the declarative schema (add new
    movement primitives, new component types)? Or is the schema fixed and
    WASM is only for validation logic?
