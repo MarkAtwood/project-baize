@@ -22,6 +22,11 @@ export type ConnectionStatus = "disconnected" | "connecting" | "connected";
 export type ServerMessageHandler = (message: ServerMessage) => void;
 export type StatusChangeHandler = (status: ConnectionStatus) => void;
 
+/** Protocol version — must match server's PROTOCOL_VERSION. */
+export const PROTOCOL_VERSION = 1;
+
+export type ClientTypeValue = "browser" | "mobile" | "desktop" | "bot" | "test";
+
 export interface ConnectionOptions {
   /** Maximum reconnect attempts before giving up (0 = unlimited). */
   readonly maxReconnectAttempts?: number;
@@ -33,6 +38,8 @@ export interface ConnectionOptions {
   readonly connectTimeout?: number;
   /** Maximum incoming message size in bytes (default 1MB). */
   readonly maxMessageSize?: number;
+  /** Client type to declare in handshake (default "browser"). */
+  readonly clientType?: ClientTypeValue;
 }
 
 const DEFAULT_OPTIONS: Required<ConnectionOptions> = {
@@ -41,6 +48,7 @@ const DEFAULT_OPTIONS: Required<ConnectionOptions> = {
   reconnectMaxDelay: 30000,
   connectTimeout: 10_000,
   maxMessageSize: 1_048_576, // 1 MB
+  clientType: "browser",
 };
 
 /** Allowed WebSocket URL protocols. */
@@ -147,6 +155,12 @@ export class BaizeConnection {
     this.ws.onopen = () => {
       this.clearConnectTimer();
       this.reconnectAttempts = 0;
+      // Send hello handshake before anything else
+      this.ws?.send(JSON.stringify({
+        message_type: "hello",
+        protocol_version: PROTOCOL_VERSION,
+        client_type: this.options.clientType,
+      }));
       this.setStatus("connected");
     };
 

@@ -1,5 +1,43 @@
 use serde::{Deserialize, Serialize};
 
+// --- Handshake ---
+
+/// Protocol version. Increment on breaking changes.
+pub const PROTOCOL_VERSION: u32 = 1;
+
+/// First message a client must send after WebSocket connect.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct Hello {
+    pub protocol_version: u32,
+    #[serde(default = "default_client_type")]
+    pub client_type: ClientType,
+    #[serde(default)]
+    pub capabilities: Vec<String>,
+}
+
+fn default_client_type() -> ClientType {
+    ClientType::Browser
+}
+
+/// Server response to a valid Hello.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct Welcome {
+    pub protocol_version: u32,
+    pub server_version: String,
+    pub seat: String,
+    pub game_id: String,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum ClientType {
+    Browser,
+    Mobile,
+    Desktop,
+    Bot,
+    Test,
+}
+
 // --- Client messages ---
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

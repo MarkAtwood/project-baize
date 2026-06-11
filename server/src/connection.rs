@@ -9,6 +9,7 @@ use axum::response::IntoResponse;
 use rand::Rng;
 use tokio::sync::Mutex;
 
+use baize_engine::action::{Hello, PROTOCOL_VERSION};
 use baize_engine::visibility::filter_for_viewer;
 
 use crate::config;
@@ -151,11 +152,60 @@ async fn handle_socket(
     let mut rate_limiter = RateLimiter::new(config::MAX_MESSAGES_PER_SECOND);
     let mut expected_seq: u64 = 0;
 
-    // Assign a seat and get the outbound receiver
+    // --- Handshake: wait for Hello ---
+    let hello = match tokio::time::timeout(Duration::from_secs(5), socket.recv()).await {
+        Ok(Some(Ok(Message::Text(text)))) => {
+            match serde_json::from_str::<serde_json::Value>(&text) {
+                Ok(v) if v.get("message_type").and_then(|t| t.as_str()) == Some("hello") => {
+                    match serde_json::from_value::<Hello>(v) {
+                        Ok(h) => h,
+                        Err(e) => {
+                            let err = ws_error_json("invalid_hello", &format!("bad hello: {e}"));
+                            let _ = socket.send(Message::Text(err.into())).await;
+                            return;
+                        }
+                    }
+                }
+                _ => {
+                    let err = ws_error_json(
+                        "handshake_required",
+                        "first message must be {\"message_type\": \"hello\", \"protocol_version\": 1}",
+                    );
+                    let _ = socket.send(Message::Text(err.into())).await;
+                    return;
+                }
+            }
+        }
+        Ok(Some(Ok(Message::Close(_)))) | Ok(None) => return,
+        Ok(Some(Err(e))) => {
+            eprintln!("websocket error during handshake in room '{room_id}': {e}");
+            return;
+        }
+        Err(_) => {
+            let err = ws_error_json("handshake_timeout", "hello not received within 5 seconds");
+            let _ = socket.send(Message::Text(err.into())).await;
+            return;
+        }
+        _ => return,
+    };
+
+    // Validate protocol version
+    if hello.protocol_version != PROTOCOL_VERSION {
+        let err = ws_error_json(
+            "version_mismatch",
+            &format!(
+                "server speaks protocol v{PROTOCOL_VERSION}, client sent v{}",
+                hello.protocol_version
+            ),
+        );
+        let _ = socket.send(Message::Text(err.into())).await;
+        return;
+    }
+
+    // --- Seat assignment ---
     let join_result = {
         let mut room_guard = room.lock().await;
 
-        // Check room capacity
         if !room::room_has_capacity(&room_guard) {
             eprintln!(
                 "[security] room '{room_id}' is full ({max} players)",
@@ -168,7 +218,20 @@ async fn handle_socket(
 
         let seat = pick_seat(&room_guard);
         let rx = room::join_room(&mut room_guard, seat.clone());
-        eprintln!("player '{seat}' joined room '{room_id}'");
+        eprintln!(
+            "player '{seat}' ({:?}) joined room '{room_id}' [proto v{}]",
+            hello.client_type, hello.protocol_version
+        );
+
+        // Send Welcome
+        let welcome = serde_json::json!({
+            "message_type": "welcome",
+            "protocol_version": PROTOCOL_VERSION,
+            "server_version": env!("CARGO_PKG_VERSION"),
+            "seat": seat,
+            "game_id": room_guard.id,
+        });
+        room::send_to_player(&room_guard, &seat, &welcome.to_string());
 
         // Send initial state sync (filtered for this player)
         let state = room_guard.session.to_wire_state();

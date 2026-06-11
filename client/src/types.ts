@@ -359,6 +359,7 @@ export interface ClientMessage {
 }
 
 export type ServerMessageType =
+  | "welcome"
   | "move_confirmed"
   | "move_rejected"
   | "random_result"
