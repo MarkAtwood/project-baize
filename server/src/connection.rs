@@ -4,8 +4,9 @@ use std::sync::Arc;
 use std::time::{Duration, Instant};
 
 use axum::extract::ws::{Message, WebSocket};
-use axum::extract::{ConnectInfo, Path, State, WebSocketUpgrade};
+use axum::extract::{ConnectInfo, Json, Path, State, WebSocketUpgrade};
 use axum::response::IntoResponse;
+use rand::Rng;
 use tokio::sync::Mutex;
 
 use baize_engine::visibility::filter_for_viewer;
@@ -74,15 +75,14 @@ pub async fn ws_handler(
         }
     };
 
-    // Check room capacity and get/create the room
-    let room = match registry.get_or_create_room(&room_id).await {
-        Ok(r) => r,
-        Err(e) => {
-            eprintln!("[error] failed to get/create room '{room_id}': {e}");
+    // Look up existing room (rooms must be created via POST /rooms first)
+    let room = match registry.get_room(&room_id).await {
+        Some(r) => r,
+        None => {
             drop(ip_guard);
             return (
-                axum::http::StatusCode::SERVICE_UNAVAILABLE,
-                format!("room unavailable: {e}"),
+                axum::http::StatusCode::NOT_FOUND,
+                format!("room '{room_id}' does not exist — create it via POST /rooms first"),
             )
                 .into_response();
         }
@@ -304,6 +304,114 @@ async fn handle_socket(
         eprintln!("player '{seat}' left room '{room_id}'");
     }
     // _ip_guard drops here, releasing the per-IP connection slot
+}
+
+/// Request body for POST /rooms.
+#[derive(serde::Deserialize)]
+pub struct CreateRoomRequest {
+    /// Optional room ID. Auto-generated if not provided.
+    pub room_id: Option<String>,
+    /// Full game definition JSON.
+    pub definition: serde_json::Value,
+}
+
+/// Response body for POST /rooms.
+#[derive(serde::Serialize)]
+pub struct CreateRoomResponse {
+    pub room_id: String,
+    pub game_name: String,
+    pub max_players: usize,
+}
+
+/// Room summary for GET /rooms.
+#[derive(serde::Serialize)]
+pub struct RoomSummary {
+    pub room_id: String,
+    pub game_name: String,
+    pub players_connected: usize,
+    pub max_players: usize,
+}
+
+/// Generate a random room ID: 8 lowercase hex characters.
+fn generate_room_id() -> String {
+    let mut rng = rand::rng();
+    let val: u32 = rng.random();
+    format!("{val:08x}")
+}
+
+/// Axum handler: create a new room with a game definition.
+pub async fn create_room_handler(
+    State(registry): State<Arc<RoomRegistry>>,
+    Json(body): Json<CreateRoomRequest>,
+) -> impl IntoResponse {
+    let room_id = body.room_id.unwrap_or_else(generate_room_id);
+
+    if let Err(e) = validate_room_id(&room_id) {
+        return (
+            axum::http::StatusCode::BAD_REQUEST,
+            Json(serde_json::json!({ "error": format!("invalid room_id: {e}") })),
+        )
+            .into_response();
+    }
+
+    let definition_json = body.definition.to_string();
+
+    // Validate by parsing the definition through the engine
+    let definition = match baize_engine::GameDefinition::from_json(&definition_json) {
+        Ok(d) => d,
+        Err(e) => {
+            return (
+                axum::http::StatusCode::BAD_REQUEST,
+                Json(serde_json::json!({ "error": format!("invalid game definition: {e}") })),
+            )
+                .into_response();
+        }
+    };
+
+    let game_name = definition.game.name.clone();
+    let max_players = match &definition.game.players {
+        baize_engine::definition::Players::Named(names) => names.len(),
+        baize_engine::definition::Players::Range { max, .. } => *max as usize,
+    };
+
+    match registry.create_room(room_id.clone(), &definition_json).await {
+        Ok(_) => (
+            axum::http::StatusCode::CREATED,
+            Json(serde_json::json!(CreateRoomResponse {
+                room_id,
+                game_name,
+                max_players,
+            })),
+        )
+            .into_response(),
+        Err(e) => (
+            axum::http::StatusCode::SERVICE_UNAVAILABLE,
+            Json(serde_json::json!({ "error": e })),
+        )
+            .into_response(),
+    }
+}
+
+/// Axum handler: list active rooms.
+pub async fn list_rooms_handler(
+    State(registry): State<Arc<RoomRegistry>>,
+) -> impl IntoResponse {
+    let room_ids = registry.list_rooms().await;
+    let mut rooms = Vec::new();
+
+    for room_id in room_ids {
+        if let Some(room_arc) = registry.get_room(&room_id).await {
+            let room_guard = room_arc.lock().await;
+            rooms.push(RoomSummary {
+                room_id: room_id.clone(),
+                game_name: room_guard.session.definition.game.name.clone(),
+                players_connected: room_guard.players.len(),
+                max_players: room_guard.max_players,
+            });
+        }
+    }
+
+    Json(rooms)
 }
 
 /// Pick the next available seat for a connecting player.
