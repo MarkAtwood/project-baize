@@ -1,0 +1,56 @@
+{
+  "$schema": "https://baize.dev/schema/v1/component-registry.schema.json",
+  "id": "standard:tarot-78",
+  "name": "Tarot Deck (Tarot de Marseille / Rider-Waite structure)",
+  "component_type": "card_deck",
+  "composition": {
+    "major_arcana": {
+      "count": 22,
+      "suit": "major",
+      "ranks": [
+        "0:The Fool",
+        "I:The Magician",
+        "II:The High Priestess",
+        "III:The Empress",
+        "IV:The Emperor",
+        "V:The Hierophant",
+        "VI:The Lovers",
+        "VII:The Chariot",
+        "VIII:Strength",
+        "IX:The Hermit",
+        "X:Wheel of Fortune",
+        "XI:Justice",
+        "XII:The Hanged Man",
+        "XIII:Death",
+        "XIV:Temperance",
+        "XV:The Devil",
+        "XVI:The Tower",
+        "XVII:The Star",
+        "XVIII:The Moon",
+        "XIX:The Sun",
+        "XX:Judgement",
+        "XXI:The World"
+      ]
+    },
+    "minor_arcana": {
+      "count": 56,
+      "suits": ["wands", "cups", "swords", "pentacles"],
+      "suit_symbols": ["\ud83e\ude84", "\ud83c\udfc6", "\u2694", "\u2b1f"],
+      "suit_colors": {
+        "wands": "red",
+        "cups": "blue",
+        "swords": "yellow",
+        "pentacles": "green"
+      },
+      "ranks": ["A", "2", "3", "4", "5", "6", "7", "8", "9", "10", "Page", "Knight", "Queen", "King"]
+    }
+  },
+  "count": 78,
+  "facing": "face_up | face_down",
+  "physical_form": "tarot_card",
+  "physical": {
+    "size_mm": [70, 120],
+    "thickness_mm": 0.32,
+    "material": "cardstock"
+  }
+}

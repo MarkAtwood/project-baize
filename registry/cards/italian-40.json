@@ -1,0 +1,36 @@
+{
+  "$schema": "https://baize.dev/schema/v1/component-registry.schema.json",
+  "id": "standard:italian-40",
+  "name": "Italian Suited Cards",
+  "component_type": "card_deck",
+  "suits": ["coins", "cups", "swords", "batons"],
+  "suit_symbols": ["\ud83e\ude99", "\ud83c\udfc6", "\u2694", "\ud83e\udeb5"],
+  "suit_colors": {
+    "coins": "yellow",
+    "cups": "red",
+    "swords": "blue",
+    "batons": "brown"
+  },
+  "ranks": ["A", "2", "3", "4", "5", "6", "7", "J", "Q", "K"],
+  "rank_values": {
+    "A": 1,
+    "2": 2,
+    "3": 3,
+    "4": 4,
+    "5": 5,
+    "6": 6,
+    "7": 7,
+    "J": 8,
+    "Q": 9,
+    "K": 10
+  },
+  "note": "Regional variations exist across Italy (Napoletane, Piacentine, Siciliane, etc.)",
+  "count": 40,
+  "facing": "face_up | face_down",
+  "physical_form": "mini_card",
+  "physical": {
+    "size_mm": [50, 87],
+    "thickness_mm": 0.32,
+    "material": "cardstock"
+  }
+}

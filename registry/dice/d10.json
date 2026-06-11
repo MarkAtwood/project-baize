@@ -1,0 +1,16 @@
+{
+  "$schema": "https://baize.dev/schema/v1/component-registry.schema.json",
+  "id": "standard:d10",
+  "name": "Standard 10-Sided Die",
+  "component_type": "die",
+  "faces": 10,
+  "values": [0, 1, 2, 3, 4, 5, 6, 7, 8, 9],
+  "display": "numeral",
+  "physical_form": "d10_standard",
+  "physical": {
+    "size_mm": [16, 16],
+    "thickness_mm": 18.0,
+    "material": "plastic",
+    "shape": "pentagonal_trapezohedron"
+  }
+}

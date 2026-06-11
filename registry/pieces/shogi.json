@@ -1,0 +1,89 @@
+{
+  "$schema": "https://baize.dev/schema/v1/component-registry.schema.json",
+  "id": "standard:shogi-pieces",
+  "name": "Shogi (Japanese Chess) Pieces",
+  "component_type": "piece_set",
+  "shape": "pentagon",
+  "owner_indicated_by": "direction",
+  "pieces": {
+    "king": {
+      "glyph": "\u738b",
+      "promoted": null,
+      "movement": "step(adjacent, 1)",
+      "count_per_player": 1
+    },
+    "rook": {
+      "glyph": "\u98db",
+      "promoted": {
+        "glyph": "\u9f8d",
+        "name": "dragon_king",
+        "gains": "step(diagonal, 1)"
+      },
+      "movement": "slide(orthogonal)",
+      "count_per_player": 1
+    },
+    "bishop": {
+      "glyph": "\u89d2",
+      "promoted": {
+        "glyph": "\u99ac",
+        "name": "dragon_horse",
+        "gains": "step(orthogonal, 1)"
+      },
+      "movement": "slide(diagonal)",
+      "count_per_player": 1
+    },
+    "gold": {
+      "glyph": "\u91d1",
+      "promoted": null,
+      "movement": "step(forward | orthogonal | forward_diagonal, 1)",
+      "count_per_player": 2
+    },
+    "silver": {
+      "glyph": "\u9280",
+      "promoted": {
+        "glyph": "\u5168",
+        "name": "promoted_silver",
+        "moves_as": "gold"
+      },
+      "movement": "step(forward | diagonal, 1)",
+      "count_per_player": 2
+    },
+    "knight": {
+      "glyph": "\u6842",
+      "promoted": {
+        "glyph": "\u572d",
+        "name": "promoted_knight",
+        "moves_as": "gold"
+      },
+      "movement": "leap(1,2, forward_only)",
+      "count_per_player": 2
+    },
+    "lance": {
+      "glyph": "\u9999",
+      "promoted": {
+        "glyph": "\u674f",
+        "name": "promoted_lance",
+        "moves_as": "gold"
+      },
+      "movement": "slide(forward)",
+      "count_per_player": 2
+    },
+    "pawn": {
+      "glyph": "\u6b69",
+      "promoted": {
+        "glyph": "\u3068",
+        "name": "tokin",
+        "moves_as": "gold"
+      },
+      "movement": "step(forward, 1)",
+      "count_per_player": 9
+    }
+  },
+  "special_rules": {
+    "drops": "Captured pieces switch sides and may be dropped onto any legal empty square",
+    "promotion_zone": "last_3_ranks",
+    "mandatory_promotion": "Pieces with no legal moves must promote (pawn/lance on last rank, knight on last two ranks)"
+  },
+  "count": 40,
+  "note": "Standard Shogi set: 20 pieces per player (1 king, 1 rook, 1 bishop, 2 golds, 2 silvers, 2 knights, 2 lances, 9 pawns). Pentagonal wedge shape; piece direction indicates owner. Captured pieces join the captor's hand and may be dropped back onto the board."
+}

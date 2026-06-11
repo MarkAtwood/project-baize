@@ -1,0 +1,33 @@
+{
+  "$schema": "https://baize.dev/schema/v1/component-registry.schema.json",
+  "id": "standard:backgammon-pieces",
+  "name": "Backgammon Pieces (Checkers)",
+  "component_type": "piece_set",
+  "shape": "disc",
+  "variants": {
+    "white": {
+      "fill": "#F5F5F5",
+      "stroke": "#CCCCCC"
+    },
+    "black": {
+      "fill": "#1a1a1a",
+      "stroke": "#000000"
+    }
+  },
+  "count_per_player": 15,
+  "movement": {
+    "direction": "per_player",
+    "distance": "dice_value",
+    "bearing_off": "exact_or_higher_from_home_board",
+    "blocked": "point_with_2_or_more_opponent_pieces",
+    "hit": "land_on_single_opponent_piece_sends_to_bar"
+  },
+  "zones": {
+    "board_points": 24,
+    "bar": "re-entry zone for hit pieces",
+    "home_board": "last 6 points per player",
+    "off": "borne-off pieces (scored)"
+  },
+  "count": 30,
+  "note": "Standard backgammon set: 15 pieces (checkers) per player in two contrasting colors. Disc-shaped, moved along 24 triangular points according to dice rolls. Common color pairs: white/black, white/brown, ivory/mahogany."
+}

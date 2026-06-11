@@ -1,0 +1,49 @@
+{
+  "$schema": "https://baize.dev/schema/v1/component-registry.schema.json",
+  "id": "standard:xiangqi-pieces",
+  "name": "Xiangqi (Chinese Chess) Pieces",
+  "component_type": "piece_set",
+  "shape": "disc",
+  "glyphs": {
+    "red": {
+      "general": "\u5e25",
+      "advisor": "\u4ed5",
+      "elephant": "\u76f8",
+      "chariot": "\u4fe5",
+      "horse": "\u508c",
+      "cannon": "\u70ae",
+      "soldier": "\u5175"
+    },
+    "black": {
+      "general": "\u5c07",
+      "advisor": "\u58eb",
+      "elephant": "\u8c61",
+      "chariot": "\u8eca",
+      "horse": "\u99ac",
+      "cannon": "\u7832",
+      "soldier": "\u5352"
+    }
+  },
+  "movement": {
+    "general": "step(orthogonal, 1, if:in_palace)",
+    "advisor": "step(diagonal, 1, if:in_palace)",
+    "elephant": "leap(2,2, if:not_blocked AND same_side_of_river)",
+    "chariot": "slide(orthogonal)",
+    "horse": "step(orthogonal, 1, if:not_blocked) + step(diagonal, 1)",
+    "cannon": "slide(orthogonal, if:empty) | leap_over(orthogonal, exactly:1, if:enemy)",
+    "soldier": "step(forward, 1) | step(horizontal, 1, if:crossed_river)"
+  },
+  "board_constraints": {
+    "palace": {
+      "description": "3x3 zone where generals and advisors are confined",
+      "red": { "cols": [3, 5], "rows": [0, 2] },
+      "black": { "cols": [3, 5], "rows": [7, 9] }
+    },
+    "river": {
+      "description": "Divides the board between rows 4 and 5; elephants cannot cross",
+      "between_rows": [4, 5]
+    }
+  },
+  "count": 32,
+  "note": "Standard Xiangqi set: 16 pieces per side (1 general, 2 advisors, 2 elephants, 2 chariots, 2 horses, 2 cannons, 5 soldiers). Played on a 9x10 grid at intersections. Red and black use distinct Chinese characters for each piece type."
+}

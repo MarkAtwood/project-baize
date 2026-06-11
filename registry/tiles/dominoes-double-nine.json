@@ -1,0 +1,18 @@
+{
+  "$schema": "https://baize.dev/schema/v1/component-registry.schema.json",
+  "id": "standard:dominoes-double-nine",
+  "name": "Double-Nine Dominoes",
+  "component_type": "tile",
+  "shape": "rectangle(2:1)",
+  "halves": 2,
+  "pip_range": [0, 9],
+  "count": 55,
+  "facing": "face_up | face_down",
+  "properties": ["half_a", "half_b"],
+  "physical": {
+    "size_mm": [48, 24],
+    "thickness_mm": 10.0,
+    "material": "plastic"
+  },
+  "note": "Double-nine domino set. Contains all unique combinations of 0-9 pips on each half, including doubles (0-0 through 9-9). Count = C(10,2) + 10 = 55."
+}

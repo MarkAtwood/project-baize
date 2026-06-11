@@ -1,0 +1,16 @@
+{
+  "$schema": "https://baize.dev/schema/v1/component-registry.schema.json",
+  "id": "standard:d6-colors",
+  "name": "Color Die",
+  "component_type": "die",
+  "faces": 6,
+  "values": ["red", "blue", "green", "yellow", "white", "black"],
+  "display": "symbol",
+  "physical_form": "d6_standard",
+  "physical": {
+    "size_mm": [16, 16],
+    "thickness_mm": 16.0,
+    "material": "plastic",
+    "shape": "cube"
+  }
+}

@@ -1,0 +1,17 @@
+{
+  "$schema": "https://baize.dev/schema/v1/component-registry.schema.json",
+  "id": "standard:resource-cubes",
+  "name": "Resource Cubes",
+  "component_type": "token",
+  "shape": "cube",
+  "parameterized_by": "color",
+  "available_colors": ["brown", "gray", "yellow", "red", "dark_gray", "blue", "green", "white", "orange", "purple"],
+  "supply": "configurable",
+  "meaning_is_game_defined": true,
+  "physical": {
+    "size_mm": [10, 10],
+    "thickness_mm": 10.0,
+    "material": "wood"
+  },
+  "note": "Generic colored cubes for Eurogame resources. Color-to-resource mapping is game-defined (e.g. brown=wood, gray=stone, yellow=wheat, red=brick, dark_gray=ore)."
+}

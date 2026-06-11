@@ -1,0 +1,31 @@
+{
+  "$schema": "https://baize.dev/schema/v1/component-registry.schema.json",
+  "id": "standard:board-backgammon",
+  "name": "Backgammon Board",
+  "component_type": "tile_set",
+  "composition": {
+    "topology_type": "track",
+    "points": 24,
+    "labels": {
+      "points": [
+        "1", "2", "3", "4", "5", "6",
+        "7", "8", "9", "10", "11", "12",
+        "13", "14", "15", "16", "17", "18",
+        "19", "20", "21", "22", "23", "24"
+      ]
+    },
+    "quadrants": [
+      { "name": "home_white", "points": [1, 6] },
+      { "name": "outer_white", "points": [7, 12] },
+      { "name": "outer_black", "points": [13, 18] },
+      { "name": "home_black", "points": [19, 24] }
+    ],
+    "special_zones": [
+      { "name": "bar", "type": "holding", "note": "Captured pieces wait here for re-entry" },
+      { "name": "home_off_white", "type": "goal", "owner": "white", "note": "Borne-off white pieces" },
+      { "name": "home_off_black", "type": "goal", "owner": "black", "note": "Borne-off black pieces" }
+    ]
+  },
+  "count": 26,
+  "note": "Standard backgammon board with 24 points arranged in four quadrants, a bar for captured pieces, and two home-off zones for bearing off."
+}

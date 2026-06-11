@@ -1,0 +1,39 @@
+{
+  "$schema": "https://baize.dev/schema/v1/component-registry.schema.json",
+  "id": "standard:mamluk-52",
+  "name": "Mamluk Cards",
+  "component_type": "card_deck",
+  "suits": ["coins", "cups", "swords", "polo_sticks"],
+  "suit_symbols": ["\ud83e\ude99", "\ud83c\udfc6", "\u2694", "\ud83c\udfd1"],
+  "suit_colors": {
+    "coins": "yellow",
+    "cups": "red",
+    "swords": "blue",
+    "polo_sticks": "green"
+  },
+  "ranks": ["1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "deputy", "second_deputy", "king"],
+  "rank_values": {
+    "1": 1,
+    "2": 2,
+    "3": 3,
+    "4": 4,
+    "5": 5,
+    "6": 6,
+    "7": 7,
+    "8": 8,
+    "9": 9,
+    "10": 10,
+    "deputy": 11,
+    "second_deputy": 12,
+    "king": 13
+  },
+  "note": "Oldest known card deck structure (~13th century); ancestor of all European playing card decks",
+  "count": 52,
+  "facing": "face_up | face_down",
+  "physical_form": "poker_card",
+  "physical": {
+    "size_mm": [63, 88],
+    "thickness_mm": 0.32,
+    "material": "cardstock"
+  }
+}

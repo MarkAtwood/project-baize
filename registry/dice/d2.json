@@ -1,0 +1,17 @@
+{
+  "$schema": "https://baize.dev/schema/v1/component-registry.schema.json",
+  "id": "standard:d2",
+  "name": "Coin Flip / 2-Sided Die",
+  "component_type": "die",
+  "faces": 2,
+  "values": ["heads", "tails"],
+  "display": "coin",
+  "physical_form": "coin",
+  "physical": {
+    "size_mm": [25, 25],
+    "thickness_mm": 2.0,
+    "material": "metal",
+    "shape": "disc"
+  },
+  "note": "Coin flip. Also usable as a generic binary randomizer (yes/no, 0/1, hit/miss)."
+}

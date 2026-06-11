@@ -1,0 +1,27 @@
+{
+  "$schema": "https://baize.dev/schema/v1/component-registry.schema.json",
+  "id": "standard:mahjong-136",
+  "name": "Mahjong Tiles (Riichi 136)",
+  "component_type": "tile_set",
+  "extends": "standard:mahjong-144",
+  "count": 136,
+  "removes": ["flowers", "seasons"],
+  "adds": {
+    "red_fives": {
+      "tiles": [
+        {"suit": "characters", "rank": 5, "red": true},
+        {"suit": "bamboo", "rank": 5, "red": true},
+        {"suit": "dots", "rank": 5, "red": true}
+      ],
+      "replaces": "one normal 5 per suit",
+      "count": 3
+    }
+  },
+  "facing": "face_up | face_down",
+  "physical": {
+    "size_mm": [26, 19],
+    "thickness_mm": 16.0,
+    "material": "plastic"
+  },
+  "note": "Japanese riichi mahjong set. Removes flowers and seasons from the 144-tile set (144 - 8 = 136). Adds 3 red five (akadora) tiles, one per suit, each replacing one normal five. Red fives act as dora (bonus indicators)."
+}

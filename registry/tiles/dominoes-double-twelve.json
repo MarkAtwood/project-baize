@@ -1,0 +1,18 @@
+{
+  "$schema": "https://baize.dev/schema/v1/component-registry.schema.json",
+  "id": "standard:dominoes-double-twelve",
+  "name": "Double-Twelve Dominoes",
+  "component_type": "tile",
+  "shape": "rectangle(2:1)",
+  "halves": 2,
+  "pip_range": [0, 12],
+  "count": 91,
+  "facing": "face_up | face_down",
+  "properties": ["half_a", "half_b"],
+  "physical": {
+    "size_mm": [55, 27],
+    "thickness_mm": 12.0,
+    "material": "plastic"
+  },
+  "note": "Double-twelve domino set. Contains all unique combinations of 0-12 pips on each half, including doubles (0-0 through 12-12). Count = C(13,2) + 13 = 91. Often used for Mexican Train."
+}
