@@ -162,14 +162,31 @@ class BaizeClient:
         self._messages.append(msg)
 
         if msg_type == "welcome":
-            self.seat = msg.get("seat", "")
-            self.game_id = msg.get("game_id", "")
+            seat = msg.get("seat")
+            game_id = msg.get("game_id")
+            if not seat or not isinstance(seat, str):
+                if self.on_error is not None:
+                    self.on_error("welcome missing 'seat' field")
+                return
+            if not game_id or not isinstance(game_id, str):
+                if self.on_error is not None:
+                    self.on_error("welcome missing 'game_id' field")
+                return
+            self.seat = seat
+            self.game_id = game_id
             self.token = msg.get("token", self.token)
             self._welcome_event.set()
 
         elif msg_type == "state_sync":
-            self.state = msg.get("full_state", {})
-            self._sequence = msg.get("sequence", self._sequence)
+            full_state = msg.get("full_state")
+            if not isinstance(full_state, dict):
+                if self.on_error is not None:
+                    self.on_error("state_sync missing 'full_state' dict")
+                return
+            self.state = full_state
+            seq = msg.get("sequence")
+            if isinstance(seq, int):
+                self._sequence = seq
             if self.on_state is not None:
                 self.on_state(self.state)
 
