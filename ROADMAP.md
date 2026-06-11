@@ -9,13 +9,13 @@ regenerated periodically.
 ## Critical Path: First Playable Game
 
 The immediate goal is a playable tic-tac-toe: browser client connects
-to server, two players place marks, someone wins. This requires three
-server features landing before the client can be built:
+to server, two players place marks, someone wins. The three server
+prerequisites are complete — the client is unblocked:
 
 ```
 baize-f1l  Evaluate end conditions ──────┐
-baize-8ct  Visibility filtering ─────────┼──→ baize-j7a  Minimal playable client
-baize-f9t  Game definition loading ──────┘
+baize-8ct  Visibility filtering ─────────┼──→ baize-j7a  Minimal playable client  ← READY
+baize-f9t  Game definition loading ──────┘     (all blockers resolved)
 ```
 
 After tic-tac-toe, the path to chess requires the CEL constraint
@@ -30,30 +30,16 @@ baize-1ye  CEL constraint language ──→ baize-olc  Remaining primitives ─
 
 ### Ready (no blockers)
 
-**baize-f1l** (P1, feature) — **Evaluate end conditions at runtime**
+**baize-j7a** (P1, feature) — **Minimal playable client**
 
-End conditions in game definitions are currently decorative strings
-that are never evaluated. Implement end condition checking after each
-state transition. Start with tic-tac-toe (three-in-a-row, board-full).
-Pre-CEL: hardcoded condition evaluators matching existing game
-definitions. Post-CEL: replace with CEL expression evaluation. Both
-Rust and Python engines.
+Build the minimum viable Web Components client that can play
+tic-tac-toe. Needs: `<baize-game>` element that connects to WebSocket,
+`<baize-board>` element that renders a grid zone as SVG, click-to-place
+interaction, turn indicator, game result display. No drag/drop, no hand
+rendering, no clock. Just enough to demo one game end-to-end.
 
-**baize-8ct** (P1, feature) — **Visibility filtering on state sync**
-
-Server currently sends full game state to all players including hidden
-and private information. Implement per-player state filtering based on
-zone visibility declarations (public/private/hidden). Private zones
-only visible to owner. Hidden zones omitted from all client responses
-(count only). Must filter in both state_sync and move_confirmed
-messages.
-
-**baize-f9t** (P1, feature) — **Game definition loading from room creation API**
-
-Server currently auto-creates rooms with a hardcoded placeholder
-definition. Add an HTTP endpoint or WebSocket message to create a room
-with a specific game definition (JSON body or URI reference). Validate
-definition before creating room. Remove the auto-create fallback.
+All server prerequisites resolved: end conditions (baize-f1l),
+visibility filtering (baize-8ct), game definition loading (baize-f9t).
 
 **baize-o8y** (P1, bug) — **Upgrade wasmtime from v29 to fix 14 CVEs**
 
@@ -93,16 +79,6 @@ mypy, npx tsc --noEmit (client). Fail on any error.
 
 ### Blocked
 
-**baize-j7a** (P1, feature) — **Minimal playable client**
-
-Build the minimum viable Web Components client that can play
-tic-tac-toe. Needs: `<baize-game>` element that connects to WebSocket,
-`<baize-board>` element that renders a grid zone as SVG, click-to-place
-interaction, turn indicator, game result display. No drag/drop, no hand
-rendering, no clock. Just enough to demo one game end-to-end.
-
-Blocked by: baize-f1l, baize-8ct, baize-f9t.
-
 **baize-olc** (P2, feature) — **Implement remaining movement primitives**
 
 Only step/slide/leap/hop are implemented. Implement: draw, move_to/
@@ -129,7 +105,22 @@ identity across reconnections. Spectators remain anonymous.
 
 Blocked by: baize-z6r (persistence needed for session state).
 
-## Completed Work (50 issues)
+## Completed Work (53 issues)
+
+### Server Features (3)
+
+**baize-f1l** — End condition evaluation at runtime. Hardcoded
+evaluators for three_in_line and board_is_full in both Rust and Python
+engines. Games now detect wins and draws.
+
+**baize-8ct** — Per-player visibility filtering on state sync. Promoted
+filter_for_viewer to engine library. Server filters initial state_sync,
+MoveConfirmed (per-player), and StateSync reply based on zone
+visibility declarations.
+
+**baize-f9t** — Game definition loading via POST /rooms API. Client
+resolves definition, POSTs full JSON to server. Server validates and
+creates room. Removed auto-create fallback.
 
 ### Epics
 
@@ -171,9 +162,9 @@ fuzz testing, tamper detection, mypy and clippy CI tasks.
 
 | Status | Count |
 |--------|-------|
-| Ready | 7 |
-| Blocked | 4 |
-| Closed | 50 |
+| Ready | 5 |
+| Blocked | 3 |
+| Closed | 53 |
 | **Total** | **61** |
 
 ---

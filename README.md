@@ -111,9 +111,9 @@ identical results.
 | Component | What works | What's next |
 |-----------|-----------|-------------|
 | Schema (5 JSON Schemas) | Game definitions, state, actions, events, registry | Formalize constraint expressions |
-| Rust engine (77 tests) | Parse, validate, state machine, move gen, transitions, hash-chained events, tamper detection | Full movement evaluation, WASM extension hosting |
-| Python engine (121 tests) | Feature-parallel with Rust: parse, validate, state, moves, transitions, events, game analysis, Jupyter notebook integration | Visibility filtering, game tree search |
-| Server (Axum/WebSocket) | Room management, protocol dispatch, hidden-state vault, rate limiting, per-IP connection limits | Authentication, matchmaking, spectator delay |
+| Rust engine (84 tests) | Parse, validate, state machine, move gen, transitions, hash-chained events, tamper detection, end condition evaluation, visibility filtering | Full movement evaluation, WASM extension hosting |
+| Python engine (128 tests) | Feature-parallel with Rust: parse, validate, state, moves, transitions, events, end conditions, game analysis, Jupyter notebook integration | Game tree search |
+| Server (19 tests) | Room creation API (POST /rooms), game definition loading/validation, per-player visibility filtering, protocol dispatch, hidden-state vault, rate limiting, per-IP connection limits | Commit-reveal protocol, authentication, matchmaking |
 | Client (TypeScript) | Full type definitions for all schemas | Web Components rendering (`<baize-game>`) |
 
 ## Game Definitions

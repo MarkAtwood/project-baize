@@ -41,8 +41,11 @@ tokens), composable movement primitives (step, slide, hop, leap, place,
 draw), turn structure, and win conditions. Tier 2 is an optional WASM module
 for complex logic that exceeds declarative predicates — scoring algorithms,
 chain reactions, custom validation — running deterministically on both client
-and server. Tier 3 is the server's irreducible responsibility: hidden state,
-cryptographic randomness, move sequencing, and conflict resolution.
+and server. Tier 3 is trust services: hidden state, randomness, move sequencing, and
+conflict resolution. The default provider is a trusted server, but every
+Tier 3 operation has a known cryptographic replacement — commit-reveal for
+dice and simultaneous moves, mental poker for card shuffling — so the
+server role is architecturally replaceable by peer-to-peer protocols.
 
 A standard component registry ships with the specification, providing
 reusable definitions for common game components: French card decks, standard
@@ -162,6 +165,20 @@ history. They cannot see private information (players' hands) or submit
 moves. Broadcast delay for competitive events is a server transport concern,
 not a schema concern.
 
+### Do games require a central server?
+
+Not always. For perfect-information games (chess, Go, checkers), the server
+is just a move sequencer — any message ordering mechanism works, including
+peer-to-peer WebRTC. For imperfect-information games (poker, Battleship),
+the default is a trusted server, but every server-only operation has a known
+cryptographic replacement: commit-reveal for dice rolls and simultaneous
+moves (2 extra rounds), mental poker for card shuffling and dealing (SRA
+1979, Barnett & Smart 2003). The game definition doesn't change between a
+trusted server and a peer-to-peer protocol — the authority declaration
+describes what trust is needed, not who provides it. Commit-reveal for
+randomness ships in the earliest releases to ensure every client has the
+protocol space open from day one.
+
 ### What browsers are supported?
 
 Any browser with WebAssembly, WebSocket (RFC 6455), inline SVG, and Web
@@ -247,6 +264,15 @@ thousands of concurrent games.
 5. Ship playable chess and poker as proof points.
 6. Write the specification as a standalone document (not just JSON Schema +
    code comments).
+
+### Why does commit-reveal ship before mental poker?
+
+Architectural forcing function. Every client must implement the commit-reveal
+message flow (commit hash, acknowledge, reveal, verify) from the first
+release. This ensures the protocol space for serverless cryptography exists
+in every client from day one. Adding mental poker later is a compatible
+extension on top of commit-reveal. Adding commit-reveal later would require
+breaking protocol changes in every deployed client.
 
 ### Why now?
 

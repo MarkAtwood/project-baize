@@ -53,13 +53,13 @@ bd close <id>         # Complete work
 ## Build & Test
 
 ```bash
-# Rust engine (28 tests)
+# Rust engine (84 tests)
 cd engine && cargo test
 
-# Rust server (builds, no tests yet)
-cd server && cargo build
+# Rust server (19 tests)
+cd server && cargo test
 
-# Python (30 tests)
+# Python (128 tests)
 cd python && python3 -m pytest tests/ -v
 
 # TypeScript client (type-check only, no runtime tests)
@@ -72,7 +72,7 @@ Baize is a declarative board game engine with a three-tier trust architecture:
 
 - **Tier 1 — Declarative Schema**: JSON game definitions (`games/*.json`) validated against JSON Schema (`schema/*.json`). Covers zones, components, movement, turn order, phases, end conditions, authority.
 - **Tier 2 — WASM Extensions**: Optional game-specific logic via `GameExtension` trait for complex scoring, chain reactions, custom validation. Compiled to WASM, runs on both client and server.
-- **Tier 3 — Server Authority**: Hidden state vault, cryptographic randomness (ChaCha20Rng), move sequencing. The server's irreducible responsibility.
+- **Tier 3 — Trust Services**: Hidden state, randomness, move sequencing. Default: trusted server (ChaCha20Rng, hidden state vault). Architecturally replaceable by cryptographic protocols (commit-reveal, mental poker) — the authority declaration describes *what trust is needed*, not *who provides it*.
 
 Key directories:
 - `schema/` — JSON Schema definitions (draft 2020-12)
