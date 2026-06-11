@@ -63,6 +63,7 @@ fn grid_operations() {
         facing: None,
         state: None,
         properties: Default::default(),
+        span_cells: Vec::new(),
     }).unwrap();
 
     let board = session.runtime.zones.get_mut("board").unwrap();
@@ -128,6 +129,7 @@ fn wire_round_trip() {
         facing: None,
         state: None,
         properties: Default::default(),
+        span_cells: Vec::new(),
     }).unwrap();
     session
         .runtime
@@ -193,5 +195,175 @@ fn per_player_zones() {
     // Each player has their own hand
     for (_, player) in &session.runtime.players {
         assert!(player.zones.contains_key("hand"));
+    }
+}
+
+fn grid_10x10_def() -> GameDefinition {
+    serde_json::from_str(
+        r#"{
+        "game": { "name": "Grid Test", "players": ["A", "B"], "information": "perfect" },
+        "zones": {
+            "board": { "zone_type": "grid", "dimensions": [10, 10], "visibility": "public" }
+        },
+        "components": {
+            "ship": {
+                "owner": "per_player",
+                "types": {
+                    "carrier": { "span": 5 },
+                    "destroyer": { "span": 2 }
+                }
+            }
+        },
+        "turn_order": { "type": "alternating", "players": ["A", "B"] },
+        "end_conditions": [{ "result": "win", "condition": "false" }],
+        "authority": { "server_only": [], "client_verifiable": ["all"] }
+    }"#,
+    )
+    .unwrap()
+}
+
+#[test]
+fn grid_place_span_horizontal() {
+    let def = grid_10x10_def();
+    let mut session = GameSession::new(def).unwrap();
+
+    let cid = session.runtime.components.insert(ComponentData {
+        id: ComponentId(0),
+        string_id: "carrier-A-0".into(),
+        component_type: "carrier".into(),
+        owner: Some("A".into()),
+        facing: None,
+        state: None,
+        properties: Default::default(),
+        span_cells: Vec::new(),
+    }).unwrap();
+
+    let zone = session.runtime.zones.get_mut("board").unwrap();
+    let cells = zone.grid_place_span(2, 3, true, 5, cid).unwrap();
+
+    assert_eq!(cells.len(), 5);
+    assert_eq!(cells, vec![(2, 3), (3, 3), (4, 3), (5, 3), (6, 3)]);
+
+    // All 5 cells should contain the same ComponentId
+    for &(col, row) in &cells {
+        assert_eq!(zone.grid_get(col, row), Some(cid));
+    }
+
+    // Adjacent cells should be empty
+    assert!(zone.grid_get(1, 3).is_none());
+    assert!(zone.grid_get(7, 3).is_none());
+}
+
+#[test]
+fn grid_place_span_vertical() {
+    let def = grid_10x10_def();
+    let mut session = GameSession::new(def).unwrap();
+
+    let cid = session.runtime.components.insert(ComponentData {
+        id: ComponentId(0),
+        string_id: "destroyer-A-0".into(),
+        component_type: "destroyer".into(),
+        owner: Some("A".into()),
+        facing: None,
+        state: None,
+        properties: Default::default(),
+        span_cells: Vec::new(),
+    }).unwrap();
+
+    let zone = session.runtime.zones.get_mut("board").unwrap();
+    let cells = zone.grid_place_span(0, 0, false, 2, cid).unwrap();
+
+    assert_eq!(cells, vec![(0, 0), (0, 1)]);
+    assert_eq!(zone.grid_get(0, 0), Some(cid));
+    assert_eq!(zone.grid_get(0, 1), Some(cid));
+}
+
+#[test]
+fn grid_place_span_out_of_bounds() {
+    let def = grid_10x10_def();
+    let mut session = GameSession::new(def).unwrap();
+
+    let cid = session.runtime.components.insert(ComponentData {
+        id: ComponentId(0),
+        string_id: "carrier-A-0".into(),
+        component_type: "carrier".into(),
+        owner: Some("A".into()),
+        facing: None,
+        state: None,
+        properties: Default::default(),
+        span_cells: Vec::new(),
+    }).unwrap();
+
+    let zone = session.runtime.zones.get_mut("board").unwrap();
+    // Span of 5 starting at col 8 would go to col 12 — out of bounds
+    let result = zone.grid_place_span(8, 0, true, 5, cid);
+    assert!(result.is_err());
+}
+
+#[test]
+fn grid_place_span_overlap() {
+    let def = grid_10x10_def();
+    let mut session = GameSession::new(def).unwrap();
+
+    let cid1 = session.runtime.components.insert(ComponentData {
+        id: ComponentId(0),
+        string_id: "carrier-A-0".into(),
+        component_type: "carrier".into(),
+        owner: Some("A".into()),
+        facing: None,
+        state: None,
+        properties: Default::default(),
+        span_cells: Vec::new(),
+    }).unwrap();
+
+    let cid2 = session.runtime.components.insert(ComponentData {
+        id: ComponentId(0),
+        string_id: "destroyer-A-0".into(),
+        component_type: "destroyer".into(),
+        owner: Some("A".into()),
+        facing: None,
+        state: None,
+        properties: Default::default(),
+        span_cells: Vec::new(),
+    }).unwrap();
+
+    let zone = session.runtime.zones.get_mut("board").unwrap();
+    // Place carrier at (0,0) horizontal, spanning cols 0-4
+    zone.grid_place_span(0, 0, true, 5, cid1).unwrap();
+
+    // Try to place destroyer at (3,0) horizontal — overlaps at col 3 and 4
+    let result = zone.grid_place_span(3, 0, true, 2, cid2);
+    assert!(result.is_err());
+}
+
+#[test]
+fn grid_remove_span() {
+    let def = grid_10x10_def();
+    let mut session = GameSession::new(def).unwrap();
+
+    let cid = session.runtime.components.insert(ComponentData {
+        id: ComponentId(0),
+        string_id: "carrier-A-0".into(),
+        component_type: "carrier".into(),
+        owner: Some("A".into()),
+        facing: None,
+        state: None,
+        properties: Default::default(),
+        span_cells: Vec::new(),
+    }).unwrap();
+
+    let zone = session.runtime.zones.get_mut("board").unwrap();
+    let cells = zone.grid_place_span(0, 0, true, 5, cid).unwrap();
+
+    // All cells occupied
+    assert_eq!(zone.grid_get(0, 0), Some(cid));
+    assert_eq!(zone.grid_get(4, 0), Some(cid));
+
+    // Remove span
+    zone.grid_remove_span(&cells);
+
+    // All cells should now be empty
+    for &(col, row) in &cells {
+        assert!(zone.grid_get(col, row).is_none());
     }
 }

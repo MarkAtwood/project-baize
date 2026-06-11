@@ -332,6 +332,11 @@
           "type": "boolean",
           "description": "If true, exactly one instance of each type exists."
         },
+        "span": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "Number of contiguous grid cells this component occupies when placed. Default 1 (single cell). For components with types, can also be specified per-type in the types object as a 'span' key."
+        },
         "supply": {
           "oneOf": [
             { "type": "integer", "minimum": 0 },

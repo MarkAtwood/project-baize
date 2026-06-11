@@ -43,12 +43,16 @@ def legal_moves(session: GameSession) -> list[LegalMove]:
             continue
 
         if isinstance(zone, GridZone):
+            seen: set[ComponentId] = set()
             for row in range(zone.height):
                 for col in range(zone.width):
                     idx = row * zone.width + col
                     cid = zone.cells[idx]
                     if cid is None:
                         continue
+                    if cid in seen:
+                        continue  # Skip duplicate cells of spanning component
+                    seen.add(cid)
                     comp_data = session.runtime.components.get(cid)
                     if comp_data is None:
                         continue

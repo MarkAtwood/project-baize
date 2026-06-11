@@ -78,6 +78,7 @@ fn setup_session(tc: &TestCase) -> GameSession {
             facing: None,
             state: None,
             properties: IndexMap::new(),
+            span_cells: Vec::new(),
         }).unwrap();
         session
             .runtime

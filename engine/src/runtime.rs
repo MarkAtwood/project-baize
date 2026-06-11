@@ -53,6 +53,9 @@ pub struct ComponentData {
     pub facing: Option<Facing>,
     pub state: Option<String>,
     pub properties: IndexMap<String, serde_json::Value>,
+    /// Cells occupied by this component on a grid (col, row pairs).
+    /// Empty for single-cell components.
+    pub span_cells: Vec<(u32, u32)>,
 }
 
 /// Runtime zone — efficient storage for each zone type.
@@ -259,6 +262,67 @@ impl RuntimeZone {
                 prev
             }
             _ => None,
+        }
+    }
+
+    /// Place a spanning component on a grid. Returns the list of occupied cells.
+    ///
+    /// Validates that all cells are within bounds and currently empty.
+    /// `orientation`: 0 = horizontal (span along columns), 1 = vertical (span along rows).
+    pub fn grid_place_span(
+        &mut self,
+        origin_col: u32,
+        origin_row: u32,
+        horizontal: bool,
+        span: u32,
+        component: ComponentId,
+    ) -> crate::error::Result<Vec<(u32, u32)>> {
+        let (width, height) = match self {
+            RuntimeZone::Grid { width, height, .. } => (*width, *height),
+            _ => {
+                return Err(crate::error::BaizeError::IllegalAction(
+                    "grid_place_span called on non-grid zone".into(),
+                ))
+            }
+        };
+
+        // Compute all cells
+        let mut cells_to_set = Vec::with_capacity(span as usize);
+        for i in 0..span {
+            let (col, row) = if horizontal {
+                (origin_col + i, origin_row)
+            } else {
+                (origin_col, origin_row + i)
+            };
+            if col >= width || row >= height {
+                return Err(crate::error::BaizeError::IllegalAction(format!(
+                    "span cell ({col},{row}) is out of bounds ({width}x{height})"
+                )));
+            }
+            cells_to_set.push((col, row));
+        }
+
+        // Check all cells are empty
+        for &(col, row) in &cells_to_set {
+            if self.grid_get(col, row).is_some() {
+                return Err(crate::error::BaizeError::IllegalAction(format!(
+                    "span cell ({col},{row}) is already occupied"
+                )));
+            }
+        }
+
+        // Place component in all cells
+        for &(col, row) in &cells_to_set {
+            self.grid_set(col, row, Some(component));
+        }
+
+        Ok(cells_to_set)
+    }
+
+    /// Remove a spanning component from a grid by clearing all its occupied cells.
+    pub fn grid_remove_span(&mut self, span_cells: &[(u32, u32)]) {
+        for &(col, row) in span_cells {
+            self.grid_set(col, row, None);
         }
     }
 

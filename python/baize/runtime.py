@@ -89,6 +89,7 @@ class ComponentData:
     facing: FacingLiteral | None = None
     state: str | None = None
     properties: dict[str, Any] = field(default_factory=dict)
+    span_cells: list[tuple[int, int]] = field(default_factory=list)
 
     def to_wire_instance(self) -> ComponentInstance:
         """Convert to wire-format ComponentInstance."""
@@ -167,6 +168,47 @@ class GridZone:
         prev = self.cells[idx]
         self.cells[idx] = component
         return prev
+
+    def grid_place_span(
+        self,
+        origin_col: int,
+        origin_row: int,
+        horizontal: bool,
+        span: int,
+        component: ComponentId,
+    ) -> list[tuple[int, int]]:
+        """Place a spanning component on the grid. Returns list of occupied cells.
+
+        Validates all cells are within bounds and currently empty.
+        """
+        cells_to_set: list[tuple[int, int]] = []
+        for i in range(span):
+            if horizontal:
+                col, row = origin_col + i, origin_row
+            else:
+                col, row = origin_col, origin_row + i
+            if col < 0 or row < 0 or col >= self.width or row >= self.height:
+                raise IllegalActionError(
+                    f"span cell ({col},{row}) is out of bounds "
+                    f"({self.width}x{self.height})"
+                )
+            cells_to_set.append((col, row))
+
+        for col, row in cells_to_set:
+            if self.grid_get(col, row) is not None:
+                raise IllegalActionError(
+                    f"span cell ({col},{row}) is already occupied"
+                )
+
+        for col, row in cells_to_set:
+            self.grid_set(col, row, component)
+
+        return cells_to_set
+
+    def grid_remove_span(self, span_cells: list[tuple[int, int]]) -> None:
+        """Remove a spanning component by clearing all its occupied cells."""
+        for col, row in span_cells:
+            self.grid_set(col, row, None)
 
     def count(self) -> int:
         return sum(1 for c in self.cells if c is not None)

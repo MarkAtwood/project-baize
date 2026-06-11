@@ -188,3 +188,136 @@ def test_per_player_zones() -> None:
     # Each player has their own hand
     for _name, player in session.runtime.players.items():
         assert "hand" in player.zones
+
+
+GRID_10X10_JSON = """{
+    "game": { "name": "Grid Test", "players": ["A", "B"], "information": "perfect" },
+    "zones": {
+        "board": { "zone_type": "grid", "dimensions": [10, 10], "visibility": "public" }
+    },
+    "components": {
+        "ship": {
+            "owner": "per_player",
+            "types": {
+                "carrier": { "span": 5 },
+                "destroyer": { "span": 2 }
+            }
+        }
+    },
+    "turn_order": { "type": "alternating", "players": ["A", "B"] },
+    "end_conditions": [{ "result": "win", "condition": "false" }],
+    "authority": { "server_only": [], "client_verifiable": ["all"] }
+}"""
+
+
+def test_grid_place_span_horizontal() -> None:
+    definition = GameDefinition.from_json(GRID_10X10_JSON)
+    session = GameSession(definition)
+    cid = session.runtime.components.insert(
+        ComponentData(
+            id=ComponentId(0),
+            string_id="carrier-A-0",
+            component_type="carrier",
+            owner="A",
+        )
+    )
+    board = session.runtime.zones["board"]
+    assert isinstance(board, GridZone)
+    cells = board.grid_place_span(2, 3, True, 5, cid)
+    assert len(cells) == 5
+    assert cells == [(2, 3), (3, 3), (4, 3), (5, 3), (6, 3)]
+    for col, row in cells:
+        assert board.grid_get(col, row) == cid
+    assert board.grid_get(1, 3) is None
+    assert board.grid_get(7, 3) is None
+
+
+def test_grid_place_span_vertical() -> None:
+    definition = GameDefinition.from_json(GRID_10X10_JSON)
+    session = GameSession(definition)
+    cid = session.runtime.components.insert(
+        ComponentData(
+            id=ComponentId(0),
+            string_id="destroyer-A-0",
+            component_type="destroyer",
+            owner="A",
+        )
+    )
+    board = session.runtime.zones["board"]
+    assert isinstance(board, GridZone)
+    cells = board.grid_place_span(0, 0, False, 2, cid)
+    assert cells == [(0, 0), (0, 1)]
+    assert board.grid_get(0, 0) == cid
+    assert board.grid_get(0, 1) == cid
+
+
+def test_grid_place_span_out_of_bounds() -> None:
+    import pytest
+
+    definition = GameDefinition.from_json(GRID_10X10_JSON)
+    session = GameSession(definition)
+    cid = session.runtime.components.insert(
+        ComponentData(
+            id=ComponentId(0),
+            string_id="carrier-A-0",
+            component_type="carrier",
+            owner="A",
+        )
+    )
+    board = session.runtime.zones["board"]
+    assert isinstance(board, GridZone)
+    from baize.error import IllegalActionError
+
+    with pytest.raises(IllegalActionError):
+        board.grid_place_span(8, 0, True, 5, cid)
+
+
+def test_grid_place_span_overlap() -> None:
+    import pytest
+
+    definition = GameDefinition.from_json(GRID_10X10_JSON)
+    session = GameSession(definition)
+    cid1 = session.runtime.components.insert(
+        ComponentData(
+            id=ComponentId(0),
+            string_id="carrier-A-0",
+            component_type="carrier",
+            owner="A",
+        )
+    )
+    cid2 = session.runtime.components.insert(
+        ComponentData(
+            id=ComponentId(0),
+            string_id="destroyer-A-0",
+            component_type="destroyer",
+            owner="A",
+        )
+    )
+    board = session.runtime.zones["board"]
+    assert isinstance(board, GridZone)
+    board.grid_place_span(0, 0, True, 5, cid1)
+    from baize.error import IllegalActionError
+
+    with pytest.raises(IllegalActionError):
+        board.grid_place_span(3, 0, True, 2, cid2)
+
+
+def test_grid_remove_span() -> None:
+    definition = GameDefinition.from_json(GRID_10X10_JSON)
+    session = GameSession(definition)
+    cid = session.runtime.components.insert(
+        ComponentData(
+            id=ComponentId(0),
+            string_id="carrier-A-0",
+            component_type="carrier",
+            owner="A",
+        )
+    )
+    board = session.runtime.zones["board"]
+    assert isinstance(board, GridZone)
+    cells = board.grid_place_span(0, 0, True, 5, cid)
+    assert board.grid_get(0, 0) == cid
+    assert board.grid_get(4, 0) == cid
+    board.grid_remove_span(cells)
+    for col, row in cells:
+        assert board.grid_get(col, row) is None
