@@ -223,6 +223,154 @@ pub fn apply_action(session: &mut GameSession, action: &Action) -> Result<Vec<Ga
                 }
             }
         }
+        ActionType::Remove => {
+            let comp_id_str = action
+                .component_id
+                .as_deref()
+                .ok_or_else(|| BaizeError::IllegalAction("remove requires component_id".into()))?;
+            let (_cid, zone_name, col, row) =
+                find_component_on_grid(session, comp_id_str)?;
+
+            let zone = session
+                .runtime
+                .zones
+                .get_mut(&zone_name)
+                .ok_or_else(|| BaizeError::UnknownZone(zone_name.clone()))?;
+            zone.grid_set(col, row, None);
+
+            events.push(make_event(
+                session.runtime.sequence,
+                EventType::Remove,
+                &player,
+                Some(comp_id_str),
+                Some(&format!("{col},{row}")),
+                None,
+                "",
+                &prev_hash,
+            ));
+        }
+        ActionType::Swap => {
+            let comp_id_str = action
+                .component_id
+                .as_deref()
+                .ok_or_else(|| BaizeError::IllegalAction("swap requires component_id".into()))?;
+            let swap_with_str = action
+                .swap_with
+                .as_deref()
+                .ok_or_else(|| BaizeError::IllegalAction("swap requires swap_with".into()))?;
+
+            let (_cid_a, zone_a, col_a, row_a) =
+                find_component_on_grid(session, comp_id_str)?;
+            let (_cid_b, zone_b, col_b, row_b) =
+                find_component_on_grid(session, swap_with_str)?;
+
+            if zone_a != zone_b {
+                return Err(BaizeError::IllegalAction(
+                    "swap requires both components in the same zone".into(),
+                ));
+            }
+
+            let zone = session
+                .runtime
+                .zones
+                .get_mut(&zone_a)
+                .ok_or_else(|| BaizeError::UnknownZone(zone_a.clone()))?;
+            let a = zone.grid_get(col_a, row_a);
+            let b = zone.grid_get(col_b, row_b);
+            zone.grid_set(col_a, row_a, b);
+            zone.grid_set(col_b, row_b, a);
+
+            events.push(make_event(
+                session.runtime.sequence,
+                EventType::Swap,
+                &player,
+                Some(comp_id_str),
+                Some(&format!("{col_a},{row_a}")),
+                Some(&format!("{col_b},{row_b}")),
+                "",
+                &prev_hash,
+            ));
+        }
+        ActionType::Promote => {
+            let comp_id_str = action
+                .component_id
+                .as_deref()
+                .ok_or_else(|| {
+                    BaizeError::IllegalAction("promote requires component_id".into())
+                })?;
+            let promote_to = action
+                .promote_to
+                .as_deref()
+                .ok_or_else(|| {
+                    BaizeError::IllegalAction("promote requires promote_to".into())
+                })?;
+
+            let cid = session
+                .runtime
+                .components
+                .iter()
+                .find(|c| c.string_id == *comp_id_str)
+                .map(|c| c.id)
+                .ok_or_else(|| {
+                    BaizeError::IllegalAction(format!("component {comp_id_str:?} not found"))
+                })?;
+
+            if let Some(comp) = session.runtime.components.get_mut(cid) {
+                comp.component_type = promote_to.to_string();
+            }
+
+            events.push(make_event(
+                session.runtime.sequence,
+                EventType::Promote,
+                &player,
+                Some(comp_id_str),
+                None,
+                None,
+                "",
+                &prev_hash,
+            ));
+        }
+        ActionType::Draw => {
+            let source_zone = action
+                .zone
+                .as_deref()
+                .ok_or_else(|| BaizeError::IllegalAction("draw requires zone".into()))?;
+
+            let zone = session
+                .runtime
+                .zones
+                .get_mut(source_zone)
+                .ok_or_else(|| BaizeError::UnknownZone(source_zone.into()))?;
+
+            let cid = zone
+                .stack_pop()
+                .ok_or_else(|| BaizeError::IllegalAction("source zone is empty".into()))?;
+
+            let comp_name = session
+                .runtime
+                .components
+                .get(cid)
+                .map(|c| c.string_id.clone())
+                .unwrap_or_default();
+
+            // Add to the player's first per-player zone (hand)
+            if let Some(player_state) = session.runtime.players.get_mut(&player) {
+                if let Some(hand) = player_state.zones.values_mut().next() {
+                    hand.stack_push(cid);
+                }
+            }
+
+            events.push(make_event(
+                session.runtime.sequence,
+                EventType::Draw,
+                &player,
+                Some(&comp_name),
+                None,
+                None,
+                "",
+                &prev_hash,
+            ));
+        }
         _ => {
             return Err(BaizeError::IllegalAction(format!(
                 "action type {:?} not yet implemented",
@@ -319,6 +467,44 @@ fn parse_coord_str(s: &str) -> Result<(u32, u32)> {
             "invalid coordinate format: {s}"
         )))
     }
+}
+
+/// Find a component by its string ID on any grid zone. Returns (ComponentId, zone_name, col, row).
+fn find_component_on_grid(
+    session: &GameSession,
+    comp_id_str: &str,
+) -> Result<(ComponentId, String, u32, u32)> {
+    let cid = session
+        .runtime
+        .components
+        .iter()
+        .find(|c| c.string_id == *comp_id_str)
+        .map(|c| c.id)
+        .ok_or_else(|| {
+            BaizeError::IllegalAction(format!("component {comp_id_str:?} not found"))
+        })?;
+
+    for (zone_name, zone) in &session.runtime.zones {
+        if let crate::runtime::RuntimeZone::Grid {
+            width,
+            height,
+            cells,
+        } = zone
+        {
+            for row in 0..*height {
+                for col in 0..*width {
+                    let idx = row as usize * *width as usize + col as usize;
+                    if cells.get(idx).copied().flatten() == Some(cid) {
+                        return Ok((cid, zone_name.clone(), col, row));
+                    }
+                }
+            }
+        }
+    }
+
+    Err(BaizeError::IllegalAction(format!(
+        "component {comp_id_str:?} not found on any grid"
+    )))
 }
 
 fn position_zone(pos: Option<&Position>) -> Option<String> {

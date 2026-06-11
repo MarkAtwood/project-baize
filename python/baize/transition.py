@@ -21,6 +21,7 @@ from baize.runtime import (
     ComponentId,
     GameSession,
     GridZone,
+    StackZone,
 )
 
 
@@ -256,6 +257,119 @@ def apply_action(session: GameSession, action: Action) -> list[GameEvent]:
                     )
                 )
 
+    elif action.action_type == "remove":
+        comp_id_str = action.component_id
+        if comp_id_str is None:
+            raise IllegalActionError("remove requires component_id")
+        _cid, zone_name, col, row = _find_component_on_grid(session, comp_id_str)
+        zone = session.runtime.zones.get(zone_name)
+        if zone is None or not isinstance(zone, GridZone):
+            raise IllegalActionError(f"zone {zone_name} is not a grid")
+        zone.grid_set(col, row, None)
+        events.append(
+            _make_event(
+                session.runtime.sequence,
+                "remove",
+                player,
+                component_id=comp_id_str,
+                from_pos=f"{col},{row}",
+                prev_hash=prev_hash,
+            )
+        )
+
+    elif action.action_type == "swap":
+        comp_id_str = action.component_id
+        swap_with_str = action.swap_with
+        if comp_id_str is None:
+            raise IllegalActionError("swap requires component_id")
+        if swap_with_str is None:
+            raise IllegalActionError("swap requires swap_with")
+        _cid_a, zone_a, col_a, row_a = _find_component_on_grid(
+            session, comp_id_str
+        )
+        _cid_b, zone_b, col_b, row_b = _find_component_on_grid(
+            session, swap_with_str
+        )
+        if zone_a != zone_b:
+            raise IllegalActionError(
+                "swap requires both components in the same zone"
+            )
+        zone = session.runtime.zones.get(zone_a)
+        if zone is None or not isinstance(zone, GridZone):
+            raise IllegalActionError(f"zone {zone_a} is not a grid")
+        a = zone.grid_get(col_a, row_a)
+        b = zone.grid_get(col_b, row_b)
+        zone.grid_set(col_a, row_a, b)
+        zone.grid_set(col_b, row_b, a)
+        events.append(
+            _make_event(
+                session.runtime.sequence,
+                "swap",
+                player,
+                component_id=comp_id_str,
+                from_pos=f"{col_a},{row_a}",
+                to_pos=f"{col_b},{row_b}",
+                prev_hash=prev_hash,
+            )
+        )
+
+    elif action.action_type == "promote":
+        comp_id_str = action.component_id
+        promote_to = action.promote_to
+        if comp_id_str is None:
+            raise IllegalActionError("promote requires component_id")
+        if promote_to is None:
+            raise IllegalActionError("promote requires promote_to")
+        target_cid_p: ComponentId | None = None
+        for comp in session.runtime.components:
+            if comp.string_id == comp_id_str:
+                target_cid_p = comp.id
+                break
+        if target_cid_p is None:
+            raise IllegalActionError(f"component {comp_id_str!r} not found")
+        comp_mut = session.runtime.components.get(target_cid_p)
+        if comp_mut is not None:
+            comp_mut.component_type = promote_to
+        events.append(
+            _make_event(
+                session.runtime.sequence,
+                "promote",
+                player,
+                component_id=comp_id_str,
+                prev_hash=prev_hash,
+            )
+        )
+
+    elif action.action_type == "draw":
+        source_zone_name = action.zone
+        if source_zone_name is None:
+            raise IllegalActionError("draw requires zone")
+        source_zone = session.runtime.zones.get(source_zone_name)
+        if source_zone is None:
+            raise UnknownZoneError(source_zone_name)
+        if not isinstance(source_zone, StackZone):
+            raise IllegalActionError(f"zone {source_zone_name} is not a stack")
+        cid_drawn = source_zone.stack_pop()
+        if cid_drawn is None:
+            raise IllegalActionError("source zone is empty")
+        comp_data = session.runtime.components.get(cid_drawn)
+        comp_name = comp_data.string_id if comp_data is not None else ""
+        # Add to player's first per-player zone (hand)
+        player_state = session.runtime.players.get(player)
+        if player_state is not None and player_state.zones:
+            first_hand = next(iter(player_state.zones.values()))
+            if isinstance(first_hand, StackZone):
+                first_hand.stack_push(cid_drawn)
+        events.append(
+            _make_event(
+                session.runtime.sequence,
+                "draw",
+                player,
+                component_id=comp_name,
+                prev_hash=prev_hash,
+            )
+        )
+
     else:
         raise IllegalActionError(
             f"action type {action.action_type!r} not yet implemented"
@@ -313,6 +427,30 @@ def apply_action(session: GameSession, action: Action) -> list[GameEvent]:
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
+
+
+def _find_component_on_grid(
+    session: GameSession, comp_id_str: str
+) -> tuple[ComponentId, str, int, int]:
+    """Find a component by string ID on any grid zone."""
+    target_cid: ComponentId | None = None
+    for comp in session.runtime.components:
+        if comp.string_id == comp_id_str:
+            target_cid = comp.id
+            break
+    if target_cid is None:
+        raise IllegalActionError(f"component {comp_id_str!r} not found")
+
+    for zone_name, zone in session.runtime.zones.items():
+        if isinstance(zone, GridZone):
+            for row in range(zone.height):
+                for col in range(zone.width):
+                    if zone.grid_get(col, row) == target_cid:
+                        return target_cid, zone_name, col, row
+
+    raise IllegalActionError(
+        f"component {comp_id_str!r} not found on any grid"
+    )
 
 
 def _parse_position(pos: Position | None) -> tuple[int, int]:
