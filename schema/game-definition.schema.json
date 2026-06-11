@@ -37,6 +37,13 @@
       },
       "minItems": 1
     },
+    "library": {
+      "type": "object",
+      "additionalProperties": {
+        "description": "Named reusable definition. String values are CEL expressions; object values are perturber effects."
+      },
+      "description": "Named CEL expressions and perturber effect sequences that can be referenced by name in end_conditions, rules, and other effects."
+    },
     "rules": {
       "type": "object",
       "additionalProperties": {

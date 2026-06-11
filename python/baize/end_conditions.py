@@ -43,16 +43,21 @@ def check_end_conditions(session: GameSession) -> GameResult | None:
 def _eval_condition(
     session: GameSession, condition: str, current_player: str
 ) -> bool:
-    """Evaluate a condition: try CEL first, then legacy dispatch."""
+    """Evaluate a condition: resolve library, try CEL, then legacy dispatch."""
     from baize.cel import try_eval_end_condition
 
+    # Resolve library expression references
+    library = getattr(session.definition, "library", {})
+    entry = library.get(condition)
+    resolved = entry if isinstance(entry, str) else condition
+
     variables = _build_end_condition_variables(session, current_player)
-    cel_result = try_eval_end_condition(variables, condition)
+    cel_result = try_eval_end_condition(variables, resolved)
     if cel_result is not None:
         return cel_result
 
     # Legacy string dispatch for non-CEL condition strings
-    base = condition.split("(")[0].strip()
+    base = resolved.split("(")[0].strip()
     if base == "three_in_line":
         return _check_line_win(session, current_player)
     if base in ("all_cells_occupied", "board_is_full"):

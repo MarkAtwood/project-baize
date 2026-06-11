@@ -11,6 +11,8 @@ pub struct GameDefinition {
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub phases: Vec<Phase>,
     #[serde(default, skip_serializing_if = "IndexMap::is_empty")]
+    pub library: IndexMap<String, LibraryEntry>,
+    #[serde(default, skip_serializing_if = "IndexMap::is_empty")]
     pub rules: IndexMap<String, Rule>,
     pub end_conditions: Vec<EndCondition>,
     pub authority: Authority,
@@ -405,6 +407,16 @@ pub struct Rule {
     pub requires: Vec<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub server_resolves: Option<String>,
+}
+
+// --- Library entries ---
+
+/// A named library entry: either a CEL expression (string) or a perturber effect (object).
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(untagged)]
+pub enum LibraryEntry {
+    Expression(String),
+    Effect(crate::perturber::Effect),
 }
 
 // --- End conditions ---

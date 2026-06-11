@@ -28,6 +28,10 @@
     "actions_per_turn": 1,
     "mandatory": true
   },
+  "library": {
+    "three_in_a_row": "lines.exists(line, line.all(cell, cell == current_player))",
+    "board_full": "occupied_count == cell_count"
+  },
   "rules": {
     "placement": {
       "action": "place(mark, board/cell)",
@@ -38,12 +42,12 @@
     {
       "result": "win",
       "player": "current",
-      "condition": "lines.exists(line, line.all(cell, cell == current_player))",
+      "condition": "three_in_a_row",
       "name": "three_in_a_row"
     },
     {
       "result": "draw",
-      "condition": "occupied_count == cell_count",
+      "condition": "board_full",
       "name": "board_full"
     }
   ],

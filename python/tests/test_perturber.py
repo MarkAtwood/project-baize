@@ -254,3 +254,106 @@ class TestCycle:
                 {"zone": "board", "pos": "0,0"},
                 {"zone": "nonexistent", "pos": "0,0"},
             ]})
+
+
+def _library_session(library: dict) -> GameSession:
+    raw = {
+        "game": {"name": "Test", "players": ["A", "B"], "information": "perfect"},
+        "zones": {
+            "board": {"zone_type": "grid", "dimensions": [3, 3], "visibility": "public"},
+        },
+        "components": {"piece": {"owner": "per_player"}},
+        "turn_order": {
+            "type": "alternating", "players": ["A", "B"],
+            "actions_per_turn": 1, "mandatory": True,
+        },
+        "end_conditions": [
+            {"result": "draw", "condition": "all_cells_occupied"},
+        ],
+        "authority": {"server_only": [], "client_verifiable": ["all"]},
+        "library": library,
+    }
+    defn = GameDefinition.from_json(json.dumps(raw))
+    session = GameSession(defn)
+    session.runtime.status = "in_progress"
+    return session
+
+
+class TestInvoke:
+    def test_invoke_named_effect(self) -> None:
+        session = _library_session({
+            "add_five": {"add_counter": {"counter": "score", "value": 5}},
+        })
+        execute_effect(session, {"invoke": "add_five"})
+        assert session.runtime.counters["score"] == 5
+
+    def test_invoke_sequence(self) -> None:
+        session = _library_session({
+            "init_score": {"sequence": [
+                {"set_counter": {"counter": "score", "value": 10}},
+                {"add_counter": {"counter": "score", "value": 5}},
+            ]},
+        })
+        execute_effect(session, {"invoke": "init_score"})
+        assert session.runtime.counters["score"] == 15
+
+    def test_invoke_unknown_errors(self) -> None:
+        import pytest
+        session = _library_session({})
+        with pytest.raises(ValueError, match="unknown library entry"):
+            execute_effect(session, {"invoke": "nonexistent"})
+
+    def test_invoke_expression_errors(self) -> None:
+        import pytest
+        session = _library_session({"my_expr": "move_count == 0"})
+        with pytest.raises(ValueError, match="expression, not an effect"):
+            execute_effect(session, {"invoke": "my_expr"})
+
+    def test_invoke_nested(self) -> None:
+        session = _library_session({
+            "inner": {"set_counter": {"counter": "x", "value": 42}},
+            "outer": {"sequence": [{"invoke": "inner"}]},
+        })
+        execute_effect(session, {"invoke": "outer"})
+        assert session.runtime.counters["x"] == 42
+
+
+class TestLibraryExpressions:
+    def test_end_condition_resolves_library_expression(self) -> None:
+        from baize.end_conditions import check_end_conditions
+        raw = {
+            "game": {"name": "Test", "players": ["A", "B"], "information": "perfect"},
+            "zones": {
+                "board": {"zone_type": "grid", "dimensions": [3, 3], "visibility": "public"},
+            },
+            "components": {"mark": {"owner": "per_player"}},
+            "turn_order": {
+                "type": "alternating", "players": ["A", "B"],
+                "actions_per_turn": 1, "mandatory": True,
+            },
+            "end_conditions": [
+                {"result": "win", "player": "current", "condition": "full_board"},
+            ],
+            "authority": {"server_only": [], "client_verifiable": ["all"]},
+            "library": {"full_board": "occupied_count == cell_count"},
+        }
+        defn = GameDefinition.from_json(json.dumps(raw))
+        session = GameSession(defn)
+        session.runtime.status = "in_progress"
+
+        # Board not full — should not trigger
+        assert check_end_conditions(session) is None
+
+        # Fill the board
+        zone = session.runtime.zones["board"]
+        for row in range(3):
+            for col in range(3):
+                cid = session.runtime.components.insert(
+                    ComponentData(id=ComponentId(0), string_id=f"m{col}{row}",
+                                  component_type="mark", owner="A")
+                )
+                zone.grid_set(col, row, cid)
+
+        result = check_end_conditions(session)
+        assert result is not None
+        assert result.outcome == "win"
