@@ -42,6 +42,10 @@ pub enum EventType {
     Remove,
     Pass,
     Resign,
+    Fire,
+    Hit,
+    Miss,
+    Sunk,
     TurnAdvance,
     GameEnd,
 }
@@ -146,6 +150,7 @@ pub fn apply_action(session: &mut GameSession, action: &Action) -> Result<Vec<Ga
                 facing: None,
                 state: None,
                 properties: IndexMap::new(),
+                span_cells: Vec::new(),
             })?;
 
             let zone = session
@@ -228,15 +233,28 @@ pub fn apply_action(session: &mut GameSession, action: &Action) -> Result<Vec<Ga
                 .component_id
                 .as_deref()
                 .ok_or_else(|| BaizeError::IllegalAction("remove requires component_id".into()))?;
-            let (_cid, zone_name, col, row) =
+            let (cid, zone_name, col, row) =
                 find_component_on_grid(session, comp_id_str)?;
+
+            // Check if this is a spanning component
+            let span_cells = session
+                .runtime
+                .components
+                .get(cid)
+                .map(|c| c.span_cells.clone())
+                .unwrap_or_default();
 
             let zone = session
                 .runtime
                 .zones
                 .get_mut(&zone_name)
                 .ok_or_else(|| BaizeError::UnknownZone(zone_name.clone()))?;
-            zone.grid_set(col, row, None);
+
+            if span_cells.is_empty() {
+                zone.grid_set(col, row, None);
+            } else {
+                zone.grid_remove_span(&span_cells);
+            }
 
             events.push(make_event(
                 session.runtime.sequence,
@@ -370,6 +388,219 @@ pub fn apply_action(session: &mut GameSession, action: &Action) -> Result<Vec<Ga
                 "",
                 &prev_hash,
             ));
+        }
+        ActionType::PlaceShip => {
+            let (to_col, to_row) = parse_position(action.to.as_ref())?;
+            let zone_name = position_zone(action.to.as_ref()).unwrap_or("board".to_string());
+            let comp_type = action
+                .component_type
+                .as_deref()
+                .ok_or_else(|| {
+                    BaizeError::IllegalAction("place_ship requires component_type".into())
+                })?;
+
+            let horizontal = match action.orientation {
+                Some(crate::action::Orientation::Horizontal) => true,
+                Some(crate::action::Orientation::Vertical) => false,
+                None => {
+                    return Err(BaizeError::IllegalAction(
+                        "place_ship requires orientation".into(),
+                    ))
+                }
+            };
+
+            // Look up span from definition: check types[comp_type].span, then component.span
+            let span = lookup_span(&session.definition, comp_type)?;
+
+            let instance_id = format!(
+                "{}-{}-{}",
+                comp_type,
+                player,
+                session.runtime.components.len()
+            );
+            let cid = session.runtime.components.insert(ComponentData {
+                id: ComponentId(0),
+                string_id: instance_id.clone(),
+                component_type: comp_type.to_string(),
+                owner: Some(player.clone()),
+                facing: None,
+                state: None,
+                properties: IndexMap::new(),
+                span_cells: Vec::new(),
+            })?;
+
+            // Try player zone first, then shared zones
+            let zone = session
+                .runtime
+                .players
+                .get_mut(&player)
+                .and_then(|p| p.zones.get_mut(&zone_name))
+                .or_else(|| session.runtime.zones.get_mut(&zone_name))
+                .ok_or_else(|| BaizeError::UnknownZone(zone_name.clone()))?;
+
+            let span_cells = zone.grid_place_span(to_col, to_row, horizontal, span, cid)?;
+
+            // Store span cells on the component
+            if let Some(comp) = session.runtime.components.get_mut(cid) {
+                comp.span_cells = span_cells;
+            }
+
+            events.push(make_event(
+                session.runtime.sequence,
+                EventType::Place,
+                &player,
+                Some(&instance_id),
+                None,
+                Some(&format!("{},{}", to_col, to_row)),
+                "",
+                &prev_hash,
+            ));
+        }
+        ActionType::Fire => {
+            let (target_col, target_row) = parse_position(action.to.as_ref())?;
+            let target_zone_name = position_zone(action.to.as_ref()).unwrap_or("ocean".to_string());
+            let peg_zone_name = action
+                .zone
+                .as_deref()
+                .unwrap_or("target");
+
+            // Find the opponent
+            let opponent = session
+                .runtime
+                .players
+                .keys()
+                .find(|p| p.as_str() != player)
+                .cloned()
+                .ok_or_else(|| BaizeError::IllegalAction("no opponent found".into()))?;
+
+            // Check if attacker already fired at this cell (check own target grid for peg)
+            {
+                let attacker_target = session
+                    .runtime
+                    .players
+                    .get(&player)
+                    .and_then(|p| p.zones.get(peg_zone_name));
+                if let Some(tz) = attacker_target {
+                    if tz.grid_get(target_col, target_row).is_some() {
+                        return Err(BaizeError::IllegalAction(format!(
+                            "already fired at ({target_col},{target_row})"
+                        )));
+                    }
+                }
+            }
+
+            // Check opponent's ocean grid at the target cell
+            let hit_cid = {
+                let opp_ocean = session
+                    .runtime
+                    .players
+                    .get(&opponent)
+                    .and_then(|p| p.zones.get(&target_zone_name));
+                match opp_ocean {
+                    Some(zone) => zone.grid_get(target_col, target_row),
+                    None => None,
+                }
+            };
+
+            let is_hit = hit_cid.is_some();
+
+            // Create a peg (hit or miss) on the attacker's target grid
+            let peg_type = if is_hit { "hit" } else { "miss" };
+            let peg_id = format!("{}-{}-{}", peg_type, player, session.runtime.components.len());
+            let peg_cid = session.runtime.components.insert(ComponentData {
+                id: ComponentId(0),
+                string_id: peg_id.clone(),
+                component_type: peg_type.to_string(),
+                owner: Some(player.clone()),
+                facing: None,
+                state: None,
+                properties: IndexMap::new(),
+                span_cells: Vec::new(),
+            })?;
+
+            // Place peg on attacker's target grid
+            if let Some(attacker) = session.runtime.players.get_mut(&player) {
+                if let Some(target_zone) = attacker.zones.get_mut(peg_zone_name) {
+                    target_zone.grid_set(target_col, target_row, Some(peg_cid));
+                }
+            }
+
+            // Fire event
+            events.push(make_event(
+                session.runtime.sequence,
+                EventType::Fire,
+                &player,
+                None,
+                None,
+                Some(&format!("{target_col},{target_row}")),
+                "",
+                &prev_hash,
+            ));
+
+            if is_hit {
+                let hit_comp_id = hit_cid.expect("verified is_hit above");
+
+                // Increment hit_count on the ship component
+                let (ship_type, hit_count, span_len) = {
+                    let comp = session.runtime.components.get_mut(hit_comp_id)
+                        .ok_or_else(|| BaizeError::IllegalAction("hit component not found".into()))?;
+                    let prev = comp.properties
+                        .get("hit_count")
+                        .and_then(|v| v.as_u64())
+                        .unwrap_or(0);
+                    let new_count = prev + 1;
+                    comp.properties.insert(
+                        "hit_count".to_string(),
+                        serde_json::Value::Number(serde_json::Number::from(new_count)),
+                    );
+                    (comp.component_type.clone(), new_count, comp.span_cells.len() as u64)
+                };
+
+                events.push(make_event(
+                    session.runtime.sequence,
+                    EventType::Hit,
+                    &player,
+                    Some(&peg_id),
+                    None,
+                    Some(&format!("{target_col},{target_row}")),
+                    "",
+                    &prev_hash,
+                ));
+
+                // Check if ship is sunk (hit_count == span length)
+                if span_len > 0 && hit_count >= span_len {
+                    events.push(GameEvent {
+                        sequence: session.runtime.sequence,
+                        event_type: EventType::Sunk,
+                        player: player.clone(),
+                        component_id: Some(ship_type),
+                        from: None,
+                        to: None,
+                        captured: None,
+                        detail: None,
+                        state_hash: String::new(),
+                        prev_hash: prev_hash.clone(),
+                    });
+
+                    // Decrement opponent's ships_remaining counter
+                    if let Some(opp) = session.runtime.players.get_mut(&opponent) {
+                        if let Some(counter) = opp.counters.get_mut("ships_remaining") {
+                            *counter = counter.saturating_sub(1);
+                        }
+                    }
+                }
+            } else {
+                events.push(make_event(
+                    session.runtime.sequence,
+                    EventType::Miss,
+                    &player,
+                    Some(&peg_id),
+                    None,
+                    Some(&format!("{target_col},{target_row}")),
+                    "",
+                    &prev_hash,
+                ));
+            }
         }
         _ => {
             return Err(BaizeError::IllegalAction(format!(
@@ -505,6 +736,33 @@ fn find_component_on_grid(
     Err(BaizeError::IllegalAction(format!(
         "component {comp_id_str:?} not found on any grid"
     )))
+}
+
+/// Look up span for a component type from the game definition.
+///
+/// Checks (in order):
+/// 1. Component types[comp_type].span (per-type span)
+/// 2. Component-level span (uniform span)
+/// 3. Default: 1
+fn lookup_span(
+    definition: &crate::definition::GameDefinition,
+    comp_type: &str,
+) -> Result<u32> {
+    for comp_def in definition.components.values() {
+        // Check per-type span
+        if let Some(ref types) = comp_def.types {
+            if let Some(type_def) = types.get(comp_type) {
+                if let Some(span) = type_def.get("span").and_then(|v| v.as_u64()) {
+                    return Ok(span as u32);
+                }
+            }
+        }
+        // Check component-level span
+        if let Some(span) = comp_def.span {
+            return Ok(span);
+        }
+    }
+    Ok(1)
 }
 
 fn position_zone(pos: Option<&Position>) -> Option<String> {

@@ -14,6 +14,7 @@ from dataclasses import dataclass
 from typing import Any, Literal
 
 from baize.action import Action, Position
+from baize.definition import GameDefinition
 from baize.end_conditions import check_end_conditions
 from baize.error import IllegalActionError, InvalidCoordinateError, UnknownZoneError
 from baize.runtime import (
@@ -50,6 +51,10 @@ EventTypeLiteral = Literal[
     "remove",
     "pass",
     "resign",
+    "fire",
+    "hit",
+    "miss",
+    "sunk",
     "turn_advance",
     "game_end",
 ]
@@ -261,11 +266,18 @@ def apply_action(session: GameSession, action: Action) -> list[GameEvent]:
         comp_id_str = action.component_id
         if comp_id_str is None:
             raise IllegalActionError("remove requires component_id")
-        _cid, zone_name, col, row = _find_component_on_grid(session, comp_id_str)
+        remove_cid, zone_name, col, row = _find_component_on_grid(
+            session, comp_id_str
+        )
         zone = session.runtime.zones.get(zone_name)
         if zone is None or not isinstance(zone, GridZone):
             raise IllegalActionError(f"zone {zone_name} is not a grid")
-        zone.grid_set(col, row, None)
+        # Check for spanning component
+        comp_data = session.runtime.components.get(remove_cid)
+        if comp_data is not None and comp_data.span_cells:
+            zone.grid_remove_span(comp_data.span_cells)
+        else:
+            zone.grid_set(col, row, None)
         events.append(
             _make_event(
                 session.runtime.sequence,
@@ -369,6 +381,177 @@ def apply_action(session: GameSession, action: Action) -> list[GameEvent]:
                 prev_hash=prev_hash,
             )
         )
+
+    elif action.action_type == "place_ship":
+        to_col, to_row = _parse_position(action.to_pos)
+        zone_name = _position_zone(action.to_pos) or "board"
+        comp_type = action.component_type
+        if comp_type is None:
+            raise IllegalActionError("place_ship requires component_type")
+        if action.orientation is None:
+            raise IllegalActionError("place_ship requires orientation")
+        horizontal = action.orientation == "horizontal"
+
+        # Look up span from definition
+        span = _lookup_span(session.definition, comp_type)
+
+        instance_id = f"{comp_type}-{player}-{len(session.runtime.components)}"
+        cid = session.runtime.components.insert(
+            ComponentData(
+                id=ComponentId(0),
+                string_id=instance_id,
+                component_type=comp_type,
+                owner=player,
+            )
+        )
+
+        # Try player zone first, then shared zones
+        zone: GridZone | None = None
+        player_state = session.runtime.players.get(player)
+        if player_state is not None:
+            pz = player_state.zones.get(zone_name)
+            if isinstance(pz, GridZone):
+                zone = pz
+        if zone is None:
+            z = session.runtime.zones.get(zone_name)
+            if isinstance(z, GridZone):
+                zone = z
+        if zone is None:
+            raise UnknownZoneError(zone_name)
+
+        span_cells = zone.grid_place_span(
+            to_col, to_row, horizontal, span, cid
+        )
+
+        # Store span cells on the component
+        comp_data = session.runtime.components.get(cid)
+        if comp_data is not None:
+            comp_data.span_cells = span_cells
+
+        events.append(
+            _make_event(
+                session.runtime.sequence,
+                "place",
+                player,
+                component_id=instance_id,
+                to_pos=f"{to_col},{to_row}",
+                prev_hash=prev_hash,
+            )
+        )
+
+    elif action.action_type == "fire":
+        target_col, target_row = _parse_position(action.to_pos)
+        target_zone_name = _position_zone(action.to_pos) or "ocean"
+        peg_zone_name = action.zone or "target"
+
+        # Find opponent
+        opponent: str | None = None
+        for p in session.runtime.players:
+            if p != player:
+                opponent = p
+                break
+        if opponent is None:
+            raise IllegalActionError("no opponent found")
+
+        # Check duplicate fire (attacker's target grid)
+        attacker_state = session.runtime.players.get(player)
+        if attacker_state is not None:
+            atk_target = attacker_state.zones.get(peg_zone_name)
+            if isinstance(atk_target, GridZone):
+                if atk_target.grid_get(target_col, target_row) is not None:
+                    raise IllegalActionError(
+                        f"already fired at ({target_col},{target_row})"
+                    )
+
+        # Check opponent's ocean grid
+        opp_state = session.runtime.players.get(opponent)
+        hit_cid: ComponentId | None = None
+        if opp_state is not None:
+            opp_ocean = opp_state.zones.get(target_zone_name)
+            if isinstance(opp_ocean, GridZone):
+                hit_cid = opp_ocean.grid_get(target_col, target_row)
+
+        is_hit = hit_cid is not None
+
+        # Create peg on attacker's target grid
+        peg_type = "hit" if is_hit else "miss"
+        peg_id = f"{peg_type}-{player}-{len(session.runtime.components)}"
+        peg_cid = session.runtime.components.insert(
+            ComponentData(
+                id=ComponentId(0),
+                string_id=peg_id,
+                component_type=peg_type,
+                owner=player,
+            )
+        )
+
+        atk_state = session.runtime.players.get(player)
+        if atk_state is not None:
+            atk_zone = atk_state.zones.get(peg_zone_name)
+            if isinstance(atk_zone, GridZone):
+                atk_zone.grid_set(target_col, target_row, peg_cid)
+
+        events.append(
+            _make_event(
+                session.runtime.sequence,
+                "fire",
+                player,
+                to_pos=f"{target_col},{target_row}",
+                prev_hash=prev_hash,
+            )
+        )
+
+        if is_hit:
+            assert hit_cid is not None
+            # Increment hit_count on the ship
+            comp = session.runtime.components.get(hit_cid)
+            if comp is not None:
+                prev_hits = comp.properties.get("hit_count", 0)
+                new_hits = int(prev_hits) + 1
+                comp.properties["hit_count"] = new_hits
+                ship_type = comp.component_type
+                span_len = len(comp.span_cells)
+
+            events.append(
+                _make_event(
+                    session.runtime.sequence,
+                    "hit",
+                    player,
+                    component_id=peg_id,
+                    to_pos=f"{target_col},{target_row}",
+                    prev_hash=prev_hash,
+                )
+            )
+
+            # Check sunk
+            if comp is not None and span_len > 0 and new_hits >= span_len:
+                events.append(
+                    GameEvent(
+                        sequence=session.runtime.sequence,
+                        event_type="sunk",
+                        player=player,
+                        component_id=ship_type,
+                        state_hash="",
+                        prev_hash=prev_hash,
+                    )
+                )
+                # Decrement opponent ships_remaining
+                opp = session.runtime.players.get(opponent)
+                if opp is not None and "ships_remaining" in opp.counters:
+                    opp.counters["ships_remaining"] = max(
+                        0, opp.counters["ships_remaining"] - 1
+                    )
+        else:
+            events.append(
+                _make_event(
+                    session.runtime.sequence,
+                    "miss",
+                    player,
+                    component_id=peg_id,
+                    to_pos=f"{target_col},{target_row}",
+                    prev_hash=prev_hash,
+                )
+            )
 
     else:
         raise IllegalActionError(
@@ -480,6 +663,24 @@ def _parse_coord_str(s: str) -> tuple[int, int]:
             f"coordinates must be non-negative, got ({col}, {row})"
         )
     return col, row
+
+
+def _lookup_span(definition: GameDefinition, comp_type: str) -> int:
+    """Look up span for a component type from the game definition.
+
+    Checks (in order):
+    1. Component types[comp_type]["span"] (per-type span)
+    2. Component-level span
+    3. Default: 1
+    """
+    for comp_def in definition.components.values():
+        if comp_def.types is not None and comp_type in comp_def.types:
+            type_def = comp_def.types[comp_type]
+            if isinstance(type_def, dict) and "span" in type_def:
+                return int(type_def["span"])
+        if comp_def.span is not None:
+            return comp_def.span
+    return 1
 
 
 def _position_zone(pos: Position | None) -> str | None:

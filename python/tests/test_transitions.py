@@ -209,3 +209,203 @@ def test_events_are_jsonl_serializable() -> None:
         # Should be valid JSON
         parsed = json.loads(json_line)
         assert isinstance(parsed, dict)
+
+
+BATTLESHIP_JSON = """{
+    "game": { "name": "Battleship", "players": ["A", "B"], "information": "imperfect" },
+    "zones": {
+        "ocean": { "zone_type": "grid", "dimensions": [10, 10], "per_player": true, "visibility": { "private": "owner" } },
+        "target": { "zone_type": "grid", "dimensions": [10, 10], "per_player": true, "visibility": { "private": "owner" } },
+        "ships_remaining": { "zone_type": "counter", "per_player": true, "visibility": "public" }
+    },
+    "components": {
+        "ship": {
+            "owner": "per_player",
+            "types": {
+                "carrier": { "span": 5 },
+                "destroyer": { "span": 2 }
+            }
+        },
+        "peg": { "owner": "per_player", "count": "unlimited" }
+    },
+    "turn_order": { "type": "alternating", "players": ["A", "B"] },
+    "end_conditions": [{ "result": "win", "condition": "false" }],
+    "authority": { "server_only": [], "client_verifiable": ["all"] }
+}"""
+
+
+def battleship_session() -> GameSession:
+    definition = GameDefinition.from_json(BATTLESHIP_JSON)
+    session = GameSession(definition)
+    for player in session.runtime.players.values():
+        player.counters["ships_remaining"] = 2
+    return session
+
+
+def place_ship_action(
+    comp_type: str, col: int, row: int, orientation: str
+) -> Action:
+    return Action(
+        action_type="place_ship",
+        component_type=comp_type,
+        to_pos={"zone": "ocean", "cell": f"{col},{row}"},
+        orientation=orientation,
+    )
+
+
+def fire_action(col: int, row: int) -> Action:
+    return Action(
+        action_type="fire",
+        to_pos={"zone": "ocean", "cell": f"{col},{row}"},
+        zone="target",
+    )
+
+
+def test_place_ship_horizontal() -> None:
+    session = battleship_session()
+
+    events = apply_action(
+        session, place_ship_action("carrier", 0, 0, "horizontal")
+    )
+    assert any(e.event_type == "place" for e in events)
+
+    ocean = session.runtime.players["A"].zones["ocean"]
+    assert isinstance(ocean, GridZone)
+    cid = ocean.grid_get(0, 0)
+    assert cid is not None
+    for col in range(5):
+        assert ocean.grid_get(col, 0) == cid
+    assert ocean.grid_get(5, 0) is None
+
+    comp = session.runtime.components.get(cid)
+    assert comp is not None
+    assert len(comp.span_cells) == 5
+    assert comp.component_type == "carrier"
+
+
+def test_place_ship_vertical() -> None:
+    session = battleship_session()
+
+    events = apply_action(
+        session, place_ship_action("destroyer", 9, 8, "vertical")
+    )
+    assert any(e.event_type == "place" for e in events)
+
+    ocean = session.runtime.players["A"].zones["ocean"]
+    assert isinstance(ocean, GridZone)
+    cid = ocean.grid_get(9, 8)
+    assert cid is not None
+    assert ocean.grid_get(9, 9) == cid
+    assert ocean.grid_get(9, 7) is None
+
+
+def test_place_ship_overlap_rejected() -> None:
+    import pytest
+
+    session = battleship_session()
+
+    apply_action(
+        session, place_ship_action("carrier", 0, 0, "horizontal")
+    )
+    session.runtime.turn_index = 0
+
+    with pytest.raises(IllegalActionError):
+        apply_action(
+            session, place_ship_action("destroyer", 3, 0, "horizontal")
+        )
+
+
+def test_place_ship_out_of_bounds_rejected() -> None:
+    import pytest
+
+    session = battleship_session()
+
+    with pytest.raises(IllegalActionError):
+        apply_action(
+            session, place_ship_action("carrier", 8, 0, "horizontal")
+        )
+
+
+def test_fire_miss() -> None:
+    session = battleship_session()
+    session.runtime.status = "in_progress"
+
+    # B places destroyer at (5,5)
+    session.runtime.turn_index = 1
+    apply_action(session, place_ship_action("destroyer", 5, 5, "horizontal"))
+
+    # A fires at (0,0) — miss
+    session.runtime.turn_index = 0
+    events = apply_action(session, fire_action(0, 0))
+    assert any(e.event_type == "fire" for e in events)
+    assert any(e.event_type == "miss" for e in events)
+    assert not any(e.event_type == "hit" for e in events)
+
+    target = session.runtime.players["A"].zones["target"]
+    assert isinstance(target, GridZone)
+    peg_cid = target.grid_get(0, 0)
+    assert peg_cid is not None
+    peg = session.runtime.components.get(peg_cid)
+    assert peg is not None
+    assert peg.component_type == "miss"
+
+
+def test_fire_hit() -> None:
+    session = battleship_session()
+    session.runtime.status = "in_progress"
+
+    # B places destroyer at (5,5)
+    session.runtime.turn_index = 1
+    apply_action(session, place_ship_action("destroyer", 5, 5, "horizontal"))
+
+    # A fires at (5,5) — hit!
+    session.runtime.turn_index = 0
+    events = apply_action(session, fire_action(5, 5))
+    assert any(e.event_type == "hit" for e in events)
+    assert not any(e.event_type == "miss" for e in events)
+
+    target = session.runtime.players["A"].zones["target"]
+    assert isinstance(target, GridZone)
+    peg_cid = target.grid_get(5, 5)
+    assert peg_cid is not None
+    peg = session.runtime.components.get(peg_cid)
+    assert peg is not None
+    assert peg.component_type == "hit"
+
+
+def test_fire_sunk() -> None:
+    session = battleship_session()
+    session.runtime.status = "in_progress"
+
+    # B places destroyer (span 2) at (5,5) horizontal
+    session.runtime.turn_index = 1
+    apply_action(session, place_ship_action("destroyer", 5, 5, "horizontal"))
+
+    # A fires at (5,5) — first hit, not sunk
+    session.runtime.turn_index = 0
+    events1 = apply_action(session, fire_action(5, 5))
+    assert any(e.event_type == "hit" for e in events1)
+    assert not any(e.event_type == "sunk" for e in events1)
+
+    # A fires at (6,5) — second hit, sunk!
+    session.runtime.turn_index = 0
+    events2 = apply_action(session, fire_action(6, 5))
+    assert any(e.event_type == "hit" for e in events2)
+    assert any(e.event_type == "sunk" for e in events2)
+
+    # B's ships_remaining decremented
+    assert session.runtime.players["B"].counters["ships_remaining"] == 1
+
+
+def test_fire_duplicate_rejected() -> None:
+    import pytest
+
+    session = battleship_session()
+    session.runtime.status = "in_progress"
+
+    session.runtime.turn_index = 0
+    apply_action(session, fire_action(0, 0))
+
+    session.runtime.turn_index = 0
+    with pytest.raises(IllegalActionError):
+        apply_action(session, fire_action(0, 0))

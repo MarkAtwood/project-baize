@@ -128,6 +128,7 @@ fn setup_session(tc: &TestCase) -> GameSession {
             facing,
             state: comp.state.clone(),
             properties,
+            span_cells: Vec::new(),
         }).unwrap();
         cids.push(cid);
     }

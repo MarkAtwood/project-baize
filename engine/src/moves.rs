@@ -31,6 +31,8 @@ pub fn legal_moves(session: &GameSession) -> Vec<LegalMove> {
                 height,
                 cells,
             } => {
+                // Track seen components to avoid duplicate processing of multi-cell spans
+                let mut seen = std::collections::HashSet::new();
                 for row in 0..*height {
                     for col in 0..*width {
                         let idx = match (row as usize)
@@ -42,6 +44,9 @@ pub fn legal_moves(session: &GameSession) -> Vec<LegalMove> {
                         };
                         if let Some(Some(cid)) = cells.get(idx) {
                             let cid = *cid;
+                            if !seen.insert(cid) {
+                                continue; // Already processed this spanning component
+                            }
                             if let Some(comp_data) = session.runtime.components.get(cid) {
                                 if comp_data.owner.as_deref() != Some(&player) {
                                     continue;

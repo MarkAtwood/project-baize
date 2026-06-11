@@ -296,6 +296,7 @@ mod tests {
                 facing: None,
                 state: None,
                 properties: IndexMap::new(),
+                span_cells: Vec::new(),
             })
             .unwrap();
         session

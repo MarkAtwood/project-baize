@@ -1,0 +1,132 @@
+{
+  "$schema": "../schema/game-definition.schema.json",
+  "game": {
+    "name": "Battleship",
+    "players": ["player_1", "player_2"],
+    "information": "imperfect"
+  },
+  "zones": {
+    "ocean": {
+      "zone_type": "grid",
+      "dimensions": [10, 10],
+      "per_player": true,
+      "visibility": { "private": "owner" },
+      "labels": {
+        "files": ["A", "B", "C", "D", "E", "F", "G", "H", "I", "J"],
+        "ranks": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+      },
+      "adjacency": "orthogonal_4",
+      "note": "Ship placements. Only the owner can see their own ships."
+    },
+    "target": {
+      "zone_type": "grid",
+      "dimensions": [10, 10],
+      "per_player": true,
+      "visibility": { "private": "owner" },
+      "labels": {
+        "files": ["A", "B", "C", "D", "E", "F", "G", "H", "I", "J"],
+        "ranks": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+      },
+      "adjacency": "orthogonal_4",
+      "note": "Attack record. Hit and miss pegs placed here by the server after each fire action."
+    },
+    "ships_remaining": {
+      "zone_type": "counter",
+      "per_player": true,
+      "visibility": "public",
+      "note": "Number of unsunk ships. Starts at 5, decremented when a ship is fully hit."
+    }
+  },
+  "components": {
+    "ship": {
+      "owner": "per_player",
+      "one_of_each": true,
+      "types": {
+        "carrier": { "span": 5 },
+        "battleship": { "span": 4 },
+        "cruiser": { "span": 3 },
+        "submarine": { "span": 3 },
+        "destroyer": { "span": 2 }
+      },
+      "note": "Each ship is a single multi-cell component spanning multiple grid cells. Orientation is specified at placement time. Engine tracks hit_count property; ship is sunk when hit_count equals span."
+    },
+    "peg": {
+      "owner": "per_player",
+      "count": "unlimited",
+      "types": {
+        "hit": { "color": "red" },
+        "miss": { "color": "white" }
+      },
+      "note": "Placed on the attacker target grid by the server after resolving a fire action."
+    }
+  },
+  "turn_order": {
+    "type": "alternating",
+    "players": ["player_1", "player_2"],
+    "actions_per_turn": 1,
+    "mandatory": true
+  },
+  "phases": [
+    {
+      "name": "placement",
+      "simultaneous": true,
+      "action": "place_ship(ship_type, start_cell, orientation)",
+      "ends_when": "both players have placed all 5 ships",
+      "note": "Both players place ships on their own ocean grid. Server validates no overlap and within bounds. Neither player sees the opponent ocean grid."
+    },
+    {
+      "name": "combat",
+      "action": "fire(cell)",
+      "actions_per_turn": 1,
+      "starts_with": "player_1",
+      "ends_when": "all opponent ships sunk"
+    }
+  ],
+  "rules": {
+    "placement_constraints": {
+      "definition": "Ship placement validation rules",
+      "constraints": [
+        "ship must be fully within the 10x10 grid",
+        "ship segments cannot overlap with existing segments",
+        "ship must be horizontal or vertical (no diagonal)",
+        "each ship type placed exactly once"
+      ]
+    },
+    "fire": {
+      "definition": "Attack resolution",
+      "action": "fire(cell)",
+      "constraint": "cell not already attacked (no peg on target grid at that position)",
+      "server_resolves": "check opponent ocean grid at cell; if ship present: hit (increment hit_count, place hit peg on attacker target grid); if empty: miss (place miss peg on attacker target grid)"
+    },
+    "sunk_detection": {
+      "definition": "Ship sunk detection after each hit",
+      "trigger": "after hit",
+      "effect": "if hit_count equals ship span, emit sunk event and decrement ships_remaining counter"
+    }
+  },
+  "end_conditions": [
+    {
+      "result": "win",
+      "player": "current",
+      "condition": "opponent ships_remaining == 0",
+      "name": "all_ships_sunk"
+    },
+    {
+      "result": "win",
+      "player": "opponent_of_current",
+      "condition": "player resigns",
+      "name": "resignation"
+    }
+  ],
+  "authority": {
+    "server_only": [
+      "resolve_fire(cell)",
+      "reveal_sunk_ship(ship_type)",
+      "validate_placement(ship_type, start_cell, orientation)"
+    ],
+    "client_verifiable": [
+      "fire(cell)",
+      "place_ship(ship_type, start_cell, orientation)"
+    ]
+  }
+}

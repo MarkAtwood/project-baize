@@ -376,6 +376,7 @@ class Component:
     special: str | None = None
     types: dict[str, Any] | None = None
     one_of_each: bool | None = None
+    span: int | None = None
     supply: Any | None = None
     adds: Any | None = None
     note: str | None = None
@@ -399,6 +400,7 @@ class Component:
             special=d.get("special"),
             types=d.get("types"),
             one_of_each=d.get("one_of_each"),
+            span=d.get("span"),
             supply=d.get("supply"),
             adds=d.get("adds"),
             note=d.get("note"),
@@ -430,6 +432,8 @@ class Component:
             out["types"] = self.types
         if self.one_of_each is not None:
             out["one_of_each"] = self.one_of_each
+        if self.span is not None:
+            out["span"] = self.span
         if self.supply is not None:
             out["supply"] = self.supply
         if self.adds is not None:

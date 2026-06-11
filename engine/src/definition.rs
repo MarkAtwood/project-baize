@@ -199,6 +199,8 @@ pub struct Component {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub one_of_each: Option<bool>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub span: Option<u32>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub supply: Option<serde_json::Value>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub adds: Option<serde_json::Value>,

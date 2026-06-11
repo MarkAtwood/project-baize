@@ -68,6 +68,7 @@ fn place_piece(
         facing: None,
         state: None,
         properties: IndexMap::new(),
+            span_cells: Vec::new(),
     }).unwrap();
     session
         .runtime

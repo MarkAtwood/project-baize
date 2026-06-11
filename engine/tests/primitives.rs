@@ -48,6 +48,7 @@ fn place_component(
             facing: None,
             state: None,
             properties: IndexMap::new(),
+            span_cells: Vec::new(),
         })
         .unwrap();
     if let Some(zone) = session.runtime.zones.get_mut("board") {
@@ -183,6 +184,7 @@ fn swap_different_zones_fails() {
             facing: None,
             state: None,
             properties: IndexMap::new(),
+            span_cells: Vec::new(),
         })
         .unwrap();
 

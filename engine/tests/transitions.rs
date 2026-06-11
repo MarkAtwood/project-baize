@@ -1,4 +1,4 @@
-use baize_engine::action::{Action, ActionType, Position};
+use baize_engine::action::{Action, ActionType, Orientation, Position};
 use baize_engine::runtime::*;
 use baize_engine::state::GameStatus;
 use baize_engine::transition::{apply_action, EventType};
@@ -141,6 +141,7 @@ fn move_piece_on_grid() {
         facing: None,
         state: None,
         properties: IndexMap::new(),
+            span_cells: Vec::new(),
     }).unwrap();
     session
         .runtime
@@ -183,6 +184,7 @@ fn capture_enemy_piece() {
         facing: None,
         state: None,
         properties: IndexMap::new(),
+            span_cells: Vec::new(),
     }).unwrap();
     let br = session.runtime.components.insert(ComponentData {
         id: ComponentId(0),
@@ -192,6 +194,7 @@ fn capture_enemy_piece() {
         facing: None,
         state: None,
         properties: IndexMap::new(),
+            span_cells: Vec::new(),
     }).unwrap();
 
     let board = session.runtime.zones.get_mut("board").unwrap();
@@ -277,4 +280,267 @@ fn events_are_jsonl_serializable() {
         // Each event serializes to a single JSON line
         assert!(!json.contains('\n'));
     }
+}
+
+fn battleship_session() -> GameSession {
+    let def: GameDefinition = serde_json::from_str(
+        r#"{
+        "game": { "name": "Battleship", "players": ["A", "B"], "information": "imperfect" },
+        "zones": {
+            "ocean": { "zone_type": "grid", "dimensions": [10, 10], "per_player": true, "visibility": { "private": "owner" } },
+            "target": { "zone_type": "grid", "dimensions": [10, 10], "per_player": true, "visibility": { "private": "owner" } },
+            "ships_remaining": { "zone_type": "counter", "per_player": true, "visibility": "public" }
+        },
+        "components": {
+            "ship": {
+                "owner": "per_player",
+                "types": {
+                    "carrier": { "span": 5 },
+                    "destroyer": { "span": 2 }
+                }
+            },
+            "peg": { "owner": "per_player", "count": "unlimited" }
+        },
+        "turn_order": { "type": "alternating", "players": ["A", "B"] },
+        "end_conditions": [{ "result": "win", "condition": "false" }],
+        "authority": { "server_only": [], "client_verifiable": ["all"] }
+    }"#,
+    )
+    .unwrap();
+    let mut session = GameSession::new(def).unwrap();
+    // Initialize ships_remaining counters
+    for (_, player) in session.runtime.players.iter_mut() {
+        player.counters.insert("ships_remaining".into(), 2);
+    }
+    session
+}
+
+fn place_ship_action(comp_type: &str, col: u32, row: u32, orient: Orientation) -> Action {
+    Action {
+        action_type: ActionType::PlaceShip,
+        authority: None,
+        component_id: None,
+        component_type: Some(comp_type.to_string()),
+        from: None,
+        to: Some(Position::Structured {
+            zone: Some("ocean".to_string()),
+            cell: Some(format!("{col},{row}")),
+            index: None,
+        }),
+        zone: None,
+        count: None,
+        promote_to: None,
+        orientation: Some(orient),
+        rotation: None,
+        amount: None,
+        side: None,
+        dice_count: None,
+        dice_type: None,
+        swap_with: None,
+        declaration: None,
+        custom_data: None,
+    }
+}
+
+fn fire_action(col: u32, row: u32) -> Action {
+    Action {
+        action_type: ActionType::Fire,
+        authority: None,
+        component_id: None,
+        component_type: None,
+        from: None,
+        to: Some(Position::Structured {
+            zone: Some("ocean".to_string()),
+            cell: Some(format!("{col},{row}")),
+            index: None,
+        }),
+        zone: Some("target".to_string()),
+        count: None,
+        promote_to: None,
+        orientation: None,
+        rotation: None,
+        amount: None,
+        side: None,
+        dice_count: None,
+        dice_type: None,
+        swap_with: None,
+        declaration: None,
+        custom_data: None,
+    }
+}
+
+#[test]
+fn place_ship_horizontal() {
+    let mut session = battleship_session();
+
+    let events = apply_action(
+        &mut session,
+        &place_ship_action("carrier", 0, 0, Orientation::Horizontal),
+    )
+    .unwrap();
+
+    assert!(events.iter().any(|e| e.event_type == EventType::Place));
+
+    // Component should occupy 5 cells on player A's ocean
+    let ocean = session.runtime.players.get("A").unwrap().zones.get("ocean").unwrap();
+    let cid = ocean.grid_get(0, 0).expect("cell 0,0 should be occupied");
+    for col in 0..5u32 {
+        assert_eq!(ocean.grid_get(col, 0), Some(cid));
+    }
+    assert!(ocean.grid_get(5, 0).is_none());
+
+    // Component data should have span_cells populated
+    let comp = session.runtime.components.get(cid).unwrap();
+    assert_eq!(comp.span_cells.len(), 5);
+    assert_eq!(comp.component_type, "carrier");
+}
+
+#[test]
+fn place_ship_vertical() {
+    let mut session = battleship_session();
+
+    let events = apply_action(
+        &mut session,
+        &place_ship_action("destroyer", 9, 8, Orientation::Vertical),
+    )
+    .unwrap();
+
+    assert!(events.iter().any(|e| e.event_type == EventType::Place));
+
+    let ocean = session.runtime.players.get("A").unwrap().zones.get("ocean").unwrap();
+    let cid = ocean.grid_get(9, 8).unwrap();
+    assert_eq!(ocean.grid_get(9, 9), Some(cid));
+    assert!(ocean.grid_get(9, 7).is_none());
+}
+
+#[test]
+fn place_ship_overlap_rejected() {
+    let mut session = battleship_session();
+
+    apply_action(
+        &mut session,
+        &place_ship_action("carrier", 0, 0, Orientation::Horizontal),
+    )
+    .unwrap();
+
+    session.runtime.turn_index = 0;
+
+    let result = apply_action(
+        &mut session,
+        &place_ship_action("destroyer", 3, 0, Orientation::Horizontal),
+    );
+    assert!(result.is_err());
+}
+
+#[test]
+fn place_ship_out_of_bounds_rejected() {
+    let mut session = battleship_session();
+
+    let result = apply_action(
+        &mut session,
+        &place_ship_action("carrier", 8, 0, Orientation::Horizontal),
+    );
+    assert!(result.is_err());
+}
+
+#[test]
+fn fire_miss() {
+    let mut session = battleship_session();
+    session.runtime.status = GameStatus::InProgress;
+
+    // Player B places a destroyer at (5,5) on their ocean
+    session.runtime.turn_index = 1; // B's turn
+    apply_action(
+        &mut session,
+        &place_ship_action("destroyer", 5, 5, Orientation::Horizontal),
+    )
+    .unwrap();
+
+    // Player A fires at (0,0) — empty cell on B's ocean
+    session.runtime.turn_index = 0; // A's turn
+    let events = apply_action(&mut session, &fire_action(0, 0)).unwrap();
+
+    assert!(events.iter().any(|e| e.event_type == EventType::Fire));
+    assert!(events.iter().any(|e| e.event_type == EventType::Miss));
+    assert!(!events.iter().any(|e| e.event_type == EventType::Hit));
+
+    // A's target grid should have a miss peg at (0,0)
+    let target = session.runtime.players.get("A").unwrap().zones.get("target").unwrap();
+    let peg = target.grid_get(0, 0);
+    assert!(peg.is_some());
+    let peg_comp = session.runtime.components.get(peg.unwrap()).unwrap();
+    assert_eq!(peg_comp.component_type, "miss");
+}
+
+#[test]
+fn fire_hit() {
+    let mut session = battleship_session();
+    session.runtime.status = GameStatus::InProgress;
+
+    // Player B places a destroyer at (5,5) horizontal on their ocean
+    session.runtime.turn_index = 1;
+    apply_action(
+        &mut session,
+        &place_ship_action("destroyer", 5, 5, Orientation::Horizontal),
+    )
+    .unwrap();
+
+    // Player A fires at (5,5) — hit!
+    session.runtime.turn_index = 0;
+    let events = apply_action(&mut session, &fire_action(5, 5)).unwrap();
+
+    assert!(events.iter().any(|e| e.event_type == EventType::Hit));
+    assert!(!events.iter().any(|e| e.event_type == EventType::Miss));
+
+    // A's target grid should have a hit peg at (5,5)
+    let target = session.runtime.players.get("A").unwrap().zones.get("target").unwrap();
+    let peg = target.grid_get(5, 5);
+    assert!(peg.is_some());
+    let peg_comp = session.runtime.components.get(peg.unwrap()).unwrap();
+    assert_eq!(peg_comp.component_type, "hit");
+}
+
+#[test]
+fn fire_sunk() {
+    let mut session = battleship_session();
+    session.runtime.status = GameStatus::InProgress;
+
+    // Player B places a destroyer (span 2) at (5,5) horizontal
+    session.runtime.turn_index = 1;
+    apply_action(
+        &mut session,
+        &place_ship_action("destroyer", 5, 5, Orientation::Horizontal),
+    )
+    .unwrap();
+
+    // Player A fires at (5,5) — first hit
+    session.runtime.turn_index = 0;
+    let events1 = apply_action(&mut session, &fire_action(5, 5)).unwrap();
+    assert!(events1.iter().any(|e| e.event_type == EventType::Hit));
+    assert!(!events1.iter().any(|e| e.event_type == EventType::Sunk));
+
+    // Player A fires at (6,5) — second hit, ship sunk!
+    session.runtime.turn_index = 0;
+    let events2 = apply_action(&mut session, &fire_action(6, 5)).unwrap();
+    assert!(events2.iter().any(|e| e.event_type == EventType::Hit));
+    assert!(events2.iter().any(|e| e.event_type == EventType::Sunk));
+
+    // B's ships_remaining should be decremented
+    let b_ships = session.runtime.players.get("B").unwrap().counters.get("ships_remaining").unwrap();
+    assert_eq!(*b_ships, 1); // was 2, now 1
+}
+
+#[test]
+fn fire_duplicate_rejected() {
+    let mut session = battleship_session();
+    session.runtime.status = GameStatus::InProgress;
+
+    // Player A fires at (0,0) — miss
+    session.runtime.turn_index = 0;
+    apply_action(&mut session, &fire_action(0, 0)).unwrap();
+
+    // Player A tries to fire at (0,0) again — should be rejected
+    session.runtime.turn_index = 0;
+    let result = apply_action(&mut session, &fire_action(0, 0));
+    assert!(result.is_err());
 }
