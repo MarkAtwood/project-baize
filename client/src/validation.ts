@@ -16,6 +16,7 @@ const MAX_ARRAY_LENGTH = 10_000;
 
 /** Known server message types. */
 const KNOWN_MESSAGE_TYPES: ReadonlySet<string> = new Set<ServerMessageType>([
+  "welcome",
   "move_confirmed",
   "move_rejected",
   "random_result",
