@@ -9,89 +9,102 @@ regenerated periodically.
 ## Milestone: First Playable Game ✓
 
 Tic-tac-toe is playable end-to-end: browser client connects to server,
-two players place marks, someone wins. All P0/P1 issues are closed.
+two players place marks, someone wins.
 
-## Milestone: CEL + Server + Agent Stack ✓
+## Milestone: Declarative Game Engine ✓
 
-Full declarative game logic via CEL expressions, server persistence
-and auth, headless bot client, agent framework with reference agents
-(random, greedy, MCTS), and a terminal client for dev/testing.
+All core engine infrastructure is complete:
 
-## Critical Path: Go
+- **CEL constraint language** with composable predicates (lines, rows,
+  cols, diags, type queries), .exists/.all/.filter/.size support
+- **Movement primitives**: step, slide, leap, hop, remove, swap,
+  promote, draw, flip
+- **Structured perturber language**: sequence, if/then/else, for_each,
+  repeat(n), repeat_until_stable with fuel budget. Termination
+  guaranteed by construction. Enables Go captures, checkers multi-jump,
+  match-3 cascades in Tier 1 without WASM.
 
-The remaining critical-path item is the structured perturber language
-for chain reactions (Go captures, Carcassonne scoring). Everything
-else needed for chess-level games is complete:
+## Milestone: Server + Agent Stack ✓
 
-```
-✓ CEL constraints ──→ ✓ Movement primitives ──→ ○ baize-3a3  Perturber language
-                            │
-                            └──→ ✓ Composable CEL predicates
-```
+- **Server persistence** (Store trait + FileStore)
+- **Token-based player auth** with reconnection
+- **WebSocket hello/welcome** capability handshake
+- **CI pipeline** (Rust clippy/test, Python mypy/pytest, TypeScript tsc)
+- **Headless bot client** + **Agent framework** (Agent ABC, play loop)
+- **Agent SDK** (local move enumeration via AgentSession)
+- **Reference agents**: RandomAgent, GreedyAgent, MCTSAgent
+- **Terminal client** (`python -m baize.cli`)
 
-## Open Work (4 issues)
-
-**baize-3a3** (P2, feature) — **Spec structured perturber language**
-
-Structured effect/mutation language composing movement primitives with
-control flow (sequence, if/then/else, for_each, choose, repeat,
-repeat_until_stable). Bounded fixpoint iteration with fuel budget for
-chain reactions. Design target: Go runs entirely in Tier 1 without WASM.
-
-**baize-7a2** (P2, decision) — **CEL predicates are state queries only**
-
-Design decision: CEL functions are restricted to pure queries over
-current observable state — O(board_size), guaranteed termination.
-Hypotheticals (move simulation, checkmate) belong in Tier 2 WASM
-extensions. Three tiers: CEL = what's true now, WASM = what happens
-if, Agent/AI = is there a winning strategy.
+## Open Work (2 issues)
 
 **baize-042** (P3, feature) — **Native mobile client (iOS/Android)**
 
 **baize-rkf** (P4, feature) — **Desktop standalone client**
 
-## Completed Work (104 issues)
+Both are platform-specific UI projects (Swift/Kotlin, Electron/Tauri)
+independent of the core engine.
 
-### Milestones
+## Completed Work (106 issues)
 
-**First Playable Game** — Tic-tac-toe end-to-end: browser client,
-WebSocket server, game logic, win/draw detection.
+### Engine
 
-**CEL Integration** (baize-1ye) — CEL expression evaluation for game
-conditions in both Rust (cel-interpreter) and Python (built-in
-evaluator with .exists/.all/.filter/.size support). Game definitions
-use composable CEL syntax: `lines.exists(line, line.all(cell, cell ==
-current_player))`.
+**JSON Schema** (baize-0a0) — Game definition, component registry,
+game state, move/action schemas.
 
-**Composable CEL Predicates** (baize-82w) — Grid serialized as
-lines/rows/cols/diags of owner strings + type_rows/type_cols of
-component types. Hardcoded three_in_line replaced with composable
-CEL expression. Region-query variables for placement constraints.
+**Rust Core Engine** (baize-ah1) — Definition parser, state
+representation, legal move generator, state transition engine, WASM
+bindings. 106 tests.
+
+**Python Reference Implementation** — Strict mypy, dataclasses,
+mirrors Rust engine. 206 tests.
+
+**CEL Integration** (baize-1ye, baize-82w, baize-wf3) — cel-interpreter
+in Rust, built-in evaluator in Python (.exists/.all/.filter/.size).
+Grid serialized as composable lines/rows/cols/diags + type_rows/
+type_cols. Tic-tac-toe win condition:
+`lines.exists(line, line.all(cell, cell == current_player))`.
 
 **Movement Primitives** (baize-olc) — Remove, swap, promote, draw
-transitions + flip/remove/swap move generation in both engines.
+transitions + flip/remove/swap move generation.
 
-**Server Infrastructure** — Persistence layer with abstract Store
-trait + FileStore (baize-z6r). Token-based player auth with
-reconnection (baize-e3s). WebSocket hello/welcome capability
-handshake with protocol versioning (baize-7ce). CI pipeline with
-Rust clippy/test, Python mypy/pytest, TypeScript tsc (baize-fk5).
+**Perturber Language** (baize-3a3) — Structured effect AST with
+bounded control flow. sequence, if/then/else (CEL predicate),
+for_each, repeat(n), repeat_until_stable (fuel budget, fixpoint via
+state hash). No while, no recursion.
 
-**Agent Stack** — Headless Python bot client (baize-5vf). Agent
-abstract base class with play() loop (baize-a9j). Agent SDK bridging
-server state to local engine for move enumeration (baize-a0o).
-Reference agents: RandomAgent, GreedyAgent, MCTSAgent (baize-9wj).
+### Server
 
-**Terminal Client** (baize-1yb) — ASCII board rendering, text command
-parsing, token reconnection. `python -m baize.cli`.
+**Game Server** (baize-aca) — Axum WebSocket, hidden state vault,
+ChaCha20Rng randomness, move sequencing/validation.
 
-### Epics
+**Persistence** (baize-z6r) — Abstract Store trait + FileStore.
+Rooms persisted on creation, restored on startup.
 
-**baize-0a0** — JSON Schema definitions (4 tasks)
-**baize-ah1** — Rust core engine (5 tasks)
-**baize-aca** — Game server (4 tasks)
-**baize-562** — Cross-implementation test suite (4 tasks)
-**baize-7vp** — TypeScript Web Components client (4 tasks)
+**Auth** (baize-e3s) — Token-based player identity with reconnection.
+
+**Protocol** (baize-7ce) — Hello/welcome handshake with protocol
+versioning and client type declaration.
+
+**CI** (baize-fk5) — GitHub Actions: 3 parallel jobs, all green.
+
+### Clients
+
+**TypeScript Web Components** (baize-7vp) — `<baize-game>`,
+`<baize-board>`, drag/drop, WebSocket connection manager.
+
+**Terminal Client** (baize-1yb) — ASCII board rendering, text commands.
+
+**Bot Client** (baize-5vf) — Headless Python WebSocket client.
+
+### Agent Stack
+
+**Agent Framework** (baize-a9j) — Agent ABC with play() loop.
+
+**Agent SDK** (baize-a0o) — AgentSession bridges server state to
+local engine for move enumeration.
+
+**Reference Agents** (baize-9wj) — RandomAgent, GreedyAgent
+(capture-first), MCTSAgent (UCB1 + random playout).
 
 ### Game Definitions (6)
 
@@ -99,23 +112,20 @@ Tic-Tac-Toe, Chess, Texas Hold'em, Carcassonne, Go, Backgammon.
 
 ### Security and Hardening (11)
 
-Three P0 fixes (hidden state leak, RequestRandom auth bypass, DoS
-vectors), plus input validation, spectator isolation, protocol
-hardening, bounded channels, defensive audits of both engines.
+Three P0 fixes, input validation, spectator isolation, protocol
+hardening, bounded channels, defensive audits, wasmtime upgrade.
 
-### Testing and Quality (8)
+### Design Decisions
 
-Vault unit tests, schema validation on load, hash collision resistance,
-fuzz testing, tamper detection, mypy and clippy CI tasks, wasmtime
-upgrade (14 CVEs resolved).
+**CEL predicate boundary** (baize-7a2) — CEL functions are pure state
+queries only. Hypotheticals belong in WASM extensions.
 
 ## Summary
 
 | Status | Count |
 |--------|-------|
-| Open | 4 |
-| Blocked | 0 |
-| Closed | 104 |
+| Open | 2 |
+| Closed | 106 |
 | **Total** | **108** |
 
 ---
