@@ -723,9 +723,9 @@ def _players_from_raw(raw: object) -> Players:
             raise ValueError(
                 f"player range min/max must be integers, got min={p_min!r}, max={p_max!r}"
             )
-        if p_min < 0 or p_max < 0:
+        if p_min < 1 or p_max < 1:
             raise ValueError(
-                f"player range values must be non-negative, got min={p_min}, max={p_max}"
+                f"player range values must be at least 1, got min={p_min}, max={p_max}"
             )
         if p_min > p_max:
             raise ValueError(

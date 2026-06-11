@@ -6,6 +6,7 @@
 //!
 //! Convention: each face viewed from outside the cube. (0,0) = top-left.
 
+use baize_engine::end_conditions::check_end_conditions;
 use baize_engine::perturber::{execute_effect, Effect};
 use baize_engine::runtime::{ComponentData, ComponentId, GameSession};
 use baize_engine::GameDefinition;
@@ -14,6 +15,14 @@ use serde_json::json;
 use std::collections::HashMap;
 
 const FACES: [&str; 6] = ["up", "down", "front", "back", "left", "right"];
+const COLORS: [(&str, &str); 6] = [
+    ("up", "white"),
+    ("down", "yellow"),
+    ("front", "green"),
+    ("back", "blue"),
+    ("left", "orange"),
+    ("right", "red"),
+];
 
 fn cube_session() -> GameSession {
     let mut zones = serde_json::Map::new();
@@ -299,4 +308,171 @@ fn double_move_2x_identity() {
     execute_effect(&mut session, &u2).unwrap();
     execute_effect(&mut session, &u2).unwrap();
     assert_eq!(read_state(&session), initial);
+}
+
+// -- Solved-state session (colored stickers + end condition) --
+
+fn solved_cube_session() -> GameSession {
+    let mut zones = serde_json::Map::new();
+    for face in &FACES {
+        zones.insert(
+            face.to_string(),
+            json!({"zone_type": "grid", "dimensions": [3, 3], "visibility": "public"}),
+        );
+    }
+    let cel_expr = FACES
+        .iter()
+        .map(|f| format!("zone_uniform_{f}"))
+        .collect::<Vec<_>>()
+        .join(" && ");
+    let def_json = json!({
+        "game": {"name": "Cube", "players": ["solver"], "information": "perfect"},
+        "zones": zones,
+        "components": {
+            "white": {"owner": "neutral"},
+            "yellow": {"owner": "neutral"},
+            "green": {"owner": "neutral"},
+            "blue": {"owner": "neutral"},
+            "orange": {"owner": "neutral"},
+            "red": {"owner": "neutral"},
+        },
+        "turn_order": {"type": "alternating", "players": ["solver"], "actions_per_turn": 1, "mandatory": false},
+        "end_conditions": [{"result": "win", "player": "solver", "condition": cel_expr, "name": "solved"}],
+        "authority": {"server_only": [], "client_verifiable": ["all"]}
+    });
+    let def: GameDefinition = serde_json::from_value(def_json).unwrap();
+    let mut session = GameSession::new(def).unwrap();
+    session.runtime.status = baize_engine::state::GameStatus::InProgress;
+
+    for &(face, color) in &COLORS {
+        for row in 0u32..3 {
+            for col in 0u32..3 {
+                let name = format!("{face}_{col}_{row}");
+                let cid = session
+                    .runtime
+                    .components
+                    .insert(ComponentData {
+                        id: ComponentId(0),
+                        string_id: name,
+                        component_type: color.to_string(),
+                        owner: Some("neutral".to_string()),
+                        facing: None,
+                        state: None,
+                        properties: IndexMap::new(),
+                        span_cells: Vec::new(),
+                    })
+                    .unwrap();
+                session
+                    .runtime
+                    .zones
+                    .get_mut(face)
+                    .unwrap()
+                    .grid_set(col, row, Some(cid));
+            }
+        }
+    }
+    session
+}
+
+// -- Single-player tests --
+
+#[test]
+fn single_player_current_player_is_solver() {
+    let session = cube_session();
+    assert_eq!(session.current_player(), Some("solver"));
+}
+
+#[test]
+fn single_player_advance_turn_stays_on_solver() {
+    let mut session = cube_session();
+    session.advance_turn();
+    assert_eq!(session.current_player(), Some("solver"));
+    session.advance_turn();
+    assert_eq!(session.current_player(), Some("solver"));
+}
+
+#[test]
+fn single_player_turn_index_stays_zero() {
+    let mut session = cube_session();
+    assert_eq!(session.runtime.turn_index, 0);
+    session.advance_turn();
+    assert_eq!(session.runtime.turn_index, 0);
+}
+
+// -- Solved-state end condition tests --
+
+#[test]
+fn solved_cube_triggers_win() {
+    let session = solved_cube_session();
+    let result = check_end_conditions(&session);
+    assert!(result.is_some());
+    let r = result.unwrap();
+    assert_eq!(r.outcome, baize_engine::state::GameOutcome::Win);
+    assert_eq!(r.winner.as_deref(), Some("solver"));
+}
+
+#[test]
+fn scrambled_cube_does_not_trigger() {
+    let mut session = solved_cube_session();
+    execute_effect(&mut session, &u_cw()).unwrap();
+    assert!(check_end_conditions(&session).is_none());
+}
+
+#[test]
+fn solving_restores_win_condition() {
+    let mut session = solved_cube_session();
+    execute_effect(&mut session, &u_cw()).unwrap();
+    assert!(check_end_conditions(&session).is_none());
+    // Undo by applying 3 more times
+    for _ in 0..3 {
+        execute_effect(&mut session, &u_cw()).unwrap();
+    }
+    let result = check_end_conditions(&session);
+    assert!(result.is_some());
+    assert_eq!(
+        result.unwrap().outcome,
+        baize_engine::state::GameOutcome::Win
+    );
+}
+
+// -- Scramble tests --
+
+#[test]
+fn scramble_produces_different_state() {
+    let mut session = cube_session();
+    let initial = read_state(&session);
+    let moves = [u_cw(), d_cw(), f_cw(), b_cw(), r_cw(), l_cw()];
+    // Deterministic pseudo-random sequence
+    let indices = [2, 0, 4, 1, 5, 3, 0, 2, 5, 1, 4, 3, 2, 0, 5, 1, 3, 4, 0, 2];
+    for &i in &indices {
+        execute_effect(&mut session, &moves[i]).unwrap();
+    }
+    assert_ne!(read_state(&session), initial);
+}
+
+#[test]
+fn scramble_is_reversible() {
+    let mut session = cube_session();
+    let initial = read_state(&session);
+    let moves = [u_cw(), d_cw(), f_cw(), b_cw(), r_cw(), l_cw()];
+    let indices = [2, 0, 4, 1, 5, 3, 0, 2, 5, 1, 4, 3, 2, 0, 5, 1, 3, 4, 0, 2];
+    for &i in &indices {
+        execute_effect(&mut session, &moves[i]).unwrap();
+    }
+    // Undo in reverse
+    for &i in indices.iter().rev() {
+        execute_effect(&mut session, &reverse_move(&moves[i])).unwrap();
+    }
+    assert_eq!(read_state(&session), initial);
+}
+
+#[test]
+fn scrambled_cube_not_solved() {
+    let mut session = solved_cube_session();
+    let moves = [u_cw(), d_cw(), f_cw(), b_cw(), r_cw(), l_cw()];
+    let indices = [2, 0, 4, 1, 5, 3, 0, 2, 5, 1, 4, 3, 2, 0, 5, 1, 3, 4, 0, 2];
+    for &i in &indices {
+        execute_effect(&mut session, &moves[i]).unwrap();
+    }
+    assert!(check_end_conditions(&session).is_none());
 }

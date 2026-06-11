@@ -197,6 +197,34 @@ fn populate_grid_lines(ctx: &mut Context<'_>, session: &GameSession) {
             break; // Use the first grid zone
         }
     }
+
+    // Per-zone uniform-type booleans: zone_uniform_<name> is true when all
+    // cells in the named grid zone are occupied and have the same component type.
+    for (name, zone) in &session.runtime.zones {
+        if let RuntimeZone::Grid {
+            width,
+            height,
+            cells,
+        } = zone
+        {
+            let uniform = *width > 0
+                && *height > 0
+                && !cells.is_empty()
+                && cells.iter().all(|c| c.is_some())
+                && {
+                    let first_type = cells[0]
+                        .and_then(|cid| session.runtime.components.get(cid))
+                        .map(|c| c.component_type.as_str());
+                    first_type.is_some()
+                        && cells.iter().skip(1).all(|c| {
+                            c.and_then(|cid| session.runtime.components.get(cid))
+                                .map(|comp| comp.component_type.as_str())
+                                == first_type
+                        })
+                };
+            ctx.add_variable_from_value(format!("zone_uniform_{name}"), uniform);
+        }
+    }
 }
 
 /// Check whether any grid zone has all cells occupied.

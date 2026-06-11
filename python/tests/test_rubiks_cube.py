@@ -1,4 +1,4 @@
-"""Tests for Rubik's Cube face rotation perturber sequences.
+"""Tests for Rubik's Cube: face rotations, single-player, solved-state CEL, scramble.
 
 Each of the 6 CW moves is defined as a sequence of 5 cycles:
 - 2 face cycles (corners + edges of the rotating face)
@@ -9,8 +9,10 @@ CW rotation of face X means clockwise when looking at X from outside.
 """
 
 import json
+import random
 
 from baize.definition import GameDefinition
+from baize.end_conditions import check_end_conditions
 from baize.perturber import execute_effect
 from baize.runtime import (
     ComponentData,
@@ -20,6 +22,7 @@ from baize.runtime import (
 )
 
 FACES = ["up", "down", "front", "back", "left", "right"]
+COLORS = {"up": "white", "down": "yellow", "front": "green", "back": "blue", "left": "orange", "right": "red"}
 
 
 def _cube_session() -> GameSession:
@@ -258,3 +261,120 @@ class TestCompositeSequences:
         execute_effect(session, u2)
         execute_effect(session, u2)
         assert _read_state(session) == initial
+
+
+# -- Solved-state session (colored stickers + end condition) --
+
+def _solved_cube_session() -> GameSession:
+    """Create a cube session with colored stickers and a solved-state end condition."""
+    zones = {f: {"zone_type": "grid", "dimensions": [3, 3], "visibility": "public"} for f in FACES}
+    cel_expr = " && ".join(f"zone_uniform_{f}" for f in FACES)
+    raw = {
+        "game": {"name": "Cube", "players": ["solver"], "information": "perfect"},
+        "zones": zones,
+        "components": {color: {"owner": "neutral"} for color in set(COLORS.values())},
+        "turn_order": {"type": "alternating", "players": ["solver"], "actions_per_turn": 1, "mandatory": False},
+        "end_conditions": [{"result": "win", "player": "solver", "condition": cel_expr, "name": "solved"}],
+        "authority": {"server_only": [], "client_verifiable": ["all"]},
+    }
+    defn = GameDefinition.from_json(json.dumps(raw))
+    session = GameSession(defn)
+    session.runtime.status = "in_progress"
+
+    for face in FACES:
+        color = COLORS[face]
+        zone = session.runtime.zones[face]
+        assert isinstance(zone, GridZone)
+        for row in range(3):
+            for col in range(3):
+                name = f"{face}_{col}_{row}"
+                cid = session.runtime.components.insert(
+                    ComponentData(id=ComponentId(0), string_id=name, component_type=color, owner="neutral")
+                )
+                zone.grid_set(col, row, cid)
+    return session
+
+
+class TestSinglePlayer:
+    """Verify engine handles a single-player game correctly."""
+
+    def test_current_player_is_solver(self) -> None:
+        session = _cube_session()
+        assert session.current_player() == "solver"
+
+    def test_advance_turn_stays_on_solver(self) -> None:
+        session = _cube_session()
+        session.advance_turn()
+        assert session.current_player() == "solver"
+        session.advance_turn()
+        assert session.current_player() == "solver"
+
+    def test_turn_index_stays_zero(self) -> None:
+        session = _cube_session()
+        assert session.runtime.turn_index == 0
+        session.advance_turn()
+        assert session.runtime.turn_index == 0
+
+
+class TestSolvedStateEndCondition:
+    """Verify the CEL-based solved-state end condition."""
+
+    def test_solved_cube_triggers_win(self) -> None:
+        session = _solved_cube_session()
+        result = check_end_conditions(session)
+        assert result is not None
+        assert result.outcome == "win"
+        assert result.winner == "solver"
+
+    def test_scrambled_cube_does_not_trigger(self) -> None:
+        session = _solved_cube_session()
+        execute_effect(session, U_CW)
+        result = check_end_conditions(session)
+        assert result is None
+
+    def test_solving_restores_win_condition(self) -> None:
+        session = _solved_cube_session()
+        execute_effect(session, U_CW)
+        assert check_end_conditions(session) is None
+        # Undo by applying 3 more times
+        for _ in range(3):
+            execute_effect(session, U_CW)
+        result = check_end_conditions(session)
+        assert result is not None
+        assert result.outcome == "win"
+
+
+class TestScramble:
+    """Test scramble generation: random moves produce a non-solved state."""
+
+    def test_scramble_produces_different_state(self) -> None:
+        session = _cube_session()
+        initial = _read_state(session)
+        moves = list(ALL_CW_MOVES.values())
+        rng = random.Random(42)
+        for _ in range(20):
+            execute_effect(session, rng.choice(moves))
+        assert _read_state(session) != initial
+
+    def test_scramble_is_reversible(self) -> None:
+        session = _cube_session()
+        initial = _read_state(session)
+        moves = list(ALL_CW_MOVES.values())
+        rng = random.Random(42)
+        applied: list[dict] = []
+        for _ in range(20):
+            m = rng.choice(moves)
+            execute_effect(session, m)
+            applied.append(m)
+        # Undo in reverse
+        for m in reversed(applied):
+            execute_effect(session, _reverse_move(m))
+        assert _read_state(session) == initial
+
+    def test_scrambled_cube_not_solved(self) -> None:
+        session = _solved_cube_session()
+        moves = list(ALL_CW_MOVES.values())
+        rng = random.Random(42)
+        for _ in range(20):
+            execute_effect(session, rng.choice(moves))
+        assert check_end_conditions(session) is None
