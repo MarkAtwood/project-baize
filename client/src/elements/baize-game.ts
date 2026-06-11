@@ -43,11 +43,13 @@ export class BaizeGameElement extends HTMLElement {
 
   connectedCallback(): void {
     void this.initialize();
+    this.addEventListener("baize-cell-click", this.handleCellClick);
   }
 
   disconnectedCallback(): void {
     this.connection?.disconnect();
     this.engine?.dispose();
+    this.removeEventListener("baize-cell-click", this.handleCellClick);
   }
 
   attributeChangedCallback(
@@ -197,6 +199,29 @@ export class BaizeGameElement extends HTMLElement {
       new CustomEvent("baize-random", { detail: msg, bubbles: true }),
     );
   }
+
+  /**
+   * Handle cell click from child <baize-board>.
+   * Builds a place action for the first component type in the definition.
+   */
+  private handleCellClick = (event: Event): void => {
+    const detail = (event as CustomEvent<{
+      cell: string; zone: string; col: number; row: number;
+    }>).detail;
+    if (this.connection === null || this.definition === null || this.state === null) return;
+    if (this.state.status !== "in_progress" && this.state.status !== "setup") return;
+
+    const componentTypes = Object.keys(this.definition.components);
+    if (componentTypes.length === 0) return;
+    const componentType = componentTypes[0]!;
+
+    const action: Action = {
+      action_type: "place",
+      component_type: componentType,
+      to: { zone: detail.zone, cell: `${detail.col},${detail.row}` },
+    };
+    this.submitMove(action);
+  };
 
   /** Push current state to all child baize-* elements. */
   private distributeState(): void {
