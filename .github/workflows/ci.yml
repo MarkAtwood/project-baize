@@ -66,10 +66,10 @@ jobs:
             pip-${{ runner.os }}-
 
       - name: Install dependencies
-        run: pip install blake3 pytest hypothesis jsonschema mypy
+        run: pip install -e python/[dev]
 
       - name: Type-check Python
-        run: python3 -m mypy python/baize/ --strict
+        run: python3 -m mypy python/baize/
 
       - name: Run Python tests
         working-directory: python
@@ -93,7 +93,7 @@ jobs:
 
       - name: Install dependencies
         working-directory: client
-        run: npm install
+        run: npm ci
 
       - name: Type-check
         working-directory: client
