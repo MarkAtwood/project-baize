@@ -69,16 +69,16 @@ fn build_end_condition_context(session: &GameSession, current_player: &str) -> C
     ctx
 }
 
-/// Serialize grid zones into CEL list-of-lists for composable line queries.
+/// Serialize grid zones into CEL structures for composable queries.
 ///
-/// Injects:
-/// - `lines`: all rows + columns + diagonals as lists of owner strings
-/// - `rows`: just the rows
-/// - `cols`: just the columns
-/// - `diags`: just the diagonals
-/// - `board_width`, `board_height`: grid dimensions
-/// - `cell_count`: total cells
-/// - `occupied_count`: non-empty cells
+/// Owner-based (for win conditions):
+/// - `lines`, `rows`, `cols`, `diags`: lists of owner strings
+///
+/// Type-based (for placement constraints):
+/// - `type_rows`, `type_cols`: lists of component_type strings
+///
+/// Dimensions:
+/// - `board_width`, `board_height`, `cell_count`, `occupied_count`
 fn populate_grid_lines(ctx: &mut Context<'_>, session: &GameSession) {
     for zone in session.runtime.zones.values() {
         if let RuntimeZone::Grid {
@@ -141,6 +141,33 @@ fn populate_grid_lines(ctx: &mut Context<'_>, session: &GameSession) {
             all_lines.extend(cols);
             all_lines.extend(diags);
             ctx.add_variable_from_value("lines", Value::List(Arc::new(all_lines)));
+
+            // Component-type-based rows/cols (for placement constraints)
+            let type_at = |col: usize, row: usize| -> Value {
+                let idx = row * w + col;
+                cells
+                    .get(idx)
+                    .and_then(|c| *c)
+                    .and_then(|cid| session.runtime.components.get(cid))
+                    .map(|comp| Value::String(Arc::new(comp.component_type.clone())))
+                    .unwrap_or(Value::String(Arc::new(String::new())))
+            };
+
+            let type_rows: Vec<Value> = (0..h)
+                .map(|row| {
+                    let line: Vec<Value> = (0..w).map(|col| type_at(col, row)).collect();
+                    Value::List(Arc::new(line))
+                })
+                .collect();
+            let type_cols: Vec<Value> = (0..w)
+                .map(|col| {
+                    let line: Vec<Value> = (0..h).map(|row| type_at(col, row)).collect();
+                    Value::List(Arc::new(line))
+                })
+                .collect();
+
+            ctx.add_variable_from_value("type_rows", Value::List(Arc::new(type_rows)));
+            ctx.add_variable_from_value("type_cols", Value::List(Arc::new(type_cols)));
 
             break; // Use the first grid zone
         }
@@ -261,6 +288,24 @@ mod tests {
         let mut ctx = Context::default();
         ctx.add_variable_from_value("occupied_count", 9i64);
         ctx.add_variable_from_value("cell_count", 9i64);
+        assert_eq!(program.execute(&ctx), Ok(Value::Bool(true)));
+    }
+
+    #[test]
+    fn type_rows_filter_size() {
+        // Test that filter+size works for uniqueness checking
+        let program = Program::compile(
+            "type_rows[0].filter(v, v == target).size() == 1",
+        )
+        .unwrap();
+        let mut ctx = Context::default();
+        let row0 = Value::List(Arc::new(vec![
+            Value::String(Arc::new("pawn".into())),
+            Value::String(Arc::new("rook".into())),
+            Value::String(Arc::new("pawn".into())),
+        ]));
+        ctx.add_variable_from_value("type_rows", Value::List(Arc::new(vec![row0])));
+        ctx.add_variable_from_value("target", "rook".to_string());
         assert_eq!(program.execute(&ctx), Ok(Value::Bool(true)));
     }
 
