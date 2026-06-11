@@ -47,14 +47,25 @@ pub fn check_end_conditions(session: &GameSession) -> Option<GameResult> {
     None
 }
 
-/// Evaluate a condition string: try CEL first, then fall back to legacy dispatch.
+/// Evaluate a condition string: resolve library references, try CEL, then legacy dispatch.
 fn eval_condition(session: &GameSession, condition: &str, current_player: &str) -> bool {
+    // Check if condition matches a library expression
+    let resolved = session
+        .definition
+        .library
+        .get(condition)
+        .and_then(|entry| match entry {
+            crate::definition::LibraryEntry::Expression(expr) => Some(expr.as_str()),
+            _ => None,
+        })
+        .unwrap_or(condition);
+
     // Try CEL evaluation first
-    if let Some(result) = crate::cel::try_eval_end_condition(session, condition, current_player) {
+    if let Some(result) = crate::cel::try_eval_end_condition(session, resolved, current_player) {
         return result;
     }
     // Legacy string dispatch for non-CEL condition strings
-    let base = condition.split('(').next().unwrap_or(condition).trim();
+    let base = resolved.split('(').next().unwrap_or(resolved).trim();
     match base {
         "three_in_line" => check_line_win(session, current_player),
         "all_cells_occupied" | "board_is_full" => check_all_cells_occupied(session, condition),

@@ -787,6 +787,7 @@ class GameDefinition:
     authority: Authority
     phases: list[Phase] = field(default_factory=list)
     rules: dict[str, Rule] = field(default_factory=dict)
+    library: dict[str, str | dict] = field(default_factory=dict)
     wasm_module: str | None = None
     hand_rankings: list[str] = field(default_factory=list)
     betting_round: BettingRound | None = None
@@ -838,6 +839,7 @@ class GameDefinition:
                 authority=Authority.from_dict(d["authority"]),
                 phases=phases,
                 rules=rules,
+                library=d.get("library", {}),
                 wasm_module=d.get("wasm_module"),
                 hand_rankings=d.get("hand_rankings", []),
                 betting_round=betting_round,

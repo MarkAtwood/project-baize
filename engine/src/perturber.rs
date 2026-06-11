@@ -29,6 +29,9 @@ const MAX_COUNTER_VALUE: i64 = 1_000_000_000;
 /// Maximum number of positions in a cycle.
 const MAX_CYCLE_LEN: usize = 1_000;
 
+/// Maximum invoke nesting depth (prevents infinite recursion).
+const MAX_INVOKE_DEPTH: u32 = 16;
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CyclePosition {
     pub zone: String,
@@ -79,6 +82,9 @@ pub enum Effect {
     Cycle {
         cycle: Vec<CyclePosition>,
     },
+    Invoke {
+        invoke: String,
+    },
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -121,10 +127,14 @@ pub struct RepeatUntilStableSpec {
 
 /// Execute a perturber effect against a game session.
 pub fn execute_effect(session: &mut GameSession, effect: &Effect) -> Result<()> {
+    execute_effect_inner(session, effect, 0)
+}
+
+fn execute_effect_inner(session: &mut GameSession, effect: &Effect, depth: u32) -> Result<()> {
     match effect {
         Effect::Sequence { sequence } => {
             for e in sequence {
-                execute_effect(session, e)?;
+                execute_effect_inner(session, e, depth)?;
             }
         }
         Effect::If {
@@ -135,9 +145,9 @@ pub fn execute_effect(session: &mut GameSession, effect: &Effect) -> Result<()> 
             let player = session.current_player().unwrap_or("").to_string();
             let result = crate::cel::try_eval_end_condition(session, condition, &player);
             if result == Some(true) {
-                execute_effect(session, then)?;
+                execute_effect_inner(session, then, depth)?;
             } else if let Some(else_effect) = else_branch {
-                execute_effect(session, else_effect)?;
+                execute_effect_inner(session, else_effect, depth)?;
             }
         }
         Effect::ForEach { for_each, body } => {
@@ -165,13 +175,13 @@ pub fn execute_effect(session: &mut GameSession, effect: &Effect) -> Result<()> 
             };
 
             for _item in &items {
-                execute_effect(session, body)?;
+                execute_effect_inner(session, body, depth)?;
             }
         }
         Effect::Repeat { repeat, body } => {
             let bounded = (*repeat).min(MAX_REPEAT);
             for _ in 0..bounded {
-                execute_effect(session, body)?;
+                execute_effect_inner(session, body, depth)?;
             }
         }
         Effect::RepeatUntilStable {
@@ -180,7 +190,7 @@ pub fn execute_effect(session: &mut GameSession, effect: &Effect) -> Result<()> 
             let fuel = repeat_until_stable.fuel.min(MAX_FUEL);
             for _ in 0..fuel {
                 let hash_before = session.compute_state_hash();
-                execute_effect(session, &repeat_until_stable.apply)?;
+                execute_effect_inner(session, &repeat_until_stable.apply, depth)?;
                 let hash_after = session.compute_state_hash();
                 if hash_before == hash_after {
                     break; // Stable — no state change
@@ -286,6 +296,34 @@ pub fn execute_effect(session: &mut GameSession, effect: &Effect) -> Result<()> 
                     .get_mut(zone)
                     .expect("zone validated above")
                     .grid_set(col, row, saved[src_idx]);
+            }
+        }
+        Effect::Invoke { invoke } => {
+            if depth >= MAX_INVOKE_DEPTH {
+                return Err(crate::error::BaizeError::Overflow(format!(
+                    "invoke depth {} exceeds maximum {}",
+                    depth, MAX_INVOKE_DEPTH
+                )));
+            }
+            let entry = session
+                .definition
+                .library
+                .get(invoke)
+                .ok_or_else(|| {
+                    crate::error::BaizeError::IllegalAction(format!(
+                        "unknown library entry: {invoke}"
+                    ))
+                })?
+                .clone();
+            match entry {
+                crate::definition::LibraryEntry::Effect(ref effect) => {
+                    execute_effect_inner(session, effect, depth + 1)?;
+                }
+                crate::definition::LibraryEntry::Expression(_) => {
+                    return Err(crate::error::BaizeError::IllegalAction(format!(
+                        "library entry '{invoke}' is an expression, not an effect"
+                    )));
+                }
             }
         }
     }

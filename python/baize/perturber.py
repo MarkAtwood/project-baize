@@ -21,13 +21,20 @@ MAX_FUEL = 10_000
 MAX_REPEAT = 10_000
 MAX_FOREACH_ITEMS = 10_000
 MAX_COUNTER_VALUE = 1_000_000_000
+MAX_INVOKE_DEPTH = 16
 
 
 def execute_effect(session: GameSession, effect: dict[str, Any]) -> None:
     """Execute a perturber effect against a game session."""
+    _execute_effect_inner(session, effect, 0)
+
+
+def _execute_effect_inner(
+    session: GameSession, effect: dict[str, Any], depth: int
+) -> None:
     if "sequence" in effect:
         for e in effect["sequence"]:
-            execute_effect(session, e)
+            _execute_effect_inner(session, e, depth)
 
     elif "if" in effect:
         condition = effect["if"]
@@ -35,9 +42,9 @@ def execute_effect(session: GameSession, effect: dict[str, Any]) -> None:
         variables = _build_variables(session, player)
         result = try_eval_end_condition(variables, condition)
         if result is True:
-            execute_effect(session, effect["then"])
+            _execute_effect_inner(session, effect["then"], depth)
         elif "else" in effect:
-            execute_effect(session, effect["else"])
+            _execute_effect_inner(session, effect["else"], depth)
 
     elif "for_each" in effect:
         spec = effect["for_each"]
@@ -61,7 +68,7 @@ def execute_effect(session: GameSession, effect: dict[str, Any]) -> None:
             items = filtered
 
         for _item in items:
-            execute_effect(session, body)
+            _execute_effect_inner(session, body, depth)
 
     elif "repeat" in effect:
         count = min(int(effect["repeat"]), MAX_REPEAT)
@@ -69,7 +76,7 @@ def execute_effect(session: GameSession, effect: dict[str, Any]) -> None:
             return
         body = effect["body"]
         for _ in range(count):
-            execute_effect(session, body)
+            _execute_effect_inner(session, body, depth)
 
     elif "repeat_until_stable" in effect:
         spec = effect["repeat_until_stable"]
@@ -77,7 +84,7 @@ def execute_effect(session: GameSession, effect: dict[str, Any]) -> None:
         body = spec["apply"]
         for _ in range(fuel):
             hash_before = session.compute_state_hash()
-            execute_effect(session, body)
+            _execute_effect_inner(session, body, depth)
             hash_after = session.compute_state_hash()
             if hash_before == hash_after:
                 break
@@ -151,6 +158,20 @@ def execute_effect(session: GameSession, effect: dict[str, Any]) -> None:
             src_idx = n - 1 if i == 0 else i - 1
             zone_name, col, row = parsed[i]
             session.runtime.zones[zone_name].grid_set(col, row, saved[src_idx])
+
+    elif "invoke" in effect:
+        name = effect["invoke"]
+        if depth >= MAX_INVOKE_DEPTH:
+            raise ValueError(
+                f"invoke depth {depth} exceeds maximum {MAX_INVOKE_DEPTH}"
+            )
+        library = getattr(session.definition, "library", {})
+        entry = library.get(name)
+        if entry is None:
+            raise ValueError(f"unknown library entry: {name}")
+        if isinstance(entry, str):
+            raise ValueError(f"library entry '{name}' is an expression, not an effect")
+        _execute_effect_inner(session, entry, depth + 1)
 
 
 def _parse_cycle_pos(pos: str) -> tuple[int, int]:
