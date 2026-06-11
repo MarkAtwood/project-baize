@@ -225,9 +225,76 @@ fn generate_grid_moves(
             PrimitiveType::Place => {
                 // Placement from supply onto empty cells — handled elsewhere
             }
+            PrimitiveType::Flip => {
+                let comp_name = session
+                    .runtime
+                    .components
+                    .get(cid)
+                    .map(|c| c.string_id.clone())
+                    .unwrap_or_default();
+                moves.push(LegalMove {
+                    component_id: cid,
+                    action: Action {
+                        action_type: ActionType::Flip,
+                        component_id: Some(comp_name),
+                        ..default_action()
+                    },
+                });
+            }
+            PrimitiveType::Remove => {
+                let comp_name = session
+                    .runtime
+                    .components
+                    .get(cid)
+                    .map(|c| c.string_id.clone())
+                    .unwrap_or_default();
+                moves.push(LegalMove {
+                    component_id: cid,
+                    action: Action {
+                        action_type: ActionType::Remove,
+                        component_id: Some(comp_name),
+                        ..default_action()
+                    },
+                });
+            }
+            PrimitiveType::Swap => {
+                // Generate swap moves with adjacent enemy pieces
+                let dirs = resolve_directions(mp, player);
+                let dist = mp.distance.unwrap_or(1);
+                for (dx, dy) in &dirs {
+                    let nx = col as i32 + dx * dist as i32;
+                    let ny = row as i32 + dy * dist as i32;
+                    if nx < 0 || ny < 0 || nx >= width as i32 || ny >= height as i32 {
+                        continue;
+                    }
+                    if let Some(target_id) = zone.grid_get(nx as u32, ny as u32) {
+                        let comp_name = session
+                            .runtime
+                            .components
+                            .get(cid)
+                            .map(|c| c.string_id.clone())
+                            .unwrap_or_default();
+                        let target_name = session
+                            .runtime
+                            .components
+                            .get(target_id)
+                            .map(|c| c.string_id.clone())
+                            .unwrap_or_default();
+                        moves.push(LegalMove {
+                            component_id: cid,
+                            action: Action {
+                                action_type: ActionType::Swap,
+                                component_id: Some(comp_name),
+                                swap_with: Some(target_name),
+                                ..default_action()
+                            },
+                        });
+                    }
+                }
+            }
             _ => {
-                // Other primitives (draw, move_to, swap, remove, promote, flip, castle)
-                // will be implemented as the engine matures
+                // Remaining primitives (draw, move_to, castle, promote)
+                // require cross-zone or multi-piece coordination
             }
         }
     }
@@ -337,6 +404,29 @@ fn check_cell_condition(
             // Legacy fallback: allow if empty or enemy
             cell_empty || cell_enemy
         }
+    }
+}
+
+fn default_action() -> Action {
+    Action {
+        action_type: ActionType::Pass, // overridden by caller
+        authority: None,
+        component_id: None,
+        component_type: None,
+        from: None,
+        to: None,
+        zone: None,
+        count: None,
+        promote_to: None,
+        orientation: None,
+        rotation: None,
+        amount: None,
+        side: None,
+        dice_count: None,
+        dice_type: None,
+        swap_with: None,
+        declaration: None,
+        custom_data: None,
     }
 }
 
