@@ -396,22 +396,27 @@ guaranteed to terminate.
 
 ### Effect Primitives
 
-| Primitive | Fields | Description |
-|-----------|--------|-------------|
-| `move` | `component`, `to` | Relocate component to position |
-| `place` | `component_type`, `at`, `owner` | Create and place new component |
-| `remove` | `target` | Destroy/capture a component |
-| `flip` | `target` | Toggle face-up/face-down |
-| `promote` | `target`, `to_type` | Change component type |
-| `swap` | `a`, `b` | Exchange two components' positions |
-| `draw` | `from_zone`, `to_zone` | Take top of stack |
-| `shuffle` | `zone` | Randomize stack order (server authority) |
-| `transfer` | `component`, `from_zone`, `to_zone` | Move between zones |
-| `reveal` | `component`, `to` | Change visibility (hidden → public) |
-| `set_counter` | `counter`, `value` | Set counter to value |
-| `add_counter` | `counter`, `value` | Increment/decrement counter |
-| `set_state` | `target`, `state` | Change component state (tapped, exhausted) |
-| `end_turn` | | Advance turn to next player |
+| Primitive | Fields | Description | Status |
+|-----------|--------|-------------|--------|
+| `remove` | `target` | Destroy/capture a component | Implemented |
+| `flip` | `target` | Toggle face-up/face-down | Implemented |
+| `promote` | `target`, `to_type` | Change component type | Implemented |
+| `set_counter` | `counter`, `value` | Set counter to value | Implemented |
+| `add_counter` | `counter`, `value` | Increment/decrement counter | Implemented |
+| `cycle` | `[{zone, pos}, ...]` | Rotate components through ordered positions (cross-zone) | Implemented |
+| `move` | `component`, `to` | Relocate component to position | Planned |
+| `place` | `component_type`, `at`, `owner` | Create and place new component | Planned |
+| `swap` | `a`, `b` | Exchange two components' positions | Planned (use `cycle` with 2 elements) |
+| `draw` | `from_zone`, `to_zone` | Take top of stack | Planned |
+| `shuffle` | `zone` | Randomize stack order (server authority) | Planned |
+| `reveal` | `component`, `to` | Change visibility (hidden → public) | Planned |
+| `set_state` | `target`, `state` | Change component state (tapped, exhausted) | Planned |
+| `end_turn` | | Advance turn to next player | Planned |
+
+The `cycle` primitive is the foundation for complex multi-zone state
+transforms. A Rubik's Cube face rotation is expressed as 5 cycles (2 face
+cycles + 3 edge strip cycles across 4 adjacent zones). All 18 standard
+moves (6 faces × CW/CCW/180°) are verified with identity tests.
 
 ### Control Flow
 
@@ -795,10 +800,10 @@ via test vectors in `tests/vectors/`:
 
 | Component | Language | Tests | Key capabilities |
 |-----------|----------|-------|-----------------|
-| `engine/` | Rust (serde, blake3, indexmap) | 77 | Parse/validate definitions, runtime state machine, legal move generation (step/slide/leap/hop), state transitions, BLAKE3 hash-chained event logs, tamper detection |
-| `python/` | Python 3.12 (dataclasses, strict mypy) | 121 | Feature-parallel with Rust engine, plus game analysis (branching factor, complexity profile, shortest game search) and Jupyter notebook integration (SVG board rendering, interactive `GameWidget`) |
-| `server/` | Rust (Axum, tokio, WebSocket) | Builds | Room management, WebSocket protocol dispatch, hidden-state vault (ChaCha20Rng), rate limiting, per-IP connection limits, spectator isolation |
-| `client/` | TypeScript | Types only | Full type definitions for all five JSON schemas; Web Components rendering not yet implemented |
+| `engine/` | Rust (serde, blake3, indexmap) | 153 | Parse/validate definitions, runtime state machine, legal move generation (step/slide/leap/hop), state transitions, CEL end conditions, perturber effects (cycle, remove, flip, promote, counters), BLAKE3 hash-chained event logs, tamper detection, visibility filtering |
+| `python/` | Python 3.12 (dataclasses, strict mypy) | 259 | Feature-parallel with Rust engine, plus terminal CLI client, game analysis (branching factor, complexity profile, shortest game search), Jupyter notebook integration (SVG board rendering, interactive `GameWidget`), agent framework (Random/Greedy/MCTS) |
+| `server/` | Rust (Axum, tokio, WebSocket) | 31 | Room management, WebSocket protocol dispatch, hidden-state vault (ChaCha20Rng), token auth with reconnection, rate limiting, per-IP connection limits, spectator isolation, persistence (FileStore) |
+| `client/` | TypeScript | Types only | Full type definitions for all five JSON schemas; Web Components (`<baize-game>`, `<baize-board>`) |
 
 Five JSON Schema definitions (draft 2020-12) in `schema/`:
 
@@ -808,9 +813,10 @@ Five JSON Schema definitions (draft 2020-12) in `schema/`:
 - `event-log.schema.json` — BLAKE3 hash-chained event log format
 - `component-registry.schema.json` — Reusable component definitions
 
-Six reference game definitions in `games/`: Tic-Tac-Toe, Chess, Go,
-Backgammon, Texas Hold'em, Carcassonne. Ten reusable component definitions
-in `registry/` (card decks, dice, piece sets, boards, tiles, tokens).
+Seven reference game definitions in `games/`: Tic-Tac-Toe, Chess, Go,
+Backgammon, Battleship, Texas Hold'em, Carcassonne. 49 reusable component
+definitions in `registry/` (card decks, dice, piece sets, boards, tiles,
+tokens).
 
 Cross-implementation test vectors in `tests/vectors/` verify that Rust and
 Python produce identical state hashes, legal move lists, and event logs for

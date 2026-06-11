@@ -9,8 +9,8 @@ regenerated periodically.
 ## Status: Core Engine Complete
 
 All engine, server, protocol, agent, and testing infrastructure is
-done. 111 of 113 issues closed. Only platform-specific client ports
-remain.
+done. 123 of 135 issues closed. Remaining work is notation adapters,
+platform-specific clients, and the Rubik's Cube game definition.
 
 ## Architecture
 
@@ -25,38 +25,65 @@ remain.
 └─────────────────────────────────────────────────────────────┘
 ```
 
-## Open Work (2 issues)
+## Open Work
 
-**baize-042** (P3) — **Native mobile client (iOS/Android)**
+### Ready (no blockers)
 
-**baize-rkf** (P4) — **Desktop standalone client**
+- **baize-7df** (P3) — **Rubik's Cube game definition** — 5 of 6
+  sub-issues closed (cycle primitive, face rotations, single-player,
+  solved-state CEL, scramble). Blocked only on notation (baize-wt9).
+- **baize-uei** (P3) — **Game notation adapter** — Human-readable move
+  input/output (chess algebraic, Go coordinates, Singmaster). Declarative
+  JSON spec + WASM escape hatch. Blocks 6 game-specific notation issues.
+- **baize-i9s** (P3) — **Interactive engine REPL** — Python REPL for
+  local game exploration. Load definitions, step through moves, test CEL
+  expressions, run perturber effects. `python -m baize.repl`
+- **baize-bu6** (P2) — **Named compound perturber effects** — Schema
+  support for game definitions to declare libraries of named perturber
+  sequences (e.g., Rubik's Cube moves as reusable named effects).
+- **baize-042** (P3) — **Native mobile client** (iOS/Android)
+- **baize-rkf** (P4) — **Desktop standalone client**
 
-Both are platform-specific UI projects independent of the core engine.
+### Blocked
 
-## Completed Work (111 issues)
+- **baize-wt9** (P3) — Singmaster notation — blocked on baize-uei
+- 5 other notation issues — blocked on baize-uei
+
+## Completed Work (123 issues)
 
 ### Engine (Rust + Python)
 
 - **JSON Schema** (baize-0a0) — Game definition, component registry,
   game state, move/action schemas (4 tasks)
 - **Rust core engine** (baize-ah1) — Parser, state, moves, transitions,
-  WASM bindings (5 tasks). 109 tests.
+  WASM bindings (5 tasks). 153 tests.
 - **Python reference engine** — Strict mypy, dataclasses, mirrors Rust.
-  213 tests.
+  259 tests.
 - **CEL integration** (baize-1ye, baize-82w, baize-wf3) — Rust
   cel-interpreter + Python built-in evaluator (.exists/.all/.filter/
   .size). Grid serialized as composable lines/rows/cols/diags +
-  type_rows/type_cols. Win condition:
+  type_rows/type_cols + zone_uniform_<name> booleans. Win conditions:
   `lines.exists(line, line.all(cell, cell == current_player))`.
+  Per-zone uniform-type checks for puzzle games (Rubik's Cube).
 - **Movement primitives** (baize-olc) — Step, slide, leap, hop,
   remove, swap, promote, draw, flip.
 - **Perturber language** (baize-3a3) — Structured effect AST:
   sequence, if/then/else, for_each, repeat(n), repeat_until_stable
   with fuel budget. Termination guaranteed by construction.
-- **6 game definitions** — Tic-Tac-Toe, Chess, Texas Hold'em,
-  Carcassonne, Go, Backgammon.
+  Primitives: remove, flip, promote, cycle, add_counter, set_counter.
+- **Cycle perturber** (baize-57v) — Cross-zone position rotation.
+  Subsumes transfer and swap. Foundation for Rubik's Cube face rotations
+  (5 cycles per move × 18 moves, all verified with identity tests).
+- **Single-player support** (baize-0b1) — Engine handles 1-player games
+  (advance_turn with modular arithmetic, no opponent assumptions).
+- **7 game definitions** — Tic-Tac-Toe, Chess, Texas Hold'em,
+  Carcassonne, Go, Backgammon, Battleship.
+- **Battleship** — Multi-cell ship spans, per-player hidden grids,
+  hit/miss/sunk tracking via perturber effects.
+- **Rubik's Cube subsystems** — Cycle primitive, face rotations (all 18
+  moves), solved-state CEL end condition, scramble generation.
 - **Cross-implementation test suite** (baize-562) — Legal moves, state
-  transitions, visibility, round-trip, primitives parity (43 tests).
+  transitions, visibility, round-trip, primitives parity.
 
 ### Server
 
@@ -91,10 +118,10 @@ Both are platform-specific UI projects independent of the core engine.
 - Input validation, spectator isolation, protocol hardening,
   bounded channels, defensive audits, wasmtime upgrade (14 CVEs)
 - **Defensive programming pass**: perturber bounds (MAX_REPEAT,
-  MAX_FOREACH_ITEMS, checked counter arithmetic), CEL complexity
-  limits (MAX_CEL_LENGTH, grid context cap), protocol validation
-  (zone/component/promote_to against definition), unwrap elimination,
-  client message field validation
+  MAX_FOREACH_ITEMS, MAX_CYCLE_LEN, checked counter arithmetic),
+  CEL complexity limits (MAX_CEL_LENGTH, grid context cap), protocol
+  validation (zone/component/promote_to against definition), unwrap
+  elimination, client message field validation
 
 ### Design Decisions
 
@@ -106,18 +133,21 @@ Both are platform-specific UI projects independent of the core engine.
 
 - **Full-game integration tests** — Complete tic-tac-toe games
   (win/draw/resign) through both engines
+- **Rubik's Cube rotation tests** — All 6 CW moves verified with
+  4× identity, CW+CCW identity, 20-sticker count, sexy move
+  (R U R' U')⁶ = identity, solved-state detection
 - **Server smoke test** — End-to-end: create room, two bots play,
   verify winner, test token reconnection
-- **365 automated tests** across Rust engine (109), Python engine
-  (213), and cross-implementation parity (43)
+- **443 automated tests** across Rust engine (153), Rust server (31),
+  Python engine (259)
 
 ## Summary
 
 | Status | Count |
 |--------|-------|
-| Open | 2 |
-| Closed | 111 |
-| **Total** | **113** |
+| Open | 12 |
+| Closed | 123 |
+| **Total** | **135** |
 
 ---
 
