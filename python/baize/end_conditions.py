@@ -133,6 +133,25 @@ def _populate_grid_lines(
 
         break  # Use the first grid zone
 
+    # Per-zone uniform-type booleans: zone_uniform_<name> is true when all
+    # cells in the named grid zone are occupied and have the same component type.
+    for name, zone in session.runtime.zones.items():
+        if isinstance(zone, GridZone):
+            if zone.width > 0 and zone.height > 0 and zone.cells:
+                types = []
+                for cid in zone.cells:
+                    if cid is None:
+                        break
+                    comp = session.runtime.components.get(cid)
+                    if comp is None:
+                        break
+                    types.append(comp.component_type)
+                else:
+                    uniform = len(set(types)) == 1
+                    variables[f"zone_uniform_{name}"] = uniform
+                    continue
+            variables[f"zone_uniform_{name}"] = False
+
 
 def _check_any_grid_full(session: GameSession) -> bool:
     """Check whether any grid zone has all cells occupied."""
