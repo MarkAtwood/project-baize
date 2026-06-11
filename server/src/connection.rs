@@ -202,34 +202,59 @@ async fn handle_socket(
         return;
     }
 
-    // --- Seat assignment ---
+    // --- Seat assignment (token-aware) ---
     let join_result = {
         let mut room_guard = room.lock().await;
 
-        if !room::room_has_capacity(&room_guard) {
-            eprintln!(
-                "[security] room '{room_id}' is full ({max} players)",
-                max = room_guard.max_players
-            );
-            let err = ws_error_json("room_full", "this room is at player capacity");
-            let _ = socket.send(Message::Text(err.into())).await;
-            return;
-        }
+        // Check for reconnection via token
+        let (seat, token) = if let Some(ref client_token) = hello.token {
+            if let Some(existing_seat) = room::seat_for_token(&room_guard, client_token) {
+                // Reconnection: reclaim the seat, reuse token
+                eprintln!(
+                    "player '{existing_seat}' reconnecting to room '{room_id}'"
+                );
+                (existing_seat, client_token.clone())
+            } else {
+                // Unknown token — treat as new connection
+                if !room::room_has_capacity(&room_guard) {
+                    let err = ws_error_json("room_full", "this room is at player capacity");
+                    let _ = socket.send(Message::Text(err.into())).await;
+                    return;
+                }
+                let seat = pick_seat(&room_guard);
+                let token = room::register_token(&mut room_guard, &seat);
+                (seat, token)
+            }
+        } else {
+            // No token — new connection
+            if !room::room_has_capacity(&room_guard) {
+                eprintln!(
+                    "[security] room '{room_id}' is full ({max} players)",
+                    max = room_guard.max_players
+                );
+                let err = ws_error_json("room_full", "this room is at player capacity");
+                let _ = socket.send(Message::Text(err.into())).await;
+                return;
+            }
+            let seat = pick_seat(&room_guard);
+            let token = room::register_token(&mut room_guard, &seat);
+            (seat, token)
+        };
 
-        let seat = pick_seat(&room_guard);
         let rx = room::join_room(&mut room_guard, seat.clone());
         eprintln!(
             "player '{seat}' ({:?}) joined room '{room_id}' [proto v{}]",
             hello.client_type, hello.protocol_version
         );
 
-        // Send Welcome
+        // Send Welcome with auth token
         let welcome = serde_json::json!({
             "message_type": "welcome",
             "protocol_version": PROTOCOL_VERSION,
             "server_version": env!("CARGO_PKG_VERSION"),
             "seat": seat,
             "game_id": room_guard.id,
+            "token": token,
         });
         room::send_to_player(&room_guard, &seat, &welcome.to_string());
 

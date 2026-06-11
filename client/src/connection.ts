@@ -64,6 +64,7 @@ export class BaizeConnection {
   private reconnectTimer: ReturnType<typeof setTimeout> | null = null;
   private connectTimer: ReturnType<typeof setTimeout> | null = null;
   private intentionalClose = false;
+  private authToken: string | null = null;
   private readonly options: Required<ConnectionOptions>;
 
   private readonly messageHandlers = new Map<
@@ -155,12 +156,16 @@ export class BaizeConnection {
     this.ws.onopen = () => {
       this.clearConnectTimer();
       this.reconnectAttempts = 0;
-      // Send hello handshake before anything else
-      this.ws?.send(JSON.stringify({
+      // Send hello handshake with token for reconnection
+      const hello: Record<string, unknown> = {
         message_type: "hello",
         protocol_version: PROTOCOL_VERSION,
         client_type: this.options.clientType,
-      }));
+      };
+      if (this.authToken !== null) {
+        hello["token"] = this.authToken;
+      }
+      this.ws?.send(JSON.stringify(hello));
       this.setStatus("connected");
     };
 
@@ -260,6 +265,11 @@ export class BaizeConnection {
     // Validate and sanitize the parsed JSON before use
     const msg = validateServerMessage(parsed);
     if (msg === null) return;
+
+    // Store auth token from welcome message
+    if (msg.message_type === "welcome" && msg.token !== undefined) {
+      this.authToken = msg.token;
+    }
 
     if (msg.sequence !== undefined) {
       this.currentSequence = msg.sequence;
