@@ -11,7 +11,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::action::{Action, ActionType};
 use crate::error::Result;
-use crate::runtime::GameSession;
+use crate::runtime::{ComponentId, GameSession};
 use crate::transition::apply_action;
 
 /// Maximum fuel for repeat_until_stable (safety cap).
@@ -25,6 +25,15 @@ const MAX_FOREACH_ITEMS: usize = 10_000;
 
 /// Maximum absolute value for counter operations.
 const MAX_COUNTER_VALUE: i64 = 1_000_000_000;
+
+/// Maximum number of positions in a cycle.
+const MAX_CYCLE_LEN: usize = 1_000;
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct CyclePosition {
+    pub zone: String,
+    pub pos: String,
+}
 
 /// A structured effect that mutates game state.
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -66,6 +75,9 @@ pub enum Effect {
     },
     SetCounter {
         set_counter: CounterSpec,
+    },
+    Cycle {
+        cycle: Vec<CyclePosition>,
     },
 }
 
@@ -233,8 +245,70 @@ pub fn execute_effect(session: &mut GameSession, effect: &Effect) -> Result<()> 
                 .counters
                 .insert(set_counter.counter.clone(), set_counter.value);
         }
+        Effect::Cycle { cycle } => {
+            if cycle.len() < 2 {
+                return Ok(());
+            }
+            if cycle.len() > MAX_CYCLE_LEN {
+                return Err(crate::error::BaizeError::Overflow(format!(
+                    "cycle length {} exceeds maximum {}",
+                    cycle.len(),
+                    MAX_CYCLE_LEN
+                )));
+            }
+            // Parse all positions and read current occupants
+            let mut parsed: Vec<(&str, u32, u32)> = Vec::with_capacity(cycle.len());
+            for cp in cycle {
+                let (col, row) = parse_cycle_pos(&cp.pos)?;
+                if !session.runtime.zones.contains_key(&cp.zone) {
+                    return Err(crate::error::BaizeError::UnknownZone(cp.zone.clone()));
+                }
+                parsed.push((&cp.zone, col, row));
+            }
+            let saved: Vec<Option<ComponentId>> = parsed
+                .iter()
+                .map(|(zone, col, row)| {
+                    session
+                        .runtime
+                        .zones
+                        .get(*zone)
+                        .and_then(|z| z.grid_get(*col, *row))
+                })
+                .collect();
+            // Write shifted: pos[i] receives what was at pos[i-1]
+            let n = parsed.len();
+            for i in 0..n {
+                let src_idx = if i == 0 { n - 1 } else { i - 1 };
+                let (zone, col, row) = parsed[i];
+                session
+                    .runtime
+                    .zones
+                    .get_mut(zone)
+                    .expect("zone validated above")
+                    .grid_set(col, row, saved[src_idx]);
+            }
+        }
     }
     Ok(())
+}
+
+fn parse_cycle_pos(s: &str) -> Result<(u32, u32)> {
+    let parts: Vec<&str> = s.split(',').collect();
+    if parts.len() == 2 {
+        let col = parts[0]
+            .trim()
+            .parse::<u32>()
+            .map_err(|_| crate::error::BaizeError::IllegalAction(format!("invalid cycle position: {s}")))?;
+        let row = parts[1]
+            .trim()
+            .parse::<u32>()
+            .map_err(|_| crate::error::BaizeError::IllegalAction(format!("invalid cycle position: {s}")))?;
+        Ok((col, row))
+    } else {
+        Err(crate::error::BaizeError::IllegalAction(format!(
+            "invalid cycle position format: {s}"
+        )))
+    }
 }
 
 fn empty_action() -> Action {
@@ -374,6 +448,180 @@ mod tests {
             serde_json::from_str(r#"{"remove": {"target": "target-piece"}}"#).unwrap();
         execute_effect(&mut session, &effect).unwrap();
         assert!(session.runtime.zones.get("board").unwrap().grid_get(1, 1).is_none());
+    }
+
+    fn multi_zone_session() -> GameSession {
+        let def: GameDefinition = serde_json::from_str(
+            r#"{
+            "game": { "name": "Test", "players": ["A", "B"], "information": "perfect" },
+            "zones": {
+                "board": { "zone_type": "grid", "dimensions": [3, 3], "visibility": "public" },
+                "front": { "zone_type": "grid", "dimensions": [3, 3], "visibility": "public" },
+                "right": { "zone_type": "grid", "dimensions": [3, 3], "visibility": "public" }
+            },
+            "components": { "piece": { "owner": "per_player" } },
+            "turn_order": { "type": "alternating", "players": ["A", "B"], "actions_per_turn": 1, "mandatory": true },
+            "end_conditions": [{ "result": "draw", "condition": "all_cells_occupied" }],
+            "authority": { "server_only": [], "client_verifiable": ["all"] }
+        }"#,
+        )
+        .unwrap();
+        let mut s = GameSession::new(def).unwrap();
+        s.runtime.status = crate::state::GameStatus::InProgress;
+        s
+    }
+
+    fn place_piece_in(
+        session: &mut GameSession,
+        name: &str,
+        owner: &str,
+        zone: &str,
+        col: u32,
+        row: u32,
+    ) -> ComponentId {
+        let cid = session
+            .runtime
+            .components
+            .insert(ComponentData {
+                id: ComponentId(0),
+                string_id: name.to_string(),
+                component_type: "piece".to_string(),
+                owner: Some(owner.to_string()),
+                facing: None,
+                state: None,
+                properties: IndexMap::new(),
+                span_cells: Vec::new(),
+            })
+            .unwrap();
+        session
+            .runtime
+            .zones
+            .get_mut(zone)
+            .unwrap()
+            .grid_set(col, row, Some(cid));
+        cid
+    }
+
+    #[test]
+    fn cycle_same_zone_3_elements() {
+        let mut session = test_session();
+        let a = place_piece_in(&mut session, "a", "A", "board", 0, 0);
+        let b = place_piece_in(&mut session, "b", "A", "board", 1, 0);
+        let c = place_piece_in(&mut session, "c", "A", "board", 2, 0);
+
+        // Cycle: 0,0 -> 1,0 -> 2,0 -> 0,0
+        let effect: Effect = serde_json::from_str(
+            r#"{"cycle": [
+                {"zone": "board", "pos": "0,0"},
+                {"zone": "board", "pos": "1,0"},
+                {"zone": "board", "pos": "2,0"}
+            ]}"#,
+        )
+        .unwrap();
+        execute_effect(&mut session, &effect).unwrap();
+
+        let z = session.runtime.zones.get("board").unwrap();
+        assert_eq!(z.grid_get(0, 0), Some(c)); // c wraps from pos[2] to pos[0]
+        assert_eq!(z.grid_get(1, 0), Some(a)); // a moves from pos[0] to pos[1]
+        assert_eq!(z.grid_get(2, 0), Some(b)); // b moves from pos[1] to pos[2]
+    }
+
+    #[test]
+    fn cycle_cross_zone() {
+        let mut session = multi_zone_session();
+        let a = place_piece_in(&mut session, "a", "A", "board", 0, 0);
+        let b = place_piece_in(&mut session, "b", "A", "front", 0, 0);
+        let c = place_piece_in(&mut session, "c", "A", "right", 0, 0);
+
+        let effect: Effect = serde_json::from_str(
+            r#"{"cycle": [
+                {"zone": "board", "pos": "0,0"},
+                {"zone": "front", "pos": "0,0"},
+                {"zone": "right", "pos": "0,0"}
+            ]}"#,
+        )
+        .unwrap();
+        execute_effect(&mut session, &effect).unwrap();
+
+        assert_eq!(session.runtime.zones.get("board").unwrap().grid_get(0, 0), Some(c));
+        assert_eq!(session.runtime.zones.get("front").unwrap().grid_get(0, 0), Some(a));
+        assert_eq!(session.runtime.zones.get("right").unwrap().grid_get(0, 0), Some(b));
+    }
+
+    #[test]
+    fn cycle_with_empty_cell_acts_as_transfer() {
+        let mut session = test_session();
+        let a = place_piece_in(&mut session, "a", "A", "board", 0, 0);
+        // pos 1,0 is empty
+
+        let effect: Effect = serde_json::from_str(
+            r#"{"cycle": [
+                {"zone": "board", "pos": "0,0"},
+                {"zone": "board", "pos": "1,0"}
+            ]}"#,
+        )
+        .unwrap();
+        execute_effect(&mut session, &effect).unwrap();
+
+        let z = session.runtime.zones.get("board").unwrap();
+        assert_eq!(z.grid_get(0, 0), None);    // source emptied
+        assert_eq!(z.grid_get(1, 0), Some(a));  // component transferred
+    }
+
+    #[test]
+    fn cycle_4x_returns_to_start() {
+        let mut session = test_session();
+        let a = place_piece_in(&mut session, "a", "A", "board", 0, 0);
+        let b = place_piece_in(&mut session, "b", "A", "board", 1, 0);
+        let c = place_piece_in(&mut session, "c", "A", "board", 2, 0);
+        let d = place_piece_in(&mut session, "d", "A", "board", 0, 1);
+
+        let effect: Effect = serde_json::from_str(
+            r#"{"cycle": [
+                {"zone": "board", "pos": "0,0"},
+                {"zone": "board", "pos": "1,0"},
+                {"zone": "board", "pos": "2,0"},
+                {"zone": "board", "pos": "0,1"}
+            ]}"#,
+        )
+        .unwrap();
+        // Apply 4 times — should return to original positions
+        for _ in 0..4 {
+            execute_effect(&mut session, &effect).unwrap();
+        }
+
+        let z = session.runtime.zones.get("board").unwrap();
+        assert_eq!(z.grid_get(0, 0), Some(a));
+        assert_eq!(z.grid_get(1, 0), Some(b));
+        assert_eq!(z.grid_get(2, 0), Some(c));
+        assert_eq!(z.grid_get(0, 1), Some(d));
+    }
+
+    #[test]
+    fn cycle_single_element_is_noop() {
+        let mut session = test_session();
+        let a = place_piece_in(&mut session, "a", "A", "board", 0, 0);
+
+        let effect: Effect = serde_json::from_str(
+            r#"{"cycle": [{"zone": "board", "pos": "0,0"}]}"#,
+        )
+        .unwrap();
+        execute_effect(&mut session, &effect).unwrap();
+
+        assert_eq!(session.runtime.zones.get("board").unwrap().grid_get(0, 0), Some(a));
+    }
+
+    #[test]
+    fn cycle_unknown_zone_errors() {
+        let mut session = test_session();
+        let effect: Effect = serde_json::from_str(
+            r#"{"cycle": [
+                {"zone": "board", "pos": "0,0"},
+                {"zone": "nonexistent", "pos": "0,0"}
+            ]}"#,
+        )
+        .unwrap();
+        assert!(execute_effect(&mut session, &effect).is_err());
     }
 
     #[test]
