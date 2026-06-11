@@ -11,7 +11,7 @@ use std::net::SocketAddr;
 use std::sync::Arc;
 
 use axum::Router;
-use axum::routing::get;
+use axum::routing::{get, post};
 use room::RoomRegistry;
 
 #[tokio::main]
@@ -19,6 +19,8 @@ async fn main() {
     let registry = Arc::new(RoomRegistry::new());
 
     let app = Router::new()
+        .route("/rooms", post(connection::create_room_handler))
+        .route("/rooms", get(connection::list_rooms_handler))
         .route("/ws/{room_id}", get(connection::ws_handler))
         .route("/health", get(health))
         .with_state(registry);

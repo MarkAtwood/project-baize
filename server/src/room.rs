@@ -113,57 +113,10 @@ impl RoomRegistry {
         Ok(room_id)
     }
 
-    /// Get a room by ID, creating it with a default placeholder definition if
-    /// it does not exist yet. In production, rooms would be created explicitly
-    /// via an API; this fallback keeps the skeleton functional.
-    ///
-    /// Uses a single write lock to avoid TOCTOU races where two concurrent
-    /// requests could overwrite each other's room.
-    pub async fn get_or_create_room(&self, room_id: &str) -> Result<Arc<Mutex<Room>>, String> {
-        // Fast path: room exists (read lock)
-        {
-            let rooms = self.rooms.read().await;
-            if let Some(room) = rooms.get(room_id) {
-                return Ok(Arc::clone(room));
-            }
-        }
-
-        // Slow path: acquire write lock and re-check before creating
-        let mut rooms = self.rooms.write().await;
-
-        // Re-check under write lock to handle concurrent creation
-        if let Some(room) = rooms.get(room_id) {
-            return Ok(Arc::clone(room));
-        }
-
-        if rooms.len() >= config::MAX_ROOMS {
-            return Err(format!(
-                "server at room capacity (max {max})",
-                max = config::MAX_ROOMS
-            ));
-        }
-
-        let definition_json = default_definition();
-        let definition =
-            GameDefinition::from_json(&definition_json).map_err(|e| e.to_string())?;
-        let max_players = match &definition.game.players {
-            baize_engine::definition::Players::Named(names) => names.len(),
-            baize_engine::definition::Players::Range { max, .. } => *max as usize,
-        };
-        let session = GameSession::new(definition).map_err(|e| e.to_string())?;
-        let vault = Vault::new();
-
-        let room = Room {
-            id: room_id.to_string(),
-            session,
-            vault,
-            players: HashMap::new(),
-            max_players,
-        };
-
-        let arc = Arc::new(Mutex::new(room));
-        rooms.insert(room_id.to_string(), Arc::clone(&arc));
-        Ok(arc)
+    /// Get an existing room by ID. Returns None if the room does not exist.
+    pub async fn get_room(&self, room_id: &str) -> Option<Arc<Mutex<Room>>> {
+        let rooms = self.rooms.read().await;
+        rooms.get(room_id).cloned()
     }
 
     /// List all room IDs.
@@ -254,39 +207,3 @@ pub fn send_to_player(room: &Room, seat: &str, message: &str) {
     }
 }
 
-/// A minimal game definition used when auto-creating rooms for the skeleton.
-/// Describes a 2-player perfect-information game with an 8x8 board.
-fn default_definition() -> String {
-    serde_json::json!({
-        "game": {
-            "name": "placeholder",
-            "players": ["white", "black"],
-            "information": "perfect"
-        },
-        "zones": {
-            "board": {
-                "zone_type": "grid",
-                "visibility": "public",
-                "dimensions": [8, 8]
-            }
-        },
-        "components": {},
-        "turn_order": {
-            "type": "alternating",
-            "players": ["white", "black"]
-        },
-        "phases": [],
-        "rules": {},
-        "end_conditions": [
-            {
-                "result": "draw",
-                "condition": "no_legal_moves"
-            }
-        ],
-        "authority": {
-            "server_only": [],
-            "client_verifiable": ["move_piece", "place", "pass", "resign"]
-        }
-    })
-    .to_string()
-}
