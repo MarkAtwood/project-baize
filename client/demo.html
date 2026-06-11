@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Baize — Tic-Tac-Toe</title>
+  <style>
+    body {
+      font-family: system-ui, sans-serif;
+      max-width: 480px;
+      margin: 2rem auto;
+      padding: 0 1rem;
+      color: #333;
+    }
+    h1 { margin-bottom: 0.5rem; }
+    #controls { margin-bottom: 1rem; }
+    button {
+      padding: 0.4rem 0.8rem;
+      cursor: pointer;
+      border: 1px solid #999;
+      border-radius: 4px;
+      background: #f5f5f5;
+    }
+    button:hover { background: #e8e8e8; }
+    #info {
+      font-size: 0.85rem;
+      color: #666;
+      margin: 0.5rem 0;
+    }
+    #join-link {
+      font-size: 0.8rem;
+      word-break: break-all;
+      background: #f0f0f0;
+      padding: 0.5rem;
+      border-radius: 4px;
+      margin-top: 0.5rem;
+    }
+    #join-link a { color: #06c; }
+    .hidden { display: none; }
+  </style>
+</head>
+<body>
+  <h1>Tic-Tac-Toe</h1>
+  <div id="controls">
+    <button id="new-game">New Game</button>
+  </div>
+  <div id="info"></div>
+  <div id="join-link" class="hidden"></div>
+  <div id="game-container"></div>
+
+  <script type="module">
+    import "./dist/baize.js";
+
+    const params = new URLSearchParams(location.search);
+    const serverBase = params.get("server") || "http://localhost:8080";
+    let roomId = params.get("room");
+    let player = params.get("player") || "X";
+
+    const infoEl = document.getElementById("info");
+    const joinEl = document.getElementById("join-link");
+    const newBtn = document.getElementById("new-game");
+    const container = document.getElementById("game-container");
+
+    async function createRoom() {
+      newBtn.disabled = true;
+      infoEl.textContent = "Creating room...";
+      try {
+        const defResp = await fetch("../games/tic-tac-toe.json");
+        if (!defResp.ok) throw new Error("Failed to load game definition");
+        const definition = await defResp.json();
+
+        const resp = await fetch(serverBase + "/rooms", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ definition }),
+        });
+        if (!resp.ok) throw new Error("Failed to create room: " + resp.status);
+        const result = await resp.json();
+        roomId = result.room_id;
+        player = "X";
+
+        const url = new URL(location.href);
+        url.searchParams.set("room", roomId);
+        url.searchParams.set("player", player);
+        history.replaceState(null, "", url);
+
+        const joinUrl = new URL(location.href);
+        joinUrl.searchParams.set("room", roomId);
+        joinUrl.searchParams.set("player", "O");
+        joinEl.innerHTML = "Player O join link: <a href=\"" +
+          joinUrl.href + "\" target=\"_blank\">" + joinUrl.href + "</a>";
+        joinEl.classList.remove("hidden");
+
+        startGame();
+      } catch (err) {
+        infoEl.textContent = "Error: " + err.message;
+        newBtn.disabled = false;
+      }
+    }
+
+    function startGame() {
+      if (!roomId) return;
+      newBtn.classList.add("hidden");
+
+      const wsProto = serverBase.startsWith("https") ? "wss" : "ws";
+      const wsHost = serverBase.replace(/^https?:\/\//, "");
+      const wsUrl = wsProto + "://" + wsHost + "/ws/" + roomId;
+      const defUrl = "../games/tic-tac-toe.json";
+
+      container.innerHTML = "";
+      const gameEl = document.createElement("baize-game");
+      gameEl.setAttribute("src", defUrl);
+      gameEl.setAttribute("server", wsUrl);
+      gameEl.setAttribute("player", player);
+
+      const boardEl = document.createElement("baize-board");
+      const scoreEl = document.createElement("baize-score");
+      gameEl.appendChild(boardEl);
+      gameEl.appendChild(scoreEl);
+      container.appendChild(gameEl);
+
+      infoEl.textContent = "Room: " + roomId + " | Playing as: " + player;
+
+      gameEl.addEventListener("baize-connection", (e) => {
+        const status = e.detail.status;
+        if (status === "connected") {
+          infoEl.textContent = "Room: " + roomId + " | Playing as: " + player + " | Connected";
+        } else if (status === "disconnected") {
+          infoEl.textContent = "Room: " + roomId + " | Disconnected — reconnecting...";
+        }
+      });
+
+      gameEl.addEventListener("baize-move-rejected", (e) => {
+        infoEl.textContent = "Move rejected: " + (e.detail.reason || "unknown");
+        setTimeout(() => {
+          infoEl.textContent = "Room: " + roomId + " | Playing as: " + player;
+        }, 2000);
+      });
+    }
+
+    newBtn.addEventListener("click", createRoom);
+
+    if (roomId) {
+      startGame();
+    }
+  </script>
+</body>
+</html>

@@ -296,10 +296,11 @@ export class BaizeBoardElement extends HTMLElement {
       // Pointer never moved past threshold: treat as a click
       const coord = this.drag.fromCoord;
       const zoneName = this.drag.zoneName;
+      const { col, row } = this.drag.from;
       this.drag = null;
       this.dispatchEvent(
         new CustomEvent("baize-cell-click", {
-          detail: { cell: coord, zone: zoneName },
+          detail: { cell: coord, zone: zoneName, col, row },
           bubbles: true,
           composed: true,
         }),
@@ -618,7 +619,7 @@ export class BaizeBoardElement extends HTMLElement {
         cells.push(
           `<rect x="${x}" y="${y}" width="${CELL_SIZE}" height="${CELL_SIZE}" ` +
             `fill="${fill}" stroke="${COLORS.gridLine}" stroke-width="0.5" ` +
-            `data-cell="${safeCoord}" />`,
+            `data-cell="${safeCoord}" data-col="${c}" data-row="${r}" />`,
         );
 
         if (isHighlighted) {
@@ -628,9 +629,10 @@ export class BaizeBoardElement extends HTMLElement {
           );
         }
 
-        // Render component if present
+        // Render component if present (engine uses "col,row" coords)
         if (zoneState !== undefined && zoneState.zone_type === "grid") {
-          const component = this.getComponentAt(zoneState, coord);
+          const engineCoord = `${c},${r}`;
+          const component = this.getComponentAt(zoneState, engineCoord);
           if (component !== null) {
             cells.push(this.renderPiece(component, x, y, coord));
           }
@@ -708,10 +710,12 @@ export class BaizeBoardElement extends HTMLElement {
         // interaction — skip the click.
         if (this.drag !== null) return;
         const cell = rect.getAttribute("data-cell");
+        const col = Number(rect.getAttribute("data-col"));
+        const row = Number(rect.getAttribute("data-row"));
         if (cell !== null) {
           this.dispatchEvent(
             new CustomEvent("baize-cell-click", {
-              detail: { cell, zone: zoneName },
+              detail: { cell, zone: zoneName, col, row },
               bubbles: true,
               composed: true,
             }),
