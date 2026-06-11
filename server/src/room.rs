@@ -11,6 +11,7 @@ use baize_engine::GameDefinition;
 use baize_engine::GameSession;
 
 use crate::config;
+use crate::store::Store;
 use crate::vault::Vault;
 
 /// A single game room: one game session with connected players.
@@ -35,6 +36,8 @@ pub struct RoomRegistry {
     rooms: RwLock<HashMap<String, Arc<Mutex<Room>>>>,
     /// Per-IP active connection count.
     ip_connections: RwLock<HashMap<IpAddr, Arc<AtomicUsize>>>,
+    /// Optional persistence layer.
+    store: Option<Arc<dyn Store>>,
 }
 
 impl Default for RoomRegistry {
@@ -48,7 +51,42 @@ impl RoomRegistry {
         Self {
             rooms: RwLock::new(HashMap::new()),
             ip_connections: RwLock::new(HashMap::new()),
+            store: None,
         }
+    }
+
+    pub fn with_store(store: Arc<dyn Store>) -> Self {
+        Self {
+            rooms: RwLock::new(HashMap::new()),
+            ip_connections: RwLock::new(HashMap::new()),
+            store: Some(store),
+        }
+    }
+
+    /// Restore rooms from the persistence store. Call once at startup.
+    pub async fn restore_from_store(&self) -> Result<usize, String> {
+        let store = match &self.store {
+            Some(s) => s,
+            None => return Ok(0),
+        };
+        let room_ids = store.list_rooms().map_err(|e| e.to_string())?;
+        let mut restored = 0;
+        for room_id in &room_ids {
+            match store.load_room(room_id) {
+                Ok(Some(data)) => {
+                    if let Err(e) = self.create_room(room_id.clone(), &data.definition_json).await {
+                        eprintln!("[store] failed to restore room {room_id}: {e}");
+                    } else {
+                        restored += 1;
+                    }
+                }
+                Ok(None) => {}
+                Err(e) => {
+                    eprintln!("[store] error loading room {room_id}: {e}");
+                }
+            }
+        }
+        Ok(restored)
     }
 
     /// Try to acquire a connection slot for the given IP.
@@ -114,6 +152,15 @@ impl RoomRegistry {
             max_players,
         };
 
+        // Persist to store if available
+        if let Some(ref store) = self.store {
+            let state_json = serde_json::to_string(&room.session.to_wire_state())
+                .unwrap_or_default();
+            if let Err(e) = store.save_room(&room_id, definition_json, &state_json) {
+                eprintln!("[store] failed to persist room {room_id}: {e}");
+            }
+        }
+
         let mut rooms = self.rooms.write().await;
         rooms.insert(room_id.clone(), Arc::new(Mutex::new(room)));
         Ok(room_id)
@@ -129,6 +176,22 @@ impl RoomRegistry {
     pub async fn list_rooms(&self) -> Vec<String> {
         let rooms = self.rooms.read().await;
         rooms.keys().cloned().collect()
+    }
+
+    /// Persist state and events for a room after a mutation.
+    pub fn persist_state(&self, room: &Room, event_lines: &[String]) {
+        if let Some(ref store) = self.store {
+            let state_json =
+                serde_json::to_string(&room.session.to_wire_state()).unwrap_or_default();
+            if let Err(e) = store.update_state(&room.id, &state_json) {
+                eprintln!("[store] failed to update state for {}: {e}", room.id);
+            }
+            if !event_lines.is_empty() {
+                if let Err(e) = store.append_events(&room.id, event_lines) {
+                    eprintln!("[store] failed to append events for {}: {e}", room.id);
+                }
+            }
+        }
     }
 
     /// Return the current number of rooms.
