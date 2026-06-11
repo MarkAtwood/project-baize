@@ -294,9 +294,182 @@ Composable atoms describing how pieces move:
 
 Each primitive composes with:
 - **Direction generators**: orthogonal, diagonal, adjacent, forward, specific
-- **Conditions**: if_empty, if_enemy, if_friendly, if_nth_move
+- **Conditions**: CEL expressions (see Constraint Language below)
 - **Repetition**: exactly(N), range(min, max), unlimited
-- **Effects**: after_move(capture, promote, score, end_turn)
+- **Effects**: Perturber sequences (see Effect Language below)
+
+## Constraint Language (CEL)
+
+Constraints and predicates throughout the schema use
+[CEL (Common Expression Language)](https://github.com/google/cel-spec),
+Google's expression language for policy evaluation. CEL is:
+
+- **Guaranteed to terminate** — no loops, no recursion, no mutation
+- **Formally specified** — unambiguous grammar and semantics
+- **Multi-implementation** — Rust (cel-rust), Python (cel-python), WASM-compilable
+
+CEL expressions evaluate over game state and return booleans. They appear
+in movement conditions, end conditions, rule triggers, and perturber
+control flow. Examples:
+
+```cel
+// Movement condition: pawn can move forward if cell is empty
+target.component == null
+
+// Movement condition: pawn captures diagonally if enemy present
+target.component != null && target.component.owner != current_player
+
+// End condition: checkmate
+in_check(current_player) && legal_moves(current_player).size() == 0
+
+// End condition: board full (tic-tac-toe draw)
+zone("board").cells.all(c, c.component != null)
+
+// Rule trigger: pawn reaches promotion rank
+component.position.rank == promote_rank(component.owner)
+
+// Carcassonne: tile edges must match neighbors
+adjacent_cells(target).all(neighbor,
+    neighbor.component == null ||
+    edge_matches(component, target.rotation, neighbor.component, neighbor.direction))
+```
+
+### Standard Function Library
+
+CEL's custom function mechanism provides game-specific predicates. The
+engine registers these; the spec defines their signatures and semantics:
+
+| Function | Signature | Description |
+|----------|-----------|-------------|
+| `zone(name)` | `string → ZoneState` | Access a zone by name |
+| `adjacent(pos)` | `Position → list<Position>` | All adjacent positions |
+| `adjacent_cells(pos)` | `Position → list<Cell>` | Adjacent cells with contents |
+| `distance(a, b)` | `Position, Position → int` | Grid distance between positions |
+| `path_clear(from, to, dir)` | `Position, Position, Direction → bool` | No pieces between two positions |
+| `in_line(positions)` | `list<Position> → bool` | All positions are collinear |
+| `connected(pos, pred)` | `Position, Predicate → list<Position>` | Flood-fill from position matching predicate |
+| `group(pos)` | `Position → list<Position>` | Connected same-owner group containing position |
+| `liberties(group)` | `list<Position> → int` | Empty cells adjacent to group |
+| `in_check(player)` | `string → bool` | Player's king is attacked |
+| `legal_moves(player)` | `string → list<Move>` | All legal moves for player |
+| `attacked_by(pos, player)` | `Position, string → bool` | Position is attacked by player's pieces |
+| `edge_matches(a, b, dir)` | `Component, Component, Direction → bool` | Tile edges match at boundary |
+| `promote_rank(player)` | `string → int` | Promotion rank for player |
+| `count(zone, filter)` | `string, Predicate → int` | Count components matching filter |
+| `has_moved(component)` | `Component → bool` | Component has moved from initial position |
+| `owner_of(component)` | `Component → string` | Owner of a component |
+| `history_contains(hash)` | `string → bool` | Board state hash appears in game history (for superko) |
+| `group_size(group)` | `list<Position> → int` | Number of positions in a group |
+
+Functions that require search (`in_check`, `legal_moves`) are evaluated
+by the engine, not expanded inline. Their cost is bounded by board size.
+
+## Effect Language (Structured Perturbers)
+
+State mutations are described by a structured effect language that composes
+movement primitives with control flow. Unlike CEL (which is pure), perturbers
+mutate game state. Unlike WASM (which is arbitrary code), perturbers are
+guaranteed to terminate.
+
+### Effect Primitives
+
+| Primitive | Fields | Description |
+|-----------|--------|-------------|
+| `move` | `component`, `to` | Relocate component to position |
+| `place` | `component_type`, `at`, `owner` | Create and place new component |
+| `remove` | `target` | Destroy/capture a component |
+| `flip` | `target` | Toggle face-up/face-down |
+| `promote` | `target`, `to_type` | Change component type |
+| `swap` | `a`, `b` | Exchange two components' positions |
+| `draw` | `from_zone`, `to_zone` | Take top of stack |
+| `shuffle` | `zone` | Randomize stack order (server authority) |
+| `transfer` | `component`, `from_zone`, `to_zone` | Move between zones |
+| `reveal` | `component`, `to` | Change visibility (hidden → public) |
+| `set_counter` | `counter`, `value` | Set counter to value |
+| `add_counter` | `counter`, `value` | Increment/decrement counter |
+| `set_state` | `target`, `state` | Change component state (tapped, exhausted) |
+| `end_turn` | | Advance turn to next player |
+
+### Control Flow
+
+| Construct | Semantics | Termination guarantee |
+|-----------|-----------|----------------------|
+| `sequence` | Run effects in order | Finite list |
+| `if` / `then` / `else` | CEL predicate, one branch taken | Single evaluation |
+| `for_each` + `filter` | CEL filter over collection, run body per match | Bounded by set size |
+| `choose` | Player selects from finite options | Blocks for input; finite choices |
+| `repeat(n)` | Run body n times | Literal count |
+| `repeat_until_stable` | Run body, check for state change, repeat | Fuel budget (see below) |
+
+**No `while`. No recursion. No computed gotos.**
+
+### Chain Reactions: `repeat_until_stable`
+
+Many games have chain reactions: Go captures, checkers multi-jumps,
+match-3 cascades, Othello flips. These are fixpoint computations — apply
+rules until the board is stable. `repeat_until_stable` handles this with
+a **fuel budget**: a CEL expression evaluated once against initial state
+that sets the hard upper bound on iterations.
+
+```
+// Go capture chains
+{
+  "on": "place",
+  "then": {
+    "repeat_until_stable": {
+      "fuel": "zone('board').cells.size()",
+      "apply": [{
+        "for_each": {
+          "in": "groups(zone('board'))",
+          "filter": "liberties($item) == 0 && $item[0].owner != current_player"
+        },
+        "do": {
+          "sequence": [
+            { "add_counter": { "counter": "captures", "player": "current",
+                               "value": "group_size($item)" } },
+            { "for_each": { "in": "$item",
+                            "do": { "remove": { "target": "$item" } } } }
+          ]
+        }
+      }]
+    }
+  }
+}
+```
+
+The engine evaluates `fuel` once (here: number of board cells). Each
+iteration applies the body and diffs the state. If nothing changed, the
+chain is stable — stop. If fuel exhausts before fixpoint, that's a game
+definition error reported at validation time or runtime.
+
+Real-world chain reactions always terminate because each step consumes
+a finite resource:
+
+| Game | Chain mechanism | What decreases per step |
+|------|----------------|------------------------|
+| Go | Capture no-liberty groups | Stones on board |
+| Checkers | Multi-jump captures | Opponent pieces |
+| Match-3 / Candy Crush | Remove matches, gravity fill, re-match | Pieces on board |
+| Othello | Flip sandwiched lines | N/A (one pass, not cascading) |
+| Carcassonne | Complete feature → return meeples | Meeples on features |
+| MTG/Dominion | Card triggers card | Actions/mana remaining |
+
+### Tier Boundary Redefined
+
+With CEL constraints and structured perturbers, the three tiers become:
+
+- **Tier 1**: CEL predicates + structural effects + `repeat_until_stable`.
+  Covers placement, movement, capture, scoring, chain reactions, phase
+  transitions, and most end conditions. Guaranteed to terminate.
+
+- **Tier 2 (WASM)**: Needed only for logic that exceeds Tier 1:
+  - Computed scoring with complex tiebreakers (Carcassonne field majority)
+  - Predicates requiring game-tree search (checkmate detection via
+    move enumeration — though `in_check()` as a library function may
+    suffice for most cases)
+  - Exotic mechanics with no natural fuel bound
+
+- **Tier 3 (Server)**: Unchanged — hidden state, randomness, sequencing.
 
 ## Turn Structure
 
@@ -318,23 +491,27 @@ phases:
 
 ## Win/Loss/Draw Conditions
 
-Declarative predicates over state:
+Declarative predicates over state, using CEL expressions:
 
 ```
 end_conditions:
-  - type: win
+  - result: win
     player: opponent(current)
-    when: no_legal_moves(current) AND in_check(current)  # checkmate
+    condition: "legal_moves(current_player).size() == 0 && in_check(current_player)"
+    name: checkmate
 
-  - type: draw
-    when: no_legal_moves(current) AND NOT in_check(current)  # stalemate
+  - result: draw
+    condition: "legal_moves(current_player).size() == 0 && !in_check(current_player)"
+    name: stalemate
 
-  - type: draw
-    when: repetition_count(state) >= 3  # threefold repetition
+  - result: draw
+    condition: "state.halfmove_clock >= 100"
+    name: fifty_move_rule
 
-  - type: win
-    player: owner(component) WHERE component.position == zone(goal)
-    when: exists(component, type:king, position:opponent_goal)
+  - result: win
+    player: current
+    condition: "lines.exists(line, line.all(cell, cell.owner == current_player))"
+    name: three_in_a_row
 ```
 
 ## WASM Interface
@@ -366,8 +543,11 @@ fn validate_move(state: &GameState, player: PlayerId, action: Move) -> bool;
 ```
 
 The state is serialized as the same relational facts the declarative schema
-uses. The WASM module is a superset — it can do anything the declarative
-predicates can do, plus arbitrary computation.
+uses. The WASM module is a superset — it can do anything CEL predicates
+and structured perturbers can do, plus arbitrary computation. With the
+Tier 1 constraint and effect languages, WASM is needed for fewer games
+than initially expected — the design target is that Go (capture chains,
+ko detection, territory scoring) runs entirely in Tier 1 without WASM.
 
 ## Server Protocol (Minimal)
 
@@ -466,7 +646,16 @@ The server enforces defense-in-depth:
    `undo: permitted | forbidden`. Server enforces. Undo replays from
    the event log.
 
-7. ~~**Time controls**~~ — **Split responsibility.** Schema declares
+7. ~~**Constraint language**~~ — **CEL (Common Expression Language).**
+   Google's policy expression language. Guaranteed to terminate, formally
+   specified, multi-implementation (Rust, Python, WASM). Predicates are
+   CEL; effects are a structured perturber language composing movement
+   primitives with control flow (`sequence`, `if/then/else`, `for_each`,
+   `repeat_until_stable`). Chain reactions use bounded fixpoint iteration
+   with a fuel budget. No `while`, no recursion. WASM tier is now only
+   needed for computed scoring and search-dependent predicates.
+
+8. ~~**Time controls**~~ — **Split responsibility.** Schema declares
    `time_control` type and `timeout_result` (loss/draw/none — the game
    rule). Server overrides `seconds` and `increment` at room creation.
    Server owns clock state and enforcement. Client displays
