@@ -6,127 +6,177 @@ reviewers and contributors won't have beads installed. The canonical
 source of truth is the beads database in `.beads/`; this file is
 regenerated periodically.
 
+## Critical Path: First Playable Game
+
+The immediate goal is a playable tic-tac-toe: browser client connects
+to server, two players place marks, someone wins. This requires three
+server features landing before the client can be built:
+
+```
+baize-f1l  Evaluate end conditions ──────┐
+baize-8ct  Visibility filtering ─────────┼──→ baize-j7a  Minimal playable client
+baize-f9t  Game definition loading ──────┘
+```
+
+After tic-tac-toe, the path to chess requires the CEL constraint
+language and remaining movement primitives. The path to Go requires
+the structured perturber language for capture chains:
+
+```
+baize-1ye  CEL constraint language ──→ baize-olc  Remaining primitives ──→ baize-3a3  Perturber language
+```
+
 ## Open Work
 
-### P1 — High Priority
+### Ready (no blockers)
 
-**baize-o8y** (bug) — **Upgrade wasmtime from v29 to fix 14 CVEs**
+**baize-f1l** (P1, feature) — **Evaluate end conditions at runtime**
+
+End conditions in game definitions are currently decorative strings
+that are never evaluated. Implement end condition checking after each
+state transition. Start with tic-tac-toe (three-in-a-row, board-full).
+Pre-CEL: hardcoded condition evaluators matching existing game
+definitions. Post-CEL: replace with CEL expression evaluation. Both
+Rust and Python engines.
+
+**baize-8ct** (P1, feature) — **Visibility filtering on state sync**
+
+Server currently sends full game state to all players including hidden
+and private information. Implement per-player state filtering based on
+zone visibility declarations (public/private/hidden). Private zones
+only visible to owner. Hidden zones omitted from all client responses
+(count only). Must filter in both state_sync and move_confirmed
+messages.
+
+**baize-f9t** (P1, feature) — **Game definition loading from room creation API**
+
+Server currently auto-creates rooms with a hardcoded placeholder
+definition. Add an HTTP endpoint or WebSocket message to create a room
+with a specific game definition (JSON body or URI reference). Validate
+definition before creating room. Remove the auto-create fallback.
+
+**baize-o8y** (P1, bug) — **Upgrade wasmtime from v29 to fix 14 CVEs**
 
 All 14 Dependabot alerts trace to wasmtime v29.0.1, which is 16 major
-versions behind. Two critical sandbox escapes (CVSS 9.0). The feature
-is behind an optional flag (`wasm-host`) but needs upgrade before any
-WASM hosting work proceeds.
+versions behind. Two critical sandbox escapes (CVSS 9.0). Feature is
+behind an optional flag but needs upgrade before any WASM hosting work.
 
-### P2 — Medium Priority
+**baize-1ye** (P2, feature) — **Spec CEL constraint language integration**
 
-**baize-1ye** (feature) — **Spec CEL constraint language integration**
+Replace free-form constraint strings with CEL (Common Expression
+Language) expressions. Define the standard function library for
+game-specific predicates (adjacent, in_check, path_clear, liberties,
+group, connected, history_contains, etc.). The function library is
+the primary extension point for the project — new game mechanics get
+supported by adding well-defined CEL functions, not by changing the
+schema or language. Needs Rust (cel-rust) and Python (cel-python)
+evaluator integration.
 
-Replace free-form constraint strings with
-[CEL (Common Expression Language)](https://github.com/google/cel-spec)
-expressions. Define the standard function library for game-specific
-predicates (adjacent, in_check, path_clear, liberties, group, connected,
-history_contains, etc.). Predicates are CEL; effects remain structural.
-Document grammar subset, function signatures, and how CEL expressions
-appear in `game-definition.schema.json`. Needs Rust (cel-rust) and
-Python (cel-python) evaluator integration.
+Blocks: baize-olc, baize-3a3.
 
-Blocks: baize-3a3.
+**baize-z6r** (P2, feature) — **Server persistence layer**
 
-**baize-3a3** (feature) — **Spec structured perturber language**
+Server state is in-memory only; restart loses all games. Add a
+persistence layer so game state and event logs survive restart.
+The specific database is an implementation detail. Interface should be
+abstract (trait/protocol) so the backing store can be swapped. Must
+persist: room state, game state, event log. Should support: replay
+from event log for recovery.
 
-Design a structured effect/mutation language for game state transitions.
-Composes movement primitives (move, place, remove, flip, promote, swap,
-draw, shuffle, transfer, reveal) with control flow (sequence,
-if/then/else, for_each, choose, repeat, repeat_until_stable). CEL
-expressions for predicates and filters. `repeat_until_stable` provides
-bounded fixpoint iteration with a fuel budget for chain reactions (Go
-captures, checkers multi-jump, match-3 cascades). Fuel is a CEL
-expression evaluated once against initial state. No `while`, no
-recursion, no computed gotos. Termination guaranteed by construction.
+Blocks: baize-e3s.
 
-Depends on: baize-1ye (CEL must be specced first).
+**baize-fk5** (P2, task) — **CI pipeline**
 
-Design target: Go (placement, capture chains, ko/superko, territory
-scoring) should run entirely in Tier 1 without WASM.
+No CI/CD pipeline exists. Set up GitHub Actions: cargo test (engine),
+cargo clippy (engine), cargo build (server), python pytest, python
+mypy, npx tsc --noEmit (client). Fail on any error.
 
-## Completed Work
+### Blocked
+
+**baize-j7a** (P1, feature) — **Minimal playable client**
+
+Build the minimum viable Web Components client that can play
+tic-tac-toe. Needs: `<baize-game>` element that connects to WebSocket,
+`<baize-board>` element that renders a grid zone as SVG, click-to-place
+interaction, turn indicator, game result display. No drag/drop, no hand
+rendering, no clock. Just enough to demo one game end-to-end.
+
+Blocked by: baize-f1l, baize-8ct, baize-f9t.
+
+**baize-olc** (P2, feature) — **Implement remaining movement primitives**
+
+Only step/slide/leap/hop are implemented. Implement: draw, move_to/
+transfer, swap, remove, promote, castle, flip (as movement trigger).
+Also implement hand plays (currently a no-op stub). Both Rust and
+Python engines.
+
+Blocked by: baize-1ye (CEL needed for movement conditions).
+
+**baize-3a3** (P2, feature) — **Spec structured perturber language**
+
+Structured effect/mutation language composing movement primitives with
+control flow (sequence, if/then/else, for_each, choose, repeat,
+repeat_until_stable). Bounded fixpoint iteration with fuel budget for
+chain reactions. Termination guaranteed by construction. Design target:
+Go runs entirely in Tier 1 without WASM.
+
+Blocked by: baize-1ye, baize-olc.
+
+**baize-e3s** (P2, feature) — **Authentication and player identity**
+
+Token-based auth (JWT or similar) on WebSocket upgrade. Stable player
+identity across reconnections. Spectators remain anonymous.
+
+Blocked by: baize-z6r (persistence needed for session state).
+
+## Completed Work (50 issues)
 
 ### Epics
 
-**baize-0a0** (P1) — **JSON Schema definitions**
-- baize-0a0.1 — Game definition schema
-- baize-0a0.2 — Component registry schema
-- baize-0a0.3 — Game state schema
-- baize-0a0.4 — Move/action schema
+**baize-0a0** — JSON Schema definitions (4 tasks)
+Game definition, component registry, game state, move/action schemas.
 
-**baize-ah1** (P1) — **Rust core engine**
-- baize-ah1.1 — Game definition parser
-- baize-ah1.2 — State representation
-- baize-ah1.3 — Legal move generator
-- baize-ah1.4 — State transition engine
-- baize-ah1.5 — WASM bindings (wasm-bindgen)
+**baize-ah1** — Rust core engine (5 tasks)
+Definition parser, state representation, legal move generator, state
+transition engine, WASM bindings.
 
-**baize-aca** (P1) — **Game server**
-- baize-aca.1 — WebSocket server framework (Axum)
-- baize-aca.2 — Hidden state vault
-- baize-aca.3 — Cryptographic randomness (ChaCha20Rng)
-- baize-aca.4 — Move sequencing and validation
+**baize-aca** — Game server (4 tasks)
+WebSocket framework, hidden state vault, cryptographic randomness,
+move sequencing and validation.
 
-**baize-562** (P1) — **Cross-implementation test suite**
-- baize-562.1 — Legal move test vectors
-- baize-562.2 — State transition test vectors
-- baize-562.4 — Visibility model tests
-- baize-562.6 — Structured event log format
+**baize-562** — Cross-implementation test suite (4 tasks)
+Legal move vectors, state transition vectors, visibility model tests,
+structured event log format.
 
-**baize-7vp** (P1) — **TypeScript Web Components client**
-- baize-7vp.1 — `<baize-game>` root element
-- baize-7vp.2 — `<baize-board>` SVG renderer
-- baize-7vp.6 — Drag/drop interaction layer
-- baize-7vp.7 — WebSocket connection manager
+**baize-7vp** — TypeScript Web Components client (4 tasks)
+Type definitions for `<baize-game>`, `<baize-board>`, drag/drop
+interaction layer, WebSocket connection manager.
 
-### Game Definitions
+### Game Definitions (6)
 
-- baize-xhp.1 — Tic-Tac-Toe
-- baize-xhp.2 — Chess
-- baize-xhp.3 — Texas Hold'em
-- baize-xhp.4 — Carcassonne
-- baize-xhp.5 — Go
-- baize-xhp.6 — Backgammon
+Tic-Tac-Toe, Chess, Texas Hold'em, Carcassonne, Go, Backgammon.
 
-### Security and Hardening
+### Security and Hardening (11)
 
-- baize-l4x (P0) — Fix StateSync broadcasting hidden state to all players
-- baize-rss (P0) — Add turn/auth check to RequestRandom handler
-- baize-rt8 (P0) — Fix unbounded dice/draw DoS vectors in server
-- baize-08a (P1) — Replace unbounded outbound channel with bounded
-- baize-7nh (P1) — Reject moves from spectator seats
-- baize-5yr (P1) — Input validation at all system boundaries
-- baize-894 (P1) — Client-side message sanitization
-- baize-l54 (P1) — Server protocol hardening
-- baize-x74 (P1) — Rust engine defensive programming audit
-- baize-gaw (P1) — Python engine defensive programming audit
-- baize-1g0 (P2) — Add max move count per game
+Three P0 fixes (hidden state leak, RequestRandom auth bypass, DoS
+vectors), plus input validation, spectator isolation, protocol
+hardening, bounded channels, defensive audits of both engines.
 
-### Testing and Quality
+### Testing and Quality (7)
 
-- baize-ass (P1) — Server vault unit tests
-- baize-g8g (P1) — Schema validation on game definition load
-- baize-cxn (P2) — State hash collision resistance
-- baize-gdl (P2) — Fuzz testing for parsers and protocol
-- baize-k1f (P2) — Event log tamper detection
-- baize-33c (P2) — Add Python mypy to CI
-- baize-4y7 (P2) — Add Rust clippy to CI
+Vault unit tests, schema validation on load, hash collision resistance,
+fuzz testing, tamper detection, mypy and clippy CI tasks.
 
 ## Summary
 
 | Status | Count |
 |--------|-------|
-| Open | 3 |
-| In progress | 0 |
+| Ready | 7 |
+| Blocked | 4 |
 | Closed | 50 |
-| **Total** | **53** |
+| **Total** | **61** |
 
 ---
 
-*This file was last updated 2026-06-11. Run `bd list` for the live
-state, or `bd show <id>` for details on any issue.*
+*Last updated 2026-06-11. Run `bd list` for live state, `bd show <id>`
+for details, `bd ready` for unblocked work.*
