@@ -9,6 +9,7 @@ pub mod runtime;
 pub mod state;
 pub mod transition;
 pub mod verify;
+pub mod visibility;
 pub mod wasm;
 
 pub use definition::GameDefinition;

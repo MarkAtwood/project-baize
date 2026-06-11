@@ -80,6 +80,7 @@ fn assert_error_code(result: &HandleResult, expected_code: &str) {
             HandleResult::Error(s) => format!("Error({s})"),
             HandleResult::Broadcast(_) => "Broadcast(...)".to_string(),
             HandleResult::Reply(_) => "Reply(...)".to_string(),
+            HandleResult::FilteredBroadcast { .. } => "FilteredBroadcast(...)".to_string(),
         }
     );
 }
@@ -154,7 +155,7 @@ fn spectator_can_acknowledge_state() {
         HandleResult::Error(e) => {
             panic!("spectator AcknowledgeState should not error, got: {e}");
         }
-        HandleResult::Broadcast(_) => {
+        HandleResult::Broadcast(_) | HandleResult::FilteredBroadcast { .. } => {
             panic!("spectator AcknowledgeState should Reply, not Broadcast");
         }
     }
@@ -378,7 +379,7 @@ fn moves_rejected_after_max_moves_per_game() {
         HandleResult::Error(e) => {
             panic!("expected Reply(MoveRejected), got Error: {e}");
         }
-        HandleResult::Broadcast(_) => {
+        HandleResult::Broadcast(_) | HandleResult::FilteredBroadcast { .. } => {
             panic!("expected Reply(MoveRejected), got Broadcast");
         }
     }
