@@ -55,6 +55,7 @@ fn make_test_room(room_id: &str) -> Room {
         vault: Vault::new(),
         players: HashMap::new(),
         max_players,
+        player_tokens: HashMap::new(),
     }
 }
 
