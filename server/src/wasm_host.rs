@@ -200,8 +200,9 @@ impl GameExtension for WasmHost {
             }
         };
 
-        let func = match inner.instance.get_typed_func::<(i32, i32, i32, i32, i32, i32), i32>(
-            &mut inner.store,
+        let inner_ref = &mut *inner;
+        let func = match inner_ref.instance.get_typed_func::<(i32, i32, i32, i32, i32, i32), i32>(
+            &mut inner_ref.store,
             "is_legal",
         ) {
             Ok(f) => f,
@@ -281,9 +282,10 @@ impl GameExtension for WasmHost {
             }
         };
 
-        let func = match inner
+        let inner_ref = &mut *inner;
+        let func = match inner_ref
             .instance
-            .get_typed_func::<(i32, i32, i32, i32), i32>(&mut inner.store, "legal_moves")
+            .get_typed_func::<(i32, i32, i32, i32), i32>(&mut inner_ref.store, "legal_moves")
         {
             Ok(f) => f,
             Err(e) => {
@@ -343,9 +345,10 @@ impl GameExtension for WasmHost {
         let (state_ptr, state_len) = Self::write_string(&mut inner, &state_json)?;
         let (trigger_ptr, trigger_len) = Self::write_string(&mut inner, trigger)?;
 
-        let func = inner
+        let inner_ref = &mut *inner;
+        let func = inner_ref
             .instance
-            .get_typed_func::<(i32, i32, i32, i32), i32>(&mut inner.store, "apply_effect")
+            .get_typed_func::<(i32, i32, i32, i32), i32>(&mut inner_ref.store, "apply_effect")
             .map_err(|e| {
                 ExtensionError::ComputationFailed(format!("missing 'apply_effect' export: {e}"))
             })?;
@@ -385,9 +388,10 @@ impl GameExtension for WasmHost {
 
         let (state_ptr, state_len) = Self::write_string(&mut inner, &state_json)?;
 
-        let func = inner
+        let inner_ref = &mut *inner;
+        let func = inner_ref
             .instance
-            .get_typed_func::<(i32, i32), i32>(&mut inner.store, "score")
+            .get_typed_func::<(i32, i32), i32>(&mut inner_ref.store, "score")
             .map_err(|e| {
                 ExtensionError::ComputationFailed(format!("missing 'score' export: {e}"))
             })?;
@@ -436,9 +440,10 @@ impl GameExtension for WasmHost {
             }
         };
 
-        let func = match inner
+        let inner_ref = &mut *inner;
+        let func = match inner_ref
             .instance
-            .get_typed_func::<(i32, i32), i32>(&mut inner.store, "check_end")
+            .get_typed_func::<(i32, i32), i32>(&mut inner_ref.store, "check_end")
         {
             Ok(f) => f,
             Err(e) => {
