@@ -38,12 +38,12 @@
     {
       "result": "win",
       "player": "current",
-      "condition": "three_in_line(current.marks, row OR column OR diagonal)",
+      "condition": "three_in_line",
       "name": "three_in_a_row"
     },
     {
       "result": "draw",
-      "condition": "all_cells_occupied(board)",
+      "condition": "all_cells_occupied",
       "name": "board_full"
     }
   ],

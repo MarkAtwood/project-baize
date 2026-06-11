@@ -16,6 +16,7 @@ blake3 = { version = "1.8", default-features = false }
 bitflags = "2"
 indexmap = { version = "2", features = ["serde"] }
 thiserror = "2"
+cel-interpreter = "0.10"
 wasm-bindgen = { version = "0.2", optional = true }
 
 [dev-dependencies]
