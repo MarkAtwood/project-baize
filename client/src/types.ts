@@ -378,6 +378,10 @@ export interface ServerMessage {
   readonly reveal_to?: string;
   readonly facts?: readonly Fact[];
   readonly full_state?: GameState;
+  readonly token?: string;
+  readonly seat?: string;
+  readonly server_version?: string;
+  readonly protocol_version?: number;
 }
 
 export interface RandomRequest {

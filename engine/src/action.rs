@@ -13,6 +13,8 @@ pub struct Hello {
     pub client_type: ClientType,
     #[serde(default)]
     pub capabilities: Vec<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub token: Option<String>,
 }
 
 fn default_client_type() -> ClientType {
@@ -26,6 +28,7 @@ pub struct Welcome {
     pub server_version: String,
     pub seat: String,
     pub game_id: String,
+    pub token: String,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]

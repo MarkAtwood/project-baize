@@ -23,6 +23,8 @@ pub struct Room {
     pub players: HashMap<String, PlayerConnection>,
     /// Maximum number of players allowed (from game definition).
     pub max_players: usize,
+    /// Map of auth token to seat name for reconnection.
+    pub player_tokens: HashMap<String, String>,
 }
 
 /// Tracks a connected player's WebSocket sender.
@@ -150,6 +152,7 @@ impl RoomRegistry {
             vault,
             players: HashMap::new(),
             max_players,
+            player_tokens: HashMap::new(),
         };
 
         // Persist to store if available
@@ -225,6 +228,27 @@ impl Drop for IpConnectionGuard {
             eprintln!("ip connection slot released for {}", self.ip);
         }
     }
+}
+
+/// Generate a random 128-bit hex token for player authentication.
+pub fn generate_player_token() -> String {
+    use rand::Rng;
+    let mut rng = rand::rng();
+    let a: u64 = rng.random();
+    let b: u64 = rng.random();
+    format!("{a:016x}{b:016x}")
+}
+
+/// Look up a seat by auth token. Returns None if token is unknown.
+pub fn seat_for_token(room: &Room, token: &str) -> Option<String> {
+    room.player_tokens.get(token).cloned()
+}
+
+/// Register a token for a seat. Returns the token.
+pub fn register_token(room: &mut Room, seat: &str) -> String {
+    let token = generate_player_token();
+    room.player_tokens.insert(token.clone(), seat.to_string());
+    token
 }
 
 /// Check if the room has capacity for another player.
