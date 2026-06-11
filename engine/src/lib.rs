@@ -5,6 +5,7 @@ pub mod end_conditions;
 pub mod error;
 pub mod extension;
 pub mod moves;
+pub mod perturber;
 pub mod registry;
 pub mod runtime;
 pub mod state;
