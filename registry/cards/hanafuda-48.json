@@ -1,0 +1,140 @@
+{
+  "$schema": "https://baize.dev/schema/v1/component-registry.schema.json",
+  "id": "standard:hanafuda-48",
+  "name": "Hanafuda (Japanese Flower Cards)",
+  "component_type": "card_deck",
+  "months": [
+    "pine",
+    "plum",
+    "cherry",
+    "wisteria",
+    "iris",
+    "peony",
+    "bush_clover",
+    "pampas",
+    "chrysanthemum",
+    "maple",
+    "willow",
+    "paulownia"
+  ],
+  "cards_per_month": 4,
+  "card_types": ["plain", "ribbon", "animal", "bright"],
+  "composition": {
+    "january_pine": {
+      "month": "pine",
+      "cards": [
+        { "type": "bright", "name": "Crane and Pine" },
+        { "type": "ribbon", "name": "Poetry Ribbon" },
+        { "type": "plain", "name": "Pine Plain 1" },
+        { "type": "plain", "name": "Pine Plain 2" }
+      ]
+    },
+    "february_plum": {
+      "month": "plum",
+      "cards": [
+        { "type": "animal", "name": "Bush Warbler" },
+        { "type": "ribbon", "name": "Poetry Ribbon" },
+        { "type": "plain", "name": "Plum Plain 1" },
+        { "type": "plain", "name": "Plum Plain 2" }
+      ]
+    },
+    "march_cherry": {
+      "month": "cherry",
+      "cards": [
+        { "type": "bright", "name": "Curtain" },
+        { "type": "ribbon", "name": "Poetry Ribbon" },
+        { "type": "plain", "name": "Cherry Plain 1" },
+        { "type": "plain", "name": "Cherry Plain 2" }
+      ]
+    },
+    "april_wisteria": {
+      "month": "wisteria",
+      "cards": [
+        { "type": "animal", "name": "Cuckoo" },
+        { "type": "ribbon", "name": "Red Ribbon" },
+        { "type": "plain", "name": "Wisteria Plain 1" },
+        { "type": "plain", "name": "Wisteria Plain 2" }
+      ]
+    },
+    "may_iris": {
+      "month": "iris",
+      "cards": [
+        { "type": "animal", "name": "Eight-Plank Bridge" },
+        { "type": "ribbon", "name": "Red Ribbon" },
+        { "type": "plain", "name": "Iris Plain 1" },
+        { "type": "plain", "name": "Iris Plain 2" }
+      ]
+    },
+    "june_peony": {
+      "month": "peony",
+      "cards": [
+        { "type": "animal", "name": "Butterflies" },
+        { "type": "ribbon", "name": "Blue Ribbon" },
+        { "type": "plain", "name": "Peony Plain 1" },
+        { "type": "plain", "name": "Peony Plain 2" }
+      ]
+    },
+    "july_bush_clover": {
+      "month": "bush_clover",
+      "cards": [
+        { "type": "animal", "name": "Boar" },
+        { "type": "ribbon", "name": "Red Ribbon" },
+        { "type": "plain", "name": "Bush Clover Plain 1" },
+        { "type": "plain", "name": "Bush Clover Plain 2" }
+      ]
+    },
+    "august_pampas": {
+      "month": "pampas",
+      "cards": [
+        { "type": "bright", "name": "Full Moon" },
+        { "type": "animal", "name": "Geese" },
+        { "type": "plain", "name": "Pampas Plain 1" },
+        { "type": "plain", "name": "Pampas Plain 2" }
+      ]
+    },
+    "september_chrysanthemum": {
+      "month": "chrysanthemum",
+      "cards": [
+        { "type": "animal", "name": "Sake Cup" },
+        { "type": "ribbon", "name": "Blue Ribbon" },
+        { "type": "plain", "name": "Chrysanthemum Plain 1" },
+        { "type": "plain", "name": "Chrysanthemum Plain 2" }
+      ]
+    },
+    "october_maple": {
+      "month": "maple",
+      "cards": [
+        { "type": "animal", "name": "Deer" },
+        { "type": "ribbon", "name": "Blue Ribbon" },
+        { "type": "plain", "name": "Maple Plain 1" },
+        { "type": "plain", "name": "Maple Plain 2" }
+      ]
+    },
+    "november_willow": {
+      "month": "willow",
+      "cards": [
+        { "type": "bright", "name": "Rain Man" },
+        { "type": "animal", "name": "Swallow" },
+        { "type": "ribbon", "name": "Red Ribbon" },
+        { "type": "plain", "name": "Lightning" }
+      ]
+    },
+    "december_paulownia": {
+      "month": "paulownia",
+      "cards": [
+        { "type": "bright", "name": "Phoenix" },
+        { "type": "plain", "name": "Paulownia Plain 1" },
+        { "type": "plain", "name": "Paulownia Plain 2" },
+        { "type": "plain", "name": "Paulownia Plain 3" }
+      ]
+    }
+  },
+  "count": 48,
+  "facing": "face_up | face_down",
+  "physical_form": "mini_card",
+  "physical": {
+    "size_mm": [33, 53],
+    "thickness_mm": 0.5,
+    "material": "cardstock"
+  }
+}

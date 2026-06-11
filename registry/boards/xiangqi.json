@@ -1,0 +1,33 @@
+{
+  "$schema": "https://baize.dev/schema/v1/component-registry.schema.json",
+  "id": "standard:board-xiangqi",
+  "name": "Xiangqi Board (Chinese Chess)",
+  "component_type": "tile_set",
+  "composition": {
+    "topology_type": "grid",
+    "size": [9, 10],
+    "intersections": true,
+    "river": {
+      "between_ranks": [5, 6],
+      "note": "The river divides the board into two territories; soldiers promote upon crossing"
+    },
+    "palace_zones": [
+      {
+        "owner": "red",
+        "bounds": { "cols": [4, 6], "rows": [1, 3] },
+        "note": "3x3 palace constraining the general and advisors"
+      },
+      {
+        "owner": "black",
+        "bounds": { "cols": [4, 6], "rows": [8, 10] },
+        "note": "3x3 palace constraining the general and advisors"
+      }
+    ],
+    "labels": {
+      "files": ["a", "b", "c", "d", "e", "f", "g", "h", "i"],
+      "ranks": ["1", "2", "3", "4", "5", "6", "7", "8", "9", "10"]
+    }
+  },
+  "count": 90,
+  "note": "Standard 9x10 Xiangqi board. Pieces are placed on intersections. A river separates ranks 5 and 6, and each side has a 3x3 palace zone."
+}

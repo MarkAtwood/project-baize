@@ -1,0 +1,35 @@
+{
+  "$schema": "https://baize.dev/schema/v1/component-registry.schema.json",
+  "id": "standard:german-36",
+  "name": "German-Suited Cards (Skat)",
+  "component_type": "card_deck",
+  "suits": ["acorns", "leaves", "hearts", "bells"],
+  "suit_symbols": ["\ud83c\udf30", "\ud83c\udf43", "\u2665", "\ud83d\udd14"],
+  "suit_colors": {
+    "acorns": "brown",
+    "leaves": "green",
+    "hearts": "red",
+    "bells": "yellow"
+  },
+  "ranks": ["6", "7", "8", "9", "10", "U", "O", "K", "A"],
+  "rank_values": {
+    "6": 6,
+    "7": 7,
+    "8": 8,
+    "9": 9,
+    "10": 10,
+    "U": 11,
+    "O": 12,
+    "K": 13,
+    "A": [1, 14]
+  },
+  "note": "U=Unter (Jack), O=Ober (Queen equivalent), K=K\u00f6nig, A=Ass",
+  "count": 36,
+  "facing": "face_up | face_down",
+  "physical_form": "poker_card",
+  "physical": {
+    "size_mm": [56, 100],
+    "thickness_mm": 0.32,
+    "material": "cardstock"
+  }
+}

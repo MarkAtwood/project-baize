@@ -1,0 +1,40 @@
+{
+  "$schema": "https://baize.dev/schema/v1/component-registry.schema.json",
+  "id": "standard:janggi-pieces",
+  "name": "Janggi (Korean Chess) Pieces",
+  "component_type": "piece_set",
+  "shape": "octagon",
+  "glyphs": {
+    "cho": {
+      "color": "red",
+      "general": "\u695a",
+      "advisor": "\u58eb",
+      "elephant": "\u8c61",
+      "chariot": "\u8eca",
+      "horse": "\u99ac",
+      "cannon": "\u5305",
+      "soldier": "\u5352"
+    },
+    "han": {
+      "color": "blue",
+      "general": "\u6f22",
+      "advisor": "\u58eb",
+      "elephant": "\u8c61",
+      "chariot": "\u8eca",
+      "horse": "\u99ac",
+      "cannon": "\u7832",
+      "soldier": "\u5175"
+    }
+  },
+  "movement": {
+    "general": "step(orthogonal | diagonal, 1, if:in_palace)",
+    "advisor": "step(orthogonal | diagonal, 1, if:in_palace)",
+    "elephant": "step(orthogonal, 1, if:not_blocked) + step(diagonal, 2, if:not_blocked)",
+    "chariot": "slide(orthogonal) | slide(palace_diagonal, if:in_palace)",
+    "horse": "step(orthogonal, 1, if:not_blocked) + step(diagonal, 1)",
+    "cannon": "leap_over(orthogonal, exactly:1, if:not_cannon) | leap_over(palace_diagonal, exactly:1, if:in_palace AND not_cannon)",
+    "soldier": "step(forward | horizontal, 1) | step(palace_diagonal, 1, if:in_palace)"
+  },
+  "count": 32,
+  "note": "Standard Janggi set: 16 pieces per side (1 general, 2 advisors, 2 elephants, 2 chariots, 2 horses, 2 cannons, 5 soldiers). Played on a 9x10 grid at intersections. Octagonal pieces distinguish it from Xiangqi. Cho (red) and Han (blue) sides use different characters for generals, cannons, and soldiers. Elephants move differently from Xiangqi: one step orthogonal then two steps diagonal."
+}

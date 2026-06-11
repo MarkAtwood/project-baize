@@ -1,0 +1,16 @@
+{
+  "$schema": "https://baize.dev/schema/v1/component-registry.schema.json",
+  "id": "standard:meeples",
+  "name": "Colored Meeples",
+  "component_type": "pawn",
+  "shape": "meeple",
+  "parameterized_by": "color",
+  "available_colors": ["red", "blue", "green", "yellow", "black", "white", "orange", "purple", "pink"],
+  "supply": "configurable",
+  "physical": {
+    "size_mm": [16, 16],
+    "thickness_mm": 10.0,
+    "material": "wood"
+  },
+  "note": "Carcassonne-style meeple silhouettes. Used for worker placement, area control, and generic player markers."
+}

@@ -1,0 +1,17 @@
+{
+  "$schema": "https://baize.dev/schema/v1/component-registry.schema.json",
+  "id": "standard:board-hex-11",
+  "name": "Hex Board (11x11)",
+  "component_type": "tile_set",
+  "composition": {
+    "topology_type": "hex_grid",
+    "size": [11, 11],
+    "connectivity": 6,
+    "edge_ownership": [
+      { "player": 1, "edges": ["top", "bottom"], "note": "Player 1 connects top to bottom" },
+      { "player": 2, "edges": ["left", "right"], "note": "Player 2 connects left to right" }
+    ]
+  },
+  "count": 121,
+  "note": "Standard 11x11 Hex board. Each cell is a hexagon with 6 neighbors. Player 1 wins by connecting top to bottom; Player 2 wins by connecting left to right."
+}

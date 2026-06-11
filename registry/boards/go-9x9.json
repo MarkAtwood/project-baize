@@ -1,0 +1,18 @@
+{
+  "$schema": "https://baize.dev/schema/v1/component-registry.schema.json",
+  "id": "standard:board-go-9",
+  "name": "Go Board (9x9)",
+  "component_type": "tile_set",
+  "composition": {
+    "topology_type": "grid",
+    "size": [9, 9],
+    "intersections": true,
+    "star_points": [
+      [3, 3], [3, 7],
+      [5, 5],
+      [7, 3], [7, 7]
+    ]
+  },
+  "count": 81,
+  "note": "9x9 Go board for quick games and beginners. Pieces are placed on intersections. Five star points (hoshi) including the center (tengen)."
+}

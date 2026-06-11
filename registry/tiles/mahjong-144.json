@@ -1,0 +1,75 @@
+{
+  "$schema": "https://baize.dev/schema/v1/component-registry.schema.json",
+  "id": "standard:mahjong-144",
+  "name": "Mahjong Tiles (Standard 144)",
+  "component_type": "tile_set",
+  "count": 144,
+  "facing": "face_up | face_down",
+  "composition": {
+    "suited": {
+      "suits": ["characters", "bamboo", "dots"],
+      "ranks": [1, 2, 3, 4, 5, 6, 7, 8, 9],
+      "copies": 4,
+      "count": 108
+    },
+    "winds": {
+      "tiles": ["east", "south", "west", "north"],
+      "copies": 4,
+      "count": 16
+    },
+    "dragons": {
+      "tiles": ["red", "green", "white"],
+      "copies": 4,
+      "count": 12
+    },
+    "flowers": {
+      "tiles": ["plum", "orchid", "chrysanthemum", "bamboo"],
+      "copies": 1,
+      "count": 4
+    },
+    "seasons": {
+      "tiles": ["spring", "summer", "autumn", "winter"],
+      "copies": 1,
+      "count": 4
+    }
+  },
+  "glyphs": {
+    "characters": {
+      "1": "\ud83c\udc07", "2": "\ud83c\udc08", "3": "\ud83c\udc09",
+      "4": "\ud83c\udc0a", "5": "\ud83c\udc0b", "6": "\ud83c\udc0c",
+      "7": "\ud83c\udc0d", "8": "\ud83c\udc0e", "9": "\ud83c\udc0f"
+    },
+    "bamboo": {
+      "1": "\ud83c\udc10", "2": "\ud83c\udc11", "3": "\ud83c\udc12",
+      "4": "\ud83c\udc13", "5": "\ud83c\udc14", "6": "\ud83c\udc15",
+      "7": "\ud83c\udc16", "8": "\ud83c\udc17", "9": "\ud83c\udc18"
+    },
+    "dots": {
+      "1": "\ud83c\udc19", "2": "\ud83c\udc1a", "3": "\ud83c\udc1b",
+      "4": "\ud83c\udc1c", "5": "\ud83c\udc1d", "6": "\ud83c\udc1e",
+      "7": "\ud83c\udc1f", "8": "\ud83c\udc20", "9": "\ud83c\udc21"
+    },
+    "winds": {
+      "east": "\ud83c\udc00", "south": "\ud83c\udc01",
+      "west": "\ud83c\udc02", "north": "\ud83c\udc03"
+    },
+    "dragons": {
+      "red": "\ud83c\udc04", "green": "\ud83c\udc05",
+      "white": "\ud83c\udc06"
+    },
+    "flowers": {
+      "plum": "\ud83c\udc22", "orchid": "\ud83c\udc23",
+      "chrysanthemum": "\ud83c\udc24", "bamboo": "\ud83c\udc25"
+    },
+    "seasons": {
+      "spring": "\ud83c\udc26", "summer": "\ud83c\udc27",
+      "autumn": "\ud83c\udc28", "winter": "\ud83c\udc29"
+    }
+  },
+  "physical": {
+    "size_mm": [33, 24],
+    "thickness_mm": 18.0,
+    "material": "plastic"
+  },
+  "note": "Standard 144-tile mahjong set used in most Chinese variants. 3 suits x 9 ranks x 4 copies (108) + 4 winds x 4 (16) + 3 dragons x 4 (12) + 4 flowers (4) + 4 seasons (4) = 144."
+}

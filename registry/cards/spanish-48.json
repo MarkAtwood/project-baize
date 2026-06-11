@@ -1,0 +1,38 @@
+{
+  "$schema": "https://baize.dev/schema/v1/component-registry.schema.json",
+  "id": "standard:spanish-48",
+  "name": "Spanish Full Deck",
+  "component_type": "card_deck",
+  "suits": ["coins", "cups", "swords", "clubs"],
+  "suit_symbols": ["\ud83e\ude99", "\ud83c\udfc6", "\u2694", "\ud83c\udfcf"],
+  "suit_colors": {
+    "coins": "yellow",
+    "cups": "red",
+    "swords": "blue",
+    "clubs": "green"
+  },
+  "ranks": ["1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12"],
+  "rank_values": {
+    "1": 1,
+    "2": 2,
+    "3": 3,
+    "4": 4,
+    "5": 5,
+    "6": 6,
+    "7": 7,
+    "8": 8,
+    "9": 9,
+    "10": 10,
+    "11": 11,
+    "12": 12
+  },
+  "note": "10=Sota (Jack), 11=Caballo (Knight), 12=Rey (King)",
+  "count": 48,
+  "facing": "face_up | face_down",
+  "physical_form": "poker_card",
+  "physical": {
+    "size_mm": [62, 95],
+    "thickness_mm": 0.32,
+    "material": "cardstock"
+  }
+}

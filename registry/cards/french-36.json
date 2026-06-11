@@ -1,0 +1,35 @@
+{
+  "$schema": "https://baize.dev/schema/v1/component-registry.schema.json",
+  "id": "standard:french-36",
+  "name": "Russian/Swiss-French Deck",
+  "component_type": "card_deck",
+  "subset_of": "standard:french-52",
+  "suits": ["spades", "hearts", "diamonds", "clubs"],
+  "suit_symbols": ["\u2660", "\u2665", "\u2666", "\u2663"],
+  "suit_colors": {
+    "spades": "black",
+    "hearts": "red",
+    "diamonds": "red",
+    "clubs": "black"
+  },
+  "ranks": ["6", "7", "8", "9", "10", "J", "Q", "K", "A"],
+  "rank_values": {
+    "6": 6,
+    "7": 7,
+    "8": 8,
+    "9": 9,
+    "10": 10,
+    "J": 11,
+    "Q": 12,
+    "K": 13,
+    "A": [1, 14]
+  },
+  "count": 36,
+  "facing": "face_up | face_down",
+  "physical_form": "poker_card",
+  "physical": {
+    "size_mm": [63, 88],
+    "thickness_mm": 0.32,
+    "material": "cardstock"
+  }
+}

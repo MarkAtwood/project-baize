@@ -1,0 +1,24 @@
+{
+  "$schema": "https://baize.dev/schema/v1/component-registry.schema.json",
+  "id": "standard:board-cribbage",
+  "name": "Cribbage Scoring Board",
+  "component_type": "tile_set",
+  "composition": {
+    "topology_type": "track",
+    "length": 121,
+    "lanes": [
+      { "player": 1, "positions": 121 },
+      { "player": 2, "positions": 121 }
+    ],
+    "segments": [
+      { "name": "first_street", "positions": [1, 30] },
+      { "name": "second_street", "positions": [31, 60] },
+      { "name": "third_street", "positions": [61, 90] },
+      { "name": "home_stretch", "positions": [91, 120] },
+      { "name": "game_hole", "position": 121 }
+    ],
+    "pegs_per_player": 2
+  },
+  "count": 242,
+  "note": "Standard 121-point cribbage scoring board with parallel lanes for each player. Each player uses two pegs to show current and previous score. Position 121 is the game-winning hole."
+}

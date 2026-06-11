@@ -1,0 +1,16 @@
+{
+  "$schema": "https://baize.dev/schema/v1/component-registry.schema.json",
+  "id": "standard:d4",
+  "name": "Standard 4-Sided Die",
+  "component_type": "die",
+  "faces": 4,
+  "values": [1, 2, 3, 4],
+  "display": "numeral",
+  "physical_form": "d4_standard",
+  "physical": {
+    "size_mm": [20, 20],
+    "thickness_mm": 16.0,
+    "material": "plastic",
+    "shape": "tetrahedron"
+  }
+}

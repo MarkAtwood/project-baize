@@ -1,0 +1,35 @@
+{
+  "$schema": "https://baize.dev/schema/v1/component-registry.schema.json",
+  "id": "standard:checkers-pieces",
+  "name": "Checkers (Draughts) Pieces",
+  "component_type": "piece_set",
+  "shape": "disc",
+  "variants": {
+    "red": {
+      "fill": "#CC0000",
+      "stroke": "#8B0000"
+    },
+    "black": {
+      "fill": "#1a1a1a",
+      "stroke": "#000000"
+    }
+  },
+  "states": {
+    "man": {
+      "description": "Standard piece, single disc",
+      "movement": "step(forward_diagonal, 1, if:empty) | step(forward_diagonal, 1, if:enemy_and_can_jump)"
+    },
+    "king": {
+      "description": "Crowned piece, double-stacked disc with crown glyph",
+      "glyph": "\u265a",
+      "movement": "step(diagonal, 1, if:empty) | step(diagonal, 1, if:enemy_and_can_jump)"
+    }
+  },
+  "promotion": {
+    "trigger": "reaches_last_rank",
+    "from": "man",
+    "to": "king"
+  },
+  "count": 24,
+  "note": "Standard checkers set: 12 pieces per player. Men move forward diagonally; kings move diagonally in any direction. Pieces promote to kings (crowned, shown as stacked discs) upon reaching the opponent's back rank. Common color pairs: red/black (American), white/black (international)."
+}

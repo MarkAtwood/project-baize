@@ -131,14 +131,14 @@ Six reference games spanning the complexity spectrum:
 
 ## Component Registry
 
-Reusable component definitions in `registry/`:
+49 reusable component definitions in `registry/`:
 
-- **Cards**: French 52-card deck, French 54-card deck (with jokers)
-- **Dice**: d6, d20
-- **Pieces**: Chess set, Go stones
-- **Boards**: Chess 8x8, Go 19x19
-- **Tiles**: Double-six dominoes
-- **Tokens**: Poker chips
+- **Cards** (12): French 52/54/32/36, German 36, Swiss-German 36, Spanish 40/48, Italian 40, Tarot 78, Hanafuda 48, Mamluk 52
+- **Dice** (11): d2 (coin), d4, d6, d8, d10, d12, d20, d100, Fudge/FATE, direction, color
+- **Pieces** (7): Chess, Go stones, Xiangqi, Shogi, Janggi, Checkers, Backgammon
+- **Boards** (9): Chess 8x8, Go 19/13/9, Backgammon, Xiangqi, Hex 11, Cribbage, Checkers
+- **Tiles** (6): Dominoes (double-six/nine/twelve), Mahjong 144/136, English letter tiles
+- **Tokens** (4): Poker chips, Meeples, Resource cubes, Victory points
 
 ## Quick Start
 

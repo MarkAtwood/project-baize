@@ -1,0 +1,18 @@
+{
+  "$schema": "https://baize.dev/schema/v1/component-registry.schema.json",
+  "id": "standard:board-go-13",
+  "name": "Go Board (13x13)",
+  "component_type": "tile_set",
+  "composition": {
+    "topology_type": "grid",
+    "size": [13, 13],
+    "intersections": true,
+    "star_points": [
+      [4, 4], [4, 10],
+      [7, 7],
+      [10, 4], [10, 10]
+    ]
+  },
+  "count": 169,
+  "note": "13x13 Go board for intermediate-length games. Pieces are placed on intersections. Five star points (hoshi) including the center (tengen)."
+}
