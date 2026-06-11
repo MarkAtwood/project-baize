@@ -43,12 +43,43 @@ def check_end_conditions(session: GameSession) -> GameResult | None:
 def _eval_condition(
     session: GameSession, condition: str, current_player: str
 ) -> bool:
-    """Dispatch a condition string to a hardcoded evaluator."""
+    """Evaluate a condition: try CEL first, then legacy dispatch."""
+    from baize.cel import try_eval_end_condition
+
+    variables = _build_end_condition_variables(session, current_player)
+    cel_result = try_eval_end_condition(variables, condition)
+    if cel_result is not None:
+        return cel_result
+
+    # Legacy string dispatch for non-CEL condition strings
     base = condition.split("(")[0].strip()
     if base == "three_in_line":
         return _check_line_win(session, current_player)
     if base in ("all_cells_occupied", "board_is_full"):
         return _check_all_cells_occupied(session, condition)
+    return False
+
+
+def _build_end_condition_variables(
+    session: GameSession, current_player: str
+) -> dict[str, object]:
+    """Build the CEL variable context for end-condition evaluation."""
+    return {
+        "current_player": current_player,
+        "move_count": int(session.runtime.move_count),
+        "halfmove_clock": int(session.runtime.halfmove_clock),
+        "three_in_line": _check_line_win(session, current_player),
+        "all_cells_occupied": _check_any_grid_full(session),
+        "board_is_full": _check_any_grid_full(session),
+    }
+
+
+def _check_any_grid_full(session: GameSession) -> bool:
+    """Check whether any grid zone has all cells occupied."""
+    for zone in session.runtime.zones.values():
+        if isinstance(zone, GridZone):
+            if len(zone.cells) > 0 and all(c is not None for c in zone.cells):
+                return True
     return False
 
 

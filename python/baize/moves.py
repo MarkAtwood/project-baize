@@ -298,7 +298,17 @@ def _check_cell_condition(
         return occupant is None
     if condition == "enemy":
         return occupant is not None and _is_enemy(session, occupant, player)
-    # "empty_or_enemy" or anything else
+    if condition == "empty_or_enemy":
+        return occupant is None or _is_enemy(session, occupant, player)
+    # Try CEL evaluation for complex conditions
+    from baize.cel import try_eval_move_condition
+
+    cell_empty = occupant is None
+    cell_enemy = occupant is not None and _is_enemy(session, occupant, player)
+    cel_result = try_eval_move_condition(cell_empty, cell_enemy, condition)
+    if cel_result is not None:
+        return cel_result
+    # Legacy fallback: allow if empty or enemy
     return occupant is None or _is_enemy(session, occupant, player)
 
 

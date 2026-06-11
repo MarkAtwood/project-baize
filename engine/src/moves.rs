@@ -326,11 +326,16 @@ fn check_cell_condition(
             occupant.is_none()
                 || occupant.is_some_and(|id| is_enemy(session, id, player))
         }
-        _ => {
-            // Complex conditions (e.g. "empty AND first_move") — default to allowing
-            // if the cell is empty or has an enemy
-            occupant.is_none()
-                || occupant.is_some_and(|id| is_enemy(session, id, player))
+        other => {
+            let cell_empty = occupant.is_none();
+            let cell_enemy = occupant.is_some_and(|id| is_enemy(session, id, player));
+            // Try CEL evaluation for complex conditions
+            if let Some(result) = crate::cel::try_eval_move_condition(cell_empty, cell_enemy, other)
+            {
+                return result;
+            }
+            // Legacy fallback: allow if empty or enemy
+            cell_empty || cell_enemy
         }
     }
 }

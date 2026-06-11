@@ -47,9 +47,13 @@ pub fn check_end_conditions(session: &GameSession) -> Option<GameResult> {
     None
 }
 
-/// Dispatch a condition string to a hardcoded evaluator.
-/// Unrecognized conditions return false (forward-compatible with CEL).
+/// Evaluate a condition string: try CEL first, then fall back to legacy dispatch.
 fn eval_condition(session: &GameSession, condition: &str, current_player: &str) -> bool {
+    // Try CEL evaluation first
+    if let Some(result) = crate::cel::try_eval_end_condition(session, condition, current_player) {
+        return result;
+    }
+    // Legacy string dispatch for non-CEL condition strings
     let base = condition.split('(').next().unwrap_or(condition).trim();
     match base {
         "three_in_line" => check_line_win(session, current_player),
@@ -60,7 +64,7 @@ fn eval_condition(session: &GameSession, condition: &str, current_player: &str) 
 
 /// Check if the given player owns a complete row, column, or diagonal
 /// on any grid zone.
-fn check_line_win(session: &GameSession, player: &str) -> bool {
+pub(crate) fn check_line_win(session: &GameSession, player: &str) -> bool {
     for zone in session.runtime.zones.values() {
         if let RuntimeZone::Grid {
             width,
@@ -129,10 +133,8 @@ fn cell_owned_by(
 /// Check if all cells in the target grid zone are occupied.
 fn check_all_cells_occupied(session: &GameSession, condition: &str) -> bool {
     let zone_name = extract_paren_arg(condition).unwrap_or("board");
-    if let Some(zone) = session.runtime.zones.get(zone_name) {
-        if let RuntimeZone::Grid { cells, .. } = zone {
-            return !cells.is_empty() && cells.iter().all(|c| c.is_some());
-        }
+    if let Some(RuntimeZone::Grid { cells, .. }) = session.runtime.zones.get(zone_name) {
+        return !cells.is_empty() && cells.iter().all(|c| c.is_some());
     }
     false
 }

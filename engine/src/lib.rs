@@ -1,4 +1,5 @@
 pub mod action;
+pub mod cel;
 pub mod definition;
 pub mod end_conditions;
 pub mod error;
