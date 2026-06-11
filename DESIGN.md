@@ -364,6 +364,23 @@ engine registers these; the spec defines their signatures and semantics:
 Functions that require search (`in_check`, `legal_moves`) are evaluated
 by the engine, not expanded inline. Their cost is bounded by board size.
 
+### Extension Model
+
+The CEL function library is the primary extension point for the project.
+The schema language, perturber primitives, and control flow constructs
+are intentionally closed — they change rarely if ever. New game mechanics
+get supported by adding well-defined CEL functions with clear signatures,
+semantics, and termination bounds. This is where the project accepts
+contributions: a new function like `territory_score(zone, player)` or
+`longest_road(zone, player)` extends what Tier 1 can express without
+touching the language itself.
+
+Function contributions must specify:
+- **Signature**: input types and return type
+- **Semantics**: unambiguous description of behavior
+- **Termination bound**: worst-case cost in terms of board state size
+- **Test vectors**: at least two non-trivial test cases with expected outputs
+
 ## Effect Language (Structured Perturbers)
 
 State mutations are described by a structured effect language that composes
