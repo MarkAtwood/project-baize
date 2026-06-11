@@ -109,8 +109,10 @@ impl ComponentTable {
         })?;
         let id = ComponentId(len);
         self.entries.push(data);
-        // Safe: push guarantees entries is non-empty, so last_mut always succeeds.
-        self.entries.last_mut().unwrap().id = id;
+        self.entries
+            .last_mut()
+            .expect("push guarantees entries is non-empty")
+            .id = id;
         Ok(id)
     }
 

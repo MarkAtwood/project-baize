@@ -44,7 +44,9 @@ pub fn filter_for_viewer(
 
     // Filter per-player zones
     for (player_name, player_state) in &full_state.players {
-        let filtered_player = filtered.players.get_mut(player_name).unwrap();
+        let Some(filtered_player) = filtered.players.get_mut(player_name) else {
+            continue;
+        };
 
         for (zone_name, zone_state) in &player_state.zones {
             let vis = definition.zones.get(zone_name).map(|z| &z.visibility);
