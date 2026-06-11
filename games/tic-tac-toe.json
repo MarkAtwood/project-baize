@@ -38,12 +38,12 @@
     {
       "result": "win",
       "player": "current",
-      "condition": "three_in_line",
+      "condition": "lines.exists(line, line.all(cell, cell == current_player))",
       "name": "three_in_a_row"
     },
     {
       "result": "draw",
-      "condition": "all_cells_occupied",
+      "condition": "occupied_count == cell_count",
       "name": "board_full"
     }
   ],

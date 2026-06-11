@@ -69,6 +69,35 @@ class TestEndConditionEval:
         result = try_eval_end_condition({}, "undefined_var")
         assert result is None
 
+    def test_lines_exists_win(self) -> None:
+        variables = {
+            "current_player": "X",
+            "lines": [["X", "X", "X"], ["O", "", ""]],
+        }
+        result = try_eval_end_condition(
+            variables,
+            "lines.exists(line, line.all(cell, cell == current_player))",
+        )
+        assert result is True
+
+    def test_lines_exists_no_win(self) -> None:
+        variables = {
+            "current_player": "X",
+            "lines": [["X", "O", "X"], ["", "X", ""]],
+        }
+        result = try_eval_end_condition(
+            variables,
+            "lines.exists(line, line.all(cell, cell == current_player))",
+        )
+        assert result is False
+
+    def test_occupied_count_board_full(self) -> None:
+        result = try_eval_end_condition(
+            {"occupied_count": 9, "cell_count": 9},
+            "occupied_count == cell_count",
+        )
+        assert result is True
+
 
 class TestMoveConditionEval:
     def test_empty(self) -> None:
