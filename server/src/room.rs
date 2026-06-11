@@ -37,6 +37,12 @@ pub struct RoomRegistry {
     ip_connections: RwLock<HashMap<IpAddr, Arc<AtomicUsize>>>,
 }
 
+impl Default for RoomRegistry {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl RoomRegistry {
     pub fn new() -> Self {
         Self {
