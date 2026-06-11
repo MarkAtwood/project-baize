@@ -102,7 +102,9 @@ according to the schema's visibility rules.
 
 ## Authority Declaration
 
-The schema explicitly declares which operations require server authority:
+The schema explicitly declares which operations require server authority.
+In practice these are JSON arrays of action strings (see `games/*.json`);
+the pseudocode below is for readability:
 
 ```
 authority:
@@ -233,6 +235,8 @@ Primitives that every game is built from:
 - **Set** — unordered collection (hand of cards, bag of tiles)
 - **Queue** — ordered, FIFO (turn order track)
 - **Single slot** — holds exactly one component (throne, target cell)
+- **Track** — linear sequence of positions (backgammon points, scoring track)
+- **Counter** — numeric value, no components (score, pot, hit points)
 
 ### Components
 
@@ -286,6 +290,7 @@ Composable atoms describing how pieces move:
 | `remove(component)` | Destroy/capture | Chess capture |
 | `promote(type)` | Change component type | Pawn promotion |
 | `flip()` | Toggle face-up/down | Memory game |
+| `castle(side)` | Composite king+rook move | Chess castling |
 
 Each primitive composes with:
 - **Direction generators**: orthogonal, diagonal, adjacent, forward, specific
@@ -334,7 +339,11 @@ end_conditions:
 
 ## WASM Interface
 
-When declarative predicates aren't enough, the WASM module provides:
+When declarative predicates aren't enough, the WASM module provides
+these four entry points. State and actions are serialized as JSON strings
+passed via `alloc`/`dealloc` in WASM linear memory (length-prefixed,
+4 bytes LE + UTF-8). Server-side hosting uses wasmtime (optional feature
+in `server/Cargo.toml`); client-side uses native browser WASM.
 
 ```rust
 // The WASM module exports these functions:
@@ -463,6 +472,34 @@ The server enforces defense-in-depth:
    Server owns clock state and enforcement. Client displays
    server-provided clock.
 
+## Implementation Status
+
+Three reference implementations share the same schema and cross-validate
+via test vectors in `tests/vectors/`:
+
+| Component | Language | Tests | Key capabilities |
+|-----------|----------|-------|-----------------|
+| `engine/` | Rust (serde, blake3, indexmap) | 77 | Parse/validate definitions, runtime state machine, legal move generation (step/slide/leap/hop), state transitions, BLAKE3 hash-chained event logs, tamper detection |
+| `python/` | Python 3.12 (dataclasses, strict mypy) | 121 | Feature-parallel with Rust engine, plus game analysis (branching factor, complexity profile, shortest game search) and Jupyter notebook integration (SVG board rendering, interactive `GameWidget`) |
+| `server/` | Rust (Axum, tokio, WebSocket) | Builds | Room management, WebSocket protocol dispatch, hidden-state vault (ChaCha20Rng), rate limiting, per-IP connection limits, spectator isolation |
+| `client/` | TypeScript | Types only | Full type definitions for all five JSON schemas; Web Components rendering not yet implemented |
+
+Five JSON Schema definitions (draft 2020-12) in `schema/`:
+
+- `game-definition.schema.json` — Declarative game definitions
+- `game-state.schema.json` — Runtime game state
+- `move-action.schema.json` — Client/server protocol messages
+- `event-log.schema.json` — BLAKE3 hash-chained event log format
+- `component-registry.schema.json` — Reusable component definitions
+
+Six reference game definitions in `games/`: Tic-Tac-Toe, Chess, Go,
+Backgammon, Texas Hold'em, Carcassonne. Ten reusable component definitions
+in `registry/` (card decks, dice, piece sets, boards, tiles, tokens).
+
+Cross-implementation test vectors in `tests/vectors/` verify that Rust and
+Python produce identical state hashes, legal move lists, and event logs for
+the same inputs.
+
 ## Open Questions
 
 1. **Randomness commitment**: For competitive play, the server should commit
@@ -472,6 +509,8 @@ The server enforces defense-in-depth:
 2. **Rating/matchmaking**: Out of scope, but the schema's complexity
    metadata (branching factor, average game length, hidden information
    ratio) could feed rating systems. TAG already computes these metrics.
+   The Python `analysis` module already computes branching factor,
+   complexity profiles, and hidden information ratio.
 
 3. **Mod support**: Can a WASM module extend the declarative schema (add new
    movement primitives, new component types)? Or is the schema fixed and
