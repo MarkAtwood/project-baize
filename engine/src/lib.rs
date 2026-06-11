@@ -1,5 +1,6 @@
 pub mod action;
 pub mod definition;
+pub mod end_conditions;
 pub mod error;
 pub mod extension;
 pub mod moves;

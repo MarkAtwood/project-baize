@@ -134,14 +134,11 @@ def test_complexity_profile_runs() -> None:
     assert "avg_length" in profile
     assert "avg_branching_factor" in profile
     assert "win_rates" in profile
-    # Without win-condition detection, all tic-tac-toe games fill the
-    # board completely (9 moves)
-    assert profile["min_length"] == 9
-    assert profile["max_length"] == 9
-    assert profile["avg_length"] == 9.0
-    # Branching factor starts at 9 and decreases by 1 each move
-    # Average per game: (9+8+7+6+5+4+3+2+1)/9 = 5.0
-    assert profile["avg_branching_factor"] == 5.0
+    # With end-condition detection, tic-tac-toe games end when someone
+    # wins (min 5 moves) or the board fills (max 9 moves)
+    assert 5 <= profile["min_length"] <= 9
+    assert 5 <= profile["max_length"] <= 9
+    assert 5.0 <= profile["avg_length"] <= 9.0
 
 
 def test_complexity_profile_win_rates_sum() -> None:
@@ -172,10 +169,9 @@ def test_game_tree_depth_tictactoe() -> None:
 
 
 def test_find_shortest_game_tictactoe() -> None:
-    """Find shortest tic-tac-toe game (all games are 9 moves without win detection)."""
+    """Find shortest tic-tac-toe game (5 moves for earliest possible win)."""
     defn = _load_definition("tic-tac-toe")
     session = GameSession(defn)
     shortest = find_shortest_game(session, max_attempts=50)
-    # Without win-condition checking in the engine, every tic-tac-toe
-    # game fills the board (9 moves). Verify a complete game was found.
-    assert len(shortest) == 9
+    # Shortest possible tic-tac-toe win: 5 moves (3 by first player, 2 by second)
+    assert len(shortest) == 5

@@ -31,6 +31,7 @@ from baize.state import (
     ComponentInstance,
     CounterState,
     FacingLiteral,
+    GameResult,
     GameState,
     GridState,
     PlayerState,
@@ -372,6 +373,7 @@ class RuntimeState:
     players: dict[str, RuntimePlayer] = field(default_factory=dict)
     counters: dict[str, int] = field(default_factory=dict)
     history_hashes: list[str] = field(default_factory=list)
+    result: GameResult | None = None
 
 
 # ---------------------------------------------------------------------------
@@ -497,6 +499,7 @@ class GameSession:
             schema_ref="",
             sequence=self.runtime.sequence,
             status=self.runtime.status,  # type: ignore[arg-type]
+            result=self.runtime.result,
             turn=turn,
             phase=phase,
             zones=wire_zones,

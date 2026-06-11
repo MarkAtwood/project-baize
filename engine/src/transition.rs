@@ -1,6 +1,7 @@
 use indexmap::IndexMap;
 
 use crate::action::{Action, ActionType, Position};
+use crate::end_conditions::check_end_conditions;
 use crate::error::{BaizeError, Result};
 use crate::runtime::{ComponentData, ComponentId, GameSession};
 use crate::state::GameStatus;
@@ -227,6 +228,36 @@ pub fn apply_action(session: &mut GameSession, action: &Action) -> Result<Vec<Ga
                 "action type {:?} not yet implemented",
                 action.action_type
             )));
+        }
+    }
+
+    // Check end conditions before advancing turn ("current" = player who just moved)
+    if session.runtime.status != GameStatus::Finished {
+        if let Some(result) = check_end_conditions(session) {
+            session.runtime.status = GameStatus::Finished;
+            session.runtime.result = Some(result.clone());
+
+            let new_hash = session.compute_state_hash();
+            session.runtime.history_hashes.push(new_hash.clone());
+
+            for event in &mut events {
+                event.state_hash = new_hash.clone();
+            }
+
+            events.push(GameEvent {
+                sequence: session.runtime.sequence,
+                event_type: EventType::GameEnd,
+                player: result.winner.unwrap_or_default(),
+                component_id: None,
+                from: None,
+                to: None,
+                captured: None,
+                detail: result.condition,
+                state_hash: new_hash,
+                prev_hash,
+            });
+
+            return Ok(events);
         }
     }
 

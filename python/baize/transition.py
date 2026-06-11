@@ -14,6 +14,7 @@ from dataclasses import dataclass
 from typing import Any, Literal
 
 from baize.action import Action, Position
+from baize.end_conditions import check_end_conditions
 from baize.error import IllegalActionError, InvalidCoordinateError, UnknownZoneError
 from baize.runtime import (
     ComponentData,
@@ -259,6 +260,32 @@ def apply_action(session: GameSession, action: Action) -> list[GameEvent]:
         raise IllegalActionError(
             f"action type {action.action_type!r} not yet implemented"
         )
+
+    # Check end conditions before advancing turn ("current" = player who just moved)
+    if session.runtime.status != "finished":
+        result = check_end_conditions(session)
+        if result is not None:
+            session.runtime.status = "finished"
+            session.runtime.result = result
+
+            new_hash = session.compute_state_hash()
+            session.runtime.history_hashes.append(new_hash)
+
+            for event in events:
+                event.state_hash = new_hash
+
+            events.append(
+                GameEvent(
+                    sequence=session.runtime.sequence,
+                    event_type="game_end",
+                    player=result.winner or "",
+                    detail=result.condition,
+                    state_hash=new_hash,
+                    prev_hash=prev_hash,
+                )
+            )
+
+            return events
 
     # Advance turn
     session.advance_turn()

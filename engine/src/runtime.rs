@@ -5,7 +5,8 @@ use crate::definition::{
 };
 use crate::error::{BaizeError, Result};
 use crate::state::{
-    CellContents, ComponentInstance, Facing, GameState, GameStatus, PlayerState, ZoneState,
+    CellContents, ComponentInstance, Facing, GameResult, GameState, GameStatus, PlayerState,
+    ZoneState,
 };
 
 /// Compact component identifier (index into ComponentTable).
@@ -33,6 +34,7 @@ pub struct RuntimeState {
     pub players: IndexMap<String, RuntimePlayer>,
     pub counters: IndexMap<String, i64>,
     pub history_hashes: Vec<String>,
+    pub result: Option<GameResult>,
 }
 
 /// Arena of all component instances in the game.
@@ -346,6 +348,7 @@ impl GameSession {
                 players,
                 counters: IndexMap::new(),
                 history_hashes: Vec::new(),
+                result: None,
             },
             definition,
         })
@@ -430,7 +433,7 @@ impl GameSession {
             sequence: self.runtime.sequence,
             state_hash: None,
             status: self.runtime.status,
-            result: None,
+            result: self.runtime.result.clone(),
             turn,
             phase,
             move_count: Some(self.runtime.move_count),
