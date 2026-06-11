@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use cel_interpreter::{Context, Program, Value};
 use crate::runtime::{GameSession, RuntimeZone};
 
@@ -51,8 +53,12 @@ fn build_end_condition_context(session: &GameSession, current_player: &str) -> C
     ctx.add_variable_from_value("move_count", session.runtime.move_count as i64);
     ctx.add_variable_from_value("halfmove_clock", session.runtime.halfmove_clock as i64);
 
-    // Precomputed game predicates — evaluated eagerly so CEL expressions
-    // can reference them as simple boolean variables.
+    // Grid structure: serialize all lines (rows, columns, diagonals) as
+    // lists of owner strings so CEL expressions can query them composably.
+    // e.g. lines.exists(line, line.all(cell, cell == current_player))
+    populate_grid_lines(&mut ctx, session);
+
+    // Legacy boolean variables (backward compat)
     ctx.add_variable_from_value(
         "three_in_line",
         crate::end_conditions::check_line_win(session, current_player),
@@ -61,6 +67,84 @@ fn build_end_condition_context(session: &GameSession, current_player: &str) -> C
     ctx.add_variable_from_value("board_is_full", check_any_grid_full(session));
 
     ctx
+}
+
+/// Serialize grid zones into CEL list-of-lists for composable line queries.
+///
+/// Injects:
+/// - `lines`: all rows + columns + diagonals as lists of owner strings
+/// - `rows`: just the rows
+/// - `cols`: just the columns
+/// - `diags`: just the diagonals
+/// - `board_width`, `board_height`: grid dimensions
+/// - `cell_count`: total cells
+/// - `occupied_count`: non-empty cells
+fn populate_grid_lines(ctx: &mut Context<'_>, session: &GameSession) {
+    for zone in session.runtime.zones.values() {
+        if let RuntimeZone::Grid {
+            width,
+            height,
+            cells,
+        } = zone
+        {
+            let w = *width as usize;
+            let h = *height as usize;
+
+            ctx.add_variable_from_value("board_width", *width as i64);
+            ctx.add_variable_from_value("board_height", *height as i64);
+            ctx.add_variable_from_value("cell_count", (w * h) as i64);
+            ctx.add_variable_from_value(
+                "occupied_count",
+                cells.iter().filter(|c| c.is_some()).count() as i64,
+            );
+
+            let owner_at = |col: usize, row: usize| -> Value {
+                let idx = row * w + col;
+                cells
+                    .get(idx)
+                    .and_then(|c| *c)
+                    .and_then(|cid| session.runtime.components.get(cid))
+                    .and_then(|comp| comp.owner.as_deref())
+                    .map(|s| Value::String(Arc::new(s.to_string())))
+                    .unwrap_or(Value::String(Arc::new(String::new())))
+            };
+
+            // Rows
+            let mut rows = Vec::with_capacity(h);
+            for row in 0..h {
+                let line: Vec<Value> = (0..w).map(|col| owner_at(col, row)).collect();
+                rows.push(Value::List(Arc::new(line)));
+            }
+
+            // Columns
+            let mut cols = Vec::with_capacity(w);
+            for col in 0..w {
+                let line: Vec<Value> = (0..h).map(|row| owner_at(col, row)).collect();
+                cols.push(Value::List(Arc::new(line)));
+            }
+
+            // Diagonals (square grids only)
+            let mut diags = Vec::new();
+            if w == h && w > 0 {
+                let main: Vec<Value> = (0..w).map(|i| owner_at(i, i)).collect();
+                let anti: Vec<Value> = (0..w).map(|i| owner_at(w - 1 - i, i)).collect();
+                diags.push(Value::List(Arc::new(main)));
+                diags.push(Value::List(Arc::new(anti)));
+            }
+
+            ctx.add_variable_from_value("rows", Value::List(Arc::new(rows.clone())));
+            ctx.add_variable_from_value("cols", Value::List(Arc::new(cols.clone())));
+            ctx.add_variable_from_value("diags", Value::List(Arc::new(diags.clone())));
+
+            // Combined: all lines in one list
+            let mut all_lines = rows;
+            all_lines.extend(cols);
+            all_lines.extend(diags);
+            ctx.add_variable_from_value("lines", Value::List(Arc::new(all_lines)));
+
+            break; // Use the first grid zone
+        }
+    }
 }
 
 /// Check whether any grid zone has all cells occupied.
@@ -128,6 +212,56 @@ mod tests {
         // Old-style conditions with AND/OR should fail to parse as CEL
         let result = try_eval_move_condition(true, false, "empty AND first_move");
         assert_eq!(result, None);
+    }
+
+    #[test]
+    fn lines_exist_composable_win() {
+        // Simulate the composable win condition used by tic-tac-toe
+        let program = Program::compile(
+            "lines.exists(line, line.all(cell, cell == current_player))",
+        )
+        .unwrap();
+        let mut ctx = Context::default();
+        ctx.add_variable_from_value("current_player", "X".to_string());
+        // A winning board: X owns the entire first row
+        let row0 = Value::List(Arc::new(vec![
+            Value::String(Arc::new("X".into())),
+            Value::String(Arc::new("X".into())),
+            Value::String(Arc::new("X".into())),
+        ]));
+        let row1 = Value::List(Arc::new(vec![
+            Value::String(Arc::new("O".into())),
+            Value::String(Arc::new(String::new())),
+            Value::String(Arc::new(String::new())),
+        ]));
+        ctx.add_variable_from_value("lines", Value::List(Arc::new(vec![row0, row1])));
+        assert_eq!(program.execute(&ctx), Ok(Value::Bool(true)));
+    }
+
+    #[test]
+    fn lines_no_win() {
+        let program = Program::compile(
+            "lines.exists(line, line.all(cell, cell == current_player))",
+        )
+        .unwrap();
+        let mut ctx = Context::default();
+        ctx.add_variable_from_value("current_player", "X".to_string());
+        let row0 = Value::List(Arc::new(vec![
+            Value::String(Arc::new("X".into())),
+            Value::String(Arc::new("O".into())),
+            Value::String(Arc::new("X".into())),
+        ]));
+        ctx.add_variable_from_value("lines", Value::List(Arc::new(vec![row0])));
+        assert_eq!(program.execute(&ctx), Ok(Value::Bool(false)));
+    }
+
+    #[test]
+    fn occupied_count_board_full() {
+        let program = Program::compile("occupied_count == cell_count").unwrap();
+        let mut ctx = Context::default();
+        ctx.add_variable_from_value("occupied_count", 9i64);
+        ctx.add_variable_from_value("cell_count", 9i64);
+        assert_eq!(program.execute(&ctx), Ok(Value::Bool(true)));
     }
 
     #[test]

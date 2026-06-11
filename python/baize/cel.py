@@ -74,7 +74,7 @@ def _eval_expression(expr: str, variables: dict[str, Any]) -> bool | None:
 _TOKEN_RE = re.compile(
     r"""
     \s*(?:
-        (&&|\|\||[!(){},])       # operators/punctuation
+        (&&|\|\||[!(){},\.])     # operators/punctuation (includes dot)
         | (>=|<=|!=|==|>|<)      # comparisons
         | (-?\d+)                # integer literal
         | (true|false)           # boolean literal
@@ -185,20 +185,86 @@ def _parse_primary(
     kind, value = tokens[pos]
 
     if kind == "BOOL":
-        return value == "true", pos + 1
+        result: Any = value == "true"
+        return _parse_postfix(tokens, pos + 1, result, variables)
     if kind == "INT":
-        return int(value), pos + 1
+        result = int(value)
+        return _parse_postfix(tokens, pos + 1, result, variables)
     if kind == "IDENT":
         if value not in variables:
             raise KeyError(value)
-        return variables[value], pos + 1
+        result = variables[value]
+        return _parse_postfix(tokens, pos + 1, result, variables)
     if kind == "OP" and value == "(":
         result, pos = _parse_or(tokens, pos + 1, variables)
         if pos < len(tokens) and tokens[pos] == ("OP", ")"):
-            return result, pos + 1
+            return _parse_postfix(tokens, pos + 1, result, variables)
         raise ValueError("missing closing parenthesis")
 
     raise ValueError(f"unexpected token: {kind}={value}")
+
+
+def _parse_postfix(
+    tokens: list[tuple[str, str]],
+    pos: int,
+    value: Any,
+    variables: dict[str, Any],
+) -> tuple[Any, int]:
+    """Handle .method(var, predicate) calls on a value (exists, all)."""
+    while (
+        pos + 1 < len(tokens)
+        and tokens[pos] == ("OP", ".")
+        and tokens[pos + 1][0] == "IDENT"
+    ):
+        method = tokens[pos + 1][1]
+        pos += 2  # skip dot and method name
+
+        if method in ("exists", "all") and isinstance(value, list):
+            # Expect: (var_name, predicate_expr...)
+            if pos >= len(tokens) or tokens[pos] != ("OP", "("):
+                raise ValueError(f"expected ( after .{method}")
+            pos += 1  # skip (
+
+            # Read the binding variable name
+            if pos >= len(tokens) or tokens[pos][0] != "IDENT":
+                raise ValueError(f".{method} requires a variable name")
+            bind_var = tokens[pos][1]
+            pos += 1
+
+            # Expect comma
+            if pos >= len(tokens) or tokens[pos] != ("OP", ","):
+                raise ValueError(f".{method} requires (var, predicate)")
+            pos += 1  # skip comma
+
+            # Find the matching closing paren to extract the predicate tokens
+            depth = 1
+            pred_start = pos
+            while pos < len(tokens) and depth > 0:
+                if tokens[pos] == ("OP", "("):
+                    depth += 1
+                elif tokens[pos] == ("OP", ")"):
+                    depth -= 1
+                if depth > 0:
+                    pos += 1
+            pred_tokens = tokens[pred_start:pos]
+            pos += 1  # skip closing )
+
+            # Evaluate predicate for each list element
+            results = []
+            for item in value:
+                inner_vars = dict(variables)
+                inner_vars[bind_var] = item
+                pred_result, _ = _parse_or(pred_tokens, 0, inner_vars)
+                results.append(bool(pred_result))
+
+            if method == "exists":
+                value = any(results)
+            else:  # all
+                value = all(results)
+        else:
+            raise ValueError(f"unsupported method: .{method}")
+
+    return value, pos
 
 
 # ---------------------------------------------------------------------------
