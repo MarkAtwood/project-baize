@@ -1,0 +1,202 @@
+{
+  "$schema": "../schema/game-definition.schema.json",
+  "game": {
+    "name": "Diplomacy",
+    "players": ["West", "Central", "East"],
+    "information": "imperfect"
+  },
+  "zones": {
+    "map": {
+      "zone_type": "graph",
+      "visibility": "public",
+      "nodes": [
+        "westport", "highlands", "irongate", "cape_west",
+        "crossroads", "kingsbridge", "marshfield", "stonekeep",
+        "eastmere", "ridgewall", "harbor", "dawnspire"
+      ],
+      "edges": [
+        ["westport", "highlands"],
+        ["westport", "irongate"],
+        ["highlands", "irongate"],
+        ["highlands", "cape_west"],
+        ["irongate", "cape_west"],
+        ["irongate", "crossroads"],
+        ["cape_west", "marshfield"],
+        ["crossroads", "kingsbridge"],
+        ["crossroads", "marshfield"],
+        ["kingsbridge", "marshfield"],
+        ["kingsbridge", "stonekeep"],
+        ["marshfield", "stonekeep"],
+        ["stonekeep", "eastmere"],
+        ["stonekeep", "ridgewall"],
+        ["eastmere", "ridgewall"],
+        ["eastmere", "harbor"],
+        ["ridgewall", "harbor"],
+        ["ridgewall", "dawnspire"],
+        ["harbor", "dawnspire"],
+        ["westport", "crossroads"],
+        ["cape_west", "kingsbridge"],
+        ["dawnspire", "highlands"]
+      ],
+      "node_properties": {
+        "westport":    { "region": "west",    "supply_center": true, "coastal": true, "home": "West" },
+        "highlands":   { "region": "west",    "supply_center": true, "coastal": false, "home": "West" },
+        "irongate":    { "region": "west",    "supply_center": true, "coastal": false, "home": "West" },
+        "cape_west":   { "region": "west",    "supply_center": true, "coastal": true, "home": "West" },
+        "crossroads":  { "region": "central", "supply_center": true, "coastal": false, "home": "Central" },
+        "kingsbridge": { "region": "central", "supply_center": true, "coastal": false, "home": "Central" },
+        "marshfield":  { "region": "central", "supply_center": true, "coastal": true, "home": "Central" },
+        "stonekeep":   { "region": "central", "supply_center": true, "coastal": false, "home": "Central" },
+        "eastmere":    { "region": "east",    "supply_center": true, "coastal": true, "home": "East" },
+        "ridgewall":   { "region": "east",    "supply_center": true, "coastal": false, "home": "East" },
+        "harbor":      { "region": "east",    "supply_center": true, "coastal": true, "home": "East" },
+        "dawnspire":   { "region": "east",    "supply_center": true, "coastal": false, "home": "East" }
+      },
+      "note": "12 territories in 3 regions (west, central, east), 4 each. All territories are supply centers. Each region wraps around: dawnspire-highlands provides a cycle. Coastal territories allow fleet placement."
+    },
+    "order_box": {
+      "zone_type": "set",
+      "visibility": "hidden",
+      "per_player": true,
+      "note": "Each player's secret orders during the diplomacy phase. Hidden from other players until resolution."
+    }
+  },
+  "components": {
+    "army": {
+      "owner": "per_player",
+      "count": "unlimited",
+      "note": "Land unit. Moves between adjacent territories. Can support adjacent units."
+    },
+    "fleet": {
+      "owner": "per_player",
+      "count": "unlimited",
+      "properties": {
+        "terrain": ["coastal"]
+      },
+      "note": "Naval unit. Can only occupy coastal territories. Can convoy armies across non-adjacent coastal territories."
+    },
+    "supply_marker": {
+      "owner": "per_player",
+      "count": 12,
+      "note": "Marks control of a supply center. Placed when a player occupies a supply center during the build phase."
+    }
+  },
+  "turn_order": {
+    "type": "simultaneous",
+    "mandatory": true
+  },
+  "phases": [
+    {
+      "name": "diplomacy",
+      "simultaneous": true,
+      "action": "submit_orders(order_box)",
+      "note": "All players secretly write orders for each of their units: hold, move, support, or convoy. Orders are hidden until the resolution phase."
+    },
+    {
+      "name": "resolution",
+      "resolve": "resolve_orders",
+      "note": "All orders revealed simultaneously. Moves resolved by comparing strength: each move has base strength 1, plus 1 for each valid support. Equal strength = standoff (no movement). Successfully moved units occupy their destination; dislodged units must retreat."
+    },
+    {
+      "name": "retreat",
+      "action": "retreat(unit, territory)",
+      "ends_when": "all dislodged units retreated or disbanded",
+      "note": "Dislodged units must retreat to an adjacent empty territory that was not the source of the attack, or be disbanded. If no valid retreat exists, unit is disbanded."
+    },
+    {
+      "name": "build",
+      "action": "build_or_disband(unit, territory)",
+      "trigger": "after fall turn resolution",
+      "note": "Players adjust unit count to match supply center count. If supply_centers > units, build new units on unoccupied home supply centers. If units > supply_centers, disband excess units."
+    }
+  ],
+  "rules": {
+    "order_types": {
+      "definition": "Each unit receives exactly one order: hold, move, support, or convoy",
+      "constraints": [
+        "hold: unit stays in place with strength 1",
+        "move(destination): unit attempts to move to adjacent territory with strength 1",
+        "support(unit, destination): adds 1 to the supported unit's hold or move strength, if supporter is adjacent to destination",
+        "convoy(army, from, to): fleet in a sea/coastal territory transports an army between non-adjacent coastal territories"
+      ]
+    },
+    "simultaneous_resolution": {
+      "definition": "All orders resolve simultaneously; no order has priority over another",
+      "constraint": "order submission must be secret until all players have submitted"
+    },
+    "strength_calculation": {
+      "definition": "Move strength = 1 (base) + number of valid supports for that move",
+      "constraints": [
+        "support is cut if the supporting unit is attacked from any direction except the one it is supporting toward",
+        "a unit supporting a move cannot be dislodged by the unit it is supporting"
+      ]
+    },
+    "standoff": {
+      "definition": "When two or more units attempt to move to the same territory with equal strength, all fail (standoff)",
+      "effect": "no unit moves; all remain in their original territories"
+    },
+    "dislodge": {
+      "definition": "A unit is dislodged when an attacking move has strictly greater strength than the defending hold/support strength",
+      "effect": "dislodged unit must retreat in the retreat phase"
+    },
+    "retreat_constraints": {
+      "action": "retreat(unit, territory)",
+      "constraints": [
+        "retreat destination must be adjacent to the unit's current territory",
+        "retreat destination must be unoccupied",
+        "retreat destination must not be the territory from which the attack that dislodged the unit came",
+        "if no valid retreat exists, unit is disbanded"
+      ]
+    },
+    "supply_center_control": {
+      "definition": "A player controls a supply center if they have a unit on it at the end of a fall turn",
+      "effect": "control persists until another player occupies it"
+    },
+    "build_rules": {
+      "definition": "After the fall turn, each player adjusts units to match supply center count",
+      "constraints": [
+        "new units can only be built on home supply centers that are unoccupied",
+        "armies can be built on any home supply center",
+        "fleets can only be built on coastal home supply centers",
+        "if units > supply_centers, player must disband the excess"
+      ]
+    },
+    "fleet_placement": {
+      "definition": "Fleets can only occupy coastal territories",
+      "constraint": "territory must have coastal=true in node_properties"
+    }
+  },
+  "end_conditions": [
+    {
+      "result": "win",
+      "player": "current",
+      "condition": "player controls 7 or more of 12 supply centers",
+      "name": "majority_control"
+    },
+    {
+      "result": "draw",
+      "condition": "all remaining players agree to draw",
+      "name": "agreed_draw"
+    }
+  ],
+  "authority": {
+    "server_only": [
+      "collect_orders(simultaneous_hidden)",
+      "store_secret_orders(order_box)",
+      "reveal_orders(all_players_submitted)"
+    ],
+    "client_verifiable": [
+      "validate_order_legality(unit, order)",
+      "resolve_strength(orders)",
+      "check_supply_center_control",
+      "check_majority_win(7, 12)"
+    ]
+  },
+  "wasm_module": "diplomacy_resolver.wasm",
+  "notation": {
+    "piece_symbols": {
+      "army": "A",
+      "fleet": "F"
+    }
+  }
+}

@@ -1,0 +1,256 @@
+{
+  "$schema": "../schema/game-definition.schema.json",
+  "game": {
+    "name": "Clue",
+    "players": ["Scarlet", "Plum", "Green"],
+    "information": "imperfect"
+  },
+  "zones": {
+    "board": {
+      "zone_type": "graph",
+      "visibility": "public",
+      "nodes": [
+        "kitchen", "ballroom", "conservatory",
+        "billiard_room", "library", "study",
+        "hall", "lounge", "dining_room",
+        "kitchen_ballroom", "ballroom_conservatory",
+        "kitchen_dining_room", "ballroom_billiard_room",
+        "conservatory_library", "dining_room_lounge",
+        "billiard_room_hall", "library_study",
+        "lounge_hall", "hall_study"
+      ],
+      "edges": [
+        ["kitchen", "kitchen_ballroom"],
+        ["kitchen_ballroom", "ballroom"],
+        ["ballroom", "ballroom_conservatory"],
+        ["ballroom_conservatory", "conservatory"],
+        ["kitchen", "kitchen_dining_room"],
+        ["kitchen_dining_room", "dining_room"],
+        ["ballroom", "ballroom_billiard_room"],
+        ["ballroom_billiard_room", "billiard_room"],
+        ["conservatory", "conservatory_library"],
+        ["conservatory_library", "library"],
+        ["dining_room", "dining_room_lounge"],
+        ["dining_room_lounge", "lounge"],
+        ["billiard_room", "billiard_room_hall"],
+        ["billiard_room_hall", "hall"],
+        ["library", "library_study"],
+        ["library_study", "study"],
+        ["lounge", "lounge_hall"],
+        ["lounge_hall", "hall"],
+        ["hall", "hall_study"],
+        ["hall_study", "study"],
+        ["kitchen", "study"],
+        ["conservatory", "lounge"]
+      ],
+      "node_properties": {
+        "kitchen":           { "type": "room" },
+        "ballroom":          { "type": "room" },
+        "conservatory":      { "type": "room" },
+        "billiard_room":     { "type": "room" },
+        "library":           { "type": "room" },
+        "study":             { "type": "room" },
+        "hall":              { "type": "room" },
+        "lounge":            { "type": "room" },
+        "dining_room":       { "type": "room" },
+        "kitchen_ballroom":        { "type": "hallway" },
+        "ballroom_conservatory":   { "type": "hallway" },
+        "kitchen_dining_room":     { "type": "hallway" },
+        "ballroom_billiard_room":  { "type": "hallway" },
+        "conservatory_library":    { "type": "hallway" },
+        "dining_room_lounge":      { "type": "hallway" },
+        "billiard_room_hall":      { "type": "hallway" },
+        "library_study":           { "type": "hallway" },
+        "lounge_hall":             { "type": "hallway" },
+        "hall_study":              { "type": "hallway" }
+      },
+      "note": "9 rooms connected by hallways. Secret passages: kitchen-study, conservatory-lounge (direct edges between rooms)."
+    },
+    "envelope": {
+      "zone_type": "set",
+      "capacity": 3,
+      "visibility": "hidden",
+      "note": "The murder envelope: one suspect card, one weapon card, one room card. Server-only; hidden from all players."
+    },
+    "hand": {
+      "zone_type": "set",
+      "per_player": true,
+      "visibility": { "private": "owner" },
+      "note": "Each player's dealt cards, visible only to that player."
+    },
+    "deck": {
+      "zone_type": "ordered_stack",
+      "visibility": "hidden",
+      "note": "Temporary zone for shuffling before deal. Empty during play."
+    }
+  },
+  "components": {
+    "player_token": {
+      "owner": "per_player",
+      "count": 1,
+      "movement": [
+        { "primitive": "move_to", "target_zone": "board" }
+      ],
+      "note": "Each player's token on the board graph."
+    },
+    "weapon_token": {
+      "owner": "neutral",
+      "count": 6,
+      "types": {
+        "knife":       {},
+        "candlestick": {},
+        "revolver":    {},
+        "rope":        {},
+        "lead_pipe":   {},
+        "wrench":      {}
+      },
+      "one_of_each": true,
+      "note": "Weapon tokens placed in rooms. Moved during suggestions."
+    },
+    "suspect_card": {
+      "owner": "neutral",
+      "count": 6,
+      "types": {
+        "scarlet":  {},
+        "plum":     {},
+        "green":    {},
+        "mustard":  {},
+        "white":    {},
+        "peacock":  {}
+      },
+      "one_of_each": true,
+      "note": "Six suspect cards for dealing and deduction."
+    },
+    "weapon_card": {
+      "owner": "neutral",
+      "count": 6,
+      "types": {
+        "knife":       {},
+        "candlestick": {},
+        "revolver":    {},
+        "rope":        {},
+        "lead_pipe":   {},
+        "wrench":      {}
+      },
+      "one_of_each": true,
+      "note": "Six weapon cards for dealing and deduction."
+    },
+    "room_card": {
+      "owner": "neutral",
+      "count": 9,
+      "types": {
+        "kitchen":         {},
+        "ballroom":        {},
+        "conservatory":    {},
+        "billiard_room":   {},
+        "library":         {},
+        "study":           {},
+        "hall":            {},
+        "lounge":          {},
+        "dining_room":     {}
+      },
+      "one_of_each": true,
+      "note": "Nine room cards for dealing and deduction."
+    }
+  },
+  "turn_order": {
+    "type": "round_robin",
+    "players": ["Scarlet", "Plum", "Green"],
+    "actions_per_turn": [
+      { "move": 1 },
+      { "suggest": "0 or 1" },
+      { "accuse": "0 or 1" }
+    ]
+  },
+  "phases": [
+    {
+      "name": "deal",
+      "server_action": [
+        "select_envelope(suspect_card, weapon_card, room_card, envelope)",
+        "shuffle_and_deal(remaining_cards, hand, to:each_player)"
+      ],
+      "note": "Server selects one suspect, one weapon, and one room card for the envelope, then deals remaining 18 cards evenly to 3 players (6 each)."
+    },
+    {
+      "name": "move",
+      "action": "move_to(player_token, board/room_or_hallway)",
+      "note": "Current player moves their token to an adjacent room or hallway, or uses a secret passage."
+    },
+    {
+      "name": "suggest",
+      "action": "suggest(suspect, weapon, room)",
+      "trigger": "player is in a room (not a hallway)",
+      "note": "Player names a suspect and weapon in the current room. The named suspect token and weapon token are moved to this room. Other players must disprove clockwise."
+    },
+    {
+      "name": "disprove",
+      "action": "show_card(card)",
+      "note": "Going clockwise from the suggester, each other player who holds a matching card must privately show one to the suggester. First player who can disprove must do so."
+    },
+    {
+      "name": "accuse",
+      "action": "accuse(suspect, weapon, room)",
+      "note": "Player may make a final accusation at any point during their turn. Server checks against envelope. Correct wins; wrong eliminates the player."
+    }
+  ],
+  "rules": {
+    "movement": {
+      "action": "move_to(player_token, destination)",
+      "constraints": [
+        "destination must be adjacent to current position on the board graph",
+        "hallways can hold at most one player token"
+      ]
+    },
+    "secret_passages": {
+      "definition": "Kitchen connects directly to study; conservatory connects directly to lounge",
+      "effect": "Player may move directly between connected rooms via secret passage"
+    },
+    "suggestion_location": {
+      "action": "suggest(suspect, weapon, room)",
+      "constraint": "player must be in the named room to make a suggestion"
+    },
+    "disproval_order": {
+      "definition": "After a suggestion, players are queried clockwise starting with the player to the suggester's left",
+      "constraints": [
+        "a player who holds a matching card must show exactly one",
+        "only the suggester sees the shown card",
+        "if no player can disprove, the suggester is informed"
+      ]
+    },
+    "accusation_finality": {
+      "action": "accuse(suspect, weapon, room)",
+      "definition": "A player may make one accusation on their turn. Correct accusation wins the game. Wrong accusation eliminates the player from further turns but their cards remain available for disproval."
+    }
+  },
+  "end_conditions": [
+    {
+      "result": "win",
+      "player": "current",
+      "condition": "accusation matches envelope (suspect, weapon, room)",
+      "name": "correct_accusation"
+    },
+    {
+      "result": "loss",
+      "player": "current",
+      "condition": "accusation does not match envelope",
+      "name": "wrong_accusation"
+    },
+    {
+      "result": "draw",
+      "condition": "all players eliminated by wrong accusations",
+      "name": "all_eliminated"
+    }
+  ],
+  "authority": {
+    "server_only": [
+      "select_envelope(suspect_card, weapon_card, room_card)",
+      "shuffle_and_deal(remaining_cards, hand)",
+      "check_accusation(suspect, weapon, room)"
+    ],
+    "client_verifiable": [
+      "move_to(player_token, destination)",
+      "suggest(suspect, weapon, room)",
+      "show_card(card)"
+    ]
+  }
+}

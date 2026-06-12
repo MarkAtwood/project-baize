@@ -1,0 +1,169 @@
+{
+  "$schema": "../schema/game-definition.schema.json",
+  "game": {
+    "name": "Settlers of Catan",
+    "players": ["red", "blue"],
+    "information": "imperfect"
+  },
+  "zones": {
+    "hex_map": {
+      "zone_type": "hex_grid",
+      "dimensions": 5,
+      "adjacency": "hex_6",
+      "visibility": "public",
+      "valid_cells": [
+        [2, 0],
+        [1, 1], [2, 1], [3, 1],
+        [1, 2], [2, 2], [3, 2]
+      ],
+      "cell_properties": {
+        "2,0": { "resource": "wheat",  "number": 5 },
+        "1,1": { "resource": "wood",   "number": 6 },
+        "2,1": { "resource": "brick",  "number": 8 },
+        "3,1": { "resource": "sheep",  "number": 9 },
+        "1,2": { "resource": "ore",    "number": 10 },
+        "2,2": { "resource": "wheat",  "number": 4 },
+        "3,2": { "resource": "wood",   "number": 3 }
+      },
+      "note": "7-hex map: 1 center + 6 surrounding. Each hex produces a resource when its number is rolled on 2d6."
+    },
+    "settlement_map": {
+      "zone_type": "graph",
+      "visibility": "public",
+      "nodes": [
+        "v0", "v1", "v2", "v3", "v4", "v5",
+        "v6", "v7", "v8", "v9", "v10", "v11",
+        "v12", "v13", "v14", "v15", "v16", "v17"
+      ],
+      "edges": [
+        ["v0",  "v1"],  ["v1",  "v2"],  ["v2",  "v3"],  ["v3",  "v4"],  ["v4",  "v5"],  ["v5",  "v0"],
+        ["v0",  "v6"],  ["v1",  "v7"],  ["v2",  "v8"],  ["v3",  "v9"],  ["v4",  "v10"], ["v5",  "v11"],
+        ["v6",  "v7"],  ["v7",  "v8"],  ["v8",  "v9"],  ["v9",  "v10"], ["v10", "v11"], ["v11", "v6"],
+        ["v6",  "v12"], ["v7",  "v13"], ["v8",  "v14"], ["v9",  "v15"], ["v10", "v16"], ["v11", "v17"],
+        ["v12", "v13"], ["v13", "v14"], ["v14", "v15"], ["v15", "v16"], ["v16", "v17"], ["v17", "v12"]
+      ],
+      "node_properties": {
+        "v0":  {"adjacent_hexes": "wheat5"},
+        "v1":  {"adjacent_hexes": "wheat5,wood6"},
+        "v2":  {"adjacent_hexes": "wheat5,brick8"},
+        "v3":  {"adjacent_hexes": "wheat5,sheep9"},
+        "v4":  {"adjacent_hexes": "wheat5,sheep9"},
+        "v5":  {"adjacent_hexes": "wheat5,wood6"},
+        "v6":  {"adjacent_hexes": "wood6"},
+        "v7":  {"adjacent_hexes": "wood6,brick8"},
+        "v8":  {"adjacent_hexes": "brick8"},
+        "v9":  {"adjacent_hexes": "brick8,sheep9"},
+        "v10": {"adjacent_hexes": "sheep9"},
+        "v11": {"adjacent_hexes": "sheep9,wood6"},
+        "v12": {"adjacent_hexes": "wood6,ore10"},
+        "v13": {"adjacent_hexes": "wood6,brick8,ore10,wheat4"},
+        "v14": {"adjacent_hexes": "brick8,wheat4"},
+        "v15": {"adjacent_hexes": "brick8,sheep9,wheat4,wood3"},
+        "v16": {"adjacent_hexes": "sheep9,wood3"},
+        "v17": {"adjacent_hexes": "sheep9,wood6,wood3,ore10"}
+      },
+      "note": "18 vertices of the 7-hex grid in 3 rings (inner v0-v5, middle v6-v11, outer v12-v17). Edges represent road connections between adjacent vertices. Each node's adjacent_hexes encodes which hex resources it touches."
+    },
+    "hand": {
+      "zone_type": "set",
+      "per_player": true,
+      "visibility": {"private": "owner"},
+      "note": "Player's resource cards, hidden from opponent."
+    },
+    "victory_points": {
+      "zone_type": "counter",
+      "per_player": true,
+      "visibility": "public",
+      "note": "Victory point total. 1 per settlement. First to 5 wins."
+    }
+  },
+  "components": {
+    "resource_card": {
+      "owner": "neutral",
+      "count": "unlimited",
+      "properties": {
+        "resource": ["wood", "brick", "sheep", "wheat", "ore"]
+      },
+      "note": "Resource cards produced by hex tiles and held in player hands."
+    },
+    "settlement": {
+      "owner": "per_player",
+      "count": 5,
+      "note": "Placed on vertices of the hex grid. Each scores 1 VP."
+    },
+    "road": {
+      "owner": "per_player",
+      "count": 10,
+      "note": "Placed on edges between vertices. Built with 1 wood + 1 brick."
+    }
+  },
+  "turn_order": {
+    "type": "alternating",
+    "players": ["red", "blue"],
+    "mandatory": true
+  },
+  "phases": [
+    {
+      "name": "roll_dice",
+      "server_action": "roll(2d6)",
+      "note": "Server rolls 2d6, sums the result. All hexes with matching number produce resources for players with adjacent settlements."
+    },
+    {
+      "name": "collect_resources",
+      "server_action": "distribute_resources(roll_result)",
+      "note": "For each hex matching the roll, each adjacent settlement earns its owner 1 resource card of that hex's type."
+    },
+    {
+      "name": "trade_or_build",
+      "action": "trade OR build_road OR build_settlement OR pass",
+      "note": "Active player may trade 4 identical resources for 1 of any type, build a road (1 wood + 1 brick), build a settlement (1 wood + 1 brick + 1 sheep + 1 wheat), or pass to end turn."
+    }
+  ],
+  "rules": {
+    "dice_production": {
+      "trigger": "dice_roll",
+      "effect": "each hex with number == roll produces 1 resource for each adjacent settlement owner",
+      "definition": "When 2d6 are rolled, hexes whose number token matches the sum produce resources. Each settlement adjacent to a producing hex earns its owner 1 card of that resource type."
+    },
+    "build_road": {
+      "action": "build_road(vertex_a, vertex_b)",
+      "requires": ["hand contains 1 wood AND 1 brick", "edge (vertex_a, vertex_b) exists in settlement_map", "edge is unoccupied", "player has settlement or road at vertex_a or vertex_b"],
+      "effect": "spend 1 wood + 1 brick; place road on edge",
+      "definition": "Build a road on an unoccupied edge adjacent to your existing network."
+    },
+    "build_settlement": {
+      "action": "build_settlement(vertex)",
+      "requires": ["hand contains 1 wood AND 1 brick AND 1 sheep AND 1 wheat", "vertex is unoccupied", "no adjacent vertex has a settlement (distance rule)", "player has road to vertex (except during setup)"],
+      "effect": "spend 1 wood + 1 brick + 1 sheep + 1 wheat; place settlement; gain 1 VP",
+      "definition": "Build a settlement on an unoccupied vertex. Must be at least 2 edges from any other settlement."
+    },
+    "bank_trade": {
+      "action": "trade(resource_give, resource_want)",
+      "requires": ["hand contains 4 cards of resource_give"],
+      "effect": "discard 4 of resource_give, gain 1 of resource_want",
+      "definition": "Trade 4 identical resource cards to the bank for 1 card of any type."
+    },
+    "distance_rule": {
+      "definition": "Settlements must be at least 2 edges apart. No vertex adjacent to an existing settlement may hold a new settlement."
+    }
+  },
+  "end_conditions": [
+    {
+      "result": "win",
+      "player": "current",
+      "condition": "player.victory_points >= 5",
+      "name": "five_victory_points"
+    }
+  ],
+  "authority": {
+    "server_only": [
+      "roll(2d6)",
+      "distribute_resources(roll_result)"
+    ],
+    "client_verifiable": [
+      "build_road(vertex_a, vertex_b)",
+      "build_settlement(vertex)",
+      "trade(resource_give, resource_want)"
+    ]
+  }
+}
