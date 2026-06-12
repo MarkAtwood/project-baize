@@ -1,0 +1,64 @@
+{
+  "$schema": "../schema/game-definition.schema.json",
+  "game": {
+    "name": "Reversi",
+    "players": ["black", "white"],
+    "information": "perfect"
+  },
+  "zones": {
+    "board": {
+      "zone_type": "grid",
+      "dimensions": [8, 8],
+      "visibility": "public",
+      "coloring": "alternating"
+    }
+  },
+  "components": {
+    "disc": {
+      "owner": "per_player",
+      "count": 64
+    }
+  },
+  "turn_order": {
+    "type": "alternating",
+    "players": ["black", "white"],
+    "actions_per_turn": 1,
+    "mandatory": false
+  },
+  "library": {
+    "board_full": "occupied_count == cell_count",
+    "never": "false"
+  },
+  "rules": {
+    "placement": {
+      "action": "place(disc, board/cell)",
+      "constraint": "must bracket at least one opponent disc in any direction"
+    },
+    "flip": {
+      "trigger": "after disc placement",
+      "definition": "all opponent discs bracketed between the placed disc and another friendly disc in any of 8 directions are flipped to the placing player's color"
+    },
+    "pass": {
+      "definition": "a player with no legal moves must pass",
+      "constraint": "cannot pass if legal moves exist"
+    }
+  },
+  "end_conditions": [
+    {
+      "result": "win",
+      "player": "higher_disc_count",
+      "condition": "board_full",
+      "name": "board_full"
+    },
+    {
+      "result": "win",
+      "player": "higher_disc_count",
+      "condition": "both_players_pass",
+      "name": "no_moves"
+    }
+  ],
+  "authority": {
+    "server_only": [],
+    "client_verifiable": ["place(disc, board/cell)", "pass"]
+  }
+}
