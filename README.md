@@ -107,7 +107,7 @@ implementation, even before full mental poker support.
 
 ## Status
 
-Core engine complete. 158 of 184 issues closed. Nineteen games are fully
+Core engine complete. 164 of 203 issues closed. Nineteen games are fully
 playable end-to-end. The engine parses and validates game definitions,
 manages runtime state, generates legal moves, evaluates CEL expressions
 for win/constraint conditions, applies state transitions with a structured
@@ -120,8 +120,8 @@ vectors ensure the Rust and Python engines produce identical results.
 | Component | Tests | What works |
 |-----------|-------|-----------|
 | Schema (5 JSON Schemas) | — | Game definitions, state, actions, events, component registry |
-| Rust engine | 174 | Parse, validate, state machine, move gen, transitions, CEL end conditions, perturber effects (cycle, remove, flip, promote, counters, invoke), commit-reveal, simultaneous phases, hash-chained events, tamper detection, visibility filtering, valid_cells grid mask |
-| Python engine | 887 | Feature-parallel with Rust, plus game analysis, Jupyter notebook, terminal CLI, interactive REPL, agent framework (Random/Greedy/MCTS) |
+| Rust engine | 184 | Parse, validate, state machine, move gen, transitions, CEL end conditions, perturber effects (cycle, remove, flip, promote, counters, invoke), commit-reveal, simultaneous phases, hash-chained events, tamper detection, visibility filtering, valid_cells grid mask, graph zone |
+| Python engine | 900 | Feature-parallel with Rust, plus game analysis, Jupyter notebook, terminal CLI, interactive REPL, agent framework (Random/Greedy/MCTS) |
 | Server | 31 | Room management, WebSocket protocol, hidden-state vault (ChaCha20Rng), per-player visibility, rate limiting, token auth, spectator isolation, persistence |
 | Client (TypeScript) | — | Full type definitions for all schemas; Web Components (`<baize-game>`, `<baize-board>`) |
 
@@ -144,7 +144,7 @@ in external tools.
 
 ## Game Catalog
 
-Twenty-two reference games spanning the complexity spectrum (20 defined, 2 planned, 1 moved from def-only to playable). Games marked ✓
+Thirty-three reference games spanning the complexity spectrum (20 defined, 13 planned). Games marked ✓
 are fully playable end-to-end with tests. Games marked `def` have a JSON
 definition that parses and validates. Planned games have beads issues
 tracking their implementation.
@@ -183,8 +183,19 @@ tracking their implementation.
 
 | Game | What it proves |
 |------|---------------|
+| Risk | Graph zone territory control, dice combat, continent bonuses |
+| Pandemic | Graph zone cooperative play, disease spreading, infection deck |
+| Ticket to Ride | Graph zone route claiming, card collection |
+| Colossal Cave Adventure | Graph zone text adventure — rooms as nodes, Tier 1 only |
+| Carcassonne | Dynamic grid, tile placement, farmer scoring |
 | Tile Kingdoms | Dynamic grid, 71-tile draw pile; WASM for field scoring |
 | Ogre | Hex wargame — stacking, CRT combat, asymmetric forces |
+| Triangle Dominoes | Triangular grid tile matching |
+| Diplomacy | Simultaneous secret orders, graph zone |
+| Scotland Yard | Hidden movement on transit network |
+| Settlers of Catan | Graph vertex/edge placement, resource economy |
+| Clue | Deduction on room graph |
+| Power Grid | City network with auction economy |
 
 ## Component Registry
 
