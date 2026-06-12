@@ -107,20 +107,21 @@ implementation, even before full mental poker support.
 
 ## Status
 
-Core engine complete. 138 of 176 issues closed. Seven games are fully
+Core engine complete. 139 of 176 issues closed. Seven games are fully
 playable end-to-end. The engine parses and validates game definitions,
 manages runtime state, generates legal moves, evaluates CEL expressions
 for win/constraint conditions, applies state transitions with a structured
 perturber language, and produces BLAKE3 hash-chained event logs.
-Commit-reveal protocol (SHA-256) implemented in both engines — the
-forcing function for serverless crypto is live. Cross-implementation
-test vectors ensure the Rust and Python engines produce identical results.
+Commit-reveal protocol (SHA-256) and simultaneous move collection
+implemented in both engines — the forcing functions for serverless
+crypto and hidden-choice games are live. Cross-implementation test
+vectors ensure the Rust and Python engines produce identical results.
 
 | Component | Tests | What works |
 |-----------|-------|-----------|
 | Schema (5 JSON Schemas) | — | Game definitions, state, actions, events, component registry |
-| Rust engine | 153 | Parse, validate, state machine, move gen, transitions, CEL end conditions, perturber effects (cycle, remove, flip, promote, counters, invoke), commit-reveal, hash-chained events, tamper detection, visibility filtering |
-| Python engine | 440 | Feature-parallel with Rust, plus game analysis, Jupyter notebook, terminal CLI, interactive REPL, agent framework (Random/Greedy/MCTS) |
+| Rust engine | 162 | Parse, validate, state machine, move gen, transitions, CEL end conditions, perturber effects (cycle, remove, flip, promote, counters, invoke), commit-reveal, simultaneous phases, hash-chained events, tamper detection, visibility filtering |
+| Python engine | 460 | Feature-parallel with Rust, plus game analysis, Jupyter notebook, terminal CLI, interactive REPL, agent framework (Random/Greedy/MCTS) |
 | Server | 31 | Room management, WebSocket protocol, hidden-state vault (ChaCha20Rng), per-player visibility, rate limiting, token auth, spectator isolation, persistence |
 | Client (TypeScript) | — | Full type definitions for all schemas; Web Components (`<baize-game>`, `<baize-board>`) |
 
@@ -156,7 +157,7 @@ tracking their implementation.
 | Four in a Row | Perfect | 7×6 grid, gravity drop placement, CEL `lines_4` window detection |
 | Pig | Perfect + random | Push-your-luck dice, multi-action turns, counter-based scoring |
 | Naval Battle | Imperfect | Hidden ship placement, multi-cell spans, hit/miss/sunk tracking |
-| Rock Paper Scissors | Imperfect | Commit-reveal protocol (SHA-256), best-of-3 |
+| Rock Paper Scissors | Imperfect | Simultaneous phases, commit-reveal (SHA-256), best-of-3 |
 | High Card | Imperfect | Deck shuffle/deal pipeline, private hands, rank comparison |
 | Rubik's Cube | Perfect | Single-player puzzle, 6-zone cycle perturbers, solved-state CEL |
 
