@@ -1,0 +1,61 @@
+{
+  "$schema": "../schema/game-definition.schema.json",
+  "game": {
+    "name": "Rock Paper Scissors",
+    "players": ["P1", "P2"],
+    "information": "imperfect"
+  },
+  "zones": {
+    "choice": {
+      "zone_type": "grid",
+      "dimensions": [1, 1],
+      "visibility": {"private": "owner"},
+      "per_player": true,
+      "note": "Each player's hidden gesture choice for the current round."
+    },
+    "scoreboard": {
+      "zone_type": "counter",
+      "visibility": "public",
+      "note": "Round wins per player; tracked in runtime counters p1_wins / p2_wins."
+    }
+  },
+  "components": {
+    "gesture": {
+      "owner": "per_player",
+      "count": 1,
+      "types": {
+        "rock":     {"note": "Beats scissors, loses to paper."},
+        "paper":    {"note": "Beats rock, loses to scissors."},
+        "scissors": {"note": "Beats paper, loses to rock."}
+      }
+    }
+  },
+  "turn_order": {
+    "type": "alternating",
+    "players": ["P1", "P2"],
+    "actions_per_turn": 1,
+    "mandatory": true
+  },
+  "library": {
+    "p1_wins_match": "p1_wins >= 2",
+    "p2_wins_match": "p2_wins >= 2"
+  },
+  "end_conditions": [
+    {
+      "result": "win",
+      "player": "P1",
+      "condition": "p1_wins_match",
+      "name": "p1_best_of_3"
+    },
+    {
+      "result": "win",
+      "player": "P2",
+      "condition": "p2_wins_match",
+      "name": "p2_best_of_3"
+    }
+  ],
+  "authority": {
+    "server_only": ["resolve_round"],
+    "client_verifiable": []
+  }
+}

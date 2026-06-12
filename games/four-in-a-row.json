@@ -1,0 +1,58 @@
+{
+  "$schema": "../schema/game-definition.schema.json",
+  "game": {
+    "name": "Four in a Row",
+    "players": ["Red", "Yellow"],
+    "information": "perfect"
+  },
+  "zones": {
+    "board": {
+      "zone_type": "grid",
+      "dimensions": [7, 6],
+      "visibility": "public",
+      "labels": {
+        "files": ["1", "2", "3", "4", "5", "6", "7"],
+        "ranks": [1, 2, 3, 4, 5, 6]
+      }
+    }
+  },
+  "components": {
+    "disc": {
+      "owner": "per_player",
+      "count": "unlimited"
+    }
+  },
+  "turn_order": {
+    "type": "alternating",
+    "players": ["Red", "Yellow"],
+    "actions_per_turn": 1,
+    "mandatory": true
+  },
+  "library": {
+    "four_in_line": "four_in_line",
+    "board_full": "occupied_count == cell_count"
+  },
+  "rules": {
+    "drop": {
+      "action": "place(disc, board/cell)",
+      "constraint": "cell is empty"
+    }
+  },
+  "end_conditions": [
+    {
+      "result": "win",
+      "player": "current",
+      "condition": "four_in_line",
+      "name": "four_in_line"
+    },
+    {
+      "result": "draw",
+      "condition": "board_full",
+      "name": "board_full"
+    }
+  ],
+  "authority": {
+    "server_only": [],
+    "client_verifiable": ["place(disc, board/cell)"]
+  }
+}
