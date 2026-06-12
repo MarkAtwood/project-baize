@@ -71,11 +71,12 @@ async fn main() {
         .layer(cors)
         .with_state(registry);
 
-    let listener = tokio::net::TcpListener::bind("0.0.0.0:8080")
+    let bind_addr = std::env::var("BAIZE_BIND_ADDR").unwrap_or_else(|_| "[::]:8080".to_string());
+    let listener = tokio::net::TcpListener::bind(&bind_addr)
         .await
-        .expect("failed to bind port 8080");
+        .unwrap_or_else(|e| panic!("failed to bind {bind_addr}: {e}"));
 
-    eprintln!("baize-server listening on 0.0.0.0:8080");
+    eprintln!("baize-server listening on {bind_addr}");
     axum::serve(
         listener,
         app.into_make_service_with_connect_info::<SocketAddr>(),
