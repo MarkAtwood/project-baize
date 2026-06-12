@@ -150,8 +150,11 @@ in external tools.
 
 ## Game Catalog
 
-Thirty-two reference game definitions spanning the complexity spectrum. Games marked ✓
-are fully playable end-to-end with tests. Games marked `def` have a JSON
+Thirty-two reference game definitions spanning the complexity spectrum.
+Game rules are not subject to intellectual property protection. All
+trademarked names are used here in their descriptive sense to identify
+the games whose rules are implemented. Games marked ✓ are fully
+playable end-to-end with tests. Games marked `def` have a JSON
 definition that parses and validates. Planned games have beads issues
 tracking their implementation.
 
@@ -160,50 +163,73 @@ tracking their implementation.
 | Game | Information | Notable features |
 |------|------------|-----------------|
 | Tic-Tac-Toe | Perfect | Simplest definition; library CEL expressions; zero server authority |
-| Four in a Row | Perfect | 7×6 grid, gravity drop placement, CEL `lines_4` window detection |
+| Connect Four™ | Perfect | 7×6 grid, gravity drop placement, CEL `lines_4` window detection |
 | Pig | Perfect + random | Push-your-luck dice, multi-action turns, counter-based scoring |
-| Naval Battle | Imperfect | Hidden ship placement, multi-cell spans, hit/miss/sunk tracking |
+| Battleship™ | Imperfect | Hidden ship placement, multi-cell spans, hit/miss/sunk tracking |
 | Rock Paper Scissors | Imperfect | Simultaneous phases, commit-reveal (SHA-256), best-of-3 |
 | High Card | Imperfect | Deck shuffle/deal pipeline, private hands, rank comparison |
 | Go | Perfect | 9×9/19×19, flood-fill captures, ko rule, suicide, territory scoring |
-| Reversi | Perfect | 8-direction bracket flipping, legal move detection, disc count scoring |
+| Othello™ / Reversi | Perfect | 8-direction bracket flipping, legal move detection, disc count scoring |
 | Checkers | Perfect | Hop captures, multi-jump chains, mandatory captures, king promotion |
 | Snakes & Ladders | Perfect + random | TrackZone, d6 dice, snake/ladder triggered effects, bounce-back |
-| Yacht | Perfect + random | 5d6, keep/re-roll, 13 scoring categories, upper bonus |
+| Yahtzee™ | Perfect + random | 5d6, keep/re-roll, 13 scoring categories, upper bonus |
 | Liar's Dice | Imperfect | Hidden per-player dice, escalating bids, challenge/reveal, elimination |
 | Backgammon | Perfect + random | 24-point track, hitting/bar, re-entry, bearing off, doubles |
 | Chess | Perfect | All pieces, castling, en passant, promotion, check/checkmate/stalemate, repetition, 50-move, insufficient material |
 | Hex | Perfect | Hex grid, 6-neighbor adjacency, BFS edge-to-edge connectivity win |
 | Chinese Checkers | Perfect | 121-position hexagram via valid_cells mask, hex_6 adjacency, step/hop, multi-hop chains |
-| Polyomino Placement | Perfect | 20×20 grid, 21 polyomino shapes, rotation/flip, corner-only adjacency |
+| Blokus™ | Perfect | 20×20 grid, 21 polyomino shapes, rotation/flip, corner-only adjacency |
 | Polyiamond Placement | Perfect | 486-cell hex triangular grid, D6 symmetry, 22 polyiamond pieces |
-| Ogre | Perfect | 22×15 hex wargame, Ogre Mk III subsystem targeting, CRT combat, GEV hit-and-run, overrun |
-| Rubik's Cube | Perfect | Single-player puzzle, 6-zone cycle perturbers, solved-state CEL |
+| Ogre™ | Perfect | 22×15 hex wargame, Ogre Mk III subsystem targeting, CRT combat, GEV hit-and-run, overrun |
+| Rubik's Cube™ | Perfect | Single-player puzzle, 6-zone cycle perturbers, solved-state CEL |
 
 ### Definition exists (parse + validate, with gameplay tests)
 
 | Game | Information | Notable features |
 |------|------------|-----------------|
 | Texas Hold'em | Imperfect | Betting FSM, hand evaluator (7-card best-of-21), server deal/burn/reveal phases, showdown with pot distribution |
-| Risk | Imperfect | 12 territories, 3 continents, dice combat, reinforcement/fortification phases |
-| Pandemic | Imperfect | Cooperative, 12 cities, disease cubes, outbreaks, cure mechanics |
-| Ticket to Ride | Imperfect | 10-city route network, train card deck, route claiming/scoring |
-| Carcassonne | Imperfect | 30 tiles with edge matching, meeple placement, city/road/monastery scoring |
-| Clue | Imperfect | 9 rooms + hallways graph, hidden envelope, deduction, secret passages |
-| Scotland Yard | Imperfect | 20-location transit network, hidden Mr. X movement, reveal turns |
-| Diplomacy | Imperfect | 12 territories, simultaneous secret orders, support/strength resolution |
-| Settlers of Catan | Imperfect | 7-hex resource map, graph settlement placement, dice production, bank trading |
+| Risk™ | Imperfect | 12 territories, 3 continents, dice combat, reinforcement/fortification phases |
+| Pandemic™ | Imperfect | Cooperative, 12 cities, disease cubes, outbreaks, cure mechanics |
+| Ticket to Ride™ | Imperfect | 10-city route network, train card deck, route claiming/scoring |
+| Carcassonne™ | Imperfect | 30 tiles with edge matching, meeple placement, city/road/monastery scoring |
+| Clue™ | Imperfect | 9 rooms + hallways graph, hidden envelope, deduction, secret passages |
+| Scotland Yard™ | Imperfect | 20-location transit network, hidden Mr. X movement, reveal turns |
+| Diplomacy™ | Imperfect | 12 territories, simultaneous secret orders, support/strength resolution |
+| Settlers of Catan™ | Imperfect | 7-hex resource map, graph settlement placement, dice production, bank trading |
 | Colossal Cave Adventure | Perfect | 17-room graph text adventure, obstacles, treasures, single player |
-| Colossal Cave 350 | Perfect | 46-room expanded version, lamp battery, darkness, 10 treasures, 350 points |
+| Colossal Cave Adventure (350) | Perfect | 46-room expanded version, lamp battery, darkness, 10 treasures, 350 points |
 
 ### Planned (beads filed)
 
 | Game | What it proves |
 |------|---------------|
-| Tile Kingdoms | Dynamic grid, 71-tile draw pile; WASM for field scoring |
+| Shogi | Piece drops (captured pieces return to play), directional movement |
+| Xiangqi | River/palace constraints, cannon jump-capture |
+| Mancala | Seed-sowing pit distribution |
+| Mahjong™ | 4-player interrupt claiming, complex yaku scoring |
+| Dominoes | Growing chain topology, end matching |
+| Bridge | Partnership, auction bidding, dummy hand exposure |
+| Stratego™ | Hidden piece ranks, simultaneous placement |
+| Mastermind™ | Information-theoretic deduction, structured feedback |
+| Hanabi™ | Reverse hidden information (see others, not yourself) |
+| Nine Men's Morris | Phase transition (place → slide), mill captures |
+| Quarto™ | Opponent chooses your piece |
+| Dots and Boxes | Edges as playable positions, chain reactions |
+| Abalone™ | Hex grid push mechanics, chain momentum |
+| Hive™ | Boardless — pieces form the board, insect movement |
+| Scrabble™ | Dictionary validation as game rule, premium squares |
+| Azul™ | Factory tile drafting, pattern building |
+| Cribbage | Pegging phase, combinatorial hand scoring |
+| Hearts | Trick avoidance, shoot-the-moon gambit |
+| Gin Rummy | Deadwood optimization, knocking |
+| Nim | Sprague-Grundy theory, mathematically solved |
+| Power Grid™ | City network with auction economy |
+| Fury of Dracula™ | Hidden movement on European map |
 | Triangle Dominoes | Triangular grid tile matching |
-| Power Grid | City network with auction economy |
-| Fury of Dracula | Hidden movement on European map |
+
+™ marks identify trademarks of their respective owners. Used here
+descriptively to identify the game rules implemented, not to imply
+endorsement or affiliation.
 
 ## Component Registry
 
