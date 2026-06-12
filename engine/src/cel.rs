@@ -124,6 +124,7 @@ fn populate_grid_lines(ctx: &mut Context<'_>, session: &GameSession) {
                 cells.iter().filter(|c| c.is_some()).count() as i64,
             );
 
+            // Closure used by both full lines and windowed sub-lines below.
             let owner_at = |col: usize, row: usize| -> Value {
                 let idx = row * w + col;
                 cells
@@ -167,6 +168,54 @@ fn populate_grid_lines(ctx: &mut Context<'_>, session: &GameSession) {
             all_lines.extend(cols);
             all_lines.extend(diags);
             ctx.add_variable_from_value("lines", Value::List(Arc::new(all_lines)));
+
+            // Windowed sub-lines: lines_N for N-length consecutive windows
+            // in every direction (horizontal, vertical, both diagonals).
+            // e.g. lines_4.exists(line, line.all(cell, cell == current_player))
+            let max_dim = w.max(h);
+            for n in 3..=max_dim {
+                let mut windows: Vec<Value> = Vec::new();
+                if n <= w {
+                    for row in 0..h {
+                        for sc in 0..=(w - n) {
+                            let win: Vec<Value> =
+                                (0..n).map(|i| owner_at(sc + i, row)).collect();
+                            windows.push(Value::List(Arc::new(win)));
+                        }
+                    }
+                }
+                if n <= h {
+                    for col in 0..w {
+                        for sr in 0..=(h - n) {
+                            let win: Vec<Value> =
+                                (0..n).map(|i| owner_at(col, sr + i)).collect();
+                            windows.push(Value::List(Arc::new(win)));
+                        }
+                    }
+                }
+                if n <= w && n <= h {
+                    for sc in 0..=(w - n) {
+                        for sr in 0..=(h - n) {
+                            let win: Vec<Value> =
+                                (0..n).map(|i| owner_at(sc + i, sr + i)).collect();
+                            windows.push(Value::List(Arc::new(win)));
+                        }
+                    }
+                    for sc in (n - 1)..w {
+                        for sr in 0..=(h - n) {
+                            let win: Vec<Value> =
+                                (0..n).map(|i| owner_at(sc - i, sr + i)).collect();
+                            windows.push(Value::List(Arc::new(win)));
+                        }
+                    }
+                }
+                if !windows.is_empty() {
+                    ctx.add_variable_from_value(
+                        format!("lines_{n}"),
+                        Value::List(Arc::new(windows)),
+                    );
+                }
+            }
 
             // Component-type-based rows/cols (for placement constraints)
             let type_at = |col: usize, row: usize| -> Value {

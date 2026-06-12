@@ -122,6 +122,38 @@ def _populate_grid_lines(
             1 for c in zone.cells if c is not None
         )
 
+        # Windowed sub-lines: lines_N contains all N-length consecutive
+        # windows in every direction (horizontal, vertical, both diagonals).
+        # e.g. lines_4.exists(line, line.all(cell, cell == current_player))
+        max_dim = max(w, h)
+        for n in range(3, max_dim + 1):
+            windows: list[list[str]] = []
+            if n <= w:
+                for row in range(h):
+                    for sc in range(w - n + 1):
+                        windows.append(
+                            [owner_at(sc + i, row) for i in range(n)]
+                        )
+            if n <= h:
+                for col in range(w):
+                    for sr in range(h - n + 1):
+                        windows.append(
+                            [owner_at(col, sr + i) for i in range(n)]
+                        )
+            if n <= w and n <= h:
+                for sc in range(w - n + 1):
+                    for sr in range(h - n + 1):
+                        windows.append(
+                            [owner_at(sc + i, sr + i) for i in range(n)]
+                        )
+                for sc in range(n - 1, w):
+                    for sr in range(h - n + 1):
+                        windows.append(
+                            [owner_at(sc - i, sr + i) for i in range(n)]
+                        )
+            if windows:
+                variables[f"lines_{n}"] = windows
+
         # Component-type-based rows/cols (for placement constraints)
         def type_at(col: int, row: int) -> str:
             cid = zone.grid_get(col, row)

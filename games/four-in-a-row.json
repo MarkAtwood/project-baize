@@ -29,7 +29,7 @@
     "mandatory": true
   },
   "library": {
-    "four_in_line": "four_in_line",
+    "four_in_line": "lines_4.exists(line, line.all(cell, cell == current_player))",
     "board_full": "occupied_count == cell_count"
   },
   "rules": {

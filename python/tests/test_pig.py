@@ -153,24 +153,12 @@ class PigGame:
         self.session.advance_turn()
 
     def check_winner(self) -> str | None:
-        """Return winning player name if an end condition is met, else None.
+        """Return winning player name if an end condition is met, else None."""
+        from baize.end_conditions import check_end_conditions
 
-        check_end_conditions() does not expose session.runtime.counters to the
-        CEL evaluator, so we evaluate the library CEL expressions directly with
-        the counter values as variables.
-        """
-        variables: dict[str, int] = {
-            "alice_total": self.alice_total,
-            "bob_total": self.bob_total,
-        }
-        for ec in self.session.definition.end_conditions:
-            lib = self.session.definition.library
-            expr = lib.get(ec.condition)
-            if not isinstance(expr, str):
-                expr = ec.condition
-            result = try_eval_end_condition(variables, expr)
-            if result is True and ec.result == "win" and ec.player is not None:
-                return ec.player
+        result = check_end_conditions(self.session)
+        if result is not None and result.outcome == "win":
+            return result.winner
         return None
 
     def current_player(self) -> str:

@@ -1,11 +1,9 @@
 """Tests for Four in a Row game.
 
-Win condition note (baize-935.1): The built-in CEL evaluator cannot express
-'4 consecutive same-owner cells in a subline' — it lacks integer indexing and
-window primitives. The four_in_line condition in the game definition does NOT
-fire automatically via the engine's end-condition check. Win tests verify
-correct board state using a standalone Python oracle. The draw test uses the
-engine result directly, since occupied_count == cell_count IS supported by CEL.
+Win and draw conditions both fire via the engine's CEL evaluator:
+  - four_in_line uses lines_4.exists(line, line.all(cell, cell == current_player))
+  - board_full uses occupied_count == cell_count
+Win tests verify both the independent oracle and the engine result.
 """
 
 from __future__ import annotations
@@ -171,6 +169,13 @@ class TestFourInARowVerticalWin:
         assert _has_four_in_a_row(session, "Red")
         assert not _has_four_in_a_row(session, "Yellow")
 
+        # Engine detects the win via CEL lines_4
+        assert session.runtime.status == "finished"
+        assert session.runtime.result is not None
+        assert session.runtime.result.outcome == "win"
+        assert session.runtime.result.winner == "Red"
+        assert session.runtime.result.condition == "four_in_line"
+
 
 class TestFourInARowHorizontalWin:
     """Verify that 4 discs in the same row constitute a horizontal win."""
@@ -202,6 +207,13 @@ class TestFourInARowHorizontalWin:
 
         assert _has_four_in_a_row(session, "Red")
         assert not _has_four_in_a_row(session, "Yellow")
+
+        # Engine detects the win via CEL lines_4
+        assert session.runtime.status == "finished"
+        assert session.runtime.result is not None
+        assert session.runtime.result.outcome == "win"
+        assert session.runtime.result.winner == "Red"
+        assert session.runtime.result.condition == "four_in_line"
 
 
 def _draw_drop_sequence() -> list[int]:
@@ -258,47 +270,38 @@ class TestFourInARowDiagonalWin:
     def test_red_wins_diagonal_rising(self) -> None:
         """Red wins on a rising diagonal (col,row): (0,5),(1,4),(2,3),(3,2).
 
-        Yellow fillers are spread across cols 4, 5, 6 (3 drops each, rows 5,4,3),
-        so Yellow never gets 4 consecutive in any direction.
+        Yellow provides support discs underneath Red's diagonal cells to
+        avoid Red forming a premature horizontal 4-in-a-row in row 5.
 
         Move plan (0-indexed turns, Red=even):
-          0  Red   col0 -> (0,5)  diagonal cell 1
-          1  Yellow col4 -> (4,5)
-          2  Red   col1 -> (1,5)  filler under (1,4)
-          3  Yellow col4 -> (4,4)
-          4  Red   col1 -> (1,4)  diagonal cell 2
-          5  Yellow col4 -> (4,3)
-          6  Red   col2 -> (2,5)  filler under (2,4)
-          7  Yellow col5 -> (5,5)
-          8  Red   col2 -> (2,4)  filler under (2,3)
-          9  Yellow col5 -> (5,4)
-         10  Red   col2 -> (2,3)  diagonal cell 3
-         11  Yellow col5 -> (5,3)
-         12  Red   col3 -> (3,5)  filler under (3,4)
-         13  Yellow col6 -> (6,5)
-         14  Red   col3 -> (3,4)  filler under (3,3)
-         15  Yellow col6 -> (6,4)
-         16  Red   col3 -> (3,3)  filler under (3,2)
-         17  Yellow col6 -> (6,3)
-         18  Red   col3 -> (3,2)  diagonal cell 4 — winning disc
+          0  Red    col0 -> (0,5)  diagonal cell 1
+          1  Yellow col1 -> (1,5)  support under (1,4)
+          2  Red    col1 -> (1,4)  diagonal cell 2
+          3  Yellow col2 -> (2,5)  support under (2,3)
+          4  Red    col6 -> (6,5)  filler (away from diagonal)
+          5  Yellow col2 -> (2,4)  support under (2,3)
+          6  Red    col2 -> (2,3)  diagonal cell 3
+          7  Yellow col3 -> (3,5)  support under (3,2)
+          8  Red    col6 -> (6,4)  filler
+          9  Yellow col3 -> (3,4)  support
+         10  Red    col6 -> (6,3)  filler
+         11  Yellow col3 -> (3,3)  support under (3,2)
+         12  Red    col3 -> (3,2)  diagonal cell 4 — win!
 
-        Yellow ends with 3 discs each in cols 4, 5, 6 at rows 5,4,3.
-        Max Yellow run: 3 in a column or 3 horizontal across cols 4-6 — no 4-in-a-row.
+        Yellow max run: 3 (col 3 vertical or (3,3)-(2,4)-(1,5) anti-diag).
+        Red max run before final move: 3 (diagonal or col 6 vertical).
         """
         defn = _load_game()
         session = GameSession(defn)
 
         moves = [
-            0, 4,  # Red (0,5) diag1;  Yellow (4,5)
-            1, 4,  # Red (1,5) filler; Yellow (4,4)
-            1, 4,  # Red (1,4) diag2;  Yellow (4,3)
-            2, 5,  # Red (2,5) filler; Yellow (5,5)
-            2, 5,  # Red (2,4) filler; Yellow (5,4)
-            2, 5,  # Red (2,3) diag3;  Yellow (5,3)
-            3, 6,  # Red (3,5) filler; Yellow (6,5)
-            3, 6,  # Red (3,4) filler; Yellow (6,4)
-            3, 6,  # Red (3,3) filler; Yellow (6,3)
-            3,     # Red (3,2) diag4 — winning disc
+            0, 1,  # Red (0,5) diag1;  Yellow (1,5) support
+            1, 2,  # Red (1,4) diag2;  Yellow (2,5) support
+            6, 2,  # Red (6,5) filler; Yellow (2,4) support
+            2, 3,  # Red (2,3) diag3;  Yellow (3,5) support
+            6, 3,  # Red (6,4) filler; Yellow (3,4) support
+            6, 3,  # Red (6,3) filler; Yellow (3,3) support
+            3,     # Red (3,2) diag4 — win!
         ]
         for col in moves:
             _drop(session, col)
@@ -311,15 +314,16 @@ class TestFourInARowDiagonalWin:
         assert _has_four_in_a_row(session, "Red")
         assert not _has_four_in_a_row(session, "Yellow")
 
+        # Engine detects the win via CEL lines_4
+        assert session.runtime.status == "finished"
+        assert session.runtime.result is not None
+        assert session.runtime.result.outcome == "win"
+        assert session.runtime.result.winner == "Red"
+        assert session.runtime.result.condition == "four_in_line"
+
 
 class TestFourInARowDraw:
-    """Verify the draw condition: board full with no four-in-a-row.
-
-    The engine's CEL evaluator handles occupied_count == cell_count correctly,
-    so the draw end-condition fires when the board is full and no win condition
-    has triggered (the four_in_line condition is a no-op in the current engine
-    per baize-935.1, meaning the board fills completely before the game ends).
-    """
+    """Verify the draw condition: board full with no four-in-a-row."""
 
     def test_draw_full_board(self) -> None:
         """Fill all 42 cells with no 4-in-a-row; engine declares a draw.
