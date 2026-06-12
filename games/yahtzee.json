@@ -1,7 +1,7 @@
 {
   "$schema": "../schema/game-definition.schema.json",
   "game": {
-    "name": "Yacht",
+    "name": "Yahtzee",
     "players": ["P1", "P2"],
     "information": "perfect"
   },
