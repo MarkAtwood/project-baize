@@ -1447,18 +1447,25 @@ class TestUchifuzume:
     def test_pawn_drop_causing_checkmate_is_illegal(self) -> None:
         """Cannot drop a pawn that immediately delivers checkmate."""
         game = ShogiGame()
-        # Set up: gote king at (4,8), sente gold nearby blocking escapes
-        # Dropping a pawn directly in front of the king causes immediate checkmate
+        # Gote king at (4,8). Sente rook at (3,8) and (5,8) control the back rank.
+        # Sente gold at (4,6) defends (4,7) via forward. Sente rooks control
+        # the 8th rank preventing escape.
+        # After pawn drop at (4,7): check on king.
+        # Escape squares for gote king:
+        #   (3,8): sente rook there
+        #   (5,8): sente rook there
+        #   (3,7): attacked by rook at (3,8) (rook slides along file, row 7)
+        #   (5,7): attacked by rook at (5,8) (rook slides along file, row 7)
+        #   (4,7): pawn there, defended by gold at (4,6)
+        # No escapes. Checkmate by pawn drop -> uchifuzume!
         game._clear_and_place([
             (4, 0, "king", "sente"),
             (4, 8, "king", "gote"),
-            (3, 8, "gold", "sente"),  # blocks d9
-            (5, 8, "gold", "sente"),  # blocks f9
-            (3, 7, "gold", "sente"),  # blocks d8
-            (5, 7, "gold", "sente"),  # blocks f8
+            (3, 8, "rook", "sente"),
+            (5, 8, "rook", "sente"),
+            (4, 6, "gold", "sente"),
         ])
         game._add_to_hand("pawn", "sente")
-        # Dropping pawn at (4,7) attacks king at (4,8). King cannot escape.
         with pytest.raises(ValueError, match="uchifuzume"):
             game.drop("pawn", 4, 7)
 
@@ -1566,14 +1573,18 @@ class TestCheckmate:
     def test_checkmate_triggers_game_end(self) -> None:
         """Delivering checkmate ends the game with a win."""
         game = ShogiGame()
+        # Gold at (3,7) blocks (3,8), gold at (5,7) blocks (5,8).
+        # Gold at (4,6) defends (4,7) via forward.
+        # Rook at (4,3) moves to (4,7) giving check + rank control.
         game._clear_and_place([
             (4, 0, "king", "sente"),
             (4, 8, "king", "gote"),
-            (3, 8, "gold", "sente"),
-            (5, 8, "gold", "sente"),
-            (4, 6, "gold", "sente"),  # will move to (4,7) to deliver checkmate
+            (3, 7, "gold", "sente"),
+            (5, 7, "gold", "sente"),
+            (4, 6, "gold", "sente"),
+            (4, 3, "rook", "sente"),
         ])
-        game.move(4, 6, 4, 7)
+        game.move(4, 3, 4, 7)
         assert game.session.runtime.status == "finished"
         assert game.session.runtime.result is not None
         assert game.session.runtime.result.outcome == "win"
