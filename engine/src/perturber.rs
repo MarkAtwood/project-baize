@@ -409,6 +409,7 @@ mod tests {
                 state: None,
                 properties: IndexMap::new(),
                 span_cells: Vec::new(),
+                orientation: None,
             })
             .unwrap();
         session
@@ -529,6 +530,7 @@ mod tests {
                 state: None,
                 properties: IndexMap::new(),
                 span_cells: Vec::new(),
+                orientation: None,
             })
             .unwrap();
         session

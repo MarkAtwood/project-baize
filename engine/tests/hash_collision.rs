@@ -43,6 +43,7 @@ fn session_with_mark_at(col: u32, row: u32) -> GameSession {
         state: None,
         properties: Default::default(),
         span_cells: Vec::new(),
+                orientation: None,
     }).unwrap();
 
     session
@@ -271,6 +272,7 @@ fn different_component_facing_produces_different_hash() {
         state: None,
         properties: Default::default(),
         span_cells: Vec::new(),
+                orientation: None,
     }).unwrap();
     s1.runtime
         .zones
@@ -290,6 +292,7 @@ fn different_component_facing_produces_different_hash() {
         state: None,
         properties: Default::default(),
         span_cells: Vec::new(),
+                orientation: None,
     }).unwrap();
     s2.runtime
         .zones

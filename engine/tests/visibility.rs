@@ -59,6 +59,7 @@ fn build_session(vectors: &Value) -> GameSession {
             state: None,
             properties,
             span_cells: Vec::new(),
+                orientation: None,
         }).unwrap();
 
         // Place into the correct zone.

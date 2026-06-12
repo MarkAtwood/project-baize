@@ -94,11 +94,7 @@ fn build_end_condition_context(session: &GameSession, current_player: &str) -> C
 /// - `board_width`, `board_height`, `cell_count`, `occupied_count`
 fn populate_grid_lines(ctx: &mut Context<'_>, session: &GameSession) {
     for zone in session.runtime.zones.values() {
-        if let RuntimeZone::Grid {
-            width,
-            height,
-            cells,
-        } = zone
+        if let RuntimeZone::Grid { width, height, cells, .. } = zone
         {
             let w = *width as usize;
             let h = *height as usize;
@@ -201,11 +197,7 @@ fn populate_grid_lines(ctx: &mut Context<'_>, session: &GameSession) {
     // Per-zone uniform-type booleans: zone_uniform_<name> is true when all
     // cells in the named grid zone are occupied and have the same component type.
     for (name, zone) in &session.runtime.zones {
-        if let RuntimeZone::Grid {
-            width,
-            height,
-            cells,
-        } = zone
+        if let RuntimeZone::Grid { width, height, cells, .. } = zone
         {
             let uniform = *width > 0
                 && *height > 0

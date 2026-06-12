@@ -77,11 +77,7 @@ fn eval_condition(session: &GameSession, condition: &str, current_player: &str) 
 /// on any grid zone.
 pub(crate) fn check_line_win(session: &GameSession, player: &str) -> bool {
     for zone in session.runtime.zones.values() {
-        if let RuntimeZone::Grid {
-            width,
-            height,
-            cells,
-        } = zone
+        if let RuntimeZone::Grid { width, height, cells, .. } = zone
         {
             if has_complete_line(session, cells, *width, *height, player) {
                 return true;

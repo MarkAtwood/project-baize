@@ -64,6 +64,7 @@ fn grid_operations() {
         state: None,
         properties: Default::default(),
         span_cells: Vec::new(),
+                orientation: None,
     }).unwrap();
 
     let board = session.runtime.zones.get_mut("board").unwrap();
@@ -130,6 +131,7 @@ fn wire_round_trip() {
         state: None,
         properties: Default::default(),
         span_cells: Vec::new(),
+                orientation: None,
     }).unwrap();
     session
         .runtime
@@ -236,6 +238,7 @@ fn grid_place_span_horizontal() {
         state: None,
         properties: Default::default(),
         span_cells: Vec::new(),
+                orientation: None,
     }).unwrap();
 
     let zone = session.runtime.zones.get_mut("board").unwrap();
@@ -268,6 +271,7 @@ fn grid_place_span_vertical() {
         state: None,
         properties: Default::default(),
         span_cells: Vec::new(),
+                orientation: None,
     }).unwrap();
 
     let zone = session.runtime.zones.get_mut("board").unwrap();
@@ -292,6 +296,7 @@ fn grid_place_span_out_of_bounds() {
         state: None,
         properties: Default::default(),
         span_cells: Vec::new(),
+                orientation: None,
     }).unwrap();
 
     let zone = session.runtime.zones.get_mut("board").unwrap();
@@ -314,6 +319,7 @@ fn grid_place_span_overlap() {
         state: None,
         properties: Default::default(),
         span_cells: Vec::new(),
+                orientation: None,
     }).unwrap();
 
     let cid2 = session.runtime.components.insert(ComponentData {
@@ -325,6 +331,7 @@ fn grid_place_span_overlap() {
         state: None,
         properties: Default::default(),
         span_cells: Vec::new(),
+                orientation: None,
     }).unwrap();
 
     let zone = session.runtime.zones.get_mut("board").unwrap();
@@ -350,6 +357,7 @@ fn grid_remove_span() {
         state: None,
         properties: Default::default(),
         span_cells: Vec::new(),
+                orientation: None,
     }).unwrap();
 
     let zone = session.runtime.zones.get_mut("board").unwrap();

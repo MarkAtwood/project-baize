@@ -90,6 +90,7 @@ class ComponentData:
     state: str | None = None
     properties: dict[str, Any] = field(default_factory=dict)
     span_cells: list[tuple[int, int]] = field(default_factory=list)
+    orientation: int | None = None
 
     def to_wire_instance(self) -> ComponentInstance:
         """Convert to wire-format ComponentInstance."""
@@ -153,6 +154,8 @@ class GridZone:
     width: int
     height: int
     cells: list[ComponentId | None]
+    stacks: dict[int, list[ComponentId]] = field(default_factory=dict)
+    stacking_limit: int = 1
 
     def grid_get(self, col: int, row: int) -> ComponentId | None:
         if col < 0 or row < 0 or col >= self.width or row >= self.height:
@@ -168,6 +171,44 @@ class GridZone:
         prev = self.cells[idx]
         self.cells[idx] = component
         return prev
+
+    def grid_push(self, col: int, row: int, component: ComponentId) -> None:
+        """Push a component onto a cell (new component becomes top)."""
+        if col < 0 or row < 0 or col >= self.width or row >= self.height:
+            return
+        idx = row * self.width + col
+        existing = self.cells[idx]
+        if existing is not None:
+            self.stacks.setdefault(idx, []).append(existing)
+        self.cells[idx] = component
+
+    def grid_pop(self, col: int, row: int) -> ComponentId | None:
+        """Pop the top component from a cell. Promotes stack below."""
+        if col < 0 or row < 0 or col >= self.width or row >= self.height:
+            return None
+        idx = row * self.width + col
+        top = self.cells[idx]
+        if top is None:
+            return None
+        stack = self.stacks.get(idx)
+        if stack:
+            self.cells[idx] = stack.pop()
+            if not stack:
+                del self.stacks[idx]
+        else:
+            self.cells[idx] = None
+        return top
+
+    def grid_stack(self, col: int, row: int) -> list[ComponentId]:
+        """Get all components at a position (bottom to top)."""
+        if col < 0 or row < 0 or col >= self.width or row >= self.height:
+            return []
+        idx = row * self.width + col
+        result = list(self.stacks.get(idx, []))
+        top = self.cells[idx]
+        if top is not None:
+            result.append(top)
+        return result
 
     def grid_place_span(
         self,

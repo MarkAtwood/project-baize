@@ -60,6 +60,7 @@ fn cube_session() -> GameSession {
                         state: None,
                         properties: IndexMap::new(),
                         span_cells: Vec::new(),
+                orientation: None,
                     })
                     .unwrap();
                 session
@@ -360,6 +361,7 @@ fn solved_cube_session() -> GameSession {
                         state: None,
                         properties: IndexMap::new(),
                         span_cells: Vec::new(),
+                orientation: None,
                     })
                     .unwrap();
                 session
