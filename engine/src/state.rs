@@ -64,6 +64,8 @@ pub enum GameOutcome {
 pub enum ZoneState {
     Grid {
         cells: IndexMap<String, CellContents>,
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        cell_properties: Option<IndexMap<String, IndexMap<String, serde_json::Value>>>,
     },
     OrderedStack {
         components: Vec<ComponentInstance>,

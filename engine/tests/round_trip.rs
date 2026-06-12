@@ -327,7 +327,7 @@ fn round_trip_empty_tic_tac_toe() {
     // Verify expected structure before round-trip
     assert_eq!(wire.status, GameStatus::Setup);
     assert!(wire.zones.contains_key("board"));
-    if let ZoneState::Grid { ref cells } = wire.zones["board"] {
+    if let ZoneState::Grid { ref cells, .. } = wire.zones["board"] {
         assert!(cells.is_empty(), "empty board should have no cells");
     } else {
         panic!("board should be a Grid zone");
@@ -349,7 +349,7 @@ fn round_trip_mid_game_tic_tac_toe() {
 
     // Verify we have components on the board
     assert_eq!(wire.status, GameStatus::InProgress);
-    if let ZoneState::Grid { ref cells } = wire.zones["board"] {
+    if let ZoneState::Grid { ref cells, .. } = wire.zones["board"] {
         assert_eq!(cells.len(), 5, "should have 5 marks placed");
     } else {
         panic!("board should be a Grid zone");
@@ -370,7 +370,7 @@ fn round_trip_chess_opening() {
     let wire = session.to_wire_state();
 
     // Verify multiple piece types
-    if let ZoneState::Grid { ref cells } = wire.zones["board"] {
+    if let ZoneState::Grid { ref cells, .. } = wire.zones["board"] {
         assert_eq!(cells.len(), 16, "should have 16 pieces placed");
     } else {
         panic!("board should be a Grid zone");

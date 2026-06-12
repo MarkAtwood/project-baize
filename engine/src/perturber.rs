@@ -11,7 +11,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::action::{Action, ActionType};
 use crate::error::Result;
-use crate::runtime::{ComponentId, GameSession};
+use crate::runtime::{ComponentId, GameSession, RuntimeZone};
 use crate::transition::apply_action;
 
 /// Maximum fuel for repeat_until_stable (safety cap).
@@ -85,6 +85,9 @@ pub enum Effect {
     Invoke {
         invoke: String,
     },
+    SetCellProperty {
+        set_cell_property: CellPropertySpec,
+    },
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -117,6 +120,15 @@ pub struct ForEachSpec {
 
 fn default_var() -> String {
     "item".to_string()
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct CellPropertySpec {
+    pub zone: String,
+    pub col: u32,
+    pub row: u32,
+    pub key: String,
+    pub value: serde_json::Value,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -296,6 +308,37 @@ fn execute_effect_inner(session: &mut GameSession, effect: &Effect, depth: u32) 
                     .get_mut(zone)
                     .expect("zone validated above")
                     .grid_set(col, row, saved[src_idx]);
+            }
+        }
+        Effect::SetCellProperty { set_cell_property } => {
+            let zone = session
+                .runtime
+                .zones
+                .get_mut(&set_cell_property.zone)
+                .ok_or_else(|| {
+                    crate::error::BaizeError::UnknownZone(set_cell_property.zone.clone())
+                })?;
+            if let RuntimeZone::Grid {
+                width, height, cell_properties, ..
+            } = zone
+            {
+                let col = set_cell_property.col;
+                let row = set_cell_property.row;
+                if col < *width && row < *height {
+                    let idx = (row as usize) * (*width as usize) + (col as usize);
+                    cell_properties
+                        .entry(idx)
+                        .or_default()
+                        .insert(
+                            set_cell_property.key.clone(),
+                            set_cell_property.value.clone(),
+                        );
+                }
+            } else {
+                return Err(crate::error::BaizeError::IllegalAction(format!(
+                    "zone '{}' is not a grid zone",
+                    set_cell_property.zone
+                )));
             }
         }
         Effect::Invoke { invoke } => {

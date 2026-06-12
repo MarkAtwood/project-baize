@@ -71,9 +71,13 @@ class ComponentInstance:
 # Zone states (discriminated by zone_type)
 # ---------------------------------------------------------------------------
 
+CellPropertyValue = str | int | bool
+
+
 @dataclass
 class GridState:
     cells: dict[str, ComponentInstance | list[ComponentInstance] | None]
+    cell_properties: dict[str, dict[str, CellPropertyValue]] | None = None
 
     @staticmethod
     def from_dict(d: dict[str, Any]) -> GridState:
@@ -85,7 +89,9 @@ class GridState:
                 cells[k] = [ComponentInstance.from_dict(ci) for ci in v]
             else:
                 cells[k] = ComponentInstance.from_dict(v)
-        return GridState(cells=cells)
+        raw_props = d.get("cell_properties")
+        cell_properties = dict(raw_props) if raw_props else None
+        return GridState(cells=cells, cell_properties=cell_properties)
 
     def to_dict(self) -> dict[str, Any]:
         cells_out: dict[str, Any] = {}
@@ -96,7 +102,10 @@ class GridState:
                 cells_out[k] = [ci.to_dict() for ci in v]
             else:
                 cells_out[k] = v.to_dict()
-        return {"zone_type": "grid", "cells": cells_out}
+        out: dict[str, Any] = {"zone_type": "grid", "cells": cells_out}
+        if self.cell_properties:
+            out["cell_properties"] = self.cell_properties
+        return out
 
 
 @dataclass

@@ -77,7 +77,7 @@ pub fn filter_for_viewer(
 /// Count the number of components in a wire zone state.
 fn zone_component_count(zone: &ZoneState) -> u32 {
     match zone {
-        ZoneState::Grid { cells } => cells.len() as u32,
+        ZoneState::Grid { cells, .. } => cells.len() as u32,
         ZoneState::OrderedStack { components, .. } => components.len() as u32,
         ZoneState::Set { components, .. } => components.len() as u32,
         ZoneState::SingleSlot { component } => u32::from(component.is_some()),
@@ -99,6 +99,7 @@ fn redacted_zone(zone: &ZoneState, count: u32) -> ZoneState {
         },
         ZoneState::Grid { .. } => ZoneState::Grid {
             cells: IndexMap::new(),
+            cell_properties: None,
         },
         ZoneState::SingleSlot { .. } => ZoneState::SingleSlot { component: None },
         ZoneState::Counter { value } => ZoneState::Counter {

@@ -156,6 +156,9 @@ class GridZone:
     cells: list[ComponentId | None]
     stacks: dict[int, list[ComponentId]] = field(default_factory=dict)
     stacking_limit: int = 1
+    cell_properties: dict[int, dict[str, str | int | bool]] = field(
+        default_factory=dict
+    )
 
     def grid_get(self, col: int, row: int) -> ComponentId | None:
         if col < 0 or row < 0 or col >= self.width or row >= self.height:
@@ -253,6 +256,29 @@ class GridZone:
 
     def count(self) -> int:
         return sum(1 for c in self.cells if c is not None)
+
+    def get_cell_property(
+        self, col: int, row: int, key: str
+    ) -> str | int | bool | None:
+        """Get a single cell property, or None if not set."""
+        if col < 0 or row < 0 or col >= self.width or row >= self.height:
+            return None
+        idx = row * self.width + col
+        props = self.cell_properties.get(idx)
+        if props is None:
+            return None
+        return props.get(key)
+
+    def set_cell_property(
+        self, col: int, row: int, key: str, value: str | int | bool
+    ) -> None:
+        """Set a cell property."""
+        if col < 0 or row < 0 or col >= self.width or row >= self.height:
+            return
+        idx = row * self.width + col
+        if idx not in self.cell_properties:
+            self.cell_properties[idx] = {}
+        self.cell_properties[idx][key] = value
 
     def is_full(self, capacity: Capacity | None) -> bool:
         if capacity is None or capacity == "unlimited":
@@ -397,7 +423,16 @@ def runtime_zone_from_definition(zone_def: Zone) -> RuntimeZone:
             raise ValidationError(
                 f"grid dimensions must be non-negative, got ({w}, {h})"
             )
-        return GridZone(width=w, height=h, cells=[None] * (w * h))
+        grid = GridZone(width=w, height=h, cells=[None] * (w * h))
+        if zone_def.cell_properties:
+            for coord, props in zone_def.cell_properties.items():
+                parts = coord.split(",")
+                if len(parts) == 2:
+                    c, r = int(parts[0].strip()), int(parts[1].strip())
+                    if 0 <= c < w and 0 <= r < h:
+                        idx = r * w + c
+                        grid.cell_properties[idx] = dict(props)
+        return grid
     if zt == "ordered_stack":
         return StackZone()
     if zt == "set":
@@ -610,7 +645,14 @@ class GameSession:
                         if comp is not None:
                             coord = f"{col},{row}"
                             cells[coord] = comp.to_wire_instance()
-            return GridState(cells=cells)
+            wire_props: dict[str, dict[str, str | int | bool]] | None = None
+            if zone.cell_properties:
+                wire_props = {}
+                for idx, props in zone.cell_properties.items():
+                    col = idx % zone.width
+                    row = idx // zone.width
+                    wire_props[f"{col},{row}"] = dict(props)
+            return GridState(cells=cells, cell_properties=wire_props)
 
         if isinstance(zone, StackZone):
             components = []

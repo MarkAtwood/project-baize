@@ -79,6 +79,8 @@ _TOKEN_RE = re.compile(
         | ([!(){},\.])           # single-char operators/punctuation
         | (-?\d+)                # integer literal
         | (true|false)           # boolean literal
+        | "([^"]*)"             # double-quoted string literal
+        | '([^']*)'             # single-quoted string literal
         | ([a-zA-Z_]\w*)         # identifier
     )\s*
     """,
@@ -104,8 +106,12 @@ def _tokenize(expr: str) -> list[tuple[str, str]]:
             tokens.append(("INT", m.group(4)))
         elif m.group(5):
             tokens.append(("BOOL", m.group(5)))
-        elif m.group(6):
-            tokens.append(("IDENT", m.group(6)))
+        elif m.group(6) is not None:
+            tokens.append(("STR", m.group(6)))
+        elif m.group(7) is not None:
+            tokens.append(("STR", m.group(7)))
+        elif m.group(8):
+            tokens.append(("IDENT", m.group(8)))
         pos = m.end()
     return tokens
 
@@ -189,6 +195,9 @@ def _parse_primary(
 
     if kind == "BOOL":
         result: Any = value == "true"
+        return _parse_postfix(tokens, pos + 1, result, variables)
+    if kind == "STR":
+        result = value
         return _parse_postfix(tokens, pos + 1, result, variables)
     if kind == "INT":
         result = int(value)

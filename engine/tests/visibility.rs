@@ -93,7 +93,7 @@ fn zone_component_ids(zone: &ZoneState) -> Vec<String> {
         ZoneState::OrderedStack { components, .. } | ZoneState::Set { components, .. } => {
             components.iter().map(|c| c.id.clone()).collect()
         }
-        ZoneState::Grid { cells } => {
+        ZoneState::Grid { cells, .. } => {
             let mut ids = Vec::new();
             for contents in cells.values() {
                 match contents {
