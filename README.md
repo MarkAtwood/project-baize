@@ -236,15 +236,22 @@ tests/vectors/   Cross-implementation test vectors
 
 Three-tier license structure:
 
-| What you're building | License | Share source? |
-|---------------------|---------|--------------|
+| What | License | Share source? |
+|------|---------|--------------|
 | Game schema / JSON definitions | CC-BY-SA 4.0 | Attribution + share-alike |
 | Engine embedded in your game client | MIT | No |
 | Engine embedded in your mobile app | MIT | No |
 | WASM module loaded in browser | MIT | No |
-| Your game server using Baize | AGPL-3.0 | Yes |
-| Your standalone desktop client | AGPL-3.0 | Yes |
-| Your fork of the reference server | AGPL-3.0 | Yes |
+| Reference server code and all derivatives | AGPL-3.0 | Yes |
+
+The AGPL applies to the reference server (`server/`) and any work
+derived from it. If you build a game server using this code — whether
+you fork it, wrap it, or deploy it as a service — you must share your
+server source code. This is intentional: the server holds hidden state
+and enforces trust, so players deserve to verify it.
+
+The engine and client libraries are MIT — embed them anywhere, no
+strings attached.
 
 **Your game definitions** (the JSON files describing your game) are yours to
 license however you want. We recommend CC-BY-SA or something similarly
