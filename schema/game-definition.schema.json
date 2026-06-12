@@ -60,6 +60,9 @@
     "authority": {
       "$ref": "#/$defs/authority"
     },
+    "notation": {
+      "$ref": "#/$defs/notation"
+    },
     "wasm_module": {
       "type": "string",
       "description": "Path or URI to a WASM module for Tier 2 logic (complex scoring, chain reactions, custom phase logic)."
@@ -720,6 +723,53 @@
         "ends_when": {
           "type": "string",
           "description": "Condition that ends the betting round."
+        }
+      }
+    },
+
+    "notation": {
+      "type": "object",
+      "description": "Declarative notation spec for human-readable move input/output.",
+      "properties": {
+        "piece_symbols": {
+          "type": "object",
+          "additionalProperties": { "type": "string" },
+          "description": "Map component type to display character (e.g. {\"king\":\"K\",\"pawn\":\"\"})."
+        },
+        "capture_marker": {
+          "type": "string",
+          "description": "Character indicating capture (e.g. \"x\")."
+        },
+        "promotion_marker": {
+          "type": "string",
+          "description": "Character before promotion target (e.g. \"=\")."
+        },
+        "check_marker": {
+          "type": "string",
+          "description": "Character appended for check (e.g. \"+\")."
+        },
+        "checkmate_marker": {
+          "type": "string",
+          "description": "Character appended for checkmate (e.g. \"#\")."
+        },
+        "disambiguation": {
+          "enum": ["file_then_rank", "rank_then_file", "none"],
+          "description": "How to disambiguate when multiple pieces can reach the same destination."
+        },
+        "special_moves": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "object"
+          },
+          "description": "Map notation string to action dict (e.g. {\"O-O\":{\"action_type\":\"castle\",\"side\":\"kingside\"}})."
+        },
+        "move_separator": {
+          "type": "string",
+          "description": "Separator between from/to in track-based notation (e.g. \"/\" for Backgammon)."
+        },
+        "hit_marker": {
+          "type": "string",
+          "description": "Marker for hitting/capturing in track games (e.g. \"*\")."
         }
       }
     }

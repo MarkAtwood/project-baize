@@ -51,6 +51,9 @@
       "name": "board_full"
     }
   ],
+  "notation": {
+    "special_moves": {}
+  },
   "authority": {
     "server_only": [],
     "client_verifiable": ["place(mark, board/cell)"]

@@ -811,6 +811,7 @@ class GameDefinition:
     wasm_module: str | None = None
     hand_rankings: list[str] = field(default_factory=list)
     betting_round: BettingRound | None = None
+    notation: dict[str, Any] | None = None
 
     @classmethod
     def from_json(cls, json_str: str, *, validate_schema: bool = True) -> GameDefinition:
@@ -863,6 +864,7 @@ class GameDefinition:
                 wasm_module=d.get("wasm_module"),
                 hand_rankings=d.get("hand_rankings", []),
                 betting_round=betting_round,
+                notation=d.get("notation"),
             )
         except (KeyError, TypeError, ValueError, AttributeError) as exc:
             raise ParseError(str(exc)) from exc
@@ -890,4 +892,6 @@ class GameDefinition:
             out["hand_rankings"] = self.hand_rankings
         if self.betting_round is not None:
             out["betting_round"] = self.betting_round.to_dict()
+        if self.notation is not None:
+            out["notation"] = self.notation
         return out

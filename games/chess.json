@@ -136,5 +136,17 @@
   "authority": {
     "server_only": [],
     "client_verifiable": ["all"]
+  },
+  "notation": {
+    "piece_symbols": {"king":"K","queen":"Q","rook":"R","bishop":"B","knight":"N","pawn":""},
+    "capture_marker": "x",
+    "disambiguation": "file_then_rank",
+    "promotion_marker": "=",
+    "check_marker": "+",
+    "checkmate_marker": "#",
+    "special_moves": {
+      "O-O": {"action_type":"castle","side":"kingside"},
+      "O-O-O": {"action_type":"castle","side":"queenside"}
+    }
   }
 }
