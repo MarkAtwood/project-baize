@@ -78,6 +78,9 @@ def _build_end_condition_variables(
         "all_cells_occupied": _check_any_grid_full(session),
         "board_is_full": _check_any_grid_full(session),
     }
+    # Inject all runtime counters into CEL context
+    for name, value in session.runtime.counters.items():
+        variables[name] = value
     # Grid structure: rows, cols, diags, lines as lists of owner strings
     _populate_grid_lines(variables, session)
     return variables

@@ -1,0 +1,64 @@
+{
+  "$schema": "../schema/game-definition.schema.json",
+  "game": {
+    "name": "Pig",
+    "players": ["Alice", "Bob"],
+    "information": "perfect"
+  },
+  "zones": {
+    "die_face": {
+      "zone_type": "counter",
+      "visibility": "public",
+      "note": "Current face value of the d6 (1–6). Set by server on each roll."
+    }
+  },
+  "components": {
+    "die": {
+      "owner": "neutral",
+      "count": 1,
+      "properties": {
+        "faces": "6"
+      },
+      "note": "A six-sided die. Rolled by the server; result written to die_face zone."
+    }
+  },
+  "turn_order": {
+    "type": "alternating",
+    "players": ["Alice", "Bob"],
+    "actions_per_turn": 1,
+    "mandatory": true
+  },
+  "library": {
+    "alice_wins": "alice_total >= 100",
+    "bob_wins": "bob_total >= 100"
+  },
+  "rules": {
+    "roll": {
+      "action": "roll_dice(die)",
+      "server_resolves": "die_face",
+      "note": "Server rolls d6, writes result to die_face zone. If 1: turn_score resets to 0, turn ends. Else: turn_score += die_face. Player may roll again or bank."
+    },
+    "bank": {
+      "action": "bank",
+      "note": "Player banks: current_player_total += turn_score; turn_score = 0; turn ends."
+    }
+  },
+  "end_conditions": [
+    {
+      "result": "win",
+      "player": "Alice",
+      "condition": "alice_wins",
+      "name": "alice_reaches_100"
+    },
+    {
+      "result": "win",
+      "player": "Bob",
+      "condition": "bob_wins",
+      "name": "bob_reaches_100"
+    }
+  ],
+  "authority": {
+    "server_only": ["roll_dice(die)"],
+    "client_verifiable": ["bank"]
+  }
+}

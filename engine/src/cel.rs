@@ -66,6 +66,11 @@ fn build_end_condition_context(session: &GameSession, current_player: &str) -> C
     ctx.add_variable_from_value("move_count", session.runtime.move_count as i64);
     ctx.add_variable_from_value("halfmove_clock", session.runtime.halfmove_clock as i64);
 
+    // Inject all runtime counters into CEL context
+    for (name, value) in &session.runtime.counters {
+        ctx.add_variable_from_value(name.clone(), *value);
+    }
+
     // Grid structure: serialize all lines (rows, columns, diagonals) as
     // lists of owner strings so CEL expressions can query them composably.
     // e.g. lines.exists(line, line.all(cell, cell == current_player))
