@@ -107,7 +107,7 @@ implementation, even before full mental poker support.
 
 ## Status
 
-Core engine complete. 229 of 248 issues closed. Thirty-two games
+Core engine complete. 253 of 281 issues closed. Fifty-two games
 defined, twenty-one fully playable end-to-end. Texas Hold'em poker
 now playable with full betting, hand evaluation, and showdown.
 The engine parses and validates game definitions, manages runtime
@@ -122,11 +122,17 @@ validation, fuel limits, WASM sandboxing, resource budgets, and
 fuzzing infrastructure. Felt compiler complete — a pure, total,
 board-native DSL for game extensions, compiles to WASM GC (123 tests).
 
+Design decisions made for next phase: dynamic visibility transitions,
+action triggers with claim windows (reactive turns), partnerships,
+grid cell stacking, sparse hashmap grids for large/growing boards,
+fog of war, resource system for external data (dictionaries), and
+wargame primitives via Felt extensions.
+
 | Component | Tests | What works |
 |-----------|-------|-----------|
 | Schema (5 JSON Schemas) | — | Game definitions, state, actions, events, component registry |
 | Rust engine | 304 | Parse, validate, state machine, move gen, transitions, CEL end conditions, perturber effects (cycle, remove, flip, promote, counters, invoke), commit-reveal, simultaneous phases, hash-chained events, tamper detection, visibility filtering, valid_cells grid mask, graph zone, hostile input rejection, invariant guards, fuel limits, resource budgets, serialization round-trips, cross-engine determinism |
-| Python engine | 2,104 | Feature-parallel with Rust, plus game analysis, Jupyter notebook, terminal CLI, interactive REPL, agent framework (Random/Greedy/MCTS), notation adapter, adversarial input tests, error leak audit, hypothesis fuzzing, cross-engine determinism, poker (hand evaluator, betting FSM, showdown) |
+| Python engine | 3,496 | Feature-parallel with Rust, plus game analysis, Jupyter notebook, terminal CLI, interactive REPL, agent framework (Random/Greedy/MCTS), notation adapter, adversarial input tests, error leak audit, hypothesis fuzzing, cross-engine determinism, poker (hand evaluator, betting FSM, showdown), 52 game definitions with gameplay tests |
 | Server | 130 | Room management, WebSocket protocol, hidden-state vault (ChaCha20Rng), per-player visibility, rate limiting, token auth, spectator isolation, persistence, WASM sandboxing (fuel + memory caps), abuse resistance, protocol hardening, debug redaction, graceful shutdown, Felt host imports |
 | Felt compiler | 123 | Lexer (logos), parser (chumsky), type checker, call graph checker, WASM GC codegen (wasm-encoder), CLI (compile/check), host import API, example extensions (poker, chess, go) |
 | Client (TypeScript) | — | Full type definitions for all schemas; Web Components (`<baize-game>`, `<baize-board>`) |
@@ -150,7 +156,7 @@ in external tools.
 
 ## Game Catalog
 
-Thirty-two reference game definitions spanning the complexity spectrum.
+Fifty-two reference game definitions spanning the complexity spectrum.
 Game rules are not subject to intellectual property protection. All
 trademarked names are used here in their descriptive sense to identify
 the games whose rules are implemented. Games marked ✓ are fully
@@ -198,31 +204,33 @@ tracking their implementation.
 | Settlers of Catan™ | Imperfect | 7-hex resource map, graph settlement placement, dice production, bank trading |
 | Colossal Cave Adventure | Perfect | 17-room graph text adventure, obstacles, treasures, single player |
 | Colossal Cave Adventure (350) | Perfect | 46-room expanded version, lamp battery, darkness, 10 treasures, 350 points |
+| Shogi | Perfect | 9×9, piece drops (captured pieces return to play), directional movement, promotion |
+| Xiangqi | Perfect | 9×10, river/palace constraints, cannon jump-capture, flying general |
+| Mancala | Perfect | 14 pits, seed-sowing distribution, captures, extra turns |
+| Mahjong™ | Imperfect | 4-player, 136 tiles, interrupt claiming (chi/pon/ron), yaku scoring |
+| Dominoes | Imperfect | 28 tiles (double-six), chain topology, end matching |
+| Bridge | Imperfect | 4-player partnership, auction bidding, dummy hand exposure, trick-taking |
+| Stratego™ | Imperfect | 10×10, hidden piece ranks, simultaneous placement, combat reveal |
+| Mastermind™ | Imperfect | Code-breaking, structured feedback (black/white pegs), information-theoretic deduction |
+| Hanabi™ | Imperfect | Cooperative, reverse hidden info (see others not yourself), constrained clues |
+| Nine Men's Morris | Perfect | 24 intersections, phase transition (place → slide), mill captures, flying |
+| Quarto™ | Perfect | 4×4, opponent chooses your piece, 4-in-a-row by shared property |
+| Dots and Boxes | Perfect | Dot grid, edges as playable positions, box completion, chain reactions |
+| Abalone™ | Perfect | 61-cell hex, push chains of marbles off the edge |
+| Hive™ | Perfect | Boardless — pieces form the board, insect movement, one-hive rule |
+| Scrabble™ | Imperfect | 15×15 premium grid, dictionary validation, cross-word formation |
+| Azul™ | Imperfect | Factory tile drafting, pattern building, adjacency scoring |
+| Cribbage | Imperfect | Pegging phase (running total to 31), combinatorial hand scoring, pegboard |
+| Hearts | Imperfect | 4-player trick avoidance, shoot-the-moon gambit, card passing |
+| Gin Rummy | Imperfect | Deadwood optimization, knocking, undercut, layoff |
+| Nim | Perfect | Multiple heaps, Sprague-Grundy theory, mathematically solved |
 
 ### Planned (beads filed)
 
 | Game | What it proves |
 |------|---------------|
-| Shogi | Piece drops (captured pieces return to play), directional movement |
-| Xiangqi | River/palace constraints, cannon jump-capture |
-| Mancala | Seed-sowing pit distribution |
-| Mahjong™ | 4-player interrupt claiming, complex yaku scoring |
-| Dominoes | Growing chain topology, end matching |
-| Bridge | Partnership, auction bidding, dummy hand exposure |
-| Stratego™ | Hidden piece ranks, simultaneous placement |
-| Mastermind™ | Information-theoretic deduction, structured feedback |
-| Hanabi™ | Reverse hidden information (see others, not yourself) |
-| Nine Men's Morris | Phase transition (place → slide), mill captures |
-| Quarto™ | Opponent chooses your piece |
-| Dots and Boxes | Edges as playable positions, chain reactions |
-| Abalone™ | Hex grid push mechanics, chain momentum |
-| Hive™ | Boardless — pieces form the board, insect movement |
-| Scrabble™ | Dictionary validation as game rule, premium squares |
-| Azul™ | Factory tile drafting, pattern building |
-| Cribbage | Pegging phase, combinatorial hand scoring |
-| Hearts | Trick avoidance, shoot-the-moon gambit |
-| Gin Rummy | Deadwood optimization, knocking |
-| Nim | Sprague-Grundy theory, mathematically solved |
+| Generic Hex Wargame | Full CRT/TEC/ZOC/supply, NATO-symbol counters, fog of war |
+| Infinite Go | Unbounded sparse board Go variant |
 | Power Grid™ | City network with auction economy |
 | Fury of Dracula™ | Hidden movement on European map |
 | Triangle Dominoes | Triangular grid tile matching |
