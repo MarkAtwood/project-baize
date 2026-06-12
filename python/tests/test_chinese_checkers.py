@@ -1,13 +1,15 @@
 """Tests for Chinese Checkers: hex star board, step/hop movement, multi-hop chains.
 
-2-player variant:
-  - 121-position hexagram (6-pointed star) on a hex grid with hex_6 adjacency.
-  - Each player starts with 10 pegs in one triangle point.
-  - Red starts in T1 (top), goal is T4 (bottom).
-  - Blue starts in T4 (bottom), goal is T1 (top).
-  - Movement: step to adjacent empty cell, or hop over adjacent piece to empty beyond.
-  - Multi-hop chains: after a hop, player may continue hopping the same piece.
-  - Win: first player to fill the opposite triangle.
+Supports 2, 3, 4, and 6 players on a 121-position hexagram (6-pointed star).
+Six seats clockwise: Red(T1), Green(T2), White(T3), Blue(T4), Yellow(T5), Black(T6).
+Opposite pairs: T1-T4, T2-T5, T3-T6. Each player starts in their home triangle
+and races to fill the opposite triangle.
+
+Player count determines which seats are active:
+  2p: Red(T1), Blue(T4)
+  3p: Red(T1), White(T3), Yellow(T5)
+  4p: Red(T1), Green(T2), Blue(T4), Yellow(T5)
+  6p: all
 """
 
 from __future__ import annotations
@@ -29,10 +31,8 @@ from baize.runtime import (
 # Board geometry
 # ---------------------------------------------------------------------------
 
-# Hex_6 neighbor offsets (col, row)
 _HEX_DIRS: list[tuple[int, int]] = [(-1, 0), (1, 0), (0, -1), (0, 1), (-1, 1), (1, -1)]
 
-# Triangle coordinates (home/goal zones)
 T1 = [(12, 0), (11, 1), (12, 1), (10, 2), (11, 2), (12, 2),
       (9, 3), (10, 3), (11, 3), (12, 3)]
 
@@ -53,14 +53,22 @@ T6 = [(4, 4), (5, 4), (6, 4), (7, 4), (4, 5), (5, 5), (6, 5),
 
 ALL_TRIANGLES = {"T1": T1, "T2": T2, "T3": T3, "T4": T4, "T5": T5, "T6": T6}
 
-# Opposite triangle pairs
 OPPOSITE = {"T1": "T4", "T4": "T1", "T2": "T5", "T5": "T2", "T3": "T6", "T6": "T3"}
 
-# 2-player: Red starts T1, goal T4; Blue starts T4, goal T1
-HOME = {"Red": T1, "Blue": T4}
-GOAL = {"Red": T4, "Blue": T1}
+# Seat-to-triangle mapping (clockwise around the star)
+SEAT_TRIANGLE = {
+    "Red": "T1", "Green": "T2", "White": "T3",
+    "Blue": "T4", "Yellow": "T5", "Black": "T6",
+}
 
-# All 121 valid positions (computed from game definition)
+# Which seats are active for each player count
+SEATS_BY_COUNT: dict[int, list[str]] = {
+    2: ["Red", "Blue"],
+    3: ["Red", "White", "Yellow"],
+    4: ["Red", "Green", "Blue", "Yellow"],
+    6: ["Red", "Green", "White", "Blue", "Yellow", "Black"],
+}
+
 _GAME_PATH = Path(__file__).parent.parent.parent / "games" / "chinese-checkers.json"
 
 
@@ -74,14 +82,19 @@ def _load_definition() -> GameDefinition:
 
 
 class ChineseCheckersGame:
-    """Chinese Checkers game driver with step/hop movement and multi-hop chains."""
+    """Chinese Checkers game driver supporting 2/3/4/6 players."""
 
-    def __init__(self) -> None:
+    ALL_SEATS = ["Red", "Green", "White", "Blue", "Yellow", "Black"]
+
+    def __init__(self, player_count: int = 2) -> None:
+        if player_count not in SEATS_BY_COUNT:
+            raise ValueError(f"player_count must be 2, 3, 4, or 6, got {player_count}")
         defn = _load_definition()
         self.session = GameSession(defn)
         self.session.runtime.status = "in_progress"
         self.finished = False
         self.winner: str | None = None
+        self.active_seats = SEATS_BY_COUNT[player_count]
         self._setup_initial_position()
 
     @property
@@ -90,10 +103,24 @@ class ChineseCheckersGame:
         assert isinstance(zone, GridZone)
         return zone
 
+    def home(self, player: str) -> list[tuple[int, int]]:
+        return ALL_TRIANGLES[SEAT_TRIANGLE[player]]
+
+    def goal(self, player: str) -> list[tuple[int, int]]:
+        return ALL_TRIANGLES[OPPOSITE[SEAT_TRIANGLE[player]]]
+
     def current_player(self) -> str:
         p = self.session.current_player()
         assert p is not None
         return p
+
+    def _advance_to_next_active(self) -> None:
+        """Advance turn, skipping inactive seats."""
+        for _ in range(len(self.ALL_SEATS)):
+            self.session.advance_turn()
+            if self.current_player() in self.active_seats:
+                return
+        raise RuntimeError("no active player found")
 
     def _place(self, col: int, row: int, owner: str) -> ComponentId:
         cid = self.session.runtime.components.insert(
@@ -108,14 +135,15 @@ class ChineseCheckersGame:
         return cid
 
     def _setup_initial_position(self) -> None:
-        """Place 10 pegs per player in their home triangles."""
-        for col, row in HOME["Red"]:
-            self._place(col, row, "Red")
-        for col, row in HOME["Blue"]:
-            self._place(col, row, "Blue")
+        """Place 10 pegs per active player in their home triangles."""
+        for seat in self.active_seats:
+            for col, row in self.home(seat):
+                self._place(col, row, seat)
+        # Advance to first active seat if Red isn't active
+        if self.current_player() not in self.active_seats:
+            self._advance_to_next_active()
 
     def piece_at(self, col: int, row: int) -> str | None:
-        """Return owner or None."""
         cid = self.board.grid_get(col, row)
         if cid is None:
             return None
@@ -126,7 +154,6 @@ class ChineseCheckersGame:
         return self.board._cell_valid(col, row)
 
     def neighbors(self, col: int, row: int) -> list[tuple[int, int]]:
-        """Return valid neighboring cells."""
         result = []
         for dc, dr in _HEX_DIRS:
             nc, nr = col + dc, row + dr
@@ -135,15 +162,10 @@ class ChineseCheckersGame:
         return result
 
     def step_moves(self, col: int, row: int) -> list[tuple[int, int]]:
-        """Legal step (non-hop) moves from a position."""
-        moves = []
-        for nc, nr in self.neighbors(col, row):
-            if self.piece_at(nc, nr) is None:
-                moves.append((nc, nr))
-        return moves
+        return [(nc, nr) for nc, nr in self.neighbors(col, row)
+                if self.piece_at(nc, nr) is None]
 
     def hop_moves(self, col: int, row: int) -> list[tuple[int, int]]:
-        """Legal single-hop moves from a position."""
         hops = []
         for dc, dr in _HEX_DIRS:
             mid_c, mid_r = col + dc, row + dr
@@ -158,14 +180,13 @@ class ChineseCheckersGame:
         return hops
 
     def legal_moves(self, col: int, row: int) -> list[tuple[int, int]]:
-        """All legal moves (steps + hops) from a position."""
         return self.step_moves(col, row) + self.hop_moves(col, row)
 
     def move(self, from_col: int, from_row: int, to_col: int, to_row: int) -> str:
-        """Execute a move. Returns 'step', 'hop', or raises ValueError.
+        """Execute a move. Returns 'step' or 'hop'.
 
-        After a hop, does NOT advance turn — caller must call end_turn()
-        or continue hopping. After a step, turn advances automatically.
+        After a hop, turn stays with current player (multi-hop chain).
+        After a step, turn advances to next active player.
         """
         if self.finished:
             raise ValueError("game is finished")
@@ -177,9 +198,6 @@ class ChineseCheckersGame:
         if owner != player:
             raise ValueError(f"piece at ({from_col},{from_row}) belongs to {owner}")
 
-        dc = to_col - from_col
-        dr = to_row - from_row
-
         if (to_col, to_row) in self.step_moves(from_col, from_row):
             move_type = "step"
         elif (to_col, to_row) in self.hop_moves(from_col, from_row):
@@ -187,42 +205,44 @@ class ChineseCheckersGame:
         else:
             raise ValueError(f"illegal move ({from_col},{from_row})->({to_col},{to_row})")
 
-        # Move the peg
         cid = self.board.grid_get(from_col, from_row)
         self.board.grid_set(from_col, from_row, None)
         self.board.grid_set(to_col, to_row, cid)
 
         if move_type == "step":
             self._finish_turn()
-        # hop: turn stays with current player (multi-hop chain possible)
 
         return move_type
 
     def end_turn(self) -> None:
-        """End turn after a hop chain (or if player chooses to stop hopping)."""
         self._finish_turn()
 
     def _finish_turn(self) -> None:
-        """Advance turn and check win condition."""
-        # Check if current player has won before advancing
         player = self.current_player()
         if self._check_win(player):
             self.finished = True
             self.winner = player
             return
-        self.session.advance_turn()
+        self._advance_to_next_active()
 
     def _check_win(self, player: str) -> bool:
-        """Player wins when all 10 pegs are in their goal triangle."""
-        goal = GOAL[player]
-        for col, row in goal:
+        """Player wins when all 10 of their pegs are in the goal triangle."""
+        for col, row in self.goal(player):
             if self.piece_at(col, row) != player:
                 return False
         return True
 
     def count_in_triangle(self, player: str, triangle: list[tuple[int, int]]) -> int:
-        """Count how many of player's pegs are in the given triangle."""
         return sum(1 for c, r in triangle if self.piece_at(c, r) == player)
+
+    def _clear_and_place(self, pieces: list[tuple[int, int, str]]) -> None:
+        """Clear board and place specific pieces."""
+        for r in range(17):
+            for c in range(17):
+                self.board.grid_set(c, r, None)
+        self.session.runtime.components = type(self.session.runtime.components)()
+        for col, row, owner in pieces:
+            self._place(col, row, owner)
 
 
 # ---------------------------------------------------------------------------
@@ -235,9 +255,9 @@ class TestDefinition:
         defn = _load_definition()
         assert defn.game.name == "Chinese Checkers"
 
-    def test_two_players(self) -> None:
+    def test_six_players(self) -> None:
         defn = _load_definition()
-        assert defn.game.players == ["Red", "Blue"]
+        assert defn.game.players == ["Red", "Green", "White", "Blue", "Yellow", "Black"]
 
     def test_hex_grid(self) -> None:
         defn = _load_definition()
@@ -253,9 +273,7 @@ class TestDefinition:
     def test_cell_properties_triangles(self) -> None:
         defn = _load_definition()
         cp = defn.zones["board"].cell_properties
-        # 6 triangles x 10 cells = 60 cells with triangle properties
         assert len(cp) == 60
-        # Check a specific cell
         assert cp["12,0"]["triangle"] == "T1"
         assert cp["4,16"]["triangle"] == "T4"
 
@@ -275,7 +293,6 @@ class TestBoardGeometry:
         assert count == 121
 
     def test_row_widths(self) -> None:
-        """Row widths should be 1,2,3,4,13,12,11,10,9,10,11,12,13,4,3,2,1."""
         game = ChineseCheckersGame()
         expected = [1, 2, 3, 4, 13, 12, 11, 10, 9, 10, 11, 12, 13, 4, 3, 2, 1]
         for row, expected_width in enumerate(expected):
@@ -293,7 +310,6 @@ class TestBoardGeometry:
         assert len(all_cells) == len(set(all_cells))
 
     def test_center_hex_count(self) -> None:
-        """Center hexagon should have 61 cells (121 - 60 triangle cells)."""
         game = ChineseCheckersGame()
         tri_cells = set()
         for cells in ALL_TRIANGLES.values():
@@ -305,12 +321,11 @@ class TestBoardGeometry:
         assert center == 61
 
     def test_all_cells_connected(self) -> None:
-        """BFS from center should reach all 121 cells."""
         game = ChineseCheckersGame()
         all_valid = {
             (c, r) for r in range(17) for c in range(17) if game.is_valid_cell(c, r)
         }
-        start = (8, 8)  # center of the board
+        start = (8, 8)
         assert start in all_valid
         visited: set[tuple[int, int]] = set()
         queue = [start]
@@ -325,7 +340,6 @@ class TestBoardGeometry:
         assert visited == all_valid
 
     def test_triangle_tips_have_2_neighbors(self) -> None:
-        """Each triangle tip (outermost cell) should have exactly 2 valid neighbors."""
         game = ChineseCheckersGame()
         tips = [(12, 0), (16, 4), (12, 12), (4, 16), (0, 12), (4, 4)]
         for tip in tips:
@@ -333,61 +347,195 @@ class TestBoardGeometry:
             assert len(n) == 2, f"tip {tip} has {len(n)} neighbors: {n}"
 
     def test_opposite_triangle_pairs(self) -> None:
-        """Verify opposite pairs: T1<->T4, T2<->T5, T3<->T6."""
         for t1, t2 in [("T1", "T4"), ("T2", "T5"), ("T3", "T6")]:
             assert OPPOSITE[t1] == t2
             assert OPPOSITE[t2] == t1
 
 
 # ---------------------------------------------------------------------------
-# Tests: initial setup
+# Tests: initial setup — parameterized by player count
 # ---------------------------------------------------------------------------
 
 
-class TestInitialSetup:
+class TestInitialSetup2P:
     def test_red_starts_in_t1(self) -> None:
-        game = ChineseCheckersGame()
+        game = ChineseCheckersGame(2)
         for col, row in T1:
             assert game.piece_at(col, row) == "Red"
 
     def test_blue_starts_in_t4(self) -> None:
-        game = ChineseCheckersGame()
+        game = ChineseCheckersGame(2)
         for col, row in T4:
             assert game.piece_at(col, row) == "Blue"
 
     def test_20_pegs_total(self) -> None:
-        game = ChineseCheckersGame()
+        game = ChineseCheckersGame(2)
         count = sum(
             1 for r in range(17) for c in range(17)
             if game.piece_at(c, r) is not None
         )
         assert count == 20
 
+    def test_unused_triangles_empty(self) -> None:
+        game = ChineseCheckersGame(2)
+        for tri in [T2, T3, T5, T6]:
+            for col, row in tri:
+                assert game.piece_at(col, row) is None
+
+    def test_red_moves_first(self) -> None:
+        game = ChineseCheckersGame(2)
+        assert game.current_player() == "Red"
+
+
+class TestInitialSetup3P:
+    def test_active_seats(self) -> None:
+        game = ChineseCheckersGame(3)
+        assert game.active_seats == ["Red", "White", "Yellow"]
+
+    def test_home_triangles_filled(self) -> None:
+        game = ChineseCheckersGame(3)
+        for seat in ["Red", "White", "Yellow"]:
+            for col, row in game.home(seat):
+                assert game.piece_at(col, row) == seat
+
+    def test_30_pegs_total(self) -> None:
+        game = ChineseCheckersGame(3)
+        count = sum(
+            1 for r in range(17) for c in range(17)
+            if game.piece_at(c, r) is not None
+        )
+        assert count == 30
+
+    def test_unused_triangles_empty(self) -> None:
+        game = ChineseCheckersGame(3)
+        for tri_name in ["T2", "T4", "T6"]:
+            for col, row in ALL_TRIANGLES[tri_name]:
+                assert game.piece_at(col, row) is None
+
+    def test_red_moves_first(self) -> None:
+        game = ChineseCheckersGame(3)
+        assert game.current_player() == "Red"
+
+
+class TestInitialSetup4P:
+    def test_active_seats(self) -> None:
+        game = ChineseCheckersGame(4)
+        assert game.active_seats == ["Red", "Green", "Blue", "Yellow"]
+
+    def test_home_triangles_filled(self) -> None:
+        game = ChineseCheckersGame(4)
+        for seat in ["Red", "Green", "Blue", "Yellow"]:
+            for col, row in game.home(seat):
+                assert game.piece_at(col, row) == seat
+
+    def test_40_pegs_total(self) -> None:
+        game = ChineseCheckersGame(4)
+        count = sum(
+            1 for r in range(17) for c in range(17)
+            if game.piece_at(c, r) is not None
+        )
+        assert count == 40
+
+    def test_unused_triangles_empty(self) -> None:
+        game = ChineseCheckersGame(4)
+        for tri_name in ["T3", "T6"]:
+            for col, row in ALL_TRIANGLES[tri_name]:
+                assert game.piece_at(col, row) is None
+
+
+class TestInitialSetup6P:
+    def test_active_seats(self) -> None:
+        game = ChineseCheckersGame(6)
+        assert game.active_seats == ["Red", "Green", "White", "Blue", "Yellow", "Black"]
+
+    def test_all_triangles_filled(self) -> None:
+        game = ChineseCheckersGame(6)
+        for seat in game.active_seats:
+            for col, row in game.home(seat):
+                assert game.piece_at(col, row) == seat
+
+    def test_60_pegs_total(self) -> None:
+        game = ChineseCheckersGame(6)
+        count = sum(
+            1 for r in range(17) for c in range(17)
+            if game.piece_at(c, r) is not None
+        )
+        assert count == 60
+
     def test_center_hex_empty(self) -> None:
-        game = ChineseCheckersGame()
+        game = ChineseCheckersGame(6)
         tri_cells = set()
         for cells in ALL_TRIANGLES.values():
             tri_cells.update(cells)
         for r in range(17):
             for c in range(17):
                 if game.is_valid_cell(c, r) and (c, r) not in tri_cells:
-                    assert game.piece_at(c, r) is None, f"center cell ({c},{r}) occupied"
-
-    def test_red_moves_first(self) -> None:
-        game = ChineseCheckersGame()
-        assert game.current_player() == "Red"
+                    assert game.piece_at(c, r) is None
 
 
 # ---------------------------------------------------------------------------
-# Tests: step movement
+# Tests: turn order
+# ---------------------------------------------------------------------------
+
+
+class TestTurnOrder:
+    def test_2p_alternates_red_blue(self) -> None:
+        game = ChineseCheckersGame(2)
+        assert game.current_player() == "Red"
+        game.move(9, 3, 8, 4)  # Red steps
+        assert game.current_player() == "Blue"
+        game.move(7, 13, 8, 12)  # Blue steps
+        assert game.current_player() == "Red"
+
+    def test_3p_skips_inactive(self) -> None:
+        game = ChineseCheckersGame(3)
+        # Active: Red, White, Yellow. Turn order should skip Green, Blue, Black.
+        assert game.current_player() == "Red"
+        game.move(9, 3, 8, 4)
+        assert game.current_player() == "White"
+        game.move(12, 9, 11, 9)
+        assert game.current_player() == "Yellow"
+        game.move(3, 9, 4, 9)
+        assert game.current_player() == "Red"
+
+    def test_4p_skips_inactive(self) -> None:
+        game = ChineseCheckersGame(4)
+        # Active: Red, Green, Blue, Yellow
+        assert game.current_player() == "Red"
+        game.move(9, 3, 8, 4)
+        assert game.current_player() == "Green"
+        game.move(13, 7, 12, 7)
+        assert game.current_player() == "Blue"
+        game.move(7, 13, 8, 12)
+        assert game.current_player() == "Yellow"
+        game.move(3, 9, 4, 9)
+        assert game.current_player() == "Red"
+
+    def test_6p_all_play(self) -> None:
+        game = ChineseCheckersGame(6)
+        order = []
+        for _ in range(6):
+            p = game.current_player()
+            order.append(p)
+            # Each player steps one peg from their triangle base toward center
+            home = game.home(p)
+            # Find a movable peg (one with an empty neighbor)
+            for col, row in home:
+                steps = game.step_moves(col, row)
+                if steps:
+                    game.move(col, row, steps[0][0], steps[0][1])
+                    break
+        assert order == ["Red", "Green", "White", "Blue", "Yellow", "Black"]
+
+
+# ---------------------------------------------------------------------------
+# Tests: step movement (use 2p for simplicity)
 # ---------------------------------------------------------------------------
 
 
 class TestStepMovement:
     def test_step_to_adjacent_empty(self) -> None:
-        """A peg can step to an adjacent empty cell."""
-        game = ChineseCheckersGame()
-        # Red peg at T1 base: (9,3). Neighbor toward center: (8,4)
+        game = ChineseCheckersGame(2)
         assert game.piece_at(9, 3) == "Red"
         assert game.piece_at(8, 4) is None
         result = game.move(9, 3, 8, 4)
@@ -396,30 +544,25 @@ class TestStepMovement:
         assert game.piece_at(8, 4) == "Red"
 
     def test_step_advances_turn(self) -> None:
-        game = ChineseCheckersGame()
+        game = ChineseCheckersGame(2)
         assert game.current_player() == "Red"
         game.move(9, 3, 8, 4)
         assert game.current_player() == "Blue"
 
     def test_cannot_step_to_occupied(self) -> None:
-        game = ChineseCheckersGame()
-        # (12,0) is Red, neighbor (12,1) is also Red
+        game = ChineseCheckersGame(2)
         assert game.piece_at(12, 0) == "Red"
         assert game.piece_at(12, 1) == "Red"
         moves = game.step_moves(12, 0)
         assert (12, 1) not in moves
 
     def test_cannot_step_off_board(self) -> None:
-        """Peg at a triangle tip has only 2 neighbors, can't go off the star."""
-        game = ChineseCheckersGame()
-        # T1 tip at (12,0): only neighbors are (11,1) and (12,1), both occupied
+        game = ChineseCheckersGame(2)
         moves = game.step_moves(12, 0)
-        assert len(moves) == 0  # both neighbors are Red pegs
+        assert len(moves) == 0
 
     def test_step_into_center(self) -> None:
-        """Red moves a peg from T1 border into the center hex."""
-        game = ChineseCheckersGame()
-        # (9,3) is in T1, (8,4) is in center hex
+        game = ChineseCheckersGame(2)
         game.move(9, 3, 8, 4)
         assert game.piece_at(8, 4) == "Red"
 
@@ -431,85 +574,39 @@ class TestStepMovement:
 
 class TestHopMovement:
     def test_single_hop(self) -> None:
-        """Hop over an adjacent piece to land on empty cell beyond."""
-        game = ChineseCheckersGame()
-        # Set up: Red at (8,6), another piece at (8,7), empty at (8,8)
-        # Clear the board first for a controlled test
-        for r in range(17):
-            for c in range(17):
-                game.board.grid_set(c, r, None)
-        game.session.runtime.components = type(game.session.runtime.components)()
-        game._place(8, 6, "Red")
-        game._place(8, 7, "Blue")
+        game = ChineseCheckersGame(2)
+        game._clear_and_place([(8, 6, "Red"), (8, 7, "Blue")])
         result = game.move(8, 6, 8, 8)
         assert result == "hop"
         assert game.piece_at(8, 6) is None
-        assert game.piece_at(8, 7) == "Blue"  # hopped piece stays (not captured)
+        assert game.piece_at(8, 7) == "Blue"  # not captured
         assert game.piece_at(8, 8) == "Red"
 
     def test_hop_does_not_capture(self) -> None:
-        """In Chinese Checkers, hopped-over pieces are NOT removed."""
-        game = ChineseCheckersGame()
-        for r in range(17):
-            for c in range(17):
-                game.board.grid_set(c, r, None)
-        game.session.runtime.components = type(game.session.runtime.components)()
-        game._place(8, 6, "Red")
-        game._place(8, 7, "Red")  # hop over own piece
+        game = ChineseCheckersGame(2)
+        game._clear_and_place([(8, 6, "Red"), (8, 7, "Red")])
         game.move(8, 6, 8, 8)
-        assert game.piece_at(8, 7) == "Red"  # still there
+        assert game.piece_at(8, 7) == "Red"
 
     def test_hop_over_own_piece_allowed(self) -> None:
-        """Can hop over your own pieces, not just opponent's."""
-        game = ChineseCheckersGame()
-        for r in range(17):
-            for c in range(17):
-                game.board.grid_set(c, r, None)
-        game.session.runtime.components = type(game.session.runtime.components)()
-        game._place(8, 6, "Red")
-        game._place(8, 7, "Red")
-        hops = game.hop_moves(8, 6)
-        assert (8, 8) in hops
+        game = ChineseCheckersGame(2)
+        game._clear_and_place([(8, 6, "Red"), (8, 7, "Red")])
+        assert (8, 8) in game.hop_moves(8, 6)
 
     def test_cannot_hop_to_occupied(self) -> None:
-        """Landing cell must be empty."""
-        game = ChineseCheckersGame()
-        for r in range(17):
-            for c in range(17):
-                game.board.grid_set(c, r, None)
-        game.session.runtime.components = type(game.session.runtime.components)()
-        game._place(8, 6, "Red")
-        game._place(8, 7, "Blue")
-        game._place(8, 8, "Blue")  # landing blocked
-        hops = game.hop_moves(8, 6)
-        assert (8, 8) not in hops
+        game = ChineseCheckersGame(2)
+        game._clear_and_place([(8, 6, "Red"), (8, 7, "Blue"), (8, 8, "Blue")])
+        assert (8, 8) not in game.hop_moves(8, 6)
 
     def test_cannot_hop_over_empty(self) -> None:
-        """Must hop over an occupied cell."""
-        game = ChineseCheckersGame()
-        for r in range(17):
-            for c in range(17):
-                game.board.grid_set(c, r, None)
-        game.session.runtime.components = type(game.session.runtime.components)()
-        game._place(8, 6, "Red")
-        # (8,7) is empty — no hop to (8,8)
-        hops = game.hop_moves(8, 6)
-        assert (8, 8) not in hops
+        game = ChineseCheckersGame(2)
+        game._clear_and_place([(8, 6, "Red")])
+        assert (8, 8) not in game.hop_moves(8, 6)
 
     def test_hop_respects_board_mask(self) -> None:
-        """Cannot hop to a cell outside the valid_cells mask."""
-        game = ChineseCheckersGame()
-        for r in range(17):
-            for c in range(17):
-                game.board.grid_set(c, r, None)
-        game.session.runtime.components = type(game.session.runtime.components)()
-        # Place near edge of star — (12,0) is T1 tip
-        # Neighbors of (12,0): (11,1) and (12,1) only
-        # Hop from (11,1) over (12,0) would land at (13,-1) which is off the board
-        game._place(11, 1, "Red")
-        game._place(12, 0, "Blue")
+        game = ChineseCheckersGame(2)
+        game._clear_and_place([(11, 1, "Red"), (12, 0, "Blue")])
         hops = game.hop_moves(11, 1)
-        # (13, -1) is invalid, so hop in that direction is blocked
         assert all(game.is_valid_cell(c, r) for c, r in hops)
 
 
@@ -519,150 +616,152 @@ class TestHopMovement:
 
 
 class TestMultiHop:
-    def _clear_and_place(self, game: ChineseCheckersGame,
-                         pieces: list[tuple[int, int, str]]) -> None:
-        """Clear board and place specific pieces."""
-        for r in range(17):
-            for c in range(17):
-                game.board.grid_set(c, r, None)
-        game.session.runtime.components = type(game.session.runtime.components)()
-        for col, row, owner in pieces:
-            game._place(col, row, owner)
-
     def test_hop_does_not_advance_turn(self) -> None:
-        """After a hop, turn stays with current player for potential chain."""
-        game = ChineseCheckersGame()
-        self._clear_and_place(game, [
-            (8, 6, "Red"), (8, 7, "Blue"),
-        ])
+        game = ChineseCheckersGame(2)
+        game._clear_and_place([(8, 6, "Red"), (8, 7, "Blue")])
         assert game.current_player() == "Red"
         game.move(8, 6, 8, 8)
-        assert game.current_player() == "Red"  # still Red's turn
+        assert game.current_player() == "Red"
 
     def test_end_turn_after_hop(self) -> None:
-        """Player calls end_turn() to finish their hop chain."""
-        game = ChineseCheckersGame()
-        self._clear_and_place(game, [
-            (8, 6, "Red"), (8, 7, "Blue"),
-        ])
+        game = ChineseCheckersGame(2)
+        game._clear_and_place([(8, 6, "Red"), (8, 7, "Blue")])
         game.move(8, 6, 8, 8)
         game.end_turn()
         assert game.current_player() == "Blue"
 
     def test_multi_hop_chain(self) -> None:
-        """Two consecutive hops in one turn."""
-        game = ChineseCheckersGame()
-        # Red at (8,4), bridge pieces at (8,5) and (8,7)
-        # Hop 1: (8,4) -> (8,6) over (8,5)
-        # Hop 2: (8,6) -> (8,8) over (8,7)
-        self._clear_and_place(game, [
-            (8, 4, "Red"), (8, 5, "Blue"), (8, 7, "Blue"),
-        ])
+        game = ChineseCheckersGame(2)
+        game._clear_and_place([(8, 4, "Red"), (8, 5, "Blue"), (8, 7, "Blue")])
         result1 = game.move(8, 4, 8, 6)
         assert result1 == "hop"
-        assert game.current_player() == "Red"  # still Red's turn
+        assert game.current_player() == "Red"
 
         result2 = game.move(8, 6, 8, 8)
         assert result2 == "hop"
-        assert game.current_player() == "Red"  # still Red's turn
+        assert game.current_player() == "Red"
 
         game.end_turn()
         assert game.current_player() == "Blue"
         assert game.piece_at(8, 8) == "Red"
         assert game.piece_at(8, 4) is None
 
-    def test_cannot_step_after_hop(self) -> None:
-        """After a hop, only more hops are allowed (or end turn)."""
-        # This is a simplification — in standard rules, once you hop
-        # you can only continue hopping or stop. You can't step.
-        # Our move() allows it since it's up to the caller, but
-        # step_moves after hop should be filtered in a full implementation.
-        # For now, we just verify the step/hop distinction works.
-        game = ChineseCheckersGame()
-        self._clear_and_place(game, [
-            (8, 6, "Red"), (8, 7, "Blue"),
-        ])
+    def test_multi_hop_3p(self) -> None:
+        """Multi-hop in a 3-player game: after hop chain, turn goes to next active."""
+        game = ChineseCheckersGame(3)
+        game._clear_and_place([(8, 6, "Red"), (8, 7, "White")])
         game.move(8, 6, 8, 8)
-        # After hop, piece at (8,8) has step moves available
-        steps = game.step_moves(8, 8)
-        hops = game.hop_moves(8, 8)
-        # Both are calculated; enforcement of "only hops after first hop"
-        # would be a game-logic rule in a full implementation
-        assert isinstance(steps, list)
-        assert isinstance(hops, list)
+        game.end_turn()
+        # Red -> skip Green -> White
+        assert game.current_player() == "White"
 
 
 # ---------------------------------------------------------------------------
-# Tests: win condition
+# Tests: win condition — all player counts
 # ---------------------------------------------------------------------------
 
 
 class TestWinCondition:
-    def _clear_and_place(self, game: ChineseCheckersGame,
-                         pieces: list[tuple[int, int, str]]) -> None:
-        for r in range(17):
-            for c in range(17):
-                game.board.grid_set(c, r, None)
-        game.session.runtime.components = type(game.session.runtime.components)()
-        for col, row, owner in pieces:
-            game._place(col, row, owner)
-
-    def test_red_wins_by_filling_t4(self) -> None:
-        """Red wins when all 10 of Red's pegs are in T4."""
-        game = ChineseCheckersGame()
+    def test_2p_red_wins(self) -> None:
+        game = ChineseCheckersGame(2)
         pieces = [(c, r, "Red") for c, r in T4]
-        # Also need Blue pegs somewhere so game is valid
         pieces.extend([(c, r, "Blue") for c, r in T1])
-        self._clear_and_place(game, pieces)
+        game._clear_and_place(pieces)
         assert game._check_win("Red") is True
+        assert game._check_win("Blue") is True  # Blue also in goal (swapped)
 
-    def test_blue_wins_by_filling_t1(self) -> None:
-        """Blue wins when all 10 of Blue's pegs are in T1."""
-        game = ChineseCheckersGame()
-        pieces = [(c, r, "Blue") for c, r in T1]
-        pieces.extend([(c, r, "Red") for c, r in T4])
-        self._clear_and_place(game, pieces)
-        assert game._check_win("Blue") is True
+    def test_3p_white_wins(self) -> None:
+        """White(T3) wins by filling T6."""
+        game = ChineseCheckersGame(3)
+        pieces = [(c, r, "White") for c, r in T6]
+        pieces.extend([(c, r, "Red") for c, r in T1])
+        pieces.extend([(c, r, "Yellow") for c, r in T5])
+        game._clear_and_place(pieces)
+        assert game._check_win("White") is True
+        assert game._check_win("Red") is False
+        assert game._check_win("Yellow") is False
+
+    def test_4p_green_wins(self) -> None:
+        """Green(T2) wins by filling T5."""
+        game = ChineseCheckersGame(4)
+        pieces = [(c, r, "Green") for c, r in T5]
+        pieces.extend([(c, r, "Red") for c, r in T1])
+        pieces.extend([(c, r, "Blue") for c, r in T4])
+        pieces.extend([(c, r, "Yellow") for c, r in T3])
+        game._clear_and_place(pieces)
+        assert game._check_win("Green") is True
+
+    def test_6p_black_wins(self) -> None:
+        """Black(T6) wins by filling T3."""
+        game = ChineseCheckersGame(6)
+        # Black's pegs in T3 (goal). Other players in center so they don't overlap.
+        pieces = [(c, r, "Black") for c, r in T3]
+        # Place other players' pegs in the center hex (avoiding T3)
+        center_cells = [
+            (c, r) for r in range(17) for c in range(17)
+            if game.is_valid_cell(c, r) and (c, r) not in T3
+        ]
+        idx = 0
+        for seat in ["Red", "Green", "White", "Blue", "Yellow"]:
+            for _ in range(10):
+                pieces.append((center_cells[idx][0], center_cells[idx][1], seat))
+                idx += 1
+        game._clear_and_place(pieces)
+        assert game._check_win("Black") is True
 
     def test_not_won_initially(self) -> None:
-        """Neither player has won at the start."""
-        game = ChineseCheckersGame()
-        assert game._check_win("Red") is False
-        assert game._check_win("Blue") is False
+        for pc in [2, 3, 4, 6]:
+            game = ChineseCheckersGame(pc)
+            for seat in game.active_seats:
+                assert game._check_win(seat) is False
 
     def test_partial_fill_not_a_win(self) -> None:
-        """9 of 10 pegs in goal is not a win."""
-        game = ChineseCheckersGame()
+        game = ChineseCheckersGame(2)
         pieces = [(c, r, "Red") for c, r in T4[:9]]
-        pieces.append((8, 8, "Red"))  # 10th peg not in goal
+        pieces.append((8, 8, "Red"))
         pieces.extend([(c, r, "Blue") for c, r in T1])
-        self._clear_and_place(game, pieces)
+        game._clear_and_place(pieces)
         assert game._check_win("Red") is False
 
     def test_win_triggers_on_move(self) -> None:
-        """Win detected after the move that completes the goal triangle."""
-        game = ChineseCheckersGame()
-        # Set up: Red has 9 pegs in T4, 1 peg adjacent to last empty T4 cell
+        game = ChineseCheckersGame(2)
         t4_sorted = sorted(T4)
         pieces = [(c, r, "Red") for c, r in t4_sorted[:9]]
-        # Last T4 cell
         last_col, last_row = t4_sorted[9]
-        # Find an adjacent valid cell that's NOT in T4
         adj = None
         for dc, dr in _HEX_DIRS:
             nc, nr = last_col + dc, last_row + dr
             if game.is_valid_cell(nc, nr) and (nc, nr) not in T4:
                 adj = (nc, nr)
                 break
-        assert adj is not None, "need adjacent cell outside T4"
+        assert adj is not None
         pieces.append((adj[0], adj[1], "Red"))
-        # Blue somewhere
         pieces.extend([(c, r, "Blue") for c, r in T1])
-        self._clear_and_place(game, pieces)
+        game._clear_and_place(pieces)
 
         game.move(adj[0], adj[1], last_col, last_row)
         assert game.finished is True
         assert game.winner == "Red"
+
+
+# ---------------------------------------------------------------------------
+# Tests: goal triangle correctness
+# ---------------------------------------------------------------------------
+
+
+class TestGoalMapping:
+    @pytest.mark.parametrize("seat,home_tri,goal_tri", [
+        ("Red", "T1", "T4"),
+        ("Green", "T2", "T5"),
+        ("White", "T3", "T6"),
+        ("Blue", "T4", "T1"),
+        ("Yellow", "T5", "T2"),
+        ("Black", "T6", "T3"),
+    ])
+    def test_home_goal_opposite(self, seat: str, home_tri: str, goal_tri: str) -> None:
+        game = ChineseCheckersGame(6)
+        assert game.home(seat) == ALL_TRIANGLES[home_tri]
+        assert game.goal(seat) == ALL_TRIANGLES[goal_tri]
 
 
 # ---------------------------------------------------------------------------
@@ -671,25 +770,27 @@ class TestWinCondition:
 
 
 class TestEdgeCases:
+    def test_invalid_player_count(self) -> None:
+        with pytest.raises(ValueError, match="must be 2, 3, 4, or 6"):
+            ChineseCheckersGame(5)
+
     def test_invalid_move_no_piece(self) -> None:
-        game = ChineseCheckersGame()
+        game = ChineseCheckersGame(2)
         with pytest.raises(ValueError, match="no piece"):
             game.move(8, 8, 8, 9)
 
     def test_invalid_move_wrong_player(self) -> None:
-        game = ChineseCheckersGame()
-        # It's Red's turn, try to move Blue's peg
+        game = ChineseCheckersGame(2)
         with pytest.raises(ValueError, match="belongs to"):
-            game.move(4, 16, 4, 15)  # Blue's peg in T4
+            game.move(4, 16, 4, 15)
 
     def test_invalid_move_illegal_destination(self) -> None:
-        game = ChineseCheckersGame()
-        # Try to move Red peg to a non-adjacent, non-hop cell
+        game = ChineseCheckersGame(2)
         with pytest.raises(ValueError, match="illegal move"):
             game.move(9, 3, 6, 6)
 
     def test_move_after_game_over_raises(self) -> None:
-        game = ChineseCheckersGame()
+        game = ChineseCheckersGame(2)
         game.finished = True
         with pytest.raises(ValueError, match="game is finished"):
             game.move(9, 3, 8, 4)
