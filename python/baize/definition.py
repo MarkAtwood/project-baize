@@ -262,6 +262,7 @@ class Zone:
     labels: GridLabels | None = None
     coloring: str | None = None
     adjacency: AdjacencyLiteral | None = None
+    valid_cells: list[list[int]] | None = None
     star_points: list[list[int]] | None = None
     draw_visibility: Visibility | None = None
     dynamic: bool | None = None
@@ -295,6 +296,7 @@ class Zone:
             labels=labels,
             coloring=d.get("coloring"),
             adjacency=d.get("adjacency"),
+            valid_cells=d.get("valid_cells"),
             star_points=d.get("star_points"),
             draw_visibility=draw_vis,
             dynamic=d.get("dynamic"),
@@ -328,6 +330,8 @@ class Zone:
             out["coloring"] = self.coloring
         if self.adjacency is not None:
             out["adjacency"] = self.adjacency
+        if self.valid_cells is not None:
+            out["valid_cells"] = self.valid_cells
         if self.star_points is not None:
             out["star_points"] = self.star_points
         if self.draw_visibility is not None:
