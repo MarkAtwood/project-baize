@@ -297,3 +297,65 @@ class TestCryptographicBinding:
         h = _make_commitment("scissors", "test")
         assert len(h) == 64
         assert all(c in "0123456789abcdef" for c in h)
+
+
+# ---------------------------------------------------------------------------
+# Tests: constant-time comparison
+# ---------------------------------------------------------------------------
+
+
+class TestConstantTimeComparison:
+    """Verify that the reveal path rejects near-miss hashes correctly.
+
+    These tests exercise the hmac.compare_digest comparison path
+    by testing hashes that differ in exactly one character.
+    """
+
+    def test_near_miss_single_char_rejected(self) -> None:
+        """Hash differing by one hex digit is rejected."""
+        session = GameSession(_load_rps())
+        nonce = "near_miss_nonce"
+        correct_hash = _make_commitment("rock", nonce)
+
+        # Flip the last hex digit
+        last = correct_hash[-1]
+        flipped = "1" if last == "0" else "0"
+        tampered = correct_hash[:-1] + flipped
+        assert correct_hash != tampered
+        assert sum(a != b for a, b in zip(correct_hash, tampered)) == 1
+
+        _commit(session, "P1", tampered)
+        with pytest.raises(Exception, match="commitment verification failed"):
+            _reveal(session, "P1", "rock", nonce)
+
+    def test_near_miss_first_char_rejected(self) -> None:
+        """Hash differing only in the first character is rejected."""
+        session = GameSession(_load_rps())
+        nonce = "first_char_nonce"
+        correct_hash = _make_commitment("paper", nonce)
+
+        first = correct_hash[0]
+        flipped = "1" if first == "0" else "0"
+        tampered = flipped + correct_hash[1:]
+        assert correct_hash != tampered
+
+        _commit(session, "P1", tampered)
+        with pytest.raises(Exception, match="commitment verification failed"):
+            _reveal(session, "P1", "paper", nonce)
+
+    def test_uses_hmac_compare_digest(self) -> None:
+        """Verify the reveal code path calls hmac.compare_digest."""
+        import ast
+        import inspect
+        from baize import transition
+
+        source = inspect.getsource(transition)
+        tree = ast.parse(source)
+        calls = [
+            node
+            for node in ast.walk(tree)
+            if isinstance(node, ast.Call)
+            and isinstance(node.func, ast.Attribute)
+            and node.func.attr == "compare_digest"
+        ]
+        assert len(calls) >= 1, "hmac.compare_digest not found in transition module"

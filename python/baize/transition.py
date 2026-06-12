@@ -750,6 +750,7 @@ def _execute_action(
     elif action.action_type == "reveal":
         # Commit-reveal protocol: verify hash and place revealed component
         import hashlib
+        import hmac
 
         if player not in session.runtime.pending_commits:
             raise IllegalActionError(
@@ -763,7 +764,8 @@ def _execute_action(
         expected = session.runtime.pending_commits[player]
         preimage = f"{action.declaration}|{action.commitment}"
         actual = hashlib.sha256(preimage.encode()).hexdigest()
-        if actual != expected:
+        # Constant-time comparison to prevent timing side-channel attacks
+        if not hmac.compare_digest(actual, expected):
             raise IllegalActionError(
                 f"commitment verification failed: "
                 f"SHA-256({action.declaration}|<nonce>) != stored hash"

@@ -41,10 +41,9 @@ class InvalidComponentIdError(BaizeError):
     """A ComponentId value is out of range or otherwise invalid."""
 
     def __init__(self, component_id: int, table_size: int) -> None:
-        super().__init__(
-            f"invalid component id: {component_id} "
-            f"(table size: {table_size})"
-        )
+        # Do not include table_size in the message — it leaks internal
+        # arena size which could let an attacker enumerate components.
+        super().__init__(f"invalid component id: {component_id}")
         self.component_id = component_id
         self.table_size = table_size
 
