@@ -1,0 +1,241 @@
+{
+  "$schema": "../schema/game-definition.schema.json",
+  "game": {
+    "name": "Pandemic",
+    "players": ["medic", "scientist"],
+    "information": "imperfect"
+  },
+  "zones": {
+    "board": {
+      "zone_type": "graph",
+      "visibility": "public",
+      "nodes": [
+        "atlanta", "chicago", "montreal", "new_york",
+        "washington", "miami", "mexico_city", "bogota",
+        "lima", "sao_paulo", "buenos_aires", "santiago"
+      ],
+      "edges": [
+        ["atlanta", "chicago"],
+        ["atlanta", "washington"],
+        ["atlanta", "miami"],
+        ["chicago", "montreal"],
+        ["chicago", "mexico_city"],
+        ["montreal", "new_york"],
+        ["montreal", "washington"],
+        ["new_york", "washington"],
+        ["new_york", "miami"],
+        ["miami", "mexico_city"],
+        ["miami", "bogota"],
+        ["mexico_city", "bogota"],
+        ["mexico_city", "lima"],
+        ["bogota", "lima"],
+        ["bogota", "sao_paulo"],
+        ["bogota", "buenos_aires"],
+        ["lima", "santiago"],
+        ["sao_paulo", "buenos_aires"]
+      ],
+      "node_properties": {
+        "atlanta": {"color": "blue"},
+        "chicago": {"color": "blue"},
+        "montreal": {"color": "blue"},
+        "new_york": {"color": "blue"},
+        "washington": {"color": "blue"},
+        "miami": {"color": "yellow"},
+        "mexico_city": {"color": "yellow"},
+        "bogota": {"color": "yellow"},
+        "lima": {"color": "yellow"},
+        "sao_paulo": {"color": "yellow"},
+        "buenos_aires": {"color": "yellow"},
+        "santiago": {"color": "yellow"}
+      },
+      "note": "12-city network. Blue = northern, yellow = southern. Players start in Atlanta (CDC)."
+    },
+    "player_deck": {
+      "zone_type": "ordered_stack",
+      "visibility": "hidden",
+      "note": "City cards and epidemic cards. Draw 2 per turn. Game lost if empty when drawing."
+    },
+    "infection_deck": {
+      "zone_type": "ordered_stack",
+      "visibility": "hidden",
+      "note": "Infection cards drawn at end of turn. Each names a city to infect."
+    },
+    "infection_discard": {
+      "zone_type": "ordered_stack",
+      "visibility": "public",
+      "note": "Discarded infection cards. Shuffled back on top during epidemics."
+    },
+    "player_discard": {
+      "zone_type": "ordered_stack",
+      "visibility": "public"
+    },
+    "hand": {
+      "zone_type": "set",
+      "visibility": {"private": "owner"},
+      "per_player": true,
+      "capacity": 7,
+      "note": "Player hand. Max 7 cards; must discard down at end of draw phase."
+    },
+    "cures": {
+      "zone_type": "set",
+      "visibility": "public",
+      "note": "Discovered cures. Contains cure marker components for each cured disease color."
+    },
+    "outbreak_counter": {
+      "zone_type": "counter",
+      "visibility": "public",
+      "note": "Outbreak count. Game lost at 8."
+    },
+    "infection_rate_counter": {
+      "zone_type": "counter",
+      "visibility": "public",
+      "note": "Infection rate index. Values 0-6 map to draw counts [2,2,2,3,3,4,4]."
+    }
+  },
+  "components": {
+    "pawn": {
+      "owner": "per_player",
+      "count": 1,
+      "note": "Player pawn on the city graph."
+    },
+    "disease_cube": {
+      "owner": "neutral",
+      "count": 48,
+      "properties": {
+        "colors": ["blue", "yellow"]
+      },
+      "note": "24 per color. Placed on cities during infection. Max 3 per city per color; 4th triggers outbreak."
+    },
+    "city_card": {
+      "owner": "shared",
+      "count": 12,
+      "note": "One card per city. Used for direct flight or to discover a cure (5 same-color cards)."
+    },
+    "epidemic_card": {
+      "owner": "shared",
+      "count": 4,
+      "note": "Shuffled into player deck. Increases infection rate, infects bottom city at 3 cubes, reshuffles infection discard on top."
+    },
+    "infection_card": {
+      "owner": "shared",
+      "count": 12,
+      "note": "One per city. Drawn to determine which cities get disease cubes."
+    },
+    "cure_marker": {
+      "owner": "shared",
+      "count": 2,
+      "note": "One per disease color (blue, yellow). Placed in cures zone when discovered."
+    }
+  },
+  "turn_order": {
+    "type": "round_robin",
+    "players": ["medic", "scientist"],
+    "actions_per_turn": 4
+  },
+  "phases": [
+    {
+      "name": "actions",
+      "action": "take_action",
+      "actions_per_turn": 4,
+      "note": "Choose 4 actions: move, direct_flight, treat, share_knowledge, discover_cure."
+    },
+    {
+      "name": "draw",
+      "server_action": "draw_player_cards(2)",
+      "note": "Draw 2 cards from player deck. Resolve epidemics immediately. Discard down to 7."
+    },
+    {
+      "name": "infect",
+      "server_action": "draw_infection_cards",
+      "note": "Draw infection cards equal to current infection rate. Place 1 disease cube on each named city."
+    }
+  ],
+  "rules": {
+    "move": {
+      "action": "move(pawn, adjacent_city)",
+      "constraint": "destination is adjacent to current city",
+      "note": "Drive/ferry: move pawn to a connected city."
+    },
+    "direct_flight": {
+      "action": "discard(city_card) AND move(pawn, named_city)",
+      "constraint": "card matches destination city",
+      "note": "Discard a city card to fly directly to that city."
+    },
+    "treat": {
+      "action": "remove(disease_cube, current_city)",
+      "constraint": "city has at least 1 disease cube of chosen color",
+      "note": "Remove 1 disease cube from current city. If disease is cured, remove all cubes of that color."
+    },
+    "share_knowledge": {
+      "action": "transfer(city_card, player_to_player)",
+      "requires": ["both players at same city", "card matches current city"],
+      "note": "Give or take the city card matching the city both players are in."
+    },
+    "discover_cure": {
+      "action": "discard(5 same-color city_cards) AND place(cure_marker)",
+      "requires": ["player at any research station city", "5 city cards of same color in hand"],
+      "note": "Discard 5 same-color city cards to discover a cure for that color. Simplified: Atlanta is the only research station."
+    },
+    "infection": {
+      "trigger": "infection_card_drawn",
+      "effect": "place 1 disease cube of city color on named city",
+      "note": "If city already has 3 cubes of that color, outbreak occurs instead."
+    },
+    "outbreak": {
+      "trigger": "4th disease cube placed on city",
+      "effect": "increment outbreak counter; spread 1 cube of same color to each adjacent city",
+      "note": "Chain outbreaks possible. Each city outbreaks at most once per chain."
+    },
+    "epidemic": {
+      "trigger": "epidemic card drawn from player deck",
+      "effect": "increase infection rate; infect bottom card of infection deck at 3 cubes; shuffle infection discard on top of infection deck"
+    }
+  },
+  "library": {
+    "all_cured": "cures.count == 2",
+    "outbreak_limit": "outbreak_counter.value >= 8",
+    "player_deck_empty": "player_deck.count == 0",
+    "cube_supply_exhausted": "disease_cube.supply == 0"
+  },
+  "end_conditions": [
+    {
+      "result": "win",
+      "condition": "all_cured",
+      "name": "all_diseases_cured"
+    },
+    {
+      "result": "loss",
+      "condition": "outbreak_limit",
+      "name": "too_many_outbreaks"
+    },
+    {
+      "result": "loss",
+      "condition": "player_deck_empty",
+      "name": "out_of_time"
+    },
+    {
+      "result": "loss",
+      "condition": "cube_supply_exhausted",
+      "name": "disease_overrun"
+    }
+  ],
+  "authority": {
+    "server_only": [
+      "shuffle(player_deck)",
+      "shuffle(infection_deck)",
+      "draw(player_deck)",
+      "draw(infection_deck)",
+      "resolve_epidemic"
+    ],
+    "client_verifiable": [
+      "move(pawn, adjacent_city)",
+      "treat(disease_cube)",
+      "share_knowledge",
+      "discover_cure"
+    ]
+  },
+  "wasm_module": "pandemic.wasm",
+  "notation": {
+    "special_moves": {}
+  }
+}

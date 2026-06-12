@@ -1,0 +1,144 @@
+{
+  "$schema": "../schema/game-definition.schema.json",
+  "game": {
+    "name": "Risk",
+    "players": { "min": 2, "max": 3 },
+    "information": "imperfect"
+  },
+  "zones": {
+    "map": {
+      "zone_type": "graph",
+      "visibility": "public",
+      "nodes": [
+        "eastern_frontier",
+        "northern_pass",
+        "western_reach",
+        "central_plains",
+        "iron_coast",
+        "silver_hills",
+        "crimson_vale",
+        "stormhold",
+        "old_forest",
+        "sunken_marsh",
+        "dragon_peak",
+        "ashen_waste"
+      ],
+      "edges": [
+        ["eastern_frontier", "northern_pass"],
+        ["eastern_frontier", "central_plains"],
+        ["northern_pass", "western_reach"],
+        ["northern_pass", "central_plains"],
+        ["western_reach", "central_plains"],
+        ["central_plains", "iron_coast"],
+        ["central_plains", "silver_hills"],
+        ["iron_coast", "silver_hills"],
+        ["iron_coast", "crimson_vale"],
+        ["silver_hills", "crimson_vale"],
+        ["silver_hills", "stormhold"],
+        ["crimson_vale", "stormhold"],
+        ["stormhold", "old_forest"],
+        ["stormhold", "sunken_marsh"],
+        ["old_forest", "sunken_marsh"],
+        ["old_forest", "dragon_peak"],
+        ["sunken_marsh", "dragon_peak"],
+        ["sunken_marsh", "ashen_waste"],
+        ["dragon_peak", "ashen_waste"]
+      ],
+      "node_properties": {
+        "eastern_frontier":  { "continent": "northlands", "continent_bonus": 3 },
+        "northern_pass":     { "continent": "northlands", "continent_bonus": 3 },
+        "western_reach":     { "continent": "northlands", "continent_bonus": 3 },
+        "central_plains":    { "continent": "northlands", "continent_bonus": 3 },
+        "iron_coast":        { "continent": "midlands", "continent_bonus": 5 },
+        "silver_hills":      { "continent": "midlands", "continent_bonus": 5 },
+        "crimson_vale":      { "continent": "midlands", "continent_bonus": 5 },
+        "stormhold":         { "continent": "midlands", "continent_bonus": 5 },
+        "old_forest":        { "continent": "southlands", "continent_bonus": 7 },
+        "sunken_marsh":      { "continent": "southlands", "continent_bonus": 7 },
+        "dragon_peak":       { "continent": "southlands", "continent_bonus": 7 },
+        "ashen_waste":       { "continent": "southlands", "continent_bonus": 7 }
+      },
+      "note": "12 territories in 3 continents (northlands: 4, midlands: 4, southlands: 4). Adjacency edges define which territories can attack each other."
+    }
+  },
+  "components": {
+    "army": {
+      "owner": "per_player",
+      "count": "unlimited",
+      "note": "Army tokens placed on territories. Count per territory tracked as game state."
+    }
+  },
+  "turn_order": {
+    "type": "round_robin",
+    "mandatory": true
+  },
+  "phases": [
+    {
+      "name": "reinforce",
+      "action": "place(army, map/territory)",
+      "note": "Player receives max(3, territories_owned / 3) + continent_bonus armies and places them on owned territories."
+    },
+    {
+      "name": "attack",
+      "action": "attack(source_territory, target_territory)",
+      "ends_when": "player passes or has no valid attacks",
+      "note": "Attacker rolls up to 3d6 (must have >1 army in source, max dice = armies-1 capped at 3). Defender rolls up to 2d6 (max dice = armies in territory capped at 2). Compare dice highest-to-highest: loser of each pair removes 1 army. Defender wins ties. If defender reaches 0, attacker must move attacking dice count of armies into conquered territory."
+    },
+    {
+      "name": "fortify",
+      "action": "move(army, source_territory, target_territory)",
+      "note": "Player may move armies from one owned territory to an adjacent owned territory. Must leave at least 1 army behind. One fortify move per turn."
+    }
+  ],
+  "rules": {
+    "minimum_garrison": {
+      "definition": "Every territory must always have at least 1 army",
+      "constraint": "territory.armies >= 1"
+    },
+    "attack_adjacency": {
+      "action": "attack(source, target)",
+      "constraint": "source and target must be adjacent on the map graph"
+    },
+    "attack_ownership": {
+      "action": "attack(source, target)",
+      "constraints": [
+        "source must be owned by the attacker",
+        "target must be owned by a different player"
+      ]
+    },
+    "attack_dice": {
+      "definition": "Attacker rolls min(armies_in_source - 1, 3) d6. Defender rolls min(armies_in_target, 2) d6.",
+      "server_resolves": "sort both rolls descending, compare pairs highest-to-highest, defender wins ties"
+    },
+    "conquest": {
+      "trigger": "defender territory reaches 0 armies after combat",
+      "effect": "attacker moves at least attack_dice_count armies from source to conquered territory; territory ownership changes to attacker"
+    },
+    "fortify_adjacency": {
+      "action": "move(army, source, target)",
+      "constraint": "source and target must be adjacent and both owned by the current player"
+    },
+    "reinforcement_count": {
+      "definition": "Armies received = max(3, territories_owned / 3) + continent_bonus for each fully controlled continent"
+    }
+  },
+  "end_conditions": [
+    {
+      "result": "win",
+      "player": "current",
+      "condition": "player controls all 12 territories",
+      "name": "world_conquest"
+    }
+  ],
+  "authority": {
+    "server_only": [
+      "roll_dice(attack)",
+      "roll_dice(defend)"
+    ],
+    "client_verifiable": [
+      "place(army, map/territory)",
+      "attack(source, target)",
+      "move(army, source, target)"
+    ]
+  }
+}
