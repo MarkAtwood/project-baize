@@ -74,7 +74,7 @@ claude \
     --verbose \
     --max-turns 200 \
     --model claude-opus-4-6 \
-    --prompt-file "$PROMPT_FILE" \
+    -p "$(cat "$PROMPT_FILE")" \
     2>&1 | tee -a "$LOGFILE"
 
 EXIT_CODE=${PIPESTATUS[0]}
