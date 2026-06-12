@@ -107,7 +107,7 @@ implementation, even before full mental poker support.
 
 ## Status
 
-Core engine complete. 139 of 176 issues closed. Seven games are fully
+Core engine complete. 140 of 176 issues closed. Eight games are fully
 playable end-to-end. The engine parses and validates game definitions,
 manages runtime state, generates legal moves, evaluates CEL expressions
 for win/constraint conditions, applies state transitions with a structured
@@ -121,7 +121,7 @@ vectors ensure the Rust and Python engines produce identical results.
 |-----------|-------|-----------|
 | Schema (5 JSON Schemas) | — | Game definitions, state, actions, events, component registry |
 | Rust engine | 162 | Parse, validate, state machine, move gen, transitions, CEL end conditions, perturber effects (cycle, remove, flip, promote, counters, invoke), commit-reveal, simultaneous phases, hash-chained events, tamper detection, visibility filtering |
-| Python engine | 460 | Feature-parallel with Rust, plus game analysis, Jupyter notebook, terminal CLI, interactive REPL, agent framework (Random/Greedy/MCTS) |
+| Python engine | 489 | Feature-parallel with Rust, plus game analysis, Jupyter notebook, terminal CLI, interactive REPL, agent framework (Random/Greedy/MCTS) |
 | Server | 31 | Room management, WebSocket protocol, hidden-state vault (ChaCha20Rng), per-player visibility, rate limiting, token auth, spectator isolation, persistence |
 | Client (TypeScript) | — | Full type definitions for all schemas; Web Components (`<baize-game>`, `<baize-board>`) |
 
@@ -159,6 +159,7 @@ tracking their implementation.
 | Naval Battle | Imperfect | Hidden ship placement, multi-cell spans, hit/miss/sunk tracking |
 | Rock Paper Scissors | Imperfect | Simultaneous phases, commit-reveal (SHA-256), best-of-3 |
 | High Card | Imperfect | Deck shuffle/deal pipeline, private hands, rank comparison |
+| Go | Perfect | 9×9/19×19, flood-fill captures, ko rule, suicide, territory scoring |
 | Rubik's Cube | Perfect | Single-player puzzle, 6-zone cycle perturbers, solved-state CEL |
 
 ### Definition exists (parse + validate, not yet fully playable)
@@ -166,7 +167,6 @@ tracking their implementation.
 | Game | Information | Notable features |
 |------|------------|-----------------|
 | Chess | Perfect | 6 piece types, step/slide/leap/castle primitives, promotion |
-| Go | Perfect | Intersection play; WASM required for captures/scoring |
 | Backgammon | Perfect + random | Dice-driven track movement, bar, bearing off |
 | Texas Hold'em | Imperfect | Deck/deal/shuffle work; betting/phases/hand ranking in progress |
 
