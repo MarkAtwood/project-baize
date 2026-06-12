@@ -1,0 +1,197 @@
+{
+  "$schema": "../schema/game-definition.schema.json",
+  "game": {
+    "name": "Contract Bridge",
+    "players": ["North", "East", "South", "West"],
+    "information": "imperfect"
+  },
+  "zones": {
+    "deck": {
+      "zone_type": "ordered_stack",
+      "capacity": 52,
+      "visibility": "hidden",
+      "note": "Shuffled deck. Server deals 13 cards to each player."
+    },
+    "hand": {
+      "zone_type": "set",
+      "per_player": true,
+      "capacity": 13,
+      "visibility": { "private": "owner" },
+      "note": "Each player's hand of 13 cards. Dummy's hand becomes public after opening lead."
+    },
+    "current_trick": {
+      "zone_type": "set",
+      "capacity": 4,
+      "visibility": "public",
+      "note": "Cards played to the current trick, visible to all."
+    },
+    "tricks_won_ns": {
+      "zone_type": "counter",
+      "visibility": "public",
+      "note": "Number of tricks won by the North-South partnership."
+    },
+    "tricks_won_ew": {
+      "zone_type": "counter",
+      "visibility": "public",
+      "note": "Number of tricks won by the East-West partnership."
+    },
+    "played_cards": {
+      "zone_type": "set",
+      "visibility": "public",
+      "note": "All cards played so far (for tracking)."
+    }
+  },
+  "components": {
+    "card": {
+      "owner": "neutral",
+      "count": 52,
+      "properties": {
+        "suit": ["clubs", "diamonds", "hearts", "spades"],
+        "rank": ["2", "3", "4", "5", "6", "7", "8", "9", "10", "J", "Q", "K", "A"]
+      },
+      "facing": "face_down",
+      "note": "Standard 52-card deck. Suits ordered: clubs < diamonds < hearts < spades (for trump ranking)."
+    }
+  },
+  "turn_order": {
+    "type": "round_robin",
+    "players": ["North", "East", "South", "West"]
+  },
+  "phases": [
+    {
+      "name": "deal",
+      "server_action": "deal(deck, hand, count:13, to:each_player)",
+      "note": "Server shuffles and deals 13 cards to each player. Dealer is determined by convention (rotates each hand)."
+    },
+    {
+      "name": "auction",
+      "action": "bid",
+      "starts_with": "dealer",
+      "ends_when": "three consecutive passes after at least one bid, or four consecutive passes",
+      "note": "Players bid in clockwise order. A bid specifies a level (1-7) and a strain (clubs, diamonds, hearts, spades, notrump). Each bid must be higher than the previous. Players may also pass, double the opponents' last bid, or redouble a doubled bid. Auction ends after three consecutive passes following a bid, or four passes if no bid was made (passed out)."
+    },
+    {
+      "name": "opening_lead",
+      "action": "play_card",
+      "starts_with": "left_of_declarer",
+      "note": "The player to the left of the declarer leads the first card. After the opening lead, dummy's hand is revealed face-up."
+    },
+    {
+      "name": "play",
+      "action": "play_card",
+      "ends_when": "all 13 tricks played",
+      "note": "Players play cards clockwise. Must follow suit if able. Highest card of led suit wins unless trumped. Declarer plays dummy's cards. Winner of each trick leads next."
+    },
+    {
+      "name": "scoring",
+      "resolve": "score_contract",
+      "note": "Compare tricks won by declarer's side against contract level. Making: score trick points + overtrick points. Failing: undertrick penalties to defenders."
+    }
+  ],
+  "rules": {
+    "partnerships": {
+      "definition": "North-South vs East-West. Partners sit across from each other.",
+      "constraints": [
+        "North and South share trick count and scoring",
+        "East and West share trick count and scoring"
+      ]
+    },
+    "bidding": {
+      "action": "bid(level, strain)",
+      "constraints": [
+        "level must be 1-7",
+        "strain is one of: clubs, diamonds, hearts, spades, notrump",
+        "each bid must be higher than the last (higher level, or same level with higher strain)",
+        "strain order: clubs < diamonds < hearts < spades < notrump",
+        "pass is always legal",
+        "double is legal only on opponents' last bid (undoubled)",
+        "redouble is legal only on opponents' double of own side's bid"
+      ]
+    },
+    "follow_suit": {
+      "action": "play_card",
+      "constraint": "must play a card of the led suit if holding one",
+      "note": "If void in led suit, any card may be played (including trump)."
+    },
+    "trick_winner": {
+      "definition": "Highest trump wins. If no trump played, highest card of led suit wins.",
+      "note": "Card rank order: 2 < 3 < 4 < 5 < 6 < 7 < 8 < 9 < 10 < J < Q < K < A."
+    },
+    "dummy": {
+      "definition": "Declarer's partner (dummy) lays hand face-up after opening lead",
+      "constraints": [
+        "dummy's cards are visible to all players",
+        "declarer selects which of dummy's cards to play",
+        "dummy does not make independent decisions during play"
+      ]
+    },
+    "declarer": {
+      "definition": "The player from the winning side who first bid the contract strain becomes declarer",
+      "note": "Declarer's partner is dummy. The player to declarer's left makes the opening lead."
+    },
+    "scoring_made": {
+      "definition": "If declarer's side wins at least (6 + level) tricks, the contract is made",
+      "effect": "Score trick points based on strain and level, plus overtrick bonuses"
+    },
+    "scoring_defeated": {
+      "definition": "If declarer's side wins fewer than (6 + level) tricks, the contract is defeated",
+      "effect": "Defenders score undertrick penalties"
+    },
+    "trick_points": {
+      "definition": "Minor suits (clubs, diamonds): 20 per trick. Major suits (hearts, spades): 30 per trick. Notrump: 40 for first trick, 30 for subsequent.",
+      "note": "Simplified scoring without vulnerability or slam bonuses."
+    },
+    "undertrick_points": {
+      "definition": "Undoubled: 50 per undertrick. Doubled: 100 first, 200 each subsequent. Redoubled: 200 first, 400 each subsequent.",
+      "note": "Simplified: not vulnerable scoring only."
+    },
+    "passed_out": {
+      "definition": "If all four players pass without any bid, the hand is passed out",
+      "effect": "No contract, no score, deal passes to next dealer"
+    }
+  },
+  "end_conditions": [
+    {
+      "result": "win",
+      "player": "declarer_side",
+      "condition": "tricks_won(declarer_side) >= 6 + contract_level",
+      "name": "contract_made"
+    },
+    {
+      "result": "win",
+      "player": "defender_side",
+      "condition": "tricks_won(defender_side) > 13 - (6 + contract_level)",
+      "name": "contract_defeated"
+    },
+    {
+      "result": "draw",
+      "condition": "four consecutive passes with no bid",
+      "name": "passed_out"
+    }
+  ],
+  "authority": {
+    "server_only": [
+      "shuffle(deck)",
+      "deal(deck, hand)"
+    ],
+    "client_verifiable": [
+      "bid(level, strain)",
+      "pass()",
+      "double()",
+      "redouble()",
+      "play_card(card)",
+      "follow_suit_check(card, hand, led_suit)"
+    ],
+    "wasm_required": [
+      "score_contract(tricks_won, contract, doubled_state)"
+    ]
+  },
+  "notation": {
+    "piece_symbols": {},
+    "special_moves": {
+      "P": { "action_type": "pass" },
+      "X": { "action_type": "double" },
+      "XX": { "action_type": "redouble" }
+    }
+  }
+}

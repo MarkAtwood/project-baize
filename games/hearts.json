@@ -1,0 +1,153 @@
+{
+  "$schema": "../schema/game-definition.schema.json",
+  "game": {
+    "name": "Hearts",
+    "players": ["North", "East", "South", "West"],
+    "information": "imperfect"
+  },
+  "zones": {
+    "deck": {
+      "zone_type": "ordered_stack",
+      "capacity": 52,
+      "visibility": "hidden",
+      "note": "shuffled deck, only server knows order"
+    },
+    "hand": {
+      "zone_type": "set",
+      "per_player": true,
+      "capacity": 13,
+      "visibility": { "private": "owner" },
+      "note": "player hand, only owner sees"
+    },
+    "trick": {
+      "zone_type": "set",
+      "capacity": 4,
+      "visibility": "public",
+      "note": "cards played to the current trick"
+    },
+    "taken": {
+      "zone_type": "set",
+      "per_player": true,
+      "capacity": "unlimited",
+      "visibility": "public",
+      "note": "tricks won by this player, face up for scoring"
+    },
+    "pass_staging": {
+      "zone_type": "set",
+      "per_player": true,
+      "capacity": 3,
+      "visibility": "hidden",
+      "note": "cards selected for passing before reveal to recipient"
+    },
+    "score": {
+      "zone_type": "counter",
+      "per_player": true,
+      "visibility": "public",
+      "note": "cumulative penalty points across rounds"
+    }
+  },
+  "components": {
+    "card": {
+      "registry": "standard:french-52",
+      "properties": {
+        "suit": ["hearts", "diamonds", "clubs", "spades"],
+        "rank": ["2", "3", "4", "5", "6", "7", "8", "9", "10", "J", "Q", "K", "A"]
+      },
+      "facing": "face_down",
+      "count": 52
+    }
+  },
+  "turn_order": {
+    "type": "round_robin",
+    "players": ["North", "East", "South", "West"],
+    "actions_per_turn": 1,
+    "mandatory": true
+  },
+  "phases": [
+    {
+      "name": "deal",
+      "server_action": "deal(deck, hand, count:13, to:each_player)",
+      "note": "shuffle and deal 13 cards to each player"
+    },
+    {
+      "name": "pass",
+      "simultaneous": true,
+      "action": "select(hand, pass_staging, count:3)",
+      "ends_when": "all players have selected 3 cards",
+      "resolve": "transfer(pass_staging, hand, direction:pass_direction)",
+      "note": "pass 3 cards: left, right, across, hold (rotates each round)"
+    },
+    {
+      "name": "play",
+      "action": "play(hand, trick, count:1)",
+      "starts_with": "holder_of(2_of_clubs) on first trick",
+      "ends_when": "all 13 tricks played",
+      "resolve": "highest_of_led_suit(trick) wins trick"
+    },
+    {
+      "name": "scoring",
+      "resolve": "count_penalty_points(taken) and add to score",
+      "note": "hearts=1pt each, queen of spades=13pts, shoot the moon inverts"
+    }
+  ],
+  "rules": {
+    "follow_suit": {
+      "definition": "must play a card of the led suit if able",
+      "action": "play",
+      "constraint": "if player has card of led suit, must play it"
+    },
+    "hearts_broken": {
+      "definition": "cannot lead hearts until a heart has been played to a trick",
+      "action": "play",
+      "constraint": "if leading and hearts not broken, cannot lead hearts unless only hearts in hand"
+    },
+    "no_points_first_trick": {
+      "definition": "cannot play hearts or queen of spades on the first trick",
+      "action": "play",
+      "constraint": "on first trick, cannot play hearts or queen of spades unless only such cards in hand"
+    },
+    "two_of_clubs_leads": {
+      "definition": "the player holding the 2 of clubs leads the first trick",
+      "action": "play",
+      "constraint": "first trick must be led with 2 of clubs"
+    },
+    "shoot_the_moon": {
+      "definition": "if one player takes all 26 penalty points, every other player gets 26 instead",
+      "trigger": "scoring phase",
+      "effect": "if player.penalty_points == 26 then other_players.score += 26 else player.score += player.penalty_points"
+    }
+  },
+  "library": {
+    "pass_direction": "['left', 'right', 'across', 'hold'][round_number % 4]",
+    "penalty_points": "count(taken, suit:hearts) + 13 * count(taken, rank:Q, suit:spades)",
+    "hearts_broken": "any card with suit:hearts has been played to a trick this round"
+  },
+  "end_conditions": [
+    {
+      "result": "win",
+      "condition": "any player score >= 100 and this player has lowest score",
+      "name": "lowest_score_wins"
+    },
+    {
+      "result": "loss",
+      "condition": "any player score >= 100 and this player has highest score",
+      "name": "highest_score_loses"
+    }
+  ],
+  "authority": {
+    "server_only": [
+      "shuffle(deck)",
+      "deal(deck, hand)",
+      "transfer(pass_staging, hand)"
+    ],
+    "client_verifiable": [
+      "play(hand, trick)",
+      "select(hand, pass_staging)",
+      "follow_suit_check",
+      "hearts_broken_check",
+      "trick_winner",
+      "score_calculation",
+      "shoot_the_moon_check"
+    ]
+  }
+}

@@ -1,0 +1,293 @@
+{
+  "$schema": "../schema/game-definition.schema.json",
+  "game": {
+    "name": "Shogi",
+    "players": ["sente", "gote"],
+    "information": "perfect"
+  },
+  "zones": {
+    "board": {
+      "zone_type": "grid",
+      "dimensions": [9, 9],
+      "visibility": "public",
+      "labels": {
+        "files": ["9", "8", "7", "6", "5", "4", "3", "2", "1"],
+        "ranks": ["a", "b", "c", "d", "e", "f", "g", "h", "i"]
+      },
+      "stacking_limit": 1
+    },
+    "hand": {
+      "zone_type": "set",
+      "per_player": true,
+      "visibility": "public",
+      "capacity": "unlimited",
+      "note": "Captured pieces switch sides and are held here for dropping."
+    }
+  },
+  "components": {
+    "king": {
+      "registry": "standard:shogi-pieces",
+      "owner": "per_player",
+      "count": 1,
+      "movement": [
+        { "primitive": "step", "direction": "adjacent", "distance": 1 }
+      ],
+      "constraints": ["cannot_move_into_check"],
+      "note": "Moves one step in any of 8 directions. Cannot be captured. No promotion."
+    },
+    "rook": {
+      "registry": "standard:shogi-pieces",
+      "owner": "per_player",
+      "count": 1,
+      "movement": [
+        { "primitive": "slide", "direction": "orthogonal" }
+      ],
+      "promotion": {
+        "trigger": "enters_or_moves_within_promotion_zone",
+        "choices": ["dragon_king"]
+      },
+      "note": "Slides any distance orthogonally. Promotes to dragon king."
+    },
+    "bishop": {
+      "registry": "standard:shogi-pieces",
+      "owner": "per_player",
+      "count": 1,
+      "movement": [
+        { "primitive": "slide", "direction": "diagonal" }
+      ],
+      "promotion": {
+        "trigger": "enters_or_moves_within_promotion_zone",
+        "choices": ["dragon_horse"]
+      },
+      "note": "Slides any distance diagonally. Promotes to dragon horse."
+    },
+    "gold": {
+      "registry": "standard:shogi-pieces",
+      "owner": "per_player",
+      "count": 2,
+      "movement": [
+        { "primitive": "step", "direction": "forward", "distance": 1 },
+        { "primitive": "step", "direction": "orthogonal", "distance": 1 },
+        { "primitive": "step", "direction": "forward_diagonal", "distance": 1 }
+      ],
+      "note": "Moves one step forward, orthogonally, or forward-diagonally (6 directions). Cannot promote."
+    },
+    "silver": {
+      "registry": "standard:shogi-pieces",
+      "owner": "per_player",
+      "count": 2,
+      "movement": [
+        { "primitive": "step", "direction": "forward", "distance": 1 },
+        { "primitive": "step", "direction": "diagonal", "distance": 1 }
+      ],
+      "promotion": {
+        "trigger": "enters_or_moves_within_promotion_zone",
+        "choices": ["promoted_silver"]
+      },
+      "note": "Moves one step forward or diagonally (5 directions). Promotes to move as gold."
+    },
+    "knight": {
+      "registry": "standard:shogi-pieces",
+      "owner": "per_player",
+      "count": 2,
+      "movement": [
+        { "primitive": "leap", "dx": 1, "dy": 2, "condition": "forward_only" }
+      ],
+      "promotion": {
+        "trigger": "enters_or_moves_within_promotion_zone",
+        "choices": ["promoted_knight"]
+      },
+      "note": "Leaps to two squares forward and one to the side (2 destinations). Forward only, unlike chess knight. Must promote on last two ranks."
+    },
+    "lance": {
+      "registry": "standard:shogi-pieces",
+      "owner": "per_player",
+      "count": 2,
+      "movement": [
+        { "primitive": "slide", "direction": "forward" }
+      ],
+      "promotion": {
+        "trigger": "enters_or_moves_within_promotion_zone",
+        "choices": ["promoted_lance"]
+      },
+      "note": "Slides any distance forward only. Must promote on last rank."
+    },
+    "pawn": {
+      "registry": "standard:shogi-pieces",
+      "owner": "per_player",
+      "count": 9,
+      "movement": [
+        { "primitive": "step", "direction": "forward", "distance": 1 }
+      ],
+      "promotion": {
+        "trigger": "enters_or_moves_within_promotion_zone",
+        "choices": ["tokin"]
+      },
+      "note": "Moves one step forward only. Must promote on last rank."
+    },
+    "dragon_king": {
+      "registry": "standard:shogi-pieces",
+      "owner": "per_player",
+      "count": 0,
+      "movement": [
+        { "primitive": "slide", "direction": "orthogonal" },
+        { "primitive": "step", "direction": "diagonal", "distance": 1 }
+      ],
+      "note": "Promoted rook. Slides orthogonally plus one step diagonally."
+    },
+    "dragon_horse": {
+      "registry": "standard:shogi-pieces",
+      "owner": "per_player",
+      "count": 0,
+      "movement": [
+        { "primitive": "slide", "direction": "diagonal" },
+        { "primitive": "step", "direction": "orthogonal", "distance": 1 }
+      ],
+      "note": "Promoted bishop. Slides diagonally plus one step orthogonally."
+    },
+    "promoted_silver": {
+      "registry": "standard:shogi-pieces",
+      "owner": "per_player",
+      "count": 0,
+      "movement": [
+        { "primitive": "step", "direction": "forward", "distance": 1 },
+        { "primitive": "step", "direction": "orthogonal", "distance": 1 },
+        { "primitive": "step", "direction": "forward_diagonal", "distance": 1 }
+      ],
+      "note": "Promoted silver. Moves as gold general."
+    },
+    "promoted_knight": {
+      "registry": "standard:shogi-pieces",
+      "owner": "per_player",
+      "count": 0,
+      "movement": [
+        { "primitive": "step", "direction": "forward", "distance": 1 },
+        { "primitive": "step", "direction": "orthogonal", "distance": 1 },
+        { "primitive": "step", "direction": "forward_diagonal", "distance": 1 }
+      ],
+      "note": "Promoted knight. Moves as gold general."
+    },
+    "promoted_lance": {
+      "registry": "standard:shogi-pieces",
+      "owner": "per_player",
+      "count": 0,
+      "movement": [
+        { "primitive": "step", "direction": "forward", "distance": 1 },
+        { "primitive": "step", "direction": "orthogonal", "distance": 1 },
+        { "primitive": "step", "direction": "forward_diagonal", "distance": 1 }
+      ],
+      "note": "Promoted lance. Moves as gold general."
+    },
+    "tokin": {
+      "registry": "standard:shogi-pieces",
+      "owner": "per_player",
+      "count": 0,
+      "movement": [
+        { "primitive": "step", "direction": "forward", "distance": 1 },
+        { "primitive": "step", "direction": "orthogonal", "distance": 1 },
+        { "primitive": "step", "direction": "forward_diagonal", "distance": 1 }
+      ],
+      "note": "Promoted pawn. Moves as gold general."
+    }
+  },
+  "turn_order": {
+    "type": "alternating",
+    "players": ["sente", "gote"],
+    "actions_per_turn": 1,
+    "mandatory": true
+  },
+  "rules": {
+    "check": {
+      "definition": "king is attacked by opponent piece",
+      "constraint": "player in check MUST resolve check this turn"
+    },
+    "promotion": {
+      "definition": "Pieces entering, leaving, or moving within the promotion zone (last 3 ranks) may promote. Promotion is optional unless the piece would have no legal moves without it.",
+      "constraints": [
+        "pawn on last rank MUST promote",
+        "lance on last rank MUST promote",
+        "knight on last two ranks MUST promote"
+      ]
+    },
+    "drops": {
+      "definition": "A captured piece switches sides and goes to the captor's hand. Instead of moving a piece on the board, a player may drop a piece from hand onto any empty square.",
+      "constraints": [
+        "pieces drop in unpromoted form",
+        "no two unpromoted pawns of same owner in same column (nifu)",
+        "pawn drop cannot immediately cause checkmate (uchifuzume)",
+        "pawns cannot be dropped on the last rank",
+        "lances cannot be dropped on the last rank",
+        "knights cannot be dropped on the last two ranks"
+      ]
+    },
+    "repetition": {
+      "definition": "Perpetual check (sennichite by check) is a loss for the checking player. Other repetitions (sennichite) are draws.",
+      "constraint": "fourfold repetition of position"
+    },
+    "impasse": {
+      "definition": "When both kings have entered the opponent's promotion zone and neither side can checkmate, the game may be resolved by counting pieces worth points (rook/bishop=5, others=1). If both sides have 24+ points, it is a draw; otherwise the side with fewer points loses."
+    }
+  },
+  "end_conditions": [
+    {
+      "result": "win",
+      "player": "opponent_of_current",
+      "condition": "in_check(current) AND no_legal_moves(current)",
+      "name": "checkmate"
+    },
+    {
+      "result": "draw",
+      "condition": "NOT in_check(current) AND no_legal_moves(current)",
+      "name": "stalemate"
+    },
+    {
+      "result": "loss",
+      "player": "current",
+      "condition": "sennichite_by_check(current)",
+      "name": "perpetual_check"
+    },
+    {
+      "result": "draw",
+      "condition": "repetition(position, 4)",
+      "name": "sennichite"
+    },
+    {
+      "result": "draw",
+      "condition": "impasse_declared AND both_players_have_24_points",
+      "name": "impasse_draw"
+    }
+  ],
+  "authority": {
+    "server_only": [],
+    "client_verifiable": ["all"]
+  },
+  "notation": {
+    "piece_symbols": {
+      "king": "K",
+      "rook": "R",
+      "bishop": "B",
+      "gold": "G",
+      "silver": "S",
+      "knight": "N",
+      "lance": "L",
+      "pawn": "P",
+      "dragon_king": "+R",
+      "dragon_horse": "+B",
+      "promoted_silver": "+S",
+      "promoted_knight": "+N",
+      "promoted_lance": "+L",
+      "tokin": "+P"
+    },
+    "capture_marker": "x",
+    "promotion_marker": "+",
+    "check_marker": "+",
+    "checkmate_marker": "#",
+    "disambiguation": "file_then_rank",
+    "special_moves": {
+      "*": {
+        "action_type": "drop",
+        "note": "P*5e means drop pawn on 5e"
+      }
+    }
+  }
+}

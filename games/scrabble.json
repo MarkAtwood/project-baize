@@ -1,0 +1,251 @@
+{
+  "$schema": "../schema/game-definition.schema.json",
+  "game": {
+    "name": "Scrabble",
+    "players": ["P1", "P2"],
+    "information": "imperfect"
+  },
+  "zones": {
+    "board": {
+      "zone_type": "grid",
+      "dimensions": [15, 15],
+      "visibility": "public",
+      "adjacency": "orthogonal_4",
+      "stacking_limit": 1,
+      "labels": {
+        "files": ["A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "M", "N", "O"],
+        "ranks": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]
+      },
+      "cell_properties": {
+        "0,0":   {"premium": "triple_word"},
+        "7,0":   {"premium": "triple_word"},
+        "14,0":  {"premium": "triple_word"},
+        "0,7":   {"premium": "triple_word"},
+        "14,7":  {"premium": "triple_word"},
+        "0,14":  {"premium": "triple_word"},
+        "7,14":  {"premium": "triple_word"},
+        "14,14": {"premium": "triple_word"},
+
+        "1,1":   {"premium": "double_word"},
+        "2,2":   {"premium": "double_word"},
+        "3,3":   {"premium": "double_word"},
+        "4,4":   {"premium": "double_word"},
+        "10,4":  {"premium": "double_word"},
+        "11,3":  {"premium": "double_word"},
+        "12,2":  {"premium": "double_word"},
+        "13,1":  {"premium": "double_word"},
+        "1,13":  {"premium": "double_word"},
+        "2,12":  {"premium": "double_word"},
+        "3,11":  {"premium": "double_word"},
+        "4,10":  {"premium": "double_word"},
+        "10,10": {"premium": "double_word"},
+        "11,11": {"premium": "double_word"},
+        "12,12": {"premium": "double_word"},
+        "13,13": {"premium": "double_word"},
+        "7,7":   {"premium": "center_star"},
+
+        "5,1":   {"premium": "triple_letter"},
+        "9,1":   {"premium": "triple_letter"},
+        "1,5":   {"premium": "triple_letter"},
+        "5,5":   {"premium": "triple_letter"},
+        "9,5":   {"premium": "triple_letter"},
+        "13,5":  {"premium": "triple_letter"},
+        "5,9":   {"premium": "triple_letter"},
+        "9,9":   {"premium": "triple_letter"},
+        "1,9":   {"premium": "triple_letter"},
+        "13,9":  {"premium": "triple_letter"},
+        "5,13":  {"premium": "triple_letter"},
+        "9,13":  {"premium": "triple_letter"},
+
+        "3,0":   {"premium": "double_letter"},
+        "11,0":  {"premium": "double_letter"},
+        "6,2":   {"premium": "double_letter"},
+        "8,2":   {"premium": "double_letter"},
+        "0,3":   {"premium": "double_letter"},
+        "7,3":   {"premium": "double_letter"},
+        "14,3":  {"premium": "double_letter"},
+        "2,6":   {"premium": "double_letter"},
+        "6,6":   {"premium": "double_letter"},
+        "8,6":   {"premium": "double_letter"},
+        "12,6":  {"premium": "double_letter"},
+        "3,7":   {"premium": "double_letter"},
+        "11,7":  {"premium": "double_letter"},
+        "2,8":   {"premium": "double_letter"},
+        "6,8":   {"premium": "double_letter"},
+        "8,8":   {"premium": "double_letter"},
+        "12,8":  {"premium": "double_letter"},
+        "0,11":  {"premium": "double_letter"},
+        "7,11":  {"premium": "double_letter"},
+        "14,11": {"premium": "double_letter"},
+        "6,12":  {"premium": "double_letter"},
+        "8,12":  {"premium": "double_letter"},
+        "3,14":  {"premium": "double_letter"},
+        "11,14": {"premium": "double_letter"}
+      },
+      "note": "Standard 15x15 Scrabble board. Premium squares apply only on first use. Center star (7,7) acts as double word and must be covered by the first word."
+    },
+    "tile_bag": {
+      "zone_type": "ordered_stack",
+      "capacity": 100,
+      "visibility": "hidden",
+      "draw_visibility": {"private": "owner"},
+      "note": "100 letter tiles shuffled face-down. Server draws tiles; only the drawing player sees them."
+    },
+    "rack": {
+      "zone_type": "set",
+      "per_player": true,
+      "capacity": 7,
+      "visibility": {"private": "owner"},
+      "note": "Each player's tile rack. Holds up to 7 tiles, visible only to the owner."
+    },
+    "score": {
+      "zone_type": "counter",
+      "per_player": true,
+      "visibility": "public",
+      "note": "Running score for each player."
+    }
+  },
+  "components": {
+    "letter_tile": {
+      "registry": "standard:letter-tiles-english",
+      "owner": "neutral",
+      "count": 100,
+      "facing": "face_down",
+      "properties": {
+        "letter": ["A","B","C","D","E","F","G","H","I","J","K","L","M","N","O","P","Q","R","S","T","U","V","W","X","Y","Z"," "],
+        "points": [1, 3, 3, 2, 1, 4, 2, 4, 1, 8, 5, 1, 3, 1, 1, 3, 10, 1, 1, 1, 1, 4, 4, 8, 4, 10, 0]
+      },
+      "note": "98 lettered tiles plus 2 blanks (wildcards, 0 points). Distribution: A-9, B-2, C-2, D-4, E-12, F-2, G-3, H-2, I-9, J-1, K-1, L-4, M-2, N-6, O-8, P-2, Q-1, R-6, S-4, T-6, U-4, V-2, W-2, X-1, Y-2, Z-1, blank-2."
+    }
+  },
+  "turn_order": {
+    "type": "alternating",
+    "players": ["P1", "P2"],
+    "actions_per_turn": 1,
+    "mandatory": true
+  },
+  "phases": [
+    {
+      "name": "setup",
+      "server_action": [
+        "shuffle(tile_bag)",
+        "draw(tile_bag, rack, count:7, to:each_player)"
+      ],
+      "note": "Shuffle all 100 tiles into the bag, deal 7 to each player's rack."
+    },
+    {
+      "name": "play",
+      "action": "place_word | exchange_tiles | pass",
+      "note": "Each turn the active player must do exactly one: place a word on the board, exchange tiles (if bag has tiles remaining), or pass."
+    },
+    {
+      "name": "refill",
+      "server_action": "draw(tile_bag, rack, count:tiles_played, to:current_player)",
+      "trigger": "after place_word or exchange_tiles",
+      "note": "Draw tiles from bag to refill rack to 7 (or as many as remain)."
+    }
+  ],
+  "rules": {
+    "place_word": {
+      "action": "place_word",
+      "definition": "Place 1-7 tiles from rack onto the board in a single row or column",
+      "constraints": [
+        "all tiles placed in a single horizontal row or single vertical column",
+        "placed tiles plus existing tiles form a contiguous word with no gaps",
+        "all cross-words formed must be valid dictionary words",
+        "at least one placed tile must be adjacent to an existing tile (except first turn)"
+      ]
+    },
+    "first_word": {
+      "definition": "The first word played must cover the center square (7,7)",
+      "constraint": "first_word must cover cell 7,7",
+      "note": "Center star square acts as a double word score for the first word."
+    },
+    "blank_tile": {
+      "definition": "Blank tiles may represent any letter but score 0 points",
+      "constraint": "player must declare which letter the blank represents when placing it"
+    },
+    "exchange_tiles": {
+      "action": "exchange_tiles",
+      "definition": "Return 1-7 tiles from rack to the bag, draw the same number of replacement tiles",
+      "constraints": [
+        "tile_bag must have at least 7 tiles remaining",
+        "player scores 0 for this turn"
+      ]
+    },
+    "pass": {
+      "action": "pass",
+      "definition": "Player passes without placing tiles or exchanging; scores 0 for this turn"
+    },
+    "scoring": {
+      "definition": "Sum of letter point values for all tiles in the formed word, multiplied by any premium square bonuses",
+      "constraints": [
+        "double_letter: letter value is doubled",
+        "triple_letter: letter value is tripled",
+        "double_word: entire word score is doubled",
+        "triple_word: entire word score is tripled",
+        "premium bonuses apply only on first use of that square",
+        "blank tiles always score 0 regardless of premium squares"
+      ]
+    },
+    "bingo_bonus": {
+      "definition": "50-point bonus for placing all 7 tiles from rack in a single turn",
+      "trigger": "tiles_placed == 7"
+    },
+    "end_game_penalty": {
+      "definition": "When the game ends, each player subtracts the sum of point values of tiles remaining on their rack",
+      "trigger": "game_end",
+      "effect": "if one player used all tiles, that player also adds the sum of all opponents' remaining tile values"
+    },
+    "word_validation": {
+      "definition": "All words formed (primary and cross-words) must appear in the game dictionary",
+      "note": "Dictionary validation requires WASM extension; the specific dictionary (TWL, SOWPODS, etc.) is configured in the WASM module."
+    }
+  },
+  "library": {
+    "tiles_on_board": "count of occupied cells on board",
+    "bag_empty": "tile_bag.count == 0",
+    "rack_empty": "rack.count == 0",
+    "consecutive_zero_turns": "count of consecutive turns where no tiles were placed by any player",
+    "game_over": "bag_empty AND any(rack_empty) OR consecutive_zero_turns >= 4"
+  },
+  "end_conditions": [
+    {
+      "result": "win",
+      "player": "highest_score",
+      "condition": "bag_empty AND any(rack_empty)",
+      "name": "tiles_exhausted"
+    },
+    {
+      "result": "win",
+      "player": "highest_score",
+      "condition": "consecutive_zero_turns >= 4",
+      "name": "consecutive_zero_score_turns"
+    },
+    {
+      "result": "draw",
+      "condition": "game_over AND scores_tied",
+      "name": "tied_scores"
+    }
+  ],
+  "authority": {
+    "server_only": [
+      "shuffle(tile_bag)",
+      "draw(tile_bag, rack)",
+      "return_tiles(rack, tile_bag)"
+    ],
+    "client_verifiable": [
+      "place_word(tiles, positions)",
+      "exchange_tiles(tiles)",
+      "pass()",
+      "premium_square_scoring",
+      "bingo_bonus"
+    ],
+    "wasm_required": [
+      "word_validation",
+      "cross_word_validation",
+      "scoring_calculation"
+    ]
+  },
+  "wasm_module": "scrabble.wasm"
+}

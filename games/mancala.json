@@ -1,0 +1,137 @@
+{
+  "$schema": "../schema/game-definition.schema.json",
+  "game": {
+    "name": "Mancala",
+    "players": ["south", "north"],
+    "information": "perfect"
+  },
+  "zones": {
+    "south_1": {
+      "zone_type": "counter",
+      "visibility": "public",
+      "note": "South pit 1 (leftmost from south's perspective)"
+    },
+    "south_2": {
+      "zone_type": "counter",
+      "visibility": "public"
+    },
+    "south_3": {
+      "zone_type": "counter",
+      "visibility": "public"
+    },
+    "south_4": {
+      "zone_type": "counter",
+      "visibility": "public"
+    },
+    "south_5": {
+      "zone_type": "counter",
+      "visibility": "public"
+    },
+    "south_6": {
+      "zone_type": "counter",
+      "visibility": "public",
+      "note": "South pit 6 (rightmost from south's perspective)"
+    },
+    "south_store": {
+      "zone_type": "counter",
+      "visibility": "public",
+      "note": "South's scoring store (Kalah)"
+    },
+    "north_1": {
+      "zone_type": "counter",
+      "visibility": "public",
+      "note": "North pit 1 (leftmost from north's perspective, opposite south_6)"
+    },
+    "north_2": {
+      "zone_type": "counter",
+      "visibility": "public"
+    },
+    "north_3": {
+      "zone_type": "counter",
+      "visibility": "public"
+    },
+    "north_4": {
+      "zone_type": "counter",
+      "visibility": "public"
+    },
+    "north_5": {
+      "zone_type": "counter",
+      "visibility": "public"
+    },
+    "north_6": {
+      "zone_type": "counter",
+      "visibility": "public",
+      "note": "North pit 6 (rightmost from north's perspective, opposite south_1)"
+    },
+    "north_store": {
+      "zone_type": "counter",
+      "visibility": "public",
+      "note": "North's scoring store (Kalah)"
+    }
+  },
+  "components": {
+    "seeds": {
+      "owner": "neutral",
+      "count": 48,
+      "note": "48 seeds total: 4 per pit at start. Represented as counter values, not individual components."
+    }
+  },
+  "turn_order": {
+    "type": "alternating",
+    "players": ["south", "north"],
+    "actions_per_turn": 1,
+    "mandatory": true
+  },
+  "library": {
+    "south_side_empty": "south_1 == 0 && south_2 == 0 && south_3 == 0 && south_4 == 0 && south_5 == 0 && south_6 == 0",
+    "north_side_empty": "north_1 == 0 && north_2 == 0 && north_3 == 0 && north_4 == 0 && north_5 == 0 && north_6 == 0",
+    "south_wins": "(south_1 == 0 && south_2 == 0 && south_3 == 0 && south_4 == 0 && south_5 == 0 && south_6 == 0 || north_1 == 0 && north_2 == 0 && north_3 == 0 && north_4 == 0 && north_5 == 0 && north_6 == 0) && south_store > north_store",
+    "north_wins": "(south_1 == 0 && south_2 == 0 && south_3 == 0 && south_4 == 0 && south_5 == 0 && south_6 == 0 || north_1 == 0 && north_2 == 0 && north_3 == 0 && north_4 == 0 && north_5 == 0 && north_6 == 0) && north_store > south_store",
+    "draw": "(south_1 == 0 && south_2 == 0 && south_3 == 0 && south_4 == 0 && south_5 == 0 && south_6 == 0 || north_1 == 0 && north_2 == 0 && north_3 == 0 && north_4 == 0 && north_5 == 0 && north_6 == 0) && south_store == north_store"
+  },
+  "rules": {
+    "sow": {
+      "action": "pick_pit(pit_index)",
+      "constraints": [
+        "pit belongs to current player",
+        "pit is not empty"
+      ],
+      "definition": "Pick up all seeds from chosen pit, drop one seed into each subsequent pit counterclockwise, skipping opponent's store."
+    },
+    "extra_turn": {
+      "trigger": "last seed lands in current player's store",
+      "effect": "current player takes another turn"
+    },
+    "capture": {
+      "trigger": "last seed lands in an empty pit on current player's side",
+      "effect": "capture that seed plus all seeds in the opposite pit; place all in current player's store"
+    },
+    "game_end_sweep": {
+      "trigger": "one side's pits are all empty",
+      "effect": "remaining seeds on the other side go into that side's store"
+    }
+  },
+  "end_conditions": [
+    {
+      "result": "win",
+      "player": "south",
+      "condition": "south_wins",
+      "name": "south_wins"
+    },
+    {
+      "result": "win",
+      "player": "north",
+      "condition": "north_wins",
+      "name": "north_wins"
+    },
+    {
+      "result": "draw",
+      "condition": "draw",
+      "name": "draw"
+    }
+  ],
+  "authority": {
+    "server_only": [],
+    "client_verifiable": ["pick_pit", "sow", "capture", "extra_turn"]
+  }
+}

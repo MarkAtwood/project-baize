@@ -1,0 +1,118 @@
+{
+  "$schema": "../schema/game-definition.schema.json",
+  "game": {
+    "name": "Mastermind",
+    "players": ["codemaker", "codebreaker"],
+    "information": "imperfect"
+  },
+  "zones": {
+    "secret_code": {
+      "zone_type": "ordered_stack",
+      "visibility": "hidden",
+      "capacity": 4,
+      "note": "The 4-peg secret code set by the codemaker. Hidden from the codebreaker; only the server sees it."
+    },
+    "guess_history": {
+      "zone_type": "ordered_stack",
+      "visibility": "public",
+      "capacity": "unlimited",
+      "note": "All guesses submitted by the codebreaker, stored as groups of 4 pegs per guess."
+    },
+    "feedback_history": {
+      "zone_type": "ordered_stack",
+      "visibility": "public",
+      "capacity": "unlimited",
+      "note": "Feedback for each guess: black pegs (correct color and position) and white pegs (correct color, wrong position). Server computes and publishes after each guess."
+    },
+    "guess_counter": {
+      "zone_type": "counter",
+      "visibility": "public",
+      "note": "Number of guesses the codebreaker has made. Game ends when this reaches 10 without a correct guess."
+    }
+  },
+  "components": {
+    "peg": {
+      "owner": "shared",
+      "count": "unlimited",
+      "types": {
+        "red":    {"note": "Color peg."},
+        "blue":   {"note": "Color peg."},
+        "green":  {"note": "Color peg."},
+        "yellow": {"note": "Color peg."},
+        "white":  {"note": "Color peg."},
+        "black":  {"note": "Color peg."}
+      },
+      "note": "Code and guess pegs. 6 colors available. Duplicates allowed in a code."
+    },
+    "feedback_peg": {
+      "owner": "shared",
+      "count": "unlimited",
+      "types": {
+        "black": {"note": "Right color in the right position."},
+        "white": {"note": "Right color in the wrong position."}
+      },
+      "note": "Key pegs placed by the server after each guess to provide feedback."
+    }
+  },
+  "turn_order": {
+    "type": "alternating",
+    "players": ["codemaker", "codebreaker"],
+    "actions_per_turn": 1,
+    "mandatory": true
+  },
+  "phases": [
+    {
+      "name": "setup",
+      "action": "set_code(peg, peg, peg, peg)",
+      "starts_with": "codemaker",
+      "ends_when": "secret_code has 4 pegs",
+      "note": "Codemaker secretly chooses a 4-peg code from the 6 available colors. Duplicates are allowed."
+    },
+    {
+      "name": "guessing",
+      "action": "guess(peg, peg, peg, peg)",
+      "starts_with": "codebreaker",
+      "ends_when": "guess matches secret_code OR guess_counter == 10",
+      "note": "Codebreaker submits a 4-peg guess each turn. Server computes feedback (black/white key pegs) and increments the guess counter."
+    }
+  ],
+  "rules": {
+    "feedback_computation": {
+      "definition": "After each guess, compare guess to secret code position by position. A black key peg is awarded for each peg that is the correct color in the correct position. Of the remaining pegs, a white key peg is awarded for each guess peg whose color appears in the unmatched portion of the secret code (each secret peg consumed at most once). Feedback pegs are unordered to avoid leaking position information.",
+      "trigger": "after guess",
+      "server_resolves": "compute_feedback(guess, secret_code)"
+    },
+    "guess_limit": {
+      "definition": "The codebreaker has a maximum of 10 guesses to deduce the secret code.",
+      "constraint": "guess_counter <= 10"
+    },
+    "code_validity": {
+      "definition": "The secret code must consist of exactly 4 pegs, each one of the 6 available colors. Duplicate colors are permitted.",
+      "constraint": "len(secret_code) == 4 AND all pegs in {red, blue, green, yellow, white, black}"
+    }
+  },
+  "end_conditions": [
+    {
+      "result": "win",
+      "player": "codebreaker",
+      "condition": "guess == secret_code",
+      "name": "code_cracked"
+    },
+    {
+      "result": "win",
+      "player": "codemaker",
+      "condition": "guess_counter == 10 AND guess != secret_code",
+      "name": "guesses_exhausted"
+    }
+  ],
+  "authority": {
+    "server_only": [
+      "store_secret_code",
+      "compute_feedback(guess, secret_code)"
+    ],
+    "client_verifiable": [
+      "guess(peg, peg, peg, peg)",
+      "guess_counter <= 10"
+    ]
+  }
+}

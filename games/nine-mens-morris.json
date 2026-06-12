@@ -1,0 +1,153 @@
+{
+  "$schema": "../schema/game-definition.schema.json",
+  "game": {
+    "name": "Nine Men's Morris",
+    "players": ["white", "black"],
+    "information": "perfect"
+  },
+  "zones": {
+    "board": {
+      "zone_type": "graph",
+      "visibility": "public",
+      "nodes": [
+        "a1", "d1", "g1",
+        "b2", "d2", "f2",
+        "c3", "d3", "e3",
+        "a4", "b4", "c4", "e4", "f4", "g4",
+        "c5", "d5", "e5",
+        "b6", "d6", "f6",
+        "a7", "d7", "g7"
+      ],
+      "edges": [
+        ["a1", "d1"], ["d1", "g1"],
+        ["b2", "d2"], ["d2", "f2"],
+        ["c3", "d3"], ["d3", "e3"],
+        ["a4", "b4"], ["b4", "c4"],
+        ["e4", "f4"], ["f4", "g4"],
+        ["c5", "d5"], ["d5", "e5"],
+        ["b6", "d6"], ["d6", "f6"],
+        ["a7", "d7"], ["d7", "g7"],
+
+        ["a1", "a4"], ["a4", "a7"],
+        ["b2", "b4"], ["b4", "b6"],
+        ["c3", "c4"], ["c4", "c5"],
+        ["d1", "d2"], ["d2", "d3"],
+        ["d5", "d6"], ["d6", "d7"],
+        ["e3", "e4"], ["e4", "e5"],
+        ["f2", "f4"], ["f4", "f6"],
+        ["g1", "g4"], ["g4", "g7"]
+      ],
+      "node_properties": {
+        "a1": {"mill_lines": "a1-d1-g1,a1-a4-a7"},
+        "d1": {"mill_lines": "a1-d1-g1,d1-d2-d3"},
+        "g1": {"mill_lines": "a1-d1-g1,g1-g4-g7"},
+        "b2": {"mill_lines": "b2-d2-f2,b2-b4-b6"},
+        "d2": {"mill_lines": "b2-d2-f2,d1-d2-d3"},
+        "f2": {"mill_lines": "b2-d2-f2,f2-f4-f6"},
+        "c3": {"mill_lines": "c3-d3-e3,c3-c4-c5"},
+        "d3": {"mill_lines": "c3-d3-e3,d1-d2-d3"},
+        "e3": {"mill_lines": "c3-d3-e3,e3-e4-e5"},
+        "a4": {"mill_lines": "a4-b4-c4,a1-a4-a7"},
+        "b4": {"mill_lines": "a4-b4-c4,b2-b4-b6"},
+        "c4": {"mill_lines": "a4-b4-c4,c3-c4-c5"},
+        "e4": {"mill_lines": "e4-f4-g4,e3-e4-e5"},
+        "f4": {"mill_lines": "e4-f4-g4,f2-f4-f6"},
+        "g4": {"mill_lines": "e4-f4-g4,g1-g4-g7"},
+        "c5": {"mill_lines": "c5-d5-e5,c3-c4-c5"},
+        "d5": {"mill_lines": "c5-d5-e5,d5-d6-d7"},
+        "e5": {"mill_lines": "c5-d5-e5,e3-e4-e5"},
+        "b6": {"mill_lines": "b6-d6-f6,b2-b4-b6"},
+        "d6": {"mill_lines": "b6-d6-f6,d5-d6-d7"},
+        "f6": {"mill_lines": "b6-d6-f6,f2-f4-f6"},
+        "a7": {"mill_lines": "a7-d7-g7,a1-a4-a7"},
+        "d7": {"mill_lines": "a7-d7-g7,d5-d6-d7"},
+        "g7": {"mill_lines": "a7-d7-g7,g1-g4-g7"}
+      },
+      "note": "3 concentric squares with midpoint connections. 24 intersections, 32 edges. Each node belongs to exactly 2 mill lines."
+    },
+    "supply_white": {
+      "zone_type": "counter",
+      "visibility": "public",
+      "note": "Unplaced white pieces remaining (starts at 9)"
+    },
+    "supply_black": {
+      "zone_type": "counter",
+      "visibility": "public",
+      "note": "Unplaced black pieces remaining (starts at 9)"
+    }
+  },
+  "components": {
+    "piece": {
+      "owner": "per_player",
+      "count": 9
+    }
+  },
+  "turn_order": {
+    "type": "alternating",
+    "players": ["white", "black"],
+    "actions_per_turn": 1,
+    "mandatory": true
+  },
+  "phases": [
+    {
+      "name": "placement",
+      "action": "place(piece, board/node)",
+      "ends_when": "all 18 pieces placed",
+      "note": "Players alternate placing one piece per turn onto any empty intersection. Forming a mill (3 in a row on a line) allows removing one opponent piece not in a mill."
+    },
+    {
+      "name": "movement",
+      "action": "move(piece, board/from, board/to)",
+      "note": "Players alternate sliding one piece to an adjacent empty node. Forming a mill allows removing one opponent piece. When reduced to 3 pieces, a player may fly (move to any empty node)."
+    }
+  ],
+  "rules": {
+    "placement": {
+      "action": "place(piece, board/node)",
+      "constraint": "node must be empty"
+    },
+    "movement": {
+      "action": "move(piece, board/from, board/to)",
+      "constraints": [
+        "from and to must be adjacent on the graph",
+        "from must contain a piece owned by the current player",
+        "to must be empty"
+      ]
+    },
+    "flying": {
+      "action": "move(piece, board/from, board/to)",
+      "trigger": "player has exactly 3 pieces on the board",
+      "constraint": "adjacency requirement is waived; piece may move to any empty node"
+    },
+    "mill_formation": {
+      "trigger": "piece placed or moved completes a line of 3 same-color pieces",
+      "effect": "player must remove one opponent piece from the board"
+    },
+    "mill_protection": {
+      "action": "remove(opponent_piece)",
+      "constraint": "cannot remove a piece that is part of a mill unless all opponent pieces are in mills"
+    }
+  },
+  "end_conditions": [
+    {
+      "result": "win",
+      "player": "current",
+      "condition": "opponent has fewer than 3 pieces on the board (after placement phase)",
+      "name": "reduction"
+    },
+    {
+      "result": "win",
+      "player": "current",
+      "condition": "opponent has no legal moves on their turn (after placement phase)",
+      "name": "no_moves"
+    }
+  ],
+  "authority": {
+    "server_only": [],
+    "client_verifiable": [
+      "place(piece, board/node)",
+      "move(piece, board/from, board/to)",
+      "remove(opponent_piece)"
+    ]
+  }
+}

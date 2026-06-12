@@ -1,0 +1,150 @@
+{
+  "$schema": "../schema/game-definition.schema.json",
+  "game": {
+    "name": "Xiangqi",
+    "players": ["red", "black"],
+    "information": "perfect"
+  },
+  "zones": {
+    "board": {
+      "zone_type": "grid",
+      "dimensions": [9, 10],
+      "visibility": "public",
+      "intersections": true,
+      "labels": {
+        "files": ["a", "b", "c", "d", "e", "f", "g", "h", "i"],
+        "ranks": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+      },
+      "note": "9x10 grid played on intersections. River divides rows 4-5. Palace zones at center columns 3-5."
+    }
+  },
+  "components": {
+    "general": {
+      "registry": "standard:xiangqi-pieces",
+      "owner": "per_player",
+      "count": 1,
+      "movement": [
+        { "primitive": "step", "direction": "orthogonal", "distance": 1, "condition": "in_palace" }
+      ],
+      "constraints": ["cannot_move_into_check", "flying_general"]
+    },
+    "advisor": {
+      "registry": "standard:xiangqi-pieces",
+      "owner": "per_player",
+      "count": 2,
+      "movement": [
+        { "primitive": "step", "direction": "diagonal", "distance": 1, "condition": "in_palace" }
+      ]
+    },
+    "elephant": {
+      "registry": "standard:xiangqi-pieces",
+      "owner": "per_player",
+      "count": 2,
+      "movement": [
+        { "primitive": "leap", "dx": 2, "dy": 2, "condition": "not_blocked AND same_side_of_river" }
+      ]
+    },
+    "horse": {
+      "registry": "standard:xiangqi-pieces",
+      "owner": "per_player",
+      "count": 2,
+      "movement": [
+        { "primitive": "leap", "dx": 1, "dy": 2, "condition": "orthogonal_not_blocked" }
+      ],
+      "note": "Moves one step orthogonally then one step diagonally outward. The orthogonal step must not be blocked."
+    },
+    "chariot": {
+      "registry": "standard:xiangqi-pieces",
+      "owner": "per_player",
+      "count": 2,
+      "movement": [
+        { "primitive": "slide", "direction": "orthogonal" }
+      ]
+    },
+    "cannon": {
+      "registry": "standard:xiangqi-pieces",
+      "owner": "per_player",
+      "count": 2,
+      "movement": [
+        { "primitive": "slide", "direction": "orthogonal", "condition": "empty" },
+        { "primitive": "hop", "direction": "orthogonal", "over": 1, "condition": "enemy" }
+      ],
+      "note": "Slides freely to empty squares. Captures by hopping over exactly one intervening piece (the screen)."
+    },
+    "soldier": {
+      "registry": "standard:xiangqi-pieces",
+      "owner": "per_player",
+      "count": 5,
+      "movement": [
+        { "primitive": "step", "direction": "forward", "distance": 1 },
+        { "primitive": "step", "direction": "horizontal", "distance": 1, "condition": "crossed_river" }
+      ],
+      "note": "Before crossing the river: forward only. After crossing: forward or horizontal."
+    }
+  },
+  "turn_order": {
+    "type": "alternating",
+    "players": ["red", "black"],
+    "actions_per_turn": 1,
+    "mandatory": true
+  },
+  "rules": {
+    "check": {
+      "definition": "general is attacked by opponent piece",
+      "constraint": "player in check MUST resolve check this turn"
+    },
+    "flying_general": {
+      "definition": "generals may not face each other on the same file with no intervening pieces",
+      "constraint": "a move is illegal if it leaves the two generals on the same file with no pieces between them"
+    },
+    "palace_confinement": {
+      "definition": "generals and advisors must remain within the 3x3 palace zone",
+      "constraint": "general and advisor moves must land in the palace (cols 3-5, rows 0-2 for red, rows 7-9 for black)"
+    },
+    "river_restriction": {
+      "definition": "elephants cannot cross the river",
+      "constraint": "elephant moves must land on the same side of the river as the elephant started"
+    },
+    "elephant_blocking": {
+      "definition": "elephants are blocked by a piece on the intermediate diagonal square",
+      "constraint": "the square diagonally between start and destination must be empty"
+    },
+    "horse_blocking": {
+      "definition": "horses are blocked by a piece on the orthogonal intermediate square",
+      "constraint": "the first orthogonal step toward the destination must be empty"
+    }
+  },
+  "end_conditions": [
+    {
+      "result": "win",
+      "player": "opponent_of_current",
+      "condition": "in_check(current) AND no_legal_moves(current)",
+      "name": "checkmate"
+    },
+    {
+      "result": "win",
+      "player": "opponent_of_current",
+      "condition": "NOT in_check(current) AND no_legal_moves(current)",
+      "name": "stalemate"
+    }
+  ],
+  "authority": {
+    "server_only": [],
+    "client_verifiable": ["all"]
+  },
+  "notation": {
+    "piece_symbols": {
+      "general": "G",
+      "advisor": "A",
+      "elephant": "E",
+      "horse": "H",
+      "chariot": "R",
+      "cannon": "C",
+      "soldier": "S"
+    },
+    "capture_marker": "x",
+    "check_marker": "+",
+    "checkmate_marker": "#",
+    "disambiguation": "file_then_rank"
+  }
+}

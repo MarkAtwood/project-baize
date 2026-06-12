@@ -1,0 +1,267 @@
+{
+  "$schema": "../schema/game-definition.schema.json",
+  "game": {
+    "name": "Mahjong (Riichi)",
+    "players": ["East", "South", "West", "North"],
+    "information": "imperfect"
+  },
+  "zones": {
+    "wall": {
+      "zone_type": "ordered_stack",
+      "capacity": 136,
+      "visibility": "hidden",
+      "note": "Shuffled wall of 136 tiles. Server deals 13 to each player, then draw one at a time."
+    },
+    "dead_wall": {
+      "zone_type": "ordered_stack",
+      "capacity": 14,
+      "visibility": "hidden",
+      "note": "14 tiles reserved from the wall: 4 dora indicators (public) and replacement draws for kan."
+    },
+    "hand": {
+      "zone_type": "set",
+      "per_player": true,
+      "capacity": 13,
+      "visibility": { "private": "owner" },
+      "note": "Player's concealed hand tiles. 13 tiles between turns, 14 after drawing."
+    },
+    "discard": {
+      "zone_type": "ordered_stack",
+      "per_player": true,
+      "capacity": "unlimited",
+      "visibility": "public",
+      "note": "Player's discard river in order of play. Claimed tiles are marked."
+    },
+    "melds": {
+      "zone_type": "set",
+      "per_player": true,
+      "capacity": "unlimited",
+      "visibility": "public",
+      "note": "Open melds (chi, pon, open kan) are public. Concealed kan also stored here but face down."
+    },
+    "dora_indicators": {
+      "zone_type": "set",
+      "capacity": 5,
+      "visibility": "public",
+      "note": "Revealed dora indicator tiles from the dead wall. Initially 1; additional revealed per kan."
+    },
+    "score": {
+      "zone_type": "counter",
+      "per_player": true,
+      "visibility": "public",
+      "note": "Player's point total. Starts at 25000."
+    },
+    "riichi_pool": {
+      "zone_type": "counter",
+      "visibility": "public",
+      "note": "Unclaimed riichi stick deposits (1000 points each) from previous draws."
+    }
+  },
+  "components": {
+    "tile": {
+      "registry": "standard:mahjong-136",
+      "owner": "neutral",
+      "count": 136,
+      "properties": {
+        "suit": ["characters", "bamboo", "dots", "wind", "dragon"],
+        "rank": [1, 2, 3, 4, 5, 6, 7, 8, 9],
+        "red": false
+      },
+      "facing": "face_down",
+      "note": "136 tiles: 3 suits x 9 ranks x 4 copies (108) + 4 winds x 4 (16) + 3 dragons x 4 (12). Includes 3 red fives (akadora)."
+    }
+  },
+  "turn_order": {
+    "type": "reactive",
+    "players": ["East", "South", "West", "North"],
+    "actions_per_turn": [
+      { "draw_tile": 1 },
+      { "discard_tile": 1 }
+    ],
+    "mandatory": true
+  },
+  "phases": [
+    {
+      "name": "deal",
+      "server_action": [
+        "shuffle(wall)",
+        "deal(wall, hand, count:13, to:each_player)",
+        "reserve(wall, dead_wall, count:14)",
+        "reveal(dead_wall, dora_indicators, count:1)"
+      ],
+      "note": "Server shuffles wall, deals 13 tiles to each player, reserves 14 for dead wall, reveals first dora indicator."
+    },
+    {
+      "name": "draw",
+      "action": "draw(wall, hand, count:1)",
+      "note": "Active player draws the top tile from the wall into hand (now 14 tiles). Player may declare tsumo (self-draw win) or riichi before discarding."
+    },
+    {
+      "name": "discard",
+      "action": "discard(hand, discard, count:1)",
+      "note": "Active player discards one tile face up to their discard river."
+    },
+    {
+      "name": "claim_window",
+      "type": "reactive",
+      "simultaneous": true,
+      "action": "claim_or_pass",
+      "ends_when": "all players have responded or timeout",
+      "note": "After a discard, all other players may claim: ron > pon/kan > chi > pass. Ron wins immediately. Pon/kan by any player. Chi only by the next player in turn order (shimocha)."
+    },
+    {
+      "name": "scoring",
+      "resolve": "count_han_and_fu(winning_hand) then transfer_points",
+      "note": "Simplified scoring: count han from yaku patterns and fu from melds. Points transfer from losers to winner."
+    }
+  ],
+  "rules": {
+    "chi": {
+      "definition": "Claim discarded tile to complete a sequence (three consecutive tiles of the same suit)",
+      "action": "claim",
+      "constraints": [
+        "claimant is shimocha (next player in turn order after discarder)",
+        "claimed tile plus two tiles from hand form a consecutive sequence in the same suited suit",
+        "suited suits only (characters, bamboo, dots) — not winds or dragons"
+      ],
+      "effect": "move claimed tile + 2 from hand to melds as open chi; claimant must discard"
+    },
+    "pon": {
+      "definition": "Claim discarded tile to complete a triplet (three identical tiles)",
+      "action": "claim",
+      "constraints": [
+        "claimant has two identical tiles in hand",
+        "claimant is not the discarder"
+      ],
+      "effect": "move claimed tile + 2 from hand to melds as open pon; claimant must discard"
+    },
+    "kan": {
+      "definition": "Declare a quad of four identical tiles",
+      "action": "claim",
+      "constraints": [
+        "open kan from discard: claimant has three identical tiles in hand",
+        "added kan: claimant has a pon meld and draws the fourth tile",
+        "concealed kan: claimant has four identical tiles in hand after drawing"
+      ],
+      "effect": "move tiles to melds as kan; draw replacement from dead wall; reveal additional dora indicator"
+    },
+    "ron": {
+      "definition": "Win by claiming a discarded tile that completes a valid winning hand",
+      "action": "claim",
+      "constraints": [
+        "claimed tile completes a valid winning hand (4 melds + 1 pair, or special pattern)",
+        "hand has at least one valid yaku",
+        "claimant has not previously passed on the same tile in this turn (furiten rule)"
+      ],
+      "effect": "game ends; discarder pays winner"
+    },
+    "tsumo": {
+      "definition": "Win by self-drawing a tile that completes a valid winning hand",
+      "action": "declare",
+      "trigger": "after drawing from wall",
+      "constraints": [
+        "drawn tile completes a valid winning hand",
+        "hand has at least one valid yaku"
+      ],
+      "effect": "game ends; all other players split payment to winner"
+    },
+    "riichi": {
+      "definition": "Declare riichi when tenpai (one tile from winning) with a concealed hand",
+      "action": "declare",
+      "trigger": "after drawing, before discarding",
+      "constraints": [
+        "hand is fully concealed (no open melds)",
+        "hand is tenpai (one tile away from a complete winning hand)",
+        "player has at least 1000 points"
+      ],
+      "effect": "deposit 1000 points to riichi_pool; hand is locked (auto-discard non-winning draws); grants ippatsu and riichi yaku"
+    },
+    "furiten": {
+      "definition": "A player in furiten cannot win by ron",
+      "constraint": "if any of the player's winning tiles exists in their own discard river, they are furiten and cannot declare ron"
+    },
+    "claim_priority": {
+      "definition": "When multiple players claim the same discard, priority determines who wins",
+      "server_resolves": "ron > pon/kan > chi; if multiple ron, closest to discarder wins (head bump)"
+    }
+  },
+  "library": {
+    "winning_hand": "hand.count + melds.count == 14 AND (4_melds_1_pair OR seven_pairs OR thirteen_orphans)",
+    "tenpai": "exists tile T such that adding T to hand creates a winning_hand",
+    "shimocha": "players[(discarder_index + 1) % 4]",
+    "dora_value": "tile next in sequence after dora_indicator (9 wraps to 1, north wraps to east, white wraps to red)",
+    "han_count": "sum of applicable yaku han values + dora count + uradora count (if riichi)",
+    "basic_points": "fu * 2^(han + 2), capped at mangan thresholds",
+    "is_suited": "tile.suit in ['characters', 'bamboo', 'dots']"
+  },
+  "end_conditions": [
+    {
+      "result": "win",
+      "player": "current",
+      "condition": "tsumo declared with valid winning hand and yaku",
+      "name": "tsumo"
+    },
+    {
+      "result": "win",
+      "player": "claimant",
+      "condition": "ron declared with valid winning hand and yaku",
+      "name": "ron"
+    },
+    {
+      "result": "draw",
+      "condition": "wall.count == 0 and no player declares tsumo or ron",
+      "name": "exhaustive_draw"
+    },
+    {
+      "result": "draw",
+      "condition": "four_kan_abort or four_riichi_abort or four_wind_abort or nine_terminals_abort",
+      "name": "abortive_draw"
+    },
+    {
+      "result": "win",
+      "condition": "after final round and player has highest score above 0",
+      "name": "game_winner"
+    }
+  ],
+  "authority": {
+    "server_only": [
+      "shuffle(wall)",
+      "deal(wall, hand)",
+      "reserve(wall, dead_wall)",
+      "reveal(dead_wall, dora_indicators)",
+      "draw(wall, hand)",
+      "draw(dead_wall, hand)",
+      "resolve_claims",
+      "score_calculation"
+    ],
+    "client_verifiable": [
+      "discard(hand, discard)",
+      "chi_validity",
+      "pon_validity",
+      "furiten_check",
+      "tenpai_check",
+      "riichi_eligibility"
+    ],
+    "wasm_required": [
+      "winning_hand_check",
+      "yaku_detection",
+      "han_fu_calculation",
+      "point_transfer"
+    ]
+  },
+  "wasm_module": "mahjong_scoring.wasm",
+  "notation": {
+    "piece_symbols": {
+      "characters": "m",
+      "bamboo": "s",
+      "dots": "p",
+      "east": "1z",
+      "south": "2z",
+      "west": "3z",
+      "north": "4z",
+      "red": "5z",
+      "green": "6z",
+      "white": "7z"
+    }
+  }
+}

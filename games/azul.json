@@ -1,0 +1,248 @@
+{
+  "$schema": "../schema/game-definition.schema.json",
+  "game": {
+    "name": "Azul",
+    "players": ["P1", "P2"],
+    "information": "imperfect"
+  },
+  "zones": {
+    "bag": {
+      "zone_type": "ordered_stack",
+      "capacity": 100,
+      "visibility": "hidden",
+      "note": "Tile bag: 100 tiles (20 each of 5 colors). Server shuffles and draws to fill factories."
+    },
+    "box_lid": {
+      "zone_type": "set",
+      "capacity": 100,
+      "visibility": "hidden",
+      "note": "Discarded tiles accumulate here; refill bag when bag is empty."
+    },
+    "factory_1": {
+      "zone_type": "set",
+      "capacity": 4,
+      "visibility": "public",
+      "note": "Factory display 1: holds 4 tiles drawn from bag."
+    },
+    "factory_2": {
+      "zone_type": "set",
+      "capacity": 4,
+      "visibility": "public",
+      "note": "Factory display 2: holds 4 tiles drawn from bag."
+    },
+    "factory_3": {
+      "zone_type": "set",
+      "capacity": 4,
+      "visibility": "public",
+      "note": "Factory display 3: holds 4 tiles drawn from bag."
+    },
+    "factory_4": {
+      "zone_type": "set",
+      "capacity": 4,
+      "visibility": "public",
+      "note": "Factory display 4: holds 4 tiles drawn from bag."
+    },
+    "factory_5": {
+      "zone_type": "set",
+      "capacity": 4,
+      "visibility": "public",
+      "note": "Factory display 5: holds 4 tiles drawn from bag."
+    },
+    "center": {
+      "zone_type": "set",
+      "capacity": "unlimited",
+      "visibility": "public",
+      "note": "Center of table: receives remainder tiles from factory picks. First player to take from center gets the first-player marker and a -1 penalty."
+    },
+    "pattern_row_1": {
+      "zone_type": "set",
+      "per_player": true,
+      "capacity": 1,
+      "visibility": "public",
+      "note": "Pattern line row 1: holds 1 tile."
+    },
+    "pattern_row_2": {
+      "zone_type": "set",
+      "per_player": true,
+      "capacity": 2,
+      "visibility": "public",
+      "note": "Pattern line row 2: holds up to 2 tiles of same color."
+    },
+    "pattern_row_3": {
+      "zone_type": "set",
+      "per_player": true,
+      "capacity": 3,
+      "visibility": "public",
+      "note": "Pattern line row 3: holds up to 3 tiles of same color."
+    },
+    "pattern_row_4": {
+      "zone_type": "set",
+      "per_player": true,
+      "capacity": 4,
+      "visibility": "public",
+      "note": "Pattern line row 4: holds up to 4 tiles of same color."
+    },
+    "pattern_row_5": {
+      "zone_type": "set",
+      "per_player": true,
+      "capacity": 5,
+      "visibility": "public",
+      "note": "Pattern line row 5: holds up to 5 tiles of same color."
+    },
+    "wall": {
+      "zone_type": "grid",
+      "per_player": true,
+      "dimensions": [5, 5],
+      "visibility": "public",
+      "note": "5x5 wall grid. Each row has a fixed color pattern determining which column a color goes into. Tiles placed here score by adjacency."
+    },
+    "floor_line": {
+      "zone_type": "set",
+      "per_player": true,
+      "capacity": 7,
+      "visibility": "public",
+      "note": "Overflow tiles and first-player penalty. Slots penalize: -1, -1, -2, -2, -2, -3, -3."
+    },
+    "score": {
+      "zone_type": "counter",
+      "per_player": true,
+      "visibility": "public",
+      "note": "Running score for each player. Cannot go below 0."
+    }
+  },
+  "components": {
+    "tile": {
+      "owner": "neutral",
+      "count": 100,
+      "properties": {
+        "color": ["blue", "yellow", "red", "black", "white"]
+      },
+      "note": "20 tiles of each of 5 colors. Drawn from bag to factories, drafted by players, placed on pattern lines, then moved to wall."
+    },
+    "first_player_marker": {
+      "owner": "neutral",
+      "count": 1,
+      "note": "Placed in center at start of round. First player to take from center takes this marker (and a -1 floor penalty) and goes first next round."
+    }
+  },
+  "turn_order": {
+    "type": "alternating",
+    "players": ["P1", "P2"],
+    "actions_per_turn": 1,
+    "mandatory": true
+  },
+  "phases": [
+    {
+      "name": "factory_offer",
+      "server_action": "fill_factories(bag, factory_1..factory_5, count:4)",
+      "action": "draft(factory_or_center, color, pattern_row_or_floor)",
+      "ends_when": "all factories and center are empty",
+      "note": "Players alternate taking all tiles of one color from a factory (remainder to center) or from center. Tiles go to a pattern row; overflow to floor line."
+    },
+    {
+      "name": "wall_tiling",
+      "resolve": "for each player, for each completed pattern row: move one tile to wall, score adjacency, discard remaining tiles to box_lid",
+      "note": "Completed pattern rows (row N has N tiles) move one tile to the wall at the designated column. Score 1 point per tile plus contiguous horizontal and vertical neighbors. Floor line penalties applied. Remaining tiles from pattern rows go to box_lid."
+    },
+    {
+      "name": "prepare_next_round",
+      "server_action": "if bag empty, refill from box_lid and shuffle",
+      "resolve": "reset floor lines, check end condition",
+      "note": "If any player completed a horizontal wall row, game ends after final scoring. Otherwise start new round."
+    }
+  ],
+  "library": {
+    "wall_color_pattern": "row_colors[row] shifted right by row index: [[blue,yellow,red,black,white],[white,blue,yellow,red,black],[black,white,blue,yellow,red],[red,black,white,blue,yellow],[yellow,red,black,white,blue]]",
+    "floor_penalties": "[-1, -1, -2, -2, -2, -3, -3]",
+    "bonus_complete_row": "2 points for each completed horizontal row on wall",
+    "bonus_complete_column": "7 points for each completed vertical column on wall",
+    "bonus_complete_color": "10 points for all 5 tiles of one color on wall"
+  },
+  "rules": {
+    "draft_from_factory": {
+      "action": "draft(factory, color, pattern_row)",
+      "constraints": [
+        "factory is not empty",
+        "chosen color exists on the factory",
+        "take ALL tiles of chosen color from factory",
+        "remaining tiles on that factory move to center"
+      ],
+      "definition": "Pick all tiles of one color from a factory display. Non-chosen tiles go to center."
+    },
+    "draft_from_center": {
+      "action": "draft(center, color, pattern_row)",
+      "constraints": [
+        "center is not empty",
+        "chosen color exists in center",
+        "take ALL tiles of chosen color from center",
+        "if first_player_marker is in center, take it and add it to floor line"
+      ],
+      "definition": "Pick all tiles of one color from the center pool. First player to do so takes the first-player marker."
+    },
+    "pattern_row_placement": {
+      "constraints": [
+        "pattern row must be empty or already contain tiles of the same color",
+        "the corresponding wall row must not already have a tile of this color",
+        "tiles that do not fit in the pattern row overflow to the floor line"
+      ],
+      "definition": "Place drafted tiles onto a pattern row (1-5 slots). Excess goes to floor."
+    },
+    "wall_tiling": {
+      "trigger": "end of factory_offer phase",
+      "effect": "for each completed pattern row (row N has N tiles): place 1 tile on wall at fixed column for that color, score by adjacency, discard N-1 tiles to box_lid",
+      "definition": "Move tiles from full pattern rows to the wall and score."
+    },
+    "adjacency_scoring": {
+      "definition": "When placing a tile on the wall: if no adjacent tiles, score 1. Otherwise score 1 for the tile plus 1 for each contiguously connected tile horizontally, plus 1 for each contiguously connected tile vertically. If tile has both horizontal and vertical neighbors, it counts once in each direction.",
+      "note": "A tile placed with 2 horizontal neighbors and 1 vertical neighbor scores (1+2) + (1+1) = 5."
+    },
+    "floor_penalty": {
+      "trigger": "wall_tiling phase",
+      "effect": "subtract floor_penalties[i] for each tile i in floor_line, minimum score 0",
+      "definition": "Floor penalties: slots 1-2 = -1 each, slots 3-5 = -2 each, slots 6-7 = -3 each."
+    },
+    "end_of_round": {
+      "trigger": "after wall_tiling",
+      "effect": "discard floor tiles to box_lid, if bag empty refill from box_lid and shuffle, refill factories",
+      "definition": "Clean up and prepare next round."
+    },
+    "final_scoring": {
+      "trigger": "game end",
+      "effect": "bonus: +2 per complete horizontal row, +7 per complete vertical column, +10 per complete color (all 5 on wall)",
+      "definition": "End-game bonuses added to score."
+    }
+  },
+  "end_conditions": [
+    {
+      "result": "win",
+      "player": "highest_score",
+      "condition": "any player has a completed horizontal wall row AND this player has highest score after final scoring",
+      "name": "highest_score_wins"
+    },
+    {
+      "result": "draw",
+      "condition": "any player has a completed horizontal wall row AND scores are tied after final scoring",
+      "name": "tied_scores"
+    }
+  ],
+  "authority": {
+    "server_only": [
+      "shuffle(bag)",
+      "fill_factories(bag, factories)",
+      "refill_bag(box_lid, bag)"
+    ],
+    "client_verifiable": [
+      "draft(factory_or_center, color, pattern_row)",
+      "pattern_row_validity",
+      "wall_placement",
+      "adjacency_scoring",
+      "floor_penalty_calculation",
+      "final_bonus_scoring"
+    ],
+    "wasm_required": [
+      "adjacency_scoring",
+      "final_bonus_calculation"
+    ]
+  },
+  "wasm_module": "azul.wasm"
+}

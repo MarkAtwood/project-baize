@@ -1,0 +1,63 @@
+{
+  "$schema": "../schema/game-definition.schema.json",
+  "game": {
+    "name": "Nim",
+    "players": ["first", "second"],
+    "information": "perfect"
+  },
+  "zones": {
+    "heap_a": {
+      "zone_type": "counter",
+      "visibility": "public",
+      "note": "Heap A starts with 3 objects."
+    },
+    "heap_b": {
+      "zone_type": "counter",
+      "visibility": "public",
+      "note": "Heap B starts with 5 objects."
+    },
+    "heap_c": {
+      "zone_type": "counter",
+      "visibility": "public",
+      "note": "Heap C starts with 7 objects."
+    }
+  },
+  "components": {
+    "object": {
+      "owner": "neutral",
+      "count": 15,
+      "note": "Abstract objects in heaps. Total: 3+5+7=15."
+    }
+  },
+  "turn_order": {
+    "type": "alternating",
+    "players": ["first", "second"],
+    "actions_per_turn": 1,
+    "mandatory": true
+  },
+  "library": {
+    "all_heaps_empty": "heap_a == 0 && heap_b == 0 && heap_c == 0"
+  },
+  "rules": {
+    "take": {
+      "action": "take(heap, n)",
+      "constraints": [
+        "n >= 1",
+        "heap[heap] >= n"
+      ],
+      "definition": "Remove n objects from the chosen heap. n must be at least 1 and at most the current heap size."
+    }
+  },
+  "end_conditions": [
+    {
+      "result": "loss",
+      "player": "current",
+      "condition": "all_heaps_empty",
+      "name": "took_last_object"
+    }
+  ],
+  "authority": {
+    "server_only": [],
+    "client_verifiable": ["take(heap, n)"]
+  }
+}

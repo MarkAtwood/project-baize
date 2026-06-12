@@ -1,0 +1,105 @@
+{
+  "$schema": "../schema/game-definition.schema.json",
+  "game": {
+    "name": "Dots and Boxes",
+    "players": ["A", "B"],
+    "information": "perfect"
+  },
+  "zones": {
+    "lines": {
+      "zone_type": "graph",
+      "visibility": "public",
+      "nodes": [
+        "h_0_0", "h_0_1", "h_0_2",
+        "h_1_0", "h_1_1", "h_1_2",
+        "h_2_0", "h_2_1", "h_2_2",
+        "h_3_0", "h_3_1", "h_3_2",
+        "v_0_0", "v_0_1", "v_0_2", "v_0_3",
+        "v_1_0", "v_1_1", "v_1_2", "v_1_3",
+        "v_2_0", "v_2_1", "v_2_2", "v_2_3"
+      ],
+      "edges": [],
+      "node_properties": {
+        "h_0_0": {"dot_a": "0,0", "dot_b": "0,1", "direction": "horizontal", "boxes": "0_0"},
+        "h_0_1": {"dot_a": "0,1", "dot_b": "0,2", "direction": "horizontal", "boxes": "0_1"},
+        "h_0_2": {"dot_a": "0,2", "dot_b": "0,3", "direction": "horizontal", "boxes": "0_2"},
+        "h_1_0": {"dot_a": "1,0", "dot_b": "1,1", "direction": "horizontal", "boxes": "0_0,1_0"},
+        "h_1_1": {"dot_a": "1,1", "dot_b": "1,2", "direction": "horizontal", "boxes": "0_1,1_1"},
+        "h_1_2": {"dot_a": "1,2", "dot_b": "1,3", "direction": "horizontal", "boxes": "0_2,1_2"},
+        "h_2_0": {"dot_a": "2,0", "dot_b": "2,1", "direction": "horizontal", "boxes": "1_0,2_0"},
+        "h_2_1": {"dot_a": "2,1", "dot_b": "2,2", "direction": "horizontal", "boxes": "1_1,2_1"},
+        "h_2_2": {"dot_a": "2,2", "dot_b": "2,3", "direction": "horizontal", "boxes": "1_2,2_2"},
+        "h_3_0": {"dot_a": "3,0", "dot_b": "3,1", "direction": "horizontal", "boxes": "2_0"},
+        "h_3_1": {"dot_a": "3,1", "dot_b": "3,2", "direction": "horizontal", "boxes": "2_1"},
+        "h_3_2": {"dot_a": "3,2", "dot_b": "3,3", "direction": "horizontal", "boxes": "2_2"},
+        "v_0_0": {"dot_a": "0,0", "dot_b": "1,0", "direction": "vertical", "boxes": "0_0"},
+        "v_0_1": {"dot_a": "0,1", "dot_b": "1,1", "direction": "vertical", "boxes": "0_0,0_1"},
+        "v_0_2": {"dot_a": "0,2", "dot_b": "1,2", "direction": "vertical", "boxes": "0_1,0_2"},
+        "v_0_3": {"dot_a": "0,3", "dot_b": "1,3", "direction": "vertical", "boxes": "0_2"},
+        "v_1_0": {"dot_a": "1,0", "dot_b": "2,0", "direction": "vertical", "boxes": "1_0"},
+        "v_1_1": {"dot_a": "1,1", "dot_b": "2,1", "direction": "vertical", "boxes": "1_0,1_1"},
+        "v_1_2": {"dot_a": "1,2", "dot_b": "2,2", "direction": "vertical", "boxes": "1_1,1_2"},
+        "v_1_3": {"dot_a": "1,3", "dot_b": "2,3", "direction": "vertical", "boxes": "1_2"},
+        "v_2_0": {"dot_a": "2,0", "dot_b": "3,0", "direction": "vertical", "boxes": "2_0"},
+        "v_2_1": {"dot_a": "2,1", "dot_b": "3,1", "direction": "vertical", "boxes": "2_0,2_1"},
+        "v_2_2": {"dot_a": "2,2", "dot_b": "3,2", "direction": "vertical", "boxes": "2_1,2_2"},
+        "v_2_3": {"dot_a": "2,3", "dot_b": "3,3", "direction": "vertical", "boxes": "2_2"}
+      },
+      "note": "Each node is a line segment between two adjacent dots on a 4x4 grid. Horizontal lines h_r_c connect dot (r,c) to (r,c+1). Vertical lines v_r_c connect dot (r,c) to (r+1,c). The 'boxes' property lists which of the nine boxes (r_c) this line borders. Claiming a node means drawing that line."
+    },
+    "score": {
+      "zone_type": "counter",
+      "per_player": true,
+      "visibility": "public"
+    }
+  },
+  "components": {
+    "line_marker": {
+      "owner": "per_player",
+      "count": "unlimited",
+      "note": "Marker placed on a line node when a player draws that line."
+    }
+  },
+  "turn_order": {
+    "type": "alternating",
+    "players": ["A", "B"],
+    "actions_per_turn": 1,
+    "mandatory": true
+  },
+  "rules": {
+    "draw_line": {
+      "action": "place(line_marker, lines/node)",
+      "constraint": "node is empty"
+    },
+    "extra_turn": {
+      "trigger": "box_completed",
+      "effect": "current player takes another turn",
+      "definition": "Completing a box (4th side) grants the current player an extra turn."
+    }
+  },
+  "library": {
+    "all_lines_claimed": "occupied_count == 24",
+    "box_sides": "Box (r,c) has sides: h_r_c (top), h_{r+1}_c (bottom), v_r_c (left), v_r_{c+1} (right)."
+  },
+  "end_conditions": [
+    {
+      "result": "win",
+      "player": "current",
+      "condition": "all_lines_claimed AND score[current] > score[opponent]",
+      "name": "most_boxes"
+    },
+    {
+      "result": "draw",
+      "condition": "all_lines_claimed AND score[current] == score[opponent]",
+      "name": "tied_score"
+    }
+  ],
+  "authority": {
+    "server_only": [],
+    "client_verifiable": ["place(line_marker, lines/node)", "score_update"]
+  },
+  "wasm_module": "dots-and-boxes.wasm",
+  "notation": {
+    "special_moves": {}
+  }
+}
