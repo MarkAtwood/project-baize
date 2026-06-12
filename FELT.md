@@ -173,35 +173,38 @@ this is not recommended.
 
 ### Primitive Types
 
-| Type | WASM repr | Size | Description |
-|------|-----------|------|-------------|
-| `Int` | `i64` | 8 bytes | 64-bit signed integer |
-| `Float` | `f64` | 8 bytes | 64-bit IEEE 754 |
-| `Bool` | `i32` | 4 bytes | 0 = false, 1 = true |
-| `String` | `i32` (ptr) | 4 bytes | Pointer to (len: i32, bytes: u8[]) in linear memory |
+| Type | WASM GC repr | Description |
+|------|-------------|-------------|
+| `Int` | `i64` | 64-bit signed integer (WASM scalar) |
+| `Float` | `f64` | 64-bit IEEE 754 (WASM scalar) |
+| `Bool` | `i32` | 0 = false, 1 = true (WASM scalar) |
+| `String` | `ref (array i8)` | GC-managed immutable byte array (UTF-8) |
 
 ### Collection Types
 
-| Type | WASM repr | Layout in linear memory |
-|------|-----------|------------------------|
-| `List a` | `i32` (ptr) | (len: i32, elements: a[]) |
-| `Set a` | `i32` (ptr) | (len: i32, sorted_elements: a[]) — sorted, no duplicates |
-| `Map k v` | `i32` (ptr) | (len: i32, entries: (k, v)[]) — sorted by key |
+| Type | WASM GC repr | Description |
+|------|-------------|-------------|
+| `List a` | `ref (array (ref $a))` | GC-managed immutable array of element refs |
+| `Set a` | `ref (array (ref $a))` | Same as List but sorted, no duplicates |
+| `Map k v` | `ref (array (ref $entry))` | Sorted array of (key, value) struct refs |
 
-### Game Types (Opaque Handles)
+Collections are immutable. Operations like `filter` and `map` return
+new GC-allocated arrays. The engine's GC reclaims unreachable old
+copies. No manual memory management.
 
-These are `i32` indices into a runtime table populated during JSON
-deserialization. You cannot construct them — you receive them from
-the game state.
+### Game Types (GC Struct References)
 
-| Type | WASM repr | What it is |
-|------|-----------|------------|
-| `State` | `i32` | Full game state handle |
-| `Zone` | `i32` | Index into zones table |
-| `Cell` | `i32` | Index into cells table |
-| `Component` | `i32` | Index into components table |
-| `Player` | `i32` | Index into players table |
-| `Action` | `i32` | Index into actions table |
+These are GC-managed struct refs populated during JSON deserialization.
+You cannot construct them — you receive them from the game state.
+
+| Type | WASM GC repr | What it is |
+|------|-------------|------------|
+| `State` | `ref $State` | GC struct: zones array, players array, counters, phase, turn |
+| `Zone` | `ref $Zone` | GC struct: zone_type, cells array, components array, dimensions |
+| `Cell` | `ref $Cell` | GC struct: col, row, component (nullable ref) |
+| `Component` | `ref $Component` | GC struct: type_name, owner, rank, suit, properties |
+| `Player` | `ref $Player` | GC struct: name, index |
+| `Action` | `ref $Action` | GC struct: action_type, component_id, from, to, etc. |
 
 ### Tuple Types
 
@@ -210,8 +213,8 @@ the game state.
 (String, Int, Bool)  -- triple
 ```
 
-WASM layout: elements packed sequentially. `(Int, Int)` = 16 bytes
-(two i64). Accessed by position: `fst`, `snd`, or destructuring.
+WASM GC repr: `ref (struct i64 i64)` for pairs, etc. Accessed by
+position: `fst`, `snd`, or destructuring. GC-managed.
 
 ### Record Types
 
@@ -222,8 +225,9 @@ type EndResult = { game_over: Bool, winner: String, condition: String }
 ```
 
 These are the only three user-definable record types. They correspond
-to the `GameExtension` return types. WASM layout: fields packed in
-declaration order. Accessed with `.field` syntax: `s.player`, `s.points`.
+to the `GameExtension` return types. WASM GC repr: `ref (struct ...)`
+with named field accessors via `struct.get`. Accessed with `.field`
+syntax: `s.player`, `s.points`.
 
 Record types are declared at the top of a `.felt` file. They are
 product types only — no inheritance, no methods.
@@ -234,8 +238,10 @@ product types only — no inheritance, no methods.
 Option a = Some a | None
 ```
 
-WASM layout: `(tag: i32, value: a)`. Tag 0 = None, tag 1 = Some.
-When tag is 0, value bytes are zero-filled.
+WASM GC repr: nullable reference. `Option Component` = `(ref null $Component)`.
+`None` = `ref.null`. `Some x` = the ref itself.
+
+For `Option Int` (boxing a scalar): `ref null (struct i64)`.
 
 Pattern match to extract:
 ```
@@ -243,6 +249,8 @@ match cell_at board 3 4 with
 | Some c -> type_of c
 | None   -> "empty"
 ```
+
+Compiles to `ref.is_null` + `br_if`.
 
 ### Convenience Functions for Option
 
@@ -414,16 +422,16 @@ compiles to:
 local.get $x
 i64.const 1
 i64.eq
-if (result i32)
-  ;; push "one" string pointer
+if (result (ref $String))
+  array.new_data $String $data_one 3      ;; "one"
 else
   local.get $x
   i64.const 2
   i64.eq
-  if (result i32)
-    ;; push "two" string pointer
+  if (result (ref $String))
+    array.new_data $String $data_two 3    ;; "two"
   else
-    ;; push "other" string pointer
+    array.new_data $String $data_other 5  ;; "other"
   end
 end
 ```
@@ -456,8 +464,7 @@ score.player     -- "X"
 score.points     -- 42
 ```
 
-Field access compiles to a fixed offset load (fields are packed in
-declaration order).
+Field access compiles to `struct.get` (GC-managed, type-safe).
 
 ---
 
@@ -676,75 +683,159 @@ Rust (.rs)    →  no termination guarantee
 
 ---
 
-## WASM Memory Layout
+## WASM GC Memory Model
 
-### Arena Allocator
+### No Manual Memory Management
 
-Felt uses a bump allocator. All allocations grow a pointer forward.
-Nothing is freed individually. The entire arena is reset between
-extension calls.
+Felt targets WASM GC (WebAssembly 3.0, standardized September 2025).
+All heap allocations — strings, lists, records, game state structs —
+are GC-managed by the WASM runtime (wasmtime or browser engine).
 
+**No arena allocator.** No bump pointer. No `alloc`/`dealloc` exports.
+No manual memory layout. The runtime handles everything.
+
+This is possible because:
+- Felt is pure — no mutation, no aliasing concerns.
+- Extension calls are short-lived — allocate during the call, GC
+  reclaims afterward.
+- Wasmtime's "null" GC (bump-allocate, no cycle collection) is
+  perfect for this: Felt can't create cycles (immutable data, no
+  mutation), so bump-and-forget is correct.
+
+### WASM GC Type Definitions
+
+The Felt compiler emits these GC type definitions in the WASM module:
+
+```wasm
+;; Primitives that need boxing (for Option, List elements, etc.)
+(type $BoxedInt (struct (field $val i64)))
+(type $BoxedFloat (struct (field $val f64)))
+
+;; Strings
+(type $String (array i8))    ;; UTF-8 bytes, length via array.len
+
+;; Generic array (for List/Set)
+(type $Array_i64 (array i64))
+(type $Array_ref (array (ref null any)))  ;; array of any GC ref
+
+;; Game types
+(type $State (struct
+  (field $zones    (ref $Array_ref))     ;; array of Zone refs
+  (field $players  (ref $Array_ref))     ;; array of Player refs
+  (field $counters (ref $Array_ref))     ;; array of (name, value) pairs
+  (field $phase    (ref $String))
+  (field $turn     i32)
+  (field $finished i32)))
+
+(type $Zone (struct
+  (field $name       (ref $String))
+  (field $zone_type  i32)              ;; 0=grid, 1=stack, 2=set, etc.
+  (field $width      i32)
+  (field $height     i32)
+  (field $cells      (ref $Array_ref))   ;; array of Cell refs
+  (field $components (ref $Array_ref)))) ;; array of Component refs
+
+(type $Cell (struct
+  (field $col       i32)
+  (field $row       i32)
+  (field $occupant  (ref null $Component))))
+
+(type $Component (struct
+  (field $type_name  (ref $String))
+  (field $owner      (ref null $Player))
+  (field $rank       i64)
+  (field $suit       (ref $String))
+  (field $id         (ref $String))
+  (field $properties (ref $Array_ref)))) ;; array of (key, value) pairs
+
+(type $Player (struct
+  (field $name  (ref $String))
+  (field $index i32)))
+
+;; User-defined records
+(type $Score (struct
+  (field $player    (ref $String))
+  (field $points    i64)
+  (field $breakdown (ref $Array_ref))))   ;; array of Entry refs
+
+(type $Entry (struct
+  (field $category (ref $String))
+  (field $points   i64)))
+
+(type $EndResult (struct
+  (field $game_over i32)
+  (field $winner    (ref $String))
+  (field $condition (ref $String))))
+
+;; Tuples
+(type $Pair_i64_i64 (struct (field $fst i64) (field $snd i64)))
+;; (other tuple types generated as needed by the compiler)
 ```
-WASM linear memory:
-  [0 .. STACK_SIZE)         -- WASM operand stack (managed by WASM runtime)
-  [STACK_SIZE .. HEAP_PTR)  -- static data (string literals, etc.)
-  [HEAP_PTR .. memory.size) -- arena: bump-allocated runtime data
-```
 
-Export: `alloc(size: i32) -> i32` bumps the pointer and returns the
-old value. Export: `dealloc(ptr: i32, size: i32)` is a no-op (arena
-frees all at once).
+### Value Representation Summary
 
-### Value Representation
-
-| Felt type | WASM type | In-memory layout |
-|-----------|-----------|-----------------|
-| `Int` | `i64` | 8 bytes, little-endian |
-| `Float` | `f64` | 8 bytes, IEEE 754 |
-| `Bool` | `i32` | 4 bytes (0 or 1) |
-| `String` | `i32` (ptr) | At ptr: (len: i32, bytes: u8[len]) |
-| `List a` | `i32` (ptr) | At ptr: (len: i32, elements: a[len]) |
-| `Set a` | `i32` (ptr) | Same as List but sorted, no duplicates |
-| `Map k v` | `i32` (ptr) | At ptr: (len: i32, pairs: (k,v)[len]) |
-| `(a, b)` | Packed struct | a followed by b, no padding |
-| `Option a` | `(i32, a)` | (tag, value). Tag 0 = None, 1 = Some |
-| `{ f1: T1, f2: T2 }` | Packed struct | Fields in declaration order |
-| Game handles | `i32` | Index into runtime table |
-
-Elements in List/Set/Map are stored at their natural size:
-- `List Int` = ptr → (len: i32, i64[len])
-- `List Component` = ptr → (len: i32, i32[len]) — list of handles
-- `List (Int, String)` = ptr → (len: i32, (i64, i32)[len])
+| Felt type | WASM GC instruction | Notes |
+|-----------|--------------------|----|
+| `Int` | `i64` on stack | No boxing unless inside a collection |
+| `Float` | `f64` on stack | No boxing unless inside a collection |
+| `Bool` | `i32` on stack | 0 or 1 |
+| `String` | `array.new $String` | Immutable byte array |
+| `List a` | `array.new $Array_*` | Immutable element array |
+| `(a, b)` | `struct.new $Pair` | GC struct |
+| `{ f: T }` | `struct.new $Record` | GC struct |
+| `Some x` | The ref itself | Non-null ref |
+| `None` | `ref.null` | Null ref |
+| Game types | `struct.new $State/$Zone/...` | GC struct |
 
 ### JSON Serde Runtime
 
-The compiled WASM binary includes a small runtime (~5KB) that:
+The compiled WASM binary includes a small runtime that:
 
-1. **Deserializes** JSON game state into the runtime tables and
-   returns a `State` handle (i32 = 0).
-2. **Serializes** Felt result values back to JSON.
+1. **Deserializes** JSON game state into GC struct/array instances
+   using `struct.new` and `array.new` instructions.
+2. **Serializes** Felt result values back to JSON by walking GC
+   structs with `struct.get` and arrays with `array.get`.
 
 The runtime is pre-compiled WASM (written in Rust, compiled to
-`wasm32-unknown-unknown`). The Felt compiler links it into every
-output binary by appending its function and data sections.
+`wasm32-unknown-unknown` with GC target features). The Felt compiler
+links it into every output binary.
 
-**Deserialization strategy:** Walk the JSON, populate parallel arrays:
-- `zones[]` — zone metadata (type, dimensions)
-- `cells[]` — cell data (zone_index, col, row, component_index)
-- `components[]` — component data (type string ptr, owner, rank, ...)
-- `players[]` — player names
+**Deserialization strategy:** The JSON arrives as a byte array in
+linear memory (the one piece of linear memory we still use — for
+the JSON input/output buffer). The runtime parses it and builds
+GC structs:
 
-Game type handles are indices into these arrays. `zone state "board"`
-does a linear scan of `zones[]` for a matching name. Board query
-functions operate on these arrays.
+```
+JSON bytes (linear memory) → parse → struct.new $State
+  → struct.new $Zone (for each zone)
+    → struct.new $Cell (for each cell)
+      → struct.new $Component (for each component)
+```
 
-**Serialization strategy:** The five extension functions return
-known types. The runtime has a dedicated serializer for each:
-- `List Score` → JSON array of `{"player":...,"points":...,...}`
-- `Option EndResult` → JSON object or null
-- `Option Bool` → JSON `true`/`false`/`null`
-- `List Action` → JSON array
-- `State` → full JSON state (for `apply_effect`)
+**Serialization strategy:** Walk the result's GC structs, emit JSON
+bytes into the linear memory output buffer:
+- `List Score` → `[{"player":...,"points":...}, ...]`
+- `Option EndResult` → `{...}` or `null`
+- `Option Bool` → `true`/`false`/`null`
+
+**Linear memory is used ONLY for the JSON I/O buffers** — the
+input string from the host and the output string to the host. All
+game data structures live in the GC heap.
+
+### Why WASM GC?
+
+| Without GC (WASM 2.0) | With GC (WASM 3.0) |
+|----------------------|---------------------|
+| Ship an allocator in every binary | Runtime manages memory |
+| Manual layout: `(len, elements...)` in raw bytes | `array.new`, `array.get`, `array.len` |
+| Pointer math for struct fields | `struct.new`, `struct.get` — type-safe |
+| Option = `(tag, value)` packed in memory | Nullable ref: `ref.null` / `ref.is_null` |
+| ~5KB allocator overhead | 0 bytes overhead |
+| Out-of-bounds = silent corruption | Out-of-bounds = runtime trap |
+
+WASM GC is a W3C standard (WebAssembly 3.0, September 2025).
+Supported in Chrome (since late 2023), Firefox, and wasmtime 27+
+(Bytecode Alliance). Felt targets WASM GC as a hard requirement.
 
 ---
 
@@ -969,43 +1060,50 @@ checker from the earlier spec.
 variables are WASM locals. The body is compiled as a single
 expression that leaves its result on the stack.
 
-**Compilation rules:**
+**Compilation rules (WASM GC):**
 
-| Felt construct | WASM output |
-|---------------|-------------|
+| Felt construct | WASM GC output |
+|---------------|----------------|
 | `IntLit(n)` | `i64.const n` |
 | `FloatLit(f)` | `f64.const f` |
 | `BoolLit(b)` | `i32.const 0\|1` |
-| `StringLit(s)` | `i32.const <ptr>` (ptr into data section) |
+| `StringLit(s)` | `array.new_data $String $data_offset $len` (from data section) |
 | `Ident(x)` | `local.get $x` |
 | `BinOp(Add, a, b)` | `[compile a] [compile b] i64.add` |
 | `BinOp(Eq, a, b)` | `[compile a] [compile b] i64.eq` |
 | `Apply(f, x)` | `[compile x] call $f` |
 | `Let(binds, body)` | For each: `[compile val] local.set $var`. Then `[compile body]` |
-| `If(c, t, f)` | `[compile c] if [compile t] else [compile f] end` |
+| `If(c, t, f)` | `[compile c] if (result ...) [compile t] else [compile f] end` |
 | `Match(e, arms)` | `[compile e] local.set $match_val` then cascade of if/else |
 | `Lambda(...)` | After closure conversion: `call $__lambda_N` with captured vars |
-| `List([a,b,c])` | Alloc `(3+len*elem_size)`, store len, store each element |
-| `Record({f=v,...})` | Alloc struct size, store each field at offset |
-| `.field` | `i32.load offset=<field_offset>` |
-| `None` | `i32.const 0` (tag), zero-fill value |
-| `Some x` | `i32.const 1` (tag), `[compile x]` |
+| `[a, b, c]` | `array.new_fixed $Array_T 3` then `array.set` for each element |
+| `{ f = v }` | `[compile each field] struct.new $RecordType` |
+| `.field` | `struct.get $RecordType $field_index` |
+| `None` | `ref.null $T` |
+| `Some x` | `[compile x]` (the non-null ref IS the Some) |
+| `is_none x` | `ref.is_null [compile x]` |
+| `match ... Some` | `ref.is_null br_if $none_branch` then `ref.as_non_null` |
 
 **Built-in functions** are compiled as WASM function bodies in the
-runtime module. They are linked into the output binary. Each built-in
-has a known function index.
+runtime module. They use GC instructions internally (e.g., `map`
+creates a new `array.new` and fills it with `array.set`). Each
+built-in has a known function index.
 
-**WASM module structure:**
+**WASM module structure (WASM 3.0 + GC):**
 
 ```
-TypeSection:    function signatures
-ImportSection:  (none — self-contained)
-FunctionSection: function indices
-MemorySection:  1 memory, min 1 page, max 1024 pages (64MB)
-ExportSection:  "memory", "alloc", "dealloc", + extension functions
-DataSection:    string literals, runtime tables
-CodeSection:    function bodies (user functions + runtime)
+TypeSection:       GC struct/array type definitions + function signatures
+ImportSection:     (none — self-contained)
+FunctionSection:   function indices
+MemorySection:     1 memory, min 1 page (for JSON I/O buffers only)
+ExportSection:     "memory", "alloc", "dealloc", + extension functions
+DataSection:       string literals (for array.new_data)
+CodeSection:       function bodies (user + runtime)
 ```
+
+Note: `alloc`/`dealloc` are still exported for the JSON I/O buffer
+in linear memory (the WasmHost ABI passes JSON strings through
+linear memory). All game data structures use the GC heap instead.
 
 ---
 
@@ -1227,12 +1325,13 @@ fn no_legal_moves(state: State, board: Zone, player: Player) -> Bool =
 | Desugar | — | Pipe/comprehension/partial elimination (~100 lines) |
 | Type checker | — | Bidirectional checking (~500 lines) |
 | Call graph check | — | Topological sort (~50 lines) |
-| WASM codegen | `wasm-encoder` | Expression compiler (~800 lines) |
+| WASM GC codegen | `wasm-encoder` | Expression compiler with GC types (~600 lines) |
 | JSON runtime | Pre-compiled WASM | State deserializer, result serializer (~300 lines Rust) |
 | Error reporting | `ariadne` | Diagnostic formatting (~100 lines) |
 | CLI | `clap` | Three subcommands (~50 lines) |
 
-**Total estimated custom code: ~2,400 lines of Rust.**
+**Total estimated custom code: ~2,200 lines of Rust.** (GC eliminates
+~200 lines of manual memory management from the codegen.)
 
 ---
 
