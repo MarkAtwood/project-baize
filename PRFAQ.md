@@ -93,7 +93,7 @@ TypeScript client are all included.
 ### What games can Baize describe?
 
 Any turn-based card or board game with discrete state. The six reference
-games — Tic-Tac-Toe, Chess, Go, Backgammon, Texas Hold'em, and Carcassonne
+games — Tic-Tac-Toe, Chess, Go, Backgammon, Texas Hold'em, and Tile Kingdoms
 — span the spectrum from trivial perfect-information placement games to
 complex imperfect-information games with randomness, hidden state, dynamic
 boards, and custom scoring. Games with real-time physics (foosball) or
@@ -169,7 +169,7 @@ not a schema concern.
 
 Not always. For perfect-information games (chess, Go, checkers), the server
 is just a move sequencer — any message ordering mechanism works, including
-peer-to-peer WebRTC. For imperfect-information games (poker, Battleship),
+peer-to-peer WebRTC. For imperfect-information games (poker, Naval Battle),
 the default is a trusted server, but every server-only operation has a known
 cryptographic replacement: commit-reveal for dice rolls and simultaneous
 moves (2 extra rounds), mental poker for card shuffling and dealing (SRA

@@ -34,7 +34,7 @@ pub trait GameExtension {
 
     /// Compute scores for all players.
     /// Used for scoring that's too complex for declarative predicates
-    /// (e.g., Carcassonne field scoring, Go territory counting).
+    /// (e.g., tile-placement field scoring, Go territory counting).
     fn score(&self, state: &GameState) -> Result<Vec<PlayerScore>, ExtensionError>;
 
     /// Check whether the game has ended.

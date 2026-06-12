@@ -77,8 +77,8 @@ platform-specific clients, and the Rubik's Cube game definition.
 - **Single-player support** (baize-0b1) — Engine handles 1-player games
   (advance_turn with modular arithmetic, no opponent assumptions).
 - **7 game definitions** — Tic-Tac-Toe, Chess, Texas Hold'em,
-  Carcassonne, Go, Backgammon, Battleship.
-- **Battleship** — Multi-cell ship spans, per-player hidden grids,
+  Tile Kingdoms, Go, Backgammon, Naval Battle.
+- **Naval Battle** — Multi-cell ship spans, per-player hidden grids,
   hit/miss/sunk tracking via perturber effects.
 - **Rubik's Cube subsystems** — Cycle primitive, face rotations (all 18
   moves), solved-state CEL end condition, scramble generation.

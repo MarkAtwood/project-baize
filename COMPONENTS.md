@@ -151,7 +151,7 @@ standard:discs-solid:
 
 ## Pawns and Figures
 
-### Generic Meeples (Carcassonne-style)
+### Generic Meeples (tile-placement-style)
 ```yaml
 standard:meeples:
   type: pawn

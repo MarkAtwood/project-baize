@@ -226,7 +226,7 @@
         },
         "dynamic": {
           "type": "boolean",
-          "description": "If true, the grid grows as tiles are placed (e.g. Carcassonne)."
+          "description": "If true, the grid grows as tiles are placed (e.g. tile-placement games)."
         },
         "length": {
           "type": "integer",
@@ -333,7 +333,7 @@
           "additionalProperties": {
             "type": "object"
           },
-          "description": "Sub-types with their own properties (e.g. ship types in Battleship)."
+          "description": "Sub-types with their own properties (e.g. ship types in naval battle games)."
         },
         "one_of_each": {
           "type": "boolean",

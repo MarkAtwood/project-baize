@@ -282,10 +282,10 @@ fn events_are_jsonl_serializable() {
     }
 }
 
-fn battleship_session() -> GameSession {
+fn naval_battle_session() -> GameSession {
     let def: GameDefinition = serde_json::from_str(
         r#"{
-        "game": { "name": "Battleship", "players": ["A", "B"], "information": "imperfect" },
+        "game": { "name": "Naval Battle", "players": ["A", "B"], "information": "imperfect" },
         "zones": {
             "ocean": { "zone_type": "grid", "dimensions": [10, 10], "per_player": true, "visibility": { "private": "owner" } },
             "target": { "zone_type": "grid", "dimensions": [10, 10], "per_player": true, "visibility": { "private": "owner" } },
@@ -371,7 +371,7 @@ fn fire_action(col: u32, row: u32) -> Action {
 
 #[test]
 fn place_ship_horizontal() {
-    let mut session = battleship_session();
+    let mut session = naval_battle_session();
 
     let events = apply_action(
         &mut session,
@@ -397,7 +397,7 @@ fn place_ship_horizontal() {
 
 #[test]
 fn place_ship_vertical() {
-    let mut session = battleship_session();
+    let mut session = naval_battle_session();
 
     let events = apply_action(
         &mut session,
@@ -415,7 +415,7 @@ fn place_ship_vertical() {
 
 #[test]
 fn place_ship_overlap_rejected() {
-    let mut session = battleship_session();
+    let mut session = naval_battle_session();
 
     apply_action(
         &mut session,
@@ -434,7 +434,7 @@ fn place_ship_overlap_rejected() {
 
 #[test]
 fn place_ship_out_of_bounds_rejected() {
-    let mut session = battleship_session();
+    let mut session = naval_battle_session();
 
     let result = apply_action(
         &mut session,
@@ -445,7 +445,7 @@ fn place_ship_out_of_bounds_rejected() {
 
 #[test]
 fn fire_miss() {
-    let mut session = battleship_session();
+    let mut session = naval_battle_session();
     session.runtime.status = GameStatus::InProgress;
 
     // Player B places a destroyer at (5,5) on their ocean
@@ -474,7 +474,7 @@ fn fire_miss() {
 
 #[test]
 fn fire_hit() {
-    let mut session = battleship_session();
+    let mut session = naval_battle_session();
     session.runtime.status = GameStatus::InProgress;
 
     // Player B places a destroyer at (5,5) horizontal on their ocean
@@ -502,7 +502,7 @@ fn fire_hit() {
 
 #[test]
 fn fire_sunk() {
-    let mut session = battleship_session();
+    let mut session = naval_battle_session();
     session.runtime.status = GameStatus::InProgress;
 
     // Player B places a destroyer (span 2) at (5,5) horizontal
@@ -532,7 +532,7 @@ fn fire_sunk() {
 
 #[test]
 fn fire_duplicate_rejected() {
-    let mut session = battleship_session();
+    let mut session = naval_battle_session();
     session.runtime.status = GameStatus::InProgress;
 
     // Player A fires at (0,0) — miss

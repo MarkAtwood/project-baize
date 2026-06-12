@@ -12,5 +12,5 @@
     "thickness_mm": 10.0,
     "material": "wood"
   },
-  "note": "Carcassonne-style meeple silhouettes. Used for worker placement, area control, and generic player markers."
+  "note": "tile-placement-style meeple silhouettes. Used for worker placement, area control, and generic player markers."
 }

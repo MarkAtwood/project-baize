@@ -81,7 +81,7 @@ movement primitives, visibility, win conditions. Data only — parsed, not
 executed.
 
 **Tier 2 — WASM Extensions** (~10%). For logic too complex for declarative
-predicates: scoring (Carcassonne fields), chain reactions (Othello flips),
+predicates: scoring (tile-placement field scoring), chain reactions (Othello flips),
 custom validation (checkmate). Same WASM binary runs on client and server.
 Deterministic, sandboxed, no I/O.
 
@@ -159,9 +159,9 @@ Seven reference games spanning the complexity spectrum:
 | Chess | Perfect | 8×8 grid | 6 piece types, step/slide/leap/castle primitives, promotion, 5 end conditions |
 | Go | Perfect | 19×19 grid | Intersection play, star points; WASM required for ko/scoring |
 | Backgammon | Perfect + random | 24-point track | Dice-driven movement, bar, bearing off |
-| Battleship | Imperfect | Per-player grids | Hidden ship placement, multi-cell spans, hit/miss/sunk tracking |
+| Naval Battle | Imperfect | Per-player grids | Hidden ship placement, multi-cell spans, hit/miss/sunk tracking |
 | Texas Hold'em | Imperfect | Deck + hands + community | 6 phases, betting rounds, server-only shuffle/deal/reveal |
-| Carcassonne | Imperfect | Dynamic grid | Growing board, 71-tile draw pile, meeple placement; WASM for field scoring |
+| Tile Kingdoms | Imperfect | Dynamic grid | Growing board, 71-tile draw pile, meeple placement; WASM for field scoring |
 
 ## Component Registry
 
@@ -194,7 +194,7 @@ cd client && npx tsc --noEmit
 ## Key Documents
 
 - `DESIGN.md` — Architecture, trust boundaries, prior art analysis, decided and open questions
-- `EXAMPLES.md` — Full schema examples (chess, poker, Carcassonne, Battleship, tic-tac-toe)
+- `EXAMPLES.md` — Full schema examples (chess, poker, Tile Kingdoms, Naval Battle, tic-tac-toe)
 - `COMPONENTS.md` — Standard component registry specification
 - `PRIOR-ART.md` — Survey of 12 existing systems and what Baize borrows from each
 - `BINDING-SCENE.md` — Optional binding to JMAP Scene
