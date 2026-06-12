@@ -1,0 +1,105 @@
+{
+  "$schema": "../schema/game-definition.schema.json",
+  "game": {
+    "name": "Dominoes",
+    "players": ["P1", "P2"],
+    "information": "imperfect"
+  },
+  "zones": {
+    "boneyard": {
+      "zone_type": "ordered_stack",
+      "visibility": "hidden",
+      "note": "Shuffled pool of undrawn tiles. Server deals 7 to each player at start."
+    },
+    "hand": {
+      "zone_type": "set",
+      "visibility": {"private": "owner"},
+      "per_player": true,
+      "note": "Each player's private hand of domino tiles."
+    },
+    "chain": {
+      "zone_type": "ordered_stack",
+      "visibility": "public",
+      "note": "The line of played tiles. First and last tiles determine open ends."
+    }
+  },
+  "components": {
+    "tile": {
+      "registry": "standard:dominoes-double-six",
+      "owner": "neutral",
+      "count": 28,
+      "properties": {
+        "half_a": [0, 1, 2, 3, 4, 5, 6],
+        "half_b": [0, 1, 2, 3, 4, 5, 6]
+      },
+      "note": "Double-six domino tile. Each tile has two halves with 0-6 pips. All 28 unique combinations from [0,0] to [6,6]."
+    }
+  },
+  "turn_order": {
+    "type": "alternating",
+    "players": ["P1", "P2"],
+    "actions_per_turn": 1,
+    "mandatory": true
+  },
+  "phases": [
+    {
+      "name": "deal",
+      "server_action": "shuffle_and_deal",
+      "note": "Server shuffles boneyard and deals 7 tiles to each player's hand."
+    },
+    {
+      "name": "play",
+      "action": "play_tile_or_pass",
+      "note": "Players alternate playing a tile matching an open end, or passing if no playable tile."
+    }
+  ],
+  "library": {
+    "hand_empty": "hand.count == 0",
+    "no_playable_tile": "hand.all(tile, tile.half_a != open_end_left && tile.half_a != open_end_right && tile.half_b != open_end_left && tile.half_b != open_end_right)",
+    "both_blocked": "p1_blocked && p2_blocked"
+  },
+  "rules": {
+    "play_tile": {
+      "action": "play_tile",
+      "definition": "Place a tile from hand onto one end of the chain. One half of the tile must match the open end being played to.",
+      "constraints": [
+        "tile is in current player hand",
+        "tile.half_a == open_end OR tile.half_b == open_end"
+      ]
+    },
+    "pass": {
+      "action": "pass",
+      "definition": "Pass the turn. Only legal when no tile in hand can match either open end of the chain.",
+      "requires": ["no_playable_tile"]
+    },
+    "first_play": {
+      "action": "play_tile",
+      "definition": "First tile may be played freely with no matching constraint.",
+      "trigger": "chain is empty"
+    }
+  },
+  "end_conditions": [
+    {
+      "result": "win",
+      "player": "current",
+      "condition": "hand_empty",
+      "name": "domino"
+    },
+    {
+      "result": "win",
+      "player": "lower_pip_count",
+      "condition": "both_blocked",
+      "name": "blocked_game"
+    },
+    {
+      "result": "draw",
+      "condition": "both_blocked_equal_pips",
+      "name": "blocked_tie"
+    }
+  ],
+  "authority": {
+    "server_only": ["shuffle_and_deal"],
+    "client_verifiable": ["play_tile", "pass"],
+    "wasm_required": ["pip_count_comparison"]
+  }
+}

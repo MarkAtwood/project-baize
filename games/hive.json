@@ -1,0 +1,165 @@
+{
+  "$schema": "../schema/game-definition.schema.json",
+  "game": {
+    "name": "Hive",
+    "players": ["White", "Black"],
+    "information": "perfect"
+  },
+  "zones": {
+    "board": {
+      "zone_type": "hex_grid",
+      "dimensions": [21, 21],
+      "visibility": "public",
+      "adjacency": "hex_6",
+      "stacking_limit": 0,
+      "note": "21x21 hex grid. No fixed starting positions; pieces are placed adjacently to form a connected hive. Center cell (10,10) is the conventional first-move location. Stacking is unlimited to support beetles climbing on top of other pieces."
+    },
+    "supply_white": {
+      "zone_type": "set",
+      "visibility": "public",
+      "per_player": false,
+      "note": "White's unplaced pieces."
+    },
+    "supply_black": {
+      "zone_type": "set",
+      "visibility": "public",
+      "per_player": false,
+      "note": "Black's unplaced pieces."
+    }
+  },
+  "components": {
+    "queen_bee": {
+      "owner": "per_player",
+      "count": 1,
+      "movement": [
+        {
+          "primitive": "step",
+          "direction": "adjacent",
+          "distance": 1,
+          "condition": "empty AND freedom_to_move AND one_hive"
+        }
+      ],
+      "note": "Moves exactly 1 step. Must be placed by turn 4."
+    },
+    "beetle": {
+      "owner": "per_player",
+      "count": 2,
+      "movement": [
+        {
+          "primitive": "step",
+          "direction": "adjacent",
+          "distance": 1,
+          "condition": "one_hive"
+        }
+      ],
+      "note": "Moves 1 step. Can climb on top of the hive (stacking). While on top, pins the piece below. Can move to occupied or empty cells."
+    },
+    "grasshopper": {
+      "owner": "per_player",
+      "count": 3,
+      "movement": [
+        {
+          "primitive": "hop",
+          "direction": "adjacent",
+          "condition": "inline AND lands_on_empty AND one_hive"
+        }
+      ],
+      "note": "Jumps in a straight line over one or more contiguous pieces, landing on the first empty cell beyond. Cannot jump over gaps."
+    },
+    "soldier_ant": {
+      "owner": "per_player",
+      "count": 3,
+      "movement": [
+        {
+          "primitive": "slide",
+          "direction": "adjacent",
+          "repeat": "unlimited",
+          "condition": "edge_of_hive AND one_hive"
+        }
+      ],
+      "note": "Slides any number of steps around the outside edge of the hive. Cannot pass through gaps too narrow to slide through (freedom of movement). Most mobile piece."
+    },
+    "spider": {
+      "owner": "per_player",
+      "count": 2,
+      "movement": [
+        {
+          "primitive": "slide",
+          "direction": "adjacent",
+          "distance": 3,
+          "condition": "edge_of_hive AND one_hive AND no_backtrack"
+        }
+      ],
+      "note": "Slides exactly 3 steps around the outside edge of the hive. Cannot backtrack or revisit cells during the move."
+    }
+  },
+  "turn_order": {
+    "type": "alternating",
+    "players": ["White", "Black"],
+    "actions_per_turn": 1,
+    "mandatory": true
+  },
+  "rules": {
+    "placement": {
+      "action": "place(piece, board/cell)",
+      "constraints": [
+        "target cell must be empty",
+        "piece must be adjacent to at least one hive piece (except first piece of game)",
+        "after turn 1, piece must not be adjacent to any opponent piece"
+      ]
+    },
+    "queen_placement_deadline": {
+      "definition": "each player must place their queen bee by their 4th turn",
+      "constraint": "if queen is not placed by start of turn 4, player must place queen this turn"
+    },
+    "one_hive_rule": {
+      "definition": "the hive must remain a single connected group at all times",
+      "constraint": "a piece cannot move if removing it would disconnect the hive"
+    },
+    "freedom_of_movement": {
+      "definition": "a piece can only slide between two cells if it can physically fit through the gap",
+      "constraint": "both cells adjacent to the movement path cannot both be occupied (sliding gate)"
+    },
+    "no_move_before_queen": {
+      "definition": "a player cannot move any piece until their queen bee has been placed",
+      "constraint": "move actions require queen on board"
+    },
+    "stacking": {
+      "definition": "only beetles can climb on top of other pieces",
+      "constraint": "beetle on top pins the piece below (pinned piece cannot move)"
+    }
+  },
+  "end_conditions": [
+    {
+      "result": "win",
+      "player": "opponent_of_current",
+      "condition": "queen_surrounded(current)",
+      "name": "queen_surrounded"
+    },
+    {
+      "result": "draw",
+      "condition": "queen_surrounded(White) AND queen_surrounded(Black)",
+      "name": "double_surround"
+    },
+    {
+      "result": "draw",
+      "condition": "no_legal_moves(current) AND no_legal_moves(opponent)",
+      "name": "mutual_stalemate"
+    }
+  ],
+  "authority": {
+    "server_only": [],
+    "client_verifiable": ["place", "move_piece"],
+    "wasm_required": ["one_hive_validation", "freedom_of_movement", "ant_pathfinding", "spider_pathfinding", "grasshopper_line_validation", "queen_surround_detection"]
+  },
+  "notation": {
+    "piece_symbols": {
+      "queen_bee": "Q",
+      "beetle": "B",
+      "grasshopper": "G",
+      "soldier_ant": "A",
+      "spider": "S"
+    }
+  },
+  "wasm_module": "hive.wasm"
+}

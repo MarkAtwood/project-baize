@@ -1,0 +1,152 @@
+{
+  "$schema": "../schema/game-definition.schema.json",
+  "game": {
+    "name": "Hanabi",
+    "players": ["P1", "P2"],
+    "information": "imperfect"
+  },
+  "zones": {
+    "deck": {
+      "zone_type": "ordered_stack",
+      "visibility": "hidden",
+      "note": "Draw pile. 50 cards: 5 colors x (three 1s, two 2s, two 3s, two 4s, one 5). Server shuffles and deals."
+    },
+    "hand": {
+      "zone_type": "set",
+      "visibility": {"private": "others"},
+      "per_player": true,
+      "capacity": 5,
+      "note": "Inverted visibility: each player can see all OTHER players' hands but NOT their own. This is the defining feature of Hanabi."
+    },
+    "discard_pile": {
+      "zone_type": "ordered_stack",
+      "visibility": "public",
+      "note": "Discarded cards. Visible to all players."
+    },
+    "fireworks_red": {
+      "zone_type": "ordered_stack",
+      "visibility": "public",
+      "note": "Red firework stack. Cards played in ascending order 1-5."
+    },
+    "fireworks_yellow": {
+      "zone_type": "ordered_stack",
+      "visibility": "public",
+      "note": "Yellow firework stack. Cards played in ascending order 1-5."
+    },
+    "fireworks_green": {
+      "zone_type": "ordered_stack",
+      "visibility": "public",
+      "note": "Green firework stack. Cards played in ascending order 1-5."
+    },
+    "fireworks_blue": {
+      "zone_type": "ordered_stack",
+      "visibility": "public",
+      "note": "Blue firework stack. Cards played in ascending order 1-5."
+    },
+    "fireworks_white": {
+      "zone_type": "ordered_stack",
+      "visibility": "public",
+      "note": "White firework stack. Cards played in ascending order 1-5."
+    },
+    "clue_tokens": {
+      "zone_type": "counter",
+      "visibility": "public",
+      "note": "Available clue tokens. Start at 8, max 8. Spend 1 to give a clue, regain 1 on discard."
+    },
+    "fuse_tokens": {
+      "zone_type": "counter",
+      "visibility": "public",
+      "note": "Fuse tokens remaining. Start at 3. Lose 1 on failed play. Game over at 0."
+    }
+  },
+  "components": {
+    "card": {
+      "owner": "shared",
+      "count": 50,
+      "properties": {
+        "color": ["red", "yellow", "green", "blue", "white"],
+        "number": [1, 2, 3, 4, 5]
+      },
+      "note": "Per color: three 1s, two 2s, two 3s, two 4s, one 5. Total 10 per color, 50 cards."
+    }
+  },
+  "turn_order": {
+    "type": "round_robin",
+    "players": ["P1", "P2"],
+    "actions_per_turn": 1,
+    "mandatory": true
+  },
+  "phases": [
+    {
+      "name": "deal",
+      "server_action": "deal_cards(5)",
+      "note": "Server shuffles deck and deals 5 cards to each player."
+    },
+    {
+      "name": "play",
+      "action": "take_action",
+      "actions_per_turn": 1,
+      "note": "Each turn: give_clue, play_card, or discard_card. Exactly one action per turn."
+    }
+  ],
+  "rules": {
+    "give_clue": {
+      "action": "give_clue(target_player, attribute, value)",
+      "requires": ["clue_tokens > 0", "target_player != current_player"],
+      "constraint": "must point to ALL cards matching the attribute in target's hand",
+      "effect": "spend 1 clue token; indicate all cards of the given color OR number in target's hand",
+      "note": "Clue must match at least one card. Attribute is 'color' or 'number'. Points to every matching card."
+    },
+    "play_card": {
+      "action": "play_card(card_index)",
+      "effect": "remove card from hand; if card is next in its color's firework sequence, place on stack; otherwise lose 1 fuse token and discard the card; draw replacement from deck if available",
+      "note": "A card is playable if its number is exactly 1 more than the top of its color's firework stack (or 1 if stack is empty). Playing a 5 successfully regains 1 clue token (if below max)."
+    },
+    "discard_card": {
+      "action": "discard_card(card_index)",
+      "effect": "remove card from hand to discard pile; regain 1 clue token (up to max 8); draw replacement from deck if available",
+      "note": "Cannot discard if clue tokens are already at maximum (8)."
+    },
+    "draw_replacement": {
+      "trigger": "after play_card or discard_card",
+      "effect": "draw top card from deck into current player's hand",
+      "constraint": "deck must not be empty",
+      "note": "When deck empties, each player gets one final turn."
+    }
+  },
+  "library": {
+    "all_fireworks_complete": "fireworks_red.count == 5 AND fireworks_yellow.count == 5 AND fireworks_green.count == 5 AND fireworks_blue.count == 5 AND fireworks_white.count == 5",
+    "fuses_blown": "fuse_tokens.value == 0",
+    "deck_empty_and_round_complete": "deck.count == 0 AND all_players_took_final_turn",
+    "perfect_score": "total_score == 25"
+  },
+  "end_conditions": [
+    {
+      "result": "win",
+      "condition": "all_fireworks_complete",
+      "name": "perfect_fireworks"
+    },
+    {
+      "result": "loss",
+      "condition": "fuses_blown",
+      "name": "explosion"
+    },
+    {
+      "result": "loss",
+      "condition": "deck_empty_and_round_complete",
+      "name": "out_of_cards"
+    }
+  ],
+  "authority": {
+    "server_only": [
+      "shuffle(deck)",
+      "deal_cards",
+      "draw_replacement"
+    ],
+    "client_verifiable": [
+      "give_clue",
+      "play_card",
+      "discard_card"
+    ]
+  }
+}

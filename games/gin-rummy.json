@@ -1,0 +1,166 @@
+{
+  "$schema": "../schema/game-definition.schema.json",
+  "game": {
+    "name": "Gin Rummy",
+    "players": ["P1", "P2"],
+    "information": "imperfect"
+  },
+  "zones": {
+    "stock": {
+      "zone_type": "ordered_stack",
+      "capacity": 52,
+      "visibility": "hidden",
+      "note": "Draw pile. Server shuffles and deals from here."
+    },
+    "discard": {
+      "zone_type": "ordered_stack",
+      "visibility": "public",
+      "note": "Discard pile. Top card visible to both players."
+    },
+    "hand": {
+      "zone_type": "set",
+      "per_player": true,
+      "capacity": 11,
+      "visibility": { "private": "owner" },
+      "note": "Player hand. Holds 10 cards normally, 11 after drawing before discarding."
+    },
+    "melds": {
+      "zone_type": "set",
+      "per_player": true,
+      "visibility": "public",
+      "note": "Revealed melds after knocking. Used for lay-off resolution."
+    },
+    "score": {
+      "zone_type": "counter",
+      "per_player": true,
+      "visibility": "public",
+      "note": "Cumulative score across hands. Game to 100 points."
+    }
+  },
+  "components": {
+    "card": {
+      "owner": "neutral",
+      "count": 52,
+      "facing": "face_down",
+      "properties": {
+        "suit": ["hearts", "diamonds", "clubs", "spades"],
+        "rank": ["A", "2", "3", "4", "5", "6", "7", "8", "9", "10", "J", "Q", "K"],
+        "rank_value": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 10, 10, 10]
+      },
+      "note": "Standard 52-card deck. Ace low (value 1). Face cards worth 10 for deadwood."
+    }
+  },
+  "turn_order": {
+    "type": "alternating",
+    "players": ["P1", "P2"],
+    "actions_per_turn": [
+      { "draw": 1 },
+      { "discard": 1 }
+    ],
+    "mandatory": true
+  },
+  "phases": [
+    {
+      "name": "deal",
+      "server_action": [
+        "shuffle(stock)",
+        "deal(stock, hand, count:10, to:each_player)",
+        "reveal(stock, discard, count:1)"
+      ],
+      "note": "Shuffle deck, deal 10 cards each, turn one card face-up to start discard pile."
+    },
+    {
+      "name": "play",
+      "action": "draw_and_discard",
+      "note": "Each turn: draw one card (from stock or top of discard), then discard one card. Player may knock if deadwood <= 10 or declare gin if deadwood == 0."
+    },
+    {
+      "name": "knock",
+      "trigger": "player declares knock or gin",
+      "action": "reveal_melds",
+      "note": "Knocker reveals melds and deadwood. Opponent may lay off unmatched cards on knocker's melds (unless gin). Scores computed."
+    }
+  ],
+  "rules": {
+    "draw": {
+      "definition": "Draw exactly one card from stock or top of discard pile",
+      "action": "draw",
+      "constraints": [
+        "source in [stock, discard]",
+        "hand.count == 10 before draw"
+      ]
+    },
+    "discard": {
+      "definition": "Discard exactly one card from hand to discard pile",
+      "action": "discard",
+      "constraint": "hand.count == 11 before discard"
+    },
+    "knock": {
+      "definition": "Declare knock when deadwood value <= 10 after discarding",
+      "action": "knock",
+      "requires": ["deadwood(hand) <= 10"]
+    },
+    "gin": {
+      "definition": "Declare gin when all 10 cards form melds (deadwood == 0)",
+      "action": "gin",
+      "requires": ["deadwood(hand) == 0"],
+      "effect": "gin_bonus(25)"
+    },
+    "lay_off": {
+      "definition": "Opponent may extend knocker's melds with matching cards from their own hand",
+      "action": "lay_off",
+      "constraint": "not gin",
+      "note": "Cannot lay off if knocker declared gin."
+    },
+    "undercut": {
+      "definition": "If opponent's deadwood <= knocker's deadwood, opponent scores the difference plus 25 bonus",
+      "trigger": "opponent_deadwood <= knocker_deadwood",
+      "effect": "undercut_bonus(25)"
+    },
+    "stock_exhaustion": {
+      "definition": "If stock has 2 cards remaining and no knock, hand is void (no score)",
+      "trigger": "stock.count <= 2 and no_knock",
+      "effect": "void_hand"
+    }
+  },
+  "library": {
+    "deadwood": "sum of rank_value for cards not in any meld",
+    "meld_set": "3 or 4 cards of the same rank (different suits)",
+    "meld_run": "3 or more consecutive cards of the same suit (ace low)",
+    "game_over": "any player score >= 100"
+  },
+  "end_conditions": [
+    {
+      "result": "win",
+      "condition": "game_over",
+      "player": "highest_score",
+      "name": "game_to_100"
+    }
+  ],
+  "authority": {
+    "server_only": [
+      "shuffle(stock)",
+      "deal(stock, hand)",
+      "reveal(stock, discard)"
+    ],
+    "client_verifiable": [
+      "draw(stock)",
+      "draw(discard)",
+      "discard(card)",
+      "knock()",
+      "gin()",
+      "lay_off(card, meld)",
+      "meld_validation",
+      "deadwood_calculation",
+      "score_calculation"
+    ]
+  },
+  "wasm_module": "gin_rummy.wasm",
+  "notation": {
+    "piece_symbols": {
+      "A": "A", "2": "2", "3": "3", "4": "4", "5": "5",
+      "6": "6", "7": "7", "8": "8", "9": "9", "10": "T",
+      "J": "J", "Q": "Q", "K": "K"
+    }
+  }
+}

@@ -1,0 +1,106 @@
+{
+  "$schema": "../schema/game-definition.schema.json",
+  "game": {
+    "name": "Abalone",
+    "players": ["Black", "White"],
+    "information": "perfect"
+  },
+  "zones": {
+    "board": {
+      "zone_type": "hex_grid",
+      "dimensions": [9, 9],
+      "visibility": "public",
+      "adjacency": "hex_6",
+      "valid_cells": [
+        [4,0],[5,0],[6,0],[7,0],[8,0],
+        [3,1],[4,1],[5,1],[6,1],[7,1],[8,1],
+        [2,2],[3,2],[4,2],[5,2],[6,2],[7,2],[8,2],
+        [1,3],[2,3],[3,3],[4,3],[5,3],[6,3],[7,3],[8,3],
+        [0,4],[1,4],[2,4],[3,4],[4,4],[5,4],[6,4],[7,4],[8,4],
+        [0,5],[1,5],[2,5],[3,5],[4,5],[5,5],[6,5],[7,5],
+        [0,6],[1,6],[2,6],[3,6],[4,6],[5,6],[6,6],
+        [0,7],[1,7],[2,7],[3,7],[4,7],[5,7],
+        [0,8],[1,8],[2,8],[3,8],[4,8]
+      ],
+      "note": "61-cell regular hexagon, radius 5 (side length 5). Rows 0-8 with widths 5-6-7-8-9-8-7-6-5. Hex adjacency: 6 neighbors per interior cell."
+    },
+    "captured": {
+      "zone_type": "set",
+      "visibility": "public",
+      "per_player": true,
+      "capacity": "unlimited",
+      "note": "Opponent marbles pushed off the board. First to capture 6 wins."
+    }
+  },
+  "components": {
+    "marble": {
+      "owner": "per_player",
+      "count": 14,
+      "movement": [
+        {
+          "primitive": "step",
+          "direction": "hex_6",
+          "distance": 1,
+          "condition": "empty"
+        }
+      ],
+      "note": "Each player has 14 marbles. Move 1-3 inline marbles one step in any hex direction. A line of N marbles can push a shorter opponent line (sumito): 3v2, 3v1, 2v1. Pushed-off marbles are captured."
+    }
+  },
+  "turn_order": {
+    "type": "alternating",
+    "players": ["Black", "White"],
+    "actions_per_turn": 1,
+    "mandatory": true
+  },
+  "rules": {
+    "inline_move": {
+      "definition": "Move 1, 2, or 3 marbles in a line one step along the line direction. All marbles in the group must belong to the current player and be contiguous.",
+      "action": "move_group(marble, board/cell, direction)",
+      "constraints": [
+        "group_size >= 1 AND group_size <= 3",
+        "all marbles in group are contiguous along direction",
+        "all marbles belong to current player"
+      ]
+    },
+    "broadside_move": {
+      "definition": "Move 2 or 3 marbles in a line one step perpendicular to the line direction. No pushing allowed on broadside moves.",
+      "action": "move_group(marble, board/cell, direction)",
+      "constraints": [
+        "group_size >= 2 AND group_size <= 3",
+        "all destination cells must be empty",
+        "direction is perpendicular to the line axis"
+      ]
+    },
+    "sumito": {
+      "definition": "An inline move that pushes opponent marbles. The pushing group must outnumber the pushed group: 3v2, 3v1, or 2v1.",
+      "action": "push(marble, direction)",
+      "constraints": [
+        "pushing_group_size > pushed_group_size",
+        "pushed group contains only opponent marbles",
+        "no friendly marble behind the pushed group (unless edge)"
+      ]
+    },
+    "capture": {
+      "definition": "A marble pushed beyond the board edge is captured and moved to the opponent's captured zone.",
+      "trigger": "marble pushed off valid_cells boundary",
+      "effect": "move marble to opponent captured zone"
+    }
+  },
+  "end_conditions": [
+    {
+      "result": "win",
+      "player": "current",
+      "condition": "opponent_captured_count >= 6",
+      "name": "six_captured"
+    }
+  ],
+  "authority": {
+    "server_only": [],
+    "client_verifiable": [
+      "move_group(marble, board/cell, direction)",
+      "push(marble, direction)",
+      "capture_count"
+    ]
+  }
+}

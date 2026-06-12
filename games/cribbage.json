@@ -1,0 +1,199 @@
+{
+  "$schema": "../schema/game-definition.schema.json",
+  "game": {
+    "name": "Cribbage",
+    "players": ["dealer", "pone"],
+    "information": "imperfect"
+  },
+  "zones": {
+    "deck": {
+      "zone_type": "ordered_stack",
+      "capacity": 52,
+      "visibility": "hidden",
+      "note": "Shuffled deck. Server deals from here and cuts."
+    },
+    "hand": {
+      "zone_type": "set",
+      "per_player": true,
+      "capacity": 6,
+      "visibility": { "private": "owner" },
+      "note": "Each player's dealt hand (6 cards, reduced to 4 after discard)."
+    },
+    "crib": {
+      "zone_type": "set",
+      "capacity": 4,
+      "visibility": "hidden",
+      "note": "Dealer's extra hand built from discards. Hidden until show phase."
+    },
+    "cut_card": {
+      "zone_type": "single_slot",
+      "visibility": "public",
+      "note": "The starter card cut from the deck after discards."
+    },
+    "play_pile": {
+      "zone_type": "ordered_stack",
+      "capacity": 8,
+      "visibility": "public",
+      "note": "Cards played during pegging. Running total must not exceed 31."
+    },
+    "played_cards": {
+      "zone_type": "set",
+      "per_player": true,
+      "visibility": "public",
+      "note": "Cards a player has played during the current pegging round."
+    },
+    "pegboard": {
+      "zone_type": "counter",
+      "per_player": true,
+      "visibility": "public",
+      "note": "Score counter per player. First to 121 wins. Represents position on a 121-hole pegboard."
+    },
+    "discard": {
+      "zone_type": "set",
+      "visibility": "hidden",
+      "note": "Used cards collected after each hand."
+    }
+  },
+  "components": {
+    "card": {
+      "owner": "neutral",
+      "count": 52,
+      "properties": {
+        "suit": ["hearts", "diamonds", "clubs", "spades"],
+        "rank": ["A", "2", "3", "4", "5", "6", "7", "8", "9", "10", "J", "Q", "K"],
+        "pip_value": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 10, 10, 10],
+        "rank_order": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13]
+      },
+      "facing": "face_down",
+      "note": "Standard French playing card. pip_value used for pegging and 15-counting (face cards = 10). rank_order used for run detection (A=1 low only)."
+    }
+  },
+  "turn_order": {
+    "type": "alternating",
+    "players": ["pone", "dealer"],
+    "actions_per_turn": 1,
+    "mandatory": true
+  },
+  "phases": [
+    {
+      "name": "deal",
+      "server_action": "deal(deck, hand, count:6, to:each_player)",
+      "note": "Server shuffles and deals 6 cards to each player."
+    },
+    {
+      "name": "discard",
+      "simultaneous": true,
+      "action": "discard(hand, crib, count:2)",
+      "note": "Each player selects 2 cards to discard to the crib. Simultaneous to prevent information leakage."
+    },
+    {
+      "name": "cut",
+      "server_action": "cut(deck, cut_card)",
+      "note": "Server reveals one card from the deck as the starter. If Jack (his heels), dealer scores 2."
+    },
+    {
+      "name": "pegging",
+      "starts_with": "pone",
+      "action": "play_card(hand, play_pile)",
+      "ends_when": "all cards played or both players say go",
+      "note": "Players alternate playing cards to a running total (max 31). Score for pairs, 15s, runs, 31, go, last card."
+    },
+    {
+      "name": "show",
+      "starts_with": "pone",
+      "action": "score_hand",
+      "note": "Pone scores hand first, then dealer hand, then dealer crib. Each scored with the cut card. Score 15-combos, pairs, runs, flushes, nobs."
+    }
+  ],
+  "rules": {
+    "his_heels": {
+      "definition": "If the cut card is a Jack, the dealer immediately scores 2 points.",
+      "trigger": "cut_card is Jack",
+      "effect": "dealer scores 2"
+    },
+    "nobs": {
+      "definition": "A Jack in hand matching the suit of the cut card scores 1 point.",
+      "trigger": "show phase",
+      "effect": "score 1 for matching Jack"
+    },
+    "fifteen": {
+      "definition": "Any combination of cards summing to 15 (using pip values) scores 2 points.",
+      "trigger": "show phase",
+      "effect": "score 2 per combination"
+    },
+    "pair": {
+      "definition": "Two cards of the same rank score 2 points. Three of a kind = 6 (3 pairs). Four of a kind = 12 (6 pairs).",
+      "trigger": "show phase",
+      "effect": "score 2 per pair"
+    },
+    "run": {
+      "definition": "Three or more cards in consecutive rank order score 1 point per card.",
+      "trigger": "show phase",
+      "effect": "score length of run"
+    },
+    "flush": {
+      "definition": "Four cards of the same suit in hand score 4 (5 if cut card matches). In the crib, all 5 must match for 5 points.",
+      "trigger": "show phase",
+      "effect": "score 4 or 5"
+    },
+    "pegging_fifteen": {
+      "definition": "Playing a card that brings the running total to exactly 15 scores 2 points.",
+      "trigger": "pegging phase",
+      "effect": "score 2"
+    },
+    "pegging_pair": {
+      "definition": "Playing a card matching the rank of the last card played scores 2. Three matching = 6. Four matching = 12.",
+      "trigger": "pegging phase",
+      "effect": "score 2/6/12"
+    },
+    "pegging_run": {
+      "definition": "Playing a card that completes a run of 3+ with the most recently played cards scores the run length.",
+      "trigger": "pegging phase",
+      "effect": "score run length"
+    },
+    "thirty_one": {
+      "definition": "Playing a card that brings the total to exactly 31 scores 2 points. Count resets to 0.",
+      "trigger": "pegging phase",
+      "effect": "score 2, reset count"
+    },
+    "go": {
+      "definition": "If a player cannot play without exceeding 31, they say 'go'. Opponent continues until they also cannot. Last player to play scores 1 (unless they hit 31).",
+      "trigger": "pegging phase",
+      "effect": "score 1 for last card"
+    }
+  },
+  "library": {
+    "max_score": "121",
+    "winning_score": "pegboard >= 121"
+  },
+  "end_conditions": [
+    {
+      "result": "win",
+      "condition": "pegboard >= 121",
+      "name": "game_won",
+      "player": "first_to_reach"
+    }
+  ],
+  "authority": {
+    "server_only": [
+      "shuffle(deck)",
+      "deal(deck, hand)",
+      "cut(deck, cut_card)"
+    ],
+    "client_verifiable": [
+      "discard(hand, crib)",
+      "play_card(hand, play_pile)",
+      "score_hand()",
+      "say_go()"
+    ],
+    "wasm_required": [
+      "score_fifteens(hand, cut_card)",
+      "score_pairs(hand, cut_card)",
+      "score_runs(hand, cut_card)",
+      "score_flush(hand, cut_card)",
+      "score_nobs(hand, cut_card)",
+      "score_pegging(play_pile)"
+    ]
+  },
+  "wasm_module": "cribbage.wasm"
+}

@@ -1,0 +1,239 @@
+{
+  "$schema": "../schema/game-definition.schema.json",
+  "game": {
+    "name": "Stratego",
+    "players": ["red", "blue"],
+    "information": "imperfect"
+  },
+  "zones": {
+    "board": {
+      "zone_type": "grid",
+      "dimensions": [10, 10],
+      "visibility": "public",
+      "adjacency": "orthogonal_4",
+      "stacking_limit": 1,
+      "labels": {
+        "files": ["a", "b", "c", "d", "e", "f", "g", "h", "i", "j"],
+        "ranks": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+      },
+      "cell_properties": {
+        "2,4": { "terrain": "lake" },
+        "3,4": { "terrain": "lake" },
+        "2,5": { "terrain": "lake" },
+        "3,5": { "terrain": "lake" },
+        "6,4": { "terrain": "lake" },
+        "7,4": { "terrain": "lake" },
+        "6,5": { "terrain": "lake" },
+        "7,5": { "terrain": "lake" }
+      },
+      "note": "10x10 board with two 2x2 impassable lakes in the center. Piece positions are public but ranks are hidden until combat."
+    },
+    "captured": {
+      "zone_type": "set",
+      "per_player": true,
+      "visibility": "public",
+      "note": "Captured pieces for each player (pieces the opponent has lost)."
+    }
+  },
+  "components": {
+    "marshal": {
+      "owner": "per_player",
+      "count": 1,
+      "properties": { "rank": "10" },
+      "movement": [
+        { "primitive": "step", "direction": "orthogonal", "distance": 1 }
+      ]
+    },
+    "general": {
+      "owner": "per_player",
+      "count": 1,
+      "properties": { "rank": "9" },
+      "movement": [
+        { "primitive": "step", "direction": "orthogonal", "distance": 1 }
+      ]
+    },
+    "colonel": {
+      "owner": "per_player",
+      "count": 2,
+      "properties": { "rank": "8" },
+      "movement": [
+        { "primitive": "step", "direction": "orthogonal", "distance": 1 }
+      ]
+    },
+    "major": {
+      "owner": "per_player",
+      "count": 3,
+      "properties": { "rank": "7" },
+      "movement": [
+        { "primitive": "step", "direction": "orthogonal", "distance": 1 }
+      ]
+    },
+    "captain": {
+      "owner": "per_player",
+      "count": 4,
+      "properties": { "rank": "6" },
+      "movement": [
+        { "primitive": "step", "direction": "orthogonal", "distance": 1 }
+      ]
+    },
+    "lieutenant": {
+      "owner": "per_player",
+      "count": 4,
+      "properties": { "rank": "5" },
+      "movement": [
+        { "primitive": "step", "direction": "orthogonal", "distance": 1 }
+      ]
+    },
+    "sergeant": {
+      "owner": "per_player",
+      "count": 4,
+      "properties": { "rank": "4" },
+      "movement": [
+        { "primitive": "step", "direction": "orthogonal", "distance": 1 }
+      ]
+    },
+    "miner": {
+      "owner": "per_player",
+      "count": 5,
+      "properties": { "rank": "3" },
+      "movement": [
+        { "primitive": "step", "direction": "orthogonal", "distance": 1 }
+      ],
+      "special": "defuses_bombs",
+      "note": "Miners can defuse (capture) Bombs instead of being destroyed by them."
+    },
+    "scout": {
+      "owner": "per_player",
+      "count": 8,
+      "properties": { "rank": "2" },
+      "movement": [
+        { "primitive": "slide", "direction": "orthogonal" }
+      ],
+      "note": "Scouts can move any number of unoccupied cells in a straight orthogonal line."
+    },
+    "spy": {
+      "owner": "per_player",
+      "count": 1,
+      "properties": { "rank": "1" },
+      "movement": [
+        { "primitive": "step", "direction": "orthogonal", "distance": 1 }
+      ],
+      "special": "kills_marshal_on_attack",
+      "note": "The Spy defeats the Marshal only when the Spy initiates the attack."
+    },
+    "bomb": {
+      "owner": "per_player",
+      "count": 6,
+      "properties": { "rank": "0" },
+      "note": "Bombs are immobile. Any piece attacking a Bomb is destroyed, except Miners which defuse the Bomb."
+    },
+    "flag": {
+      "owner": "per_player",
+      "count": 1,
+      "properties": { "rank": "0" },
+      "note": "The Flag is immobile. Capturing the opponent Flag wins the game."
+    }
+  },
+  "turn_order": {
+    "type": "alternating",
+    "players": ["red", "blue"],
+    "actions_per_turn": 1,
+    "mandatory": true
+  },
+  "phases": [
+    {
+      "name": "setup",
+      "simultaneous": true,
+      "action": "place_piece(piece_type, cell)",
+      "ends_when": "both players have placed all 40 pieces",
+      "note": "Each player places all 40 pieces on their own half of the board (rows 0-3 for red, rows 6-9 for blue). Placement is hidden from the opponent."
+    },
+    {
+      "name": "play",
+      "action": "move(from_cell, to_cell)",
+      "actions_per_turn": 1,
+      "starts_with": "red",
+      "ends_when": "flag captured or player cannot move"
+    }
+  ],
+  "rules": {
+    "placement_constraints": {
+      "definition": "Setup placement validation rules",
+      "constraints": [
+        "red places on rows 0-3, blue places on rows 6-9",
+        "each piece type placed exactly the correct count",
+        "no cell occupied by more than one piece",
+        "lake cells are not valid placement targets",
+        "all 40 pieces must be placed before play begins"
+      ]
+    },
+    "movement": {
+      "definition": "Movement rules during play phase",
+      "constraints": [
+        "only movable pieces (not Bomb or Flag) may move",
+        "movement is orthogonal only (no diagonal)",
+        "standard pieces move exactly 1 cell",
+        "scouts may slide any number of unoccupied cells in a straight orthogonal line",
+        "pieces cannot enter or cross lake cells",
+        "pieces cannot enter cells occupied by friendly pieces",
+        "moving into a cell occupied by an enemy piece initiates combat"
+      ]
+    },
+    "combat": {
+      "definition": "Combat resolution when a piece attacks an enemy piece",
+      "server_resolves": "reveal both ranks; higher rank wins (attacker wins ties is wrong: both removed on tie); special: Spy attacking Marshal wins; Miner attacking Bomb wins; any non-Miner attacking Bomb is destroyed; losing piece is removed to captured zone",
+      "constraints": [
+        "higher rank wins, lower rank is captured",
+        "equal ranks: both pieces are removed",
+        "Spy defeats Marshal only when Spy is the attacker",
+        "Miner defeats Bomb (defuses it)",
+        "any non-Miner attacking a Bomb is destroyed by the Bomb",
+        "Bomb remains in place after destroying an attacker (unless attacked by Miner)"
+      ]
+    },
+    "two_square_rule": {
+      "definition": "A piece cannot move back and forth between two cells more than a limited number of consecutive times",
+      "constraint": "a piece may not move between the same two squares more than 3 times consecutively"
+    },
+    "visibility": {
+      "definition": "Piece rank visibility rules",
+      "constraints": [
+        "a player can see positions of all pieces but only ranks of own pieces",
+        "opponent piece ranks are hidden until combat occurs",
+        "when combat occurs, both ranks are revealed to both players",
+        "captured pieces and their ranks are public information"
+      ]
+    }
+  },
+  "end_conditions": [
+    {
+      "result": "win",
+      "player": "current",
+      "condition": "current player captures opponent flag",
+      "name": "flag_captured"
+    },
+    {
+      "result": "win",
+      "player": "opponent_of_current",
+      "condition": "current player has no legal moves (all movable pieces eliminated or blocked)",
+      "name": "no_legal_moves"
+    },
+    {
+      "result": "win",
+      "player": "opponent_of_current",
+      "condition": "player resigns",
+      "name": "resignation"
+    }
+  ],
+  "authority": {
+    "server_only": [
+      "resolve_combat(attacker_cell, defender_cell)",
+      "validate_placement(piece_type, cell)",
+      "store_hidden_ranks(player, placements)"
+    ],
+    "client_verifiable": [
+      "move(from_cell, to_cell)",
+      "place_piece(piece_type, cell)"
+    ]
+  }
+}
