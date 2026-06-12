@@ -851,7 +851,7 @@ class GameDefinition:
             br_raw = d.get("betting_round")
             betting_round = BettingRound.from_dict(br_raw) if br_raw is not None else None
 
-            return cls(
+            defn = cls(
                 game=GameMetadata.from_dict(d["game"]),
                 zones=zones,
                 components=components,
@@ -866,8 +866,65 @@ class GameDefinition:
                 betting_round=betting_round,
                 notation=d.get("notation"),
             )
+            defn.validate()
+            return defn
         except (KeyError, TypeError, ValueError, AttributeError) as exc:
             raise ParseError(str(exc)) from exc
+
+    def validate(self) -> None:
+        """Semantic validation: resource limits to prevent computational DoS."""
+        from baize.error import ValidationError
+
+        # Player count limits (max 100)
+        if isinstance(self.game.players, list):
+            if len(self.game.players) > 100:
+                raise ValidationError(
+                    f"too many players: {len(self.game.players)} exceeds maximum (100)"
+                )
+        elif isinstance(self.game.players, PlayerRange):
+            if self.game.players.max > 100:
+                raise ValidationError(
+                    f"max players {self.game.players.max} exceeds maximum (100)"
+                )
+
+        # Grid dimension limits (max 1000 per axis)
+        for name, zone in self.zones.items():
+            if zone.zone_type in ("grid", "hex_grid") and zone.dimensions is not None:
+                if isinstance(zone.dimensions, list):
+                    dims = zone.dimensions
+                elif isinstance(zone.dimensions, int):
+                    dims = [zone.dimensions, zone.dimensions]
+                else:
+                    dims = []
+                for i, d in enumerate(dims):
+                    if isinstance(d, (int, float)) and d > 1000:
+                        raise ValidationError(
+                            f"zone {name!r} dimension[{i}] = {d} exceeds maximum (1000)"
+                        )
+
+        # Total component count (max 10,000)
+        if isinstance(self.game.players, list):
+            player_count = max(len(self.game.players), 1)
+        elif isinstance(self.game.players, PlayerRange):
+            player_count = max(self.game.players.max, 1)
+        else:
+            player_count = 1
+        total = 0
+        for comp in self.components.values():
+            if comp.count is None:
+                base = 1
+            elif comp.count == "unlimited":
+                base = 1
+            elif isinstance(comp.count, int) and comp.count > 0:
+                base = comp.count
+            else:
+                base = 1
+            multiplier = player_count if comp.owner == "per_player" else 1
+            total += base * multiplier
+        if total > 10_000:
+            raise ValidationError(
+                f"total component count {total} exceeds maximum (10000)"
+            )
 
     def to_json(self, indent: int | None = 2) -> str:
         """Serialize to a JSON string."""

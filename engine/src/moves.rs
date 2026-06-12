@@ -2,6 +2,10 @@ use crate::action::{Action, ActionType, Position};
 use crate::definition::{Adjacency, Component, DirectionName, MovementPrimitive, PrimitiveType};
 use crate::runtime::{ComponentId, GameSession, RuntimeZone};
 
+/// Maximum number of legal moves to generate before stopping.
+/// Prevents combinatorial explosion on huge boards with many pieces.
+const MAX_LEGAL_MOVES: usize = 10_000;
+
 /// A legal move that a player can make.
 #[derive(Debug, Clone)]
 pub struct LegalMove {
@@ -20,6 +24,9 @@ pub fn legal_moves(session: &GameSession) -> Vec<LegalMove> {
 
     // For each component owned by the current player on the board, generate moves
     for (zone_name, zone) in &session.runtime.zones {
+        if moves.len() >= MAX_LEGAL_MOVES {
+            break;
+        }
         let zone_def = match session.definition.zones.get(zone_name) {
             Some(z) => z,
             None => continue,
@@ -29,8 +36,11 @@ pub fn legal_moves(session: &GameSession) -> Vec<LegalMove> {
             RuntimeZone::Grid { width, height, cells, .. } => {
                 // Track seen components to avoid duplicate processing of multi-cell spans
                 let mut seen = std::collections::HashSet::new();
-                for row in 0..*height {
+                'outer: for row in 0..*height {
                     for col in 0..*width {
+                        if moves.len() >= MAX_LEGAL_MOVES {
+                            break 'outer;
+                        }
                         let idx = match (row as usize)
                             .checked_mul(*width as usize)
                             .and_then(|v| v.checked_add(col as usize))
@@ -74,9 +84,14 @@ pub fn legal_moves(session: &GameSession) -> Vec<LegalMove> {
     }
 
     // Also check per-player zones
-    if let Some(player_state) = session.runtime.players.get(&player) {
-        for (zone_name, zone) in &player_state.zones {
-            generate_hand_plays(session, &player, zone_name, zone, &mut moves);
+    if moves.len() < MAX_LEGAL_MOVES {
+        if let Some(player_state) = session.runtime.players.get(&player) {
+            for (zone_name, zone) in &player_state.zones {
+                if moves.len() >= MAX_LEGAL_MOVES {
+                    break;
+                }
+                generate_hand_plays(session, &player, zone_name, zone, &mut moves);
+            }
         }
     }
 
@@ -107,6 +122,9 @@ fn generate_grid_moves(
         .unwrap_or("");
 
     for mp in &comp_def.movement {
+        if moves.len() >= MAX_LEGAL_MOVES {
+            return;
+        }
         match mp.primitive {
             PrimitiveType::Step => {
                 let dirs = resolve_directions(mp, player, adjacency);
@@ -130,7 +148,9 @@ fn generate_grid_moves(
                 for (dx, dy) in &dirs {
                     let mut nx = col as i32 + dx;
                     let mut ny = row as i32 + dy;
-                    while nx >= 0 && ny >= 0 && zone.grid_cell_valid(nx as u32, ny as u32) {
+                    while nx >= 0 && ny >= 0 && zone.grid_cell_valid(nx as u32, ny as u32)
+                        && moves.len() < MAX_LEGAL_MOVES
+                    {
                         let target = zone.grid_get(nx as u32, ny as u32);
                         if let Some(tid) = target {
                             if is_enemy(session, tid, player) {

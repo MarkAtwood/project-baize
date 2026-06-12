@@ -103,6 +103,12 @@ pub fn apply_action_for_player(
         .or_else(|| session.current_player().map(String::from))
         .ok_or_else(|| BaizeError::IllegalAction("no current player".into()))?;
 
+    debug_assert!(
+        session.runtime.players.contains_key(&player),
+        "current player {:?} not in players map",
+        player
+    );
+
     let prev_hash = session.runtime.history_hashes.last().cloned();
     let events = execute_action(session, &player, action, &prev_hash)?;
     finalize_turn(session, events, prev_hash)
@@ -969,6 +975,15 @@ fn find_component_on_grid(
     for (zone_name, zone) in &session.runtime.zones {
         if let crate::runtime::RuntimeZone::Grid { width, height, cells, .. } = zone
         {
+            debug_assert_eq!(
+                cells.len(),
+                (*width as usize) * (*height as usize),
+                "grid cells length {} != width*height {}x{} in zone {}",
+                cells.len(),
+                width,
+                height,
+                zone_name
+            );
             for row in 0..*height {
                 for col in 0..*width {
                     let idx = row as usize * *width as usize + col as usize;

@@ -20,6 +20,9 @@ from baize.runtime import (
     RuntimeZone,
 )
 
+MAX_LEGAL_MOVES = 10_000
+"""Maximum number of legal moves to generate before stopping."""
+
 
 @dataclass
 class LegalMove:
@@ -30,7 +33,13 @@ class LegalMove:
 
 
 def legal_moves(session: GameSession) -> list[LegalMove]:
-    """Generate all legal moves for the current player."""
+    """Generate all legal moves for the current player.
+
+    Returns at most MAX_LEGAL_MOVES moves to prevent combinatorial explosion.
+    """
+    assert isinstance(session, GameSession), (
+        f"session must be GameSession, got {type(session).__name__}"
+    )
     player = session.current_player()
     if player is None:
         return []
@@ -39,13 +48,19 @@ def legal_moves(session: GameSession) -> list[LegalMove]:
 
     # For each component owned by the current player on the board, generate moves
     for zone_name, zone in session.runtime.zones.items():
+        if len(moves) >= MAX_LEGAL_MOVES:
+            break
         if zone_name not in session.definition.zones:
             continue
 
         if isinstance(zone, GridZone):
             seen: set[ComponentId] = set()
             for row in range(zone.height):
+                if len(moves) >= MAX_LEGAL_MOVES:
+                    break
                 for col in range(zone.width):
+                    if len(moves) >= MAX_LEGAL_MOVES:
+                        break
                     idx = row * zone.width + col
                     cid = zone.cells[idx]
                     if cid is None:
@@ -76,10 +91,13 @@ def legal_moves(session: GameSession) -> list[LegalMove]:
                     )
 
     # Also check per-player zones
-    player_state = session.runtime.players.get(player)
-    if player_state is not None:
-        for _zone_name, _zone in player_state.zones.items():
-            _generate_hand_plays(session, player, _zone_name, _zone, moves)
+    if len(moves) < MAX_LEGAL_MOVES:
+        player_state = session.runtime.players.get(player)
+        if player_state is not None:
+            for _zone_name, _zone in player_state.zones.items():
+                if len(moves) >= MAX_LEGAL_MOVES:
+                    break
+                _generate_hand_plays(session, player, _zone_name, _zone, moves)
 
     return moves
 
@@ -105,6 +123,8 @@ def _generate_grid_moves(
         player = ""
 
     for mp in comp_def.movement:
+        if len(moves) >= MAX_LEGAL_MOVES:
+            return
         if mp.primitive == "step":
             dirs = _resolve_directions(mp, player, adjacency)
             dist = mp.distance if mp.distance is not None else 1
@@ -126,7 +146,7 @@ def _generate_grid_moves(
             for dx, dy in dirs:
                 nx = col + dx
                 ny = row + dy
-                while zone._cell_valid(nx, ny):
+                while zone._cell_valid(nx, ny) and len(moves) < MAX_LEGAL_MOVES:
                     target = zone.grid_get(nx, ny)
                     if target is not None:
                         if _is_enemy(session, target, player):

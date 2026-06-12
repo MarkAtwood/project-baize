@@ -495,18 +495,28 @@ impl GameDefinition {
     pub fn validate(&self) -> crate::error::Result<()> {
         use crate::error::BaizeError;
 
+        const MAX_PLAYERS: usize = 100;
+        const MAX_TOTAL_COMPONENTS: u64 = 10_000;
+
         // Game name must be non-empty
         if self.game.name.trim().is_empty() {
             return Err(BaizeError::Validation("game name must not be empty".into()));
         }
 
-        // Players: at least one
+        // Players: at least one, at most MAX_PLAYERS
         let player_names: Vec<&str> = match &self.game.players {
             Players::Named(names) => {
                 if names.is_empty() {
                     return Err(BaizeError::Validation(
                         "game must have at least one player".into(),
                     ));
+                }
+                if names.len() > MAX_PLAYERS {
+                    return Err(BaizeError::Validation(format!(
+                        "too many players: {} exceeds maximum ({})",
+                        names.len(),
+                        MAX_PLAYERS
+                    )));
                 }
                 let mut seen = std::collections::HashSet::new();
                 for name in names {
@@ -533,6 +543,12 @@ impl GameDefinition {
                     return Err(BaizeError::Validation(
                         "max players must be >= min players".into(),
                     ));
+                }
+                if *max as usize > MAX_PLAYERS {
+                    return Err(BaizeError::Validation(format!(
+                        "max players {} exceeds maximum ({})",
+                        max, MAX_PLAYERS
+                    )));
                 }
                 Vec::new() // can't enumerate at parse time
             }
@@ -592,6 +608,33 @@ impl GameDefinition {
                 return Err(BaizeError::Validation(
                     "component names must not be empty".into(),
                 ));
+            }
+        }
+
+        // Total component count must not exceed MAX_TOTAL_COMPONENTS.
+        {
+            let player_count = match &self.game.players {
+                Players::Named(names) => names.len() as u64,
+                Players::Range { max, .. } => *max as u64,
+            };
+            let mut total: u64 = 0;
+            for comp in self.components.values() {
+                let base_count: u64 = match &comp.count {
+                    Some(ComponentCount::Finite(n)) => *n as u64,
+                    Some(ComponentCount::Unlimited(_)) => 1,
+                    None => 1,
+                };
+                let multiplier = match &comp.owner {
+                    Some(Owner::PerPlayer(_)) => player_count,
+                    _ => 1,
+                };
+                total = total.saturating_add(base_count.saturating_mul(multiplier));
+            }
+            if total > MAX_TOTAL_COMPONENTS {
+                return Err(BaizeError::Validation(format!(
+                    "total component count {} exceeds maximum ({})",
+                    total, MAX_TOTAL_COMPONENTS
+                )));
             }
         }
 
