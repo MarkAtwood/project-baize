@@ -11,6 +11,22 @@ use crate::state::{
     ZoneState,
 };
 
+// ---------------------------------------------------------------------------
+// Resource budget defaults
+// ---------------------------------------------------------------------------
+
+/// Maximum component instances per game session.
+pub const MAX_COMPONENTS_PER_GAME: usize = 10_000;
+
+/// Maximum event log entries per game session.
+pub const MAX_EVENTS_PER_GAME: usize = 100_000;
+
+/// Maximum serialized state size in bytes (checked periodically, not every move).
+pub const MAX_STATE_SIZE_BYTES: usize = 10 * 1024 * 1024; // 10 MB
+
+/// Check state size every N moves (amortized cost).
+pub const STATE_SIZE_CHECK_INTERVAL: u64 = 100;
+
 /// Compact component identifier (index into ComponentTable).
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct ComponentId(pub u32);
@@ -31,6 +47,7 @@ pub struct RuntimeState {
     pub sequence: u64,
     pub move_count: u64,
     pub halfmove_clock: u64,
+    pub event_count: u64,
     pub components: ComponentTable,
     pub zones: IndexMap<String, RuntimeZone>,
     pub players: IndexMap<String, RuntimePlayer>,
@@ -135,6 +152,13 @@ impl ComponentTable {
     }
 
     pub fn insert(&mut self, data: ComponentData) -> Result<ComponentId> {
+        if self.entries.len() >= MAX_COMPONENTS_PER_GAME {
+            return Err(BaizeError::ResourceBudget(format!(
+                "component count ({}) reached limit ({})",
+                self.entries.len(),
+                MAX_COMPONENTS_PER_GAME
+            )));
+        }
         let len: u32 = self.entries.len().try_into().map_err(|_| {
             BaizeError::Overflow("component table exceeds u32::MAX entries".into())
         })?;
@@ -668,6 +692,7 @@ impl GameSession {
                 sequence: 0,
                 move_count: 0,
                 halfmove_clock: 0,
+                event_count: 0,
                 components: ComponentTable::new(),
                 zones,
                 players,

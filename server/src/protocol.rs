@@ -428,6 +428,22 @@ fn handle_submit_move(
         }]);
     }
 
+    // Enforce max events per game
+    if room.session.runtime.event_count >= config::MAX_EVENTS_PER_GAME {
+        eprintln!(
+            "[security] game in room '{game_id}' exceeded max event count ({})",
+            config::MAX_EVENTS_PER_GAME
+        );
+        return HandleResult::Reply(vec![ServerMessage::MoveRejected {
+            game_id,
+            action,
+            reason: format!(
+                "game exceeded maximum event count ({})",
+                config::MAX_EVENTS_PER_GAME
+            ),
+        }]);
+    }
+
     // Check it is this player's turn
     let current = room
         .session

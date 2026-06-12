@@ -1,0 +1,24 @@
+{
+  "game": "tic-tac-toe",
+  "definition_file": "games/tic-tac-toe.json",
+  "description": "O wins by filling column 1: (1,0), (1,1), (1,2).",
+  "actions": [
+    {"player": "X", "action_type": "place", "component_type": "mark", "to": {"zone": "board", "cell": "0,0"}},
+    {"player": "O", "action_type": "place", "component_type": "mark", "to": {"zone": "board", "cell": "1,0"}},
+    {"player": "X", "action_type": "place", "component_type": "mark", "to": {"zone": "board", "cell": "0,2"}},
+    {"player": "O", "action_type": "place", "component_type": "mark", "to": {"zone": "board", "cell": "1,1"}},
+    {"player": "X", "action_type": "place", "component_type": "mark", "to": {"zone": "board", "cell": "2,2"}},
+    {"player": "O", "action_type": "place", "component_type": "mark", "to": {"zone": "board", "cell": "1,2"}}
+  ],
+  "expected_final_status": "finished",
+  "expected_result": {"outcome": "win", "winner": "O", "condition": "three_in_a_row"},
+  "expected_board": {
+    "0,0": {"component_type": "mark", "owner": "X"},
+    "1,0": {"component_type": "mark", "owner": "O"},
+    "0,2": {"component_type": "mark", "owner": "X"},
+    "1,1": {"component_type": "mark", "owner": "O"},
+    "2,2": {"component_type": "mark", "owner": "X"},
+    "1,2": {"component_type": "mark", "owner": "O"}
+  },
+  "expected_move_count": 5
+}

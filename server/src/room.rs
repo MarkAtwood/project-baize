@@ -55,11 +55,13 @@ pub struct PlayerConnection {
     pub tx: tokio::sync::mpsc::Sender<String>,
 }
 
-/// Registry of all active rooms, with per-IP connection tracking.
+/// Registry of all active rooms, with per-IP and global connection tracking.
 pub struct RoomRegistry {
     rooms: RwLock<HashMap<String, Arc<Mutex<Room>>>>,
     /// Per-IP active connection count.
     ip_connections: RwLock<HashMap<IpAddr, Arc<AtomicUsize>>>,
+    /// Total active connections across all IPs.
+    total_connections: Arc<AtomicUsize>,
     /// Optional persistence layer.
     store: Option<Arc<dyn Store>>,
 }
@@ -75,6 +77,7 @@ impl RoomRegistry {
         Self {
             rooms: RwLock::new(HashMap::new()),
             ip_connections: RwLock::new(HashMap::new()),
+            total_connections: Arc::new(AtomicUsize::new(0)),
             store: None,
         }
     }
@@ -83,6 +86,7 @@ impl RoomRegistry {
         Self {
             rooms: RwLock::new(HashMap::new()),
             ip_connections: RwLock::new(HashMap::new()),
+            total_connections: Arc::new(AtomicUsize::new(0)),
             store: Some(store),
         }
     }
@@ -115,7 +119,19 @@ impl RoomRegistry {
 
     /// Try to acquire a connection slot for the given IP.
     /// Returns Ok(guard) if under the limit, Err(message) if at capacity.
+    ///
+    /// Checks both per-IP and global connection limits.
     pub async fn acquire_ip_slot(&self, ip: IpAddr) -> Result<IpConnectionGuard, String> {
+        // Check global connection limit first
+        let total = self.total_connections.fetch_add(1, Ordering::SeqCst);
+        if total >= config::MAX_TOTAL_CONNECTIONS {
+            self.total_connections.fetch_sub(1, Ordering::SeqCst);
+            return Err(format!(
+                "server at connection capacity (max {max})",
+                max = config::MAX_TOTAL_CONNECTIONS
+            ));
+        }
+
         let counter = {
             let mut map = self.ip_connections.write().await;
             // Lazy pruning: remove stale entries (counter == 0) to prevent
@@ -129,6 +145,7 @@ impl RoomRegistry {
         let current = counter.fetch_add(1, Ordering::SeqCst);
         if current >= config::MAX_CONNECTIONS_PER_IP {
             counter.fetch_sub(1, Ordering::SeqCst);
+            self.total_connections.fetch_sub(1, Ordering::SeqCst);
             return Err(format!(
                 "too many connections from {ip} (max {max})",
                 max = config::MAX_CONNECTIONS_PER_IP
@@ -138,8 +155,14 @@ impl RoomRegistry {
         Ok(IpConnectionGuard {
             ip,
             counter,
+            total_connections: self.total_connections.clone(),
             released: false,
         })
+    }
+
+    /// Return the current total connection count.
+    pub fn total_connection_count(&self) -> usize {
+        self.total_connections.load(Ordering::SeqCst)
     }
 
     /// Create a new room from a game definition JSON string.
@@ -248,11 +271,21 @@ impl RoomRegistry {
     }
 }
 
-/// RAII guard that decrements the per-IP connection counter on drop.
+/// RAII guard that decrements the per-IP and total connection counters on drop.
 pub struct IpConnectionGuard {
     ip: IpAddr,
     counter: Arc<AtomicUsize>,
+    total_connections: Arc<AtomicUsize>,
     released: bool,
+}
+
+impl std::fmt::Debug for IpConnectionGuard {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("IpConnectionGuard")
+            .field("ip", &self.ip)
+            .field("released", &self.released)
+            .finish()
+    }
 }
 
 impl IpConnectionGuard {
@@ -265,6 +298,11 @@ impl IpConnectionGuard {
                 "room: IpConnectionGuard release underflow for {}",
                 self.ip
             );
+            let prev_total = self.total_connections.fetch_sub(1, Ordering::SeqCst);
+            debug_assert!(
+                prev_total > 0,
+                "room: IpConnectionGuard total release underflow"
+            );
             self.released = true;
         }
     }
@@ -274,6 +312,7 @@ impl Drop for IpConnectionGuard {
     fn drop(&mut self) {
         if !self.released {
             self.counter.fetch_sub(1, Ordering::SeqCst);
+            self.total_connections.fetch_sub(1, Ordering::SeqCst);
             eprintln!("ip connection slot released for {}", self.ip);
         }
     }

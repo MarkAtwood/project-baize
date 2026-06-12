@@ -48,6 +48,19 @@ class InvalidComponentIdError(BaizeError):
         self.table_size = table_size
 
 
+class ResourceBudgetError(BaizeError):
+    """A resource budget (components, events, state size) was exceeded."""
+
+    def __init__(self, resource: str, current: int, limit: int) -> None:
+        super().__init__(
+            f"resource budget exceeded: {resource} "
+            f"({current} >= {limit})"
+        )
+        self.resource = resource
+        self.current = current
+        self.limit = limit
+
+
 class InvalidCoordinateError(BaizeError):
     """Grid coordinates are out of bounds or negative."""
 
