@@ -607,6 +607,36 @@ fn collatz(n: Int) -> Int =
 while not_done do ...    -- syntax error: 'while' is not a keyword
 ```
 
+### No Gas — Termination + WASM Fuel Instead
+
+Felt does **not** have a gas or fuel mechanism. Two layers provide
+safety without burdening game designers:
+
+1. **Compile-time termination.** The Felt compiler proves every
+   program terminates before emitting WASM. This is a stronger
+   property than gas — gas says "we'll kill it if it runs too long,"
+   termination says "it's impossible for it to run too long." Game
+   designers never see a gas budget or hit a gas error.
+
+2. **WASM fuel (runtime backstop).** The Baize server's wasmtime
+   runtime enforces an instruction-level fuel limit on all WASM
+   modules (1 billion instructions per call). This catches Felt
+   programs that terminate but are slow (e.g., combinatorial
+   explosion on large game states), and also protects against
+   hand-crafted WASM that bypasses Felt entirely.
+
+```
+Felt (.felt)  →  termination guaranteed (compile-time)
+                 + WASM fuel limit (runtime backstop)
+
+Rust (.rs)    →  no termination guarantee
+                 + WASM fuel limit (runtime, only defense)
+```
+
+This is defense-in-depth at different layers. Felt is the compile-time
+guarantee for game designers. WASM fuel is the runtime guarantee for
+everyone, including Rust power users writing extensions directly.
+
 ---
 
 ## Compilation
