@@ -83,6 +83,8 @@ pub struct Zone {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub adjacency: Option<Adjacency>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub valid_cells: Option<Vec<[u32; 2]>>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub star_points: Option<Vec<[u32; 2]>>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub draw_visibility: Option<Visibility>,

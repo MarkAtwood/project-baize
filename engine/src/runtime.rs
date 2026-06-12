@@ -1,3 +1,5 @@
+use std::collections::HashSet;
+
 use indexmap::IndexMap;
 
 use crate::definition::{
@@ -76,6 +78,9 @@ pub enum RuntimeZone {
         stacking_limit: u32,
         /// Arbitrary key-value properties per cell (sparse).
         cell_properties: IndexMap<usize, IndexMap<String, serde_json::Value>>,
+        /// If present, only these flat indices are valid board positions.
+        /// Cells outside this set are treated as out-of-bounds.
+        valid_cells: Option<HashSet<usize>>,
     },
     OrderedStack {
         components: Vec<ComponentId>,
@@ -190,6 +195,13 @@ impl RuntimeZone {
                         }
                     }
                 }
+                let vc = zone_def.valid_cells.as_ref().map(|coords| {
+                    coords
+                        .iter()
+                        .filter(|[c, r]| (*c < w) && (*r < h))
+                        .map(|[c, r]| (*r as usize) * (w as usize) + (*c as usize))
+                        .collect::<HashSet<usize>>()
+                });
                 Ok(RuntimeZone::Grid {
                     width: w,
                     height: h,
@@ -197,6 +209,7 @@ impl RuntimeZone {
                     stacks: IndexMap::new(),
                     stacking_limit: 1,
                     cell_properties: cell_props,
+                    valid_cells: vc,
                 })
             }
             ZoneType::OrderedStack => Ok(RuntimeZone::OrderedStack {
@@ -247,16 +260,39 @@ impl RuntimeZone {
 // --- Grid helpers ---
 
 impl RuntimeZone {
-    /// Get component at grid coordinate. Returns None if out of bounds or empty.
+    /// Check if a grid cell is valid (in bounds and in the valid_cells mask if present).
+    pub fn grid_cell_valid(&self, col: u32, row: u32) -> bool {
+        match self {
+            RuntimeZone::Grid { width, height, valid_cells, .. } => {
+                if col >= *width || row >= *height {
+                    return false;
+                }
+                if let Some(vc) = valid_cells {
+                    let idx = (row as usize) * (*width as usize) + (col as usize);
+                    vc.contains(&idx)
+                } else {
+                    true
+                }
+            }
+            _ => false,
+        }
+    }
+
+    /// Get component at grid coordinate. Returns None if out of bounds, masked out, or empty.
     pub fn grid_get(&self, col: u32, row: u32) -> Option<ComponentId> {
         match self {
-            RuntimeZone::Grid { width, height, cells, .. } => {
+            RuntimeZone::Grid { width, height, cells, valid_cells, .. } => {
                 if col >= *width || row >= *height {
                     return None;
                 }
                 let idx = (row as usize)
                     .checked_mul(*width as usize)
                     .and_then(|v| v.checked_add(col as usize))?;
+                if let Some(vc) = valid_cells {
+                    if !vc.contains(&idx) {
+                        return None;
+                    }
+                }
                 cells.get(idx).copied().flatten()
             }
             _ => None,
@@ -271,13 +307,18 @@ impl RuntimeZone {
         component: Option<ComponentId>,
     ) -> Option<ComponentId> {
         match self {
-            RuntimeZone::Grid { width, height, cells, .. } => {
+            RuntimeZone::Grid { width, height, cells, valid_cells, .. } => {
                 if col >= *width || row >= *height {
                     return None;
                 }
                 let idx = (row as usize)
                     .checked_mul(*width as usize)
                     .and_then(|v| v.checked_add(col as usize))?;
+                if let Some(vc) = valid_cells {
+                    if !vc.contains(&idx) {
+                        return None;
+                    }
+                }
                 let prev = cells.get(idx).copied().flatten();
                 if let Some(cell) = cells.get_mut(idx) {
                     *cell = component;
@@ -290,9 +331,15 @@ impl RuntimeZone {
 
     /// Push a component onto a cell's stack (below existing top).
     pub fn grid_push(&mut self, col: u32, row: u32, component: ComponentId) {
-        if let RuntimeZone::Grid { width, height, cells, stacks, .. } = self {
+        if let RuntimeZone::Grid { width, height, cells, stacks, valid_cells, .. } = self {
             if col >= *width || row >= *height {
                 return;
+            }
+            let idx_check = (row as usize) * (*width as usize) + (col as usize);
+            if let Some(vc) = valid_cells {
+                if !vc.contains(&idx_check) {
+                    return;
+                }
             }
             let idx = (row as usize) * (*width as usize) + (col as usize);
             if let Some(existing) = cells.get(idx).copied().flatten() {
@@ -309,9 +356,15 @@ impl RuntimeZone {
 
     /// Pop the top component from a cell's stack.
     pub fn grid_pop(&mut self, col: u32, row: u32) -> Option<ComponentId> {
-        if let RuntimeZone::Grid { width, height, cells, stacks, .. } = self {
+        if let RuntimeZone::Grid { width, height, cells, stacks, valid_cells, .. } = self {
             if col >= *width || row >= *height {
                 return None;
+            }
+            let idx_check = (row as usize) * (*width as usize) + (col as usize);
+            if let Some(vc) = valid_cells {
+                if !vc.contains(&idx_check) {
+                    return None;
+                }
             }
             let idx = (row as usize) * (*width as usize) + (col as usize);
             let top = cells.get(idx).copied().flatten()?;
@@ -338,9 +391,15 @@ impl RuntimeZone {
 
     /// Get all components at a grid position (bottom to top).
     pub fn grid_stack(&self, col: u32, row: u32) -> Vec<ComponentId> {
-        if let RuntimeZone::Grid { width, height, cells, stacks, .. } = self {
+        if let RuntimeZone::Grid { width, height, cells, stacks, valid_cells, .. } = self {
             if col >= *width || row >= *height {
                 return Vec::new();
+            }
+            let idx_check = (row as usize) * (*width as usize) + (col as usize);
+            if let Some(vc) = valid_cells {
+                if !vc.contains(&idx_check) {
+                    return Vec::new();
+                }
             }
             let idx = (row as usize) * (*width as usize) + (col as usize);
             let mut result = stacks.get(&idx).cloned().unwrap_or_default();
@@ -382,9 +441,9 @@ impl RuntimeZone {
             } else {
                 (origin_col, origin_row + i)
             };
-            if col >= width || row >= height {
+            if col >= width || row >= height || !self.grid_cell_valid(col, row) {
                 return Err(crate::error::BaizeError::IllegalAction(format!(
-                    "span cell ({col},{row}) is out of bounds ({width}x{height})"
+                    "span cell ({col},{row}) is out of bounds or masked"
                 )));
             }
             cells_to_set.push((col, row));

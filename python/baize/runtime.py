@@ -159,16 +159,24 @@ class GridZone:
     cell_properties: dict[int, dict[str, str | int | bool]] = field(
         default_factory=dict
     )
+    valid_cells: set[int] | None = None
+
+    def _cell_valid(self, col: int, row: int) -> bool:
+        if col < 0 or row < 0 or col >= self.width or row >= self.height:
+            return False
+        if self.valid_cells is not None:
+            return (row * self.width + col) in self.valid_cells
+        return True
 
     def grid_get(self, col: int, row: int) -> ComponentId | None:
-        if col < 0 or row < 0 or col >= self.width or row >= self.height:
+        if not self._cell_valid(col, row):
             return None
         return self.cells[row * self.width + col]
 
     def grid_set(
         self, col: int, row: int, component: ComponentId | None
     ) -> ComponentId | None:
-        if col < 0 or row < 0 or col >= self.width or row >= self.height:
+        if not self._cell_valid(col, row):
             return None
         idx = row * self.width + col
         prev = self.cells[idx]
@@ -177,7 +185,7 @@ class GridZone:
 
     def grid_push(self, col: int, row: int, component: ComponentId) -> None:
         """Push a component onto a cell (new component becomes top)."""
-        if col < 0 or row < 0 or col >= self.width or row >= self.height:
+        if not self._cell_valid(col, row):
             return
         idx = row * self.width + col
         existing = self.cells[idx]
@@ -187,7 +195,7 @@ class GridZone:
 
     def grid_pop(self, col: int, row: int) -> ComponentId | None:
         """Pop the top component from a cell. Promotes stack below."""
-        if col < 0 or row < 0 or col >= self.width or row >= self.height:
+        if not self._cell_valid(col, row):
             return None
         idx = row * self.width + col
         top = self.cells[idx]
@@ -204,7 +212,7 @@ class GridZone:
 
     def grid_stack(self, col: int, row: int) -> list[ComponentId]:
         """Get all components at a position (bottom to top)."""
-        if col < 0 or row < 0 or col >= self.width or row >= self.height:
+        if not self._cell_valid(col, row):
             return []
         idx = row * self.width + col
         result = list(self.stacks.get(idx, []))
@@ -231,10 +239,9 @@ class GridZone:
                 col, row = origin_col + i, origin_row
             else:
                 col, row = origin_col, origin_row + i
-            if col < 0 or row < 0 or col >= self.width or row >= self.height:
+            if not self._cell_valid(col, row):
                 raise IllegalActionError(
-                    f"span cell ({col},{row}) is out of bounds "
-                    f"({self.width}x{self.height})"
+                    f"span cell ({col},{row}) is out of bounds or masked"
                 )
             cells_to_set.append((col, row))
 
@@ -261,7 +268,7 @@ class GridZone:
         self, col: int, row: int, key: str
     ) -> str | int | bool | None:
         """Get a single cell property, or None if not set."""
-        if col < 0 or row < 0 or col >= self.width or row >= self.height:
+        if not self._cell_valid(col, row):
             return None
         idx = row * self.width + col
         props = self.cell_properties.get(idx)
@@ -273,7 +280,7 @@ class GridZone:
         self, col: int, row: int, key: str, value: str | int | bool
     ) -> None:
         """Set a cell property."""
-        if col < 0 or row < 0 or col >= self.width or row >= self.height:
+        if not self._cell_valid(col, row):
             return
         idx = row * self.width + col
         if idx not in self.cell_properties:
@@ -423,7 +430,14 @@ def runtime_zone_from_definition(zone_def: Zone) -> RuntimeZone:
             raise ValidationError(
                 f"grid dimensions must be non-negative, got ({w}, {h})"
             )
-        grid = GridZone(width=w, height=h, cells=[None] * (w * h))
+        vc: set[int] | None = None
+        if zone_def.valid_cells is not None:
+            vc = set()
+            for pair in zone_def.valid_cells:
+                c, r = pair[0], pair[1]
+                if 0 <= c < w and 0 <= r < h:
+                    vc.add(r * w + c)
+        grid = GridZone(width=w, height=h, cells=[None] * (w * h), valid_cells=vc)
         if zone_def.cell_properties:
             for coord, props in zone_def.cell_properties.items():
                 parts = coord.split(",")

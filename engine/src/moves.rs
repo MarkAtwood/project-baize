@@ -1,5 +1,5 @@
 use crate::action::{Action, ActionType, Position};
-use crate::definition::{Component, DirectionName, MovementPrimitive, PrimitiveType};
+use crate::definition::{Adjacency, Component, DirectionName, MovementPrimitive, PrimitiveType};
 use crate::runtime::{ComponentId, GameSession, RuntimeZone};
 
 /// A legal move that a player can make.
@@ -57,8 +57,7 @@ pub fn legal_moves(session: &GameSession) -> Vec<LegalMove> {
                                         comp_def,
                                         col,
                                         row,
-                                        *width,
-                                        *height,
+                                        zone_def.adjacency,
                                         &mut moves,
                                     );
                                 }
@@ -93,8 +92,7 @@ fn generate_grid_moves(
     comp_def: &Component,
     col: u32,
     row: u32,
-    width: u32,
-    height: u32,
+    adjacency: Option<Adjacency>,
     moves: &mut Vec<LegalMove>,
 ) {
     let zone = match session.runtime.zones.get(zone_name) {
@@ -111,12 +109,12 @@ fn generate_grid_moves(
     for mp in &comp_def.movement {
         match mp.primitive {
             PrimitiveType::Step => {
-                let dirs = resolve_directions(mp, player);
+                let dirs = resolve_directions(mp, player, adjacency);
                 let dist = mp.distance.unwrap_or(1);
                 for (dx, dy) in &dirs {
                     let nx = col as i32 + dx * dist as i32;
                     let ny = row as i32 + dy * dist as i32;
-                    if nx < 0 || ny < 0 || nx >= width as i32 || ny >= height as i32 {
+                    if nx < 0 || ny < 0 || !zone.grid_cell_valid(nx as u32, ny as u32) {
                         continue;
                     }
                     if check_cell_condition(zone, session, nx as u32, ny as u32, mp, player) {
@@ -128,14 +126,13 @@ fn generate_grid_moves(
                 }
             }
             PrimitiveType::Slide => {
-                let dirs = resolve_directions(mp, player);
+                let dirs = resolve_directions(mp, player, adjacency);
                 for (dx, dy) in &dirs {
                     let mut nx = col as i32 + dx;
                     let mut ny = row as i32 + dy;
-                    while nx >= 0 && ny >= 0 && nx < width as i32 && ny < height as i32 {
+                    while nx >= 0 && ny >= 0 && zone.grid_cell_valid(nx as u32, ny as u32) {
                         let target = zone.grid_get(nx as u32, ny as u32);
                         if let Some(tid) = target {
-                            // Occupied — can capture enemy, then stop
                             if is_enemy(session, tid, player) {
                                 moves.push(LegalMove {
                                     component_id: cid,
@@ -158,11 +155,10 @@ fn generate_grid_moves(
             PrimitiveType::Leap => {
                 if let (Some(dx), Some(dy)) = (mp.dx, mp.dy) {
                     for (sx, sy) in &[(1, 1), (1, -1), (-1, 1), (-1, -1)] {
-                        // Both orientations of the leap
                         for (ldx, ldy) in &[(dx, dy), (dy, dx)] {
                             let nx = col as i32 + ldx * sx;
                             let ny = row as i32 + ldy * sy;
-                            if nx < 0 || ny < 0 || nx >= width as i32 || ny >= height as i32 {
+                            if nx < 0 || ny < 0 || !zone.grid_cell_valid(nx as u32, ny as u32) {
                                 continue;
                             }
                             let target = zone.grid_get(nx as u32, ny as u32);
@@ -190,9 +186,8 @@ fn generate_grid_moves(
                 }
             }
             PrimitiveType::Hop => {
-                let dirs = resolve_directions(mp, player);
+                let dirs = resolve_directions(mp, player, adjacency);
                 for (dx, dy) in &dirs {
-                    // Must jump over exactly one piece
                     let mid_x = col as i32 + dx;
                     let mid_y = row as i32 + dy;
                     let land_x = col as i32 + dx * 2;
@@ -201,10 +196,8 @@ fn generate_grid_moves(
                         || mid_y < 0
                         || land_x < 0
                         || land_y < 0
-                        || mid_x >= width as i32
-                        || mid_y >= height as i32
-                        || land_x >= width as i32
-                        || land_y >= height as i32
+                        || !zone.grid_cell_valid(mid_x as u32, mid_y as u32)
+                        || !zone.grid_cell_valid(land_x as u32, land_y as u32)
                     {
                         continue;
                     }
@@ -259,13 +252,12 @@ fn generate_grid_moves(
                 });
             }
             PrimitiveType::Swap => {
-                // Generate swap moves with adjacent enemy pieces
-                let dirs = resolve_directions(mp, player);
+                let dirs = resolve_directions(mp, player, adjacency);
                 let dist = mp.distance.unwrap_or(1);
                 for (dx, dy) in &dirs {
                     let nx = col as i32 + dx * dist as i32;
                     let ny = row as i32 + dy * dist as i32;
-                    if nx < 0 || ny < 0 || nx >= width as i32 || ny >= height as i32 {
+                    if nx < 0 || ny < 0 || !zone.grid_cell_valid(nx as u32, ny as u32) {
                         continue;
                     }
                     if let Some(target_id) = zone.grid_get(nx as u32, ny as u32) {
@@ -326,27 +318,40 @@ fn generate_hand_plays(
 
 // --- Helpers ---
 
-/// Resolve direction names to (dx, dy) vectors.
-fn resolve_directions(mp: &MovementPrimitive, _player: &str) -> Vec<(i32, i32)> {
+/// Resolve direction names to (dx, dy) vectors, respecting zone adjacency.
+fn resolve_directions(
+    mp: &MovementPrimitive,
+    _player: &str,
+    adjacency: Option<Adjacency>,
+) -> Vec<(i32, i32)> {
     use crate::definition::Direction;
 
     let dir = match &mp.direction {
         Some(d) => d,
-        None => return adjacent_directions(),
+        None => return adjacent_directions(adjacency),
     };
 
     match dir {
-        Direction::Single(name) => direction_vectors(name),
-        Direction::Multiple(names) => names.iter().flat_map(direction_vectors).collect(),
-        Direction::Custom(_) => adjacent_directions(),
+        Direction::Single(name) => direction_vectors(name, adjacency),
+        Direction::Multiple(names) => {
+            names.iter().flat_map(|n| direction_vectors(n, adjacency)).collect()
+        }
+        Direction::Custom(_) => adjacent_directions(adjacency),
     }
 }
 
-fn direction_vectors(name: &DirectionName) -> Vec<(i32, i32)> {
+fn direction_vectors(name: &DirectionName, adjacency: Option<Adjacency>) -> Vec<(i32, i32)> {
     match name {
         DirectionName::Orthogonal => vec![(1, 0), (-1, 0), (0, 1), (0, -1)],
-        DirectionName::Diagonal => vec![(1, 1), (1, -1), (-1, 1), (-1, -1)],
-        DirectionName::Adjacent => adjacent_directions(),
+        DirectionName::Diagonal => {
+            if adjacency == Some(Adjacency::Hex6) {
+                // Hex grids have no separate diagonal; return the non-orthogonal hex neighbors
+                vec![(-1, 1), (1, -1)]
+            } else {
+                vec![(1, 1), (1, -1), (-1, 1), (-1, -1)]
+            }
+        }
+        DirectionName::Adjacent => adjacent_directions(adjacency),
         DirectionName::Forward => vec![(0, 1)],
         DirectionName::ForwardDiagonal => vec![(1, 1), (-1, 1)],
         DirectionName::Backward => vec![(0, -1)],
@@ -354,17 +359,27 @@ fn direction_vectors(name: &DirectionName) -> Vec<(i32, i32)> {
     }
 }
 
-fn adjacent_directions() -> Vec<(i32, i32)> {
-    vec![
-        (1, 0),
-        (-1, 0),
-        (0, 1),
-        (0, -1),
-        (1, 1),
-        (1, -1),
-        (-1, 1),
-        (-1, -1),
-    ]
+fn hex_directions() -> Vec<(i32, i32)> {
+    vec![(-1, 0), (1, 0), (0, -1), (0, 1), (-1, 1), (1, -1)]
+}
+
+fn adjacent_directions(adjacency: Option<Adjacency>) -> Vec<(i32, i32)> {
+    match adjacency {
+        Some(Adjacency::Hex6) => hex_directions(),
+        Some(Adjacency::Orthogonal4) => vec![(1, 0), (-1, 0), (0, 1), (0, -1)],
+        _ => {
+            vec![
+                (1, 0),
+                (-1, 0),
+                (0, 1),
+                (0, -1),
+                (1, 1),
+                (1, -1),
+                (-1, 1),
+                (-1, -1),
+            ]
+        }
+    }
 }
 
 fn is_enemy(session: &GameSession, target_id: ComponentId, player: &str) -> bool {

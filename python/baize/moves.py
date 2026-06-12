@@ -12,7 +12,7 @@ from dataclasses import dataclass
 from typing import Any
 
 from baize.action import Action
-from baize.definition import Component, DirectionNameLiteral, MovementPrimitive
+from baize.definition import AdjacencyLiteral, Component, DirectionNameLiteral, MovementPrimitive
 from baize.runtime import (
     ComponentId,
     GameSession,
@@ -63,6 +63,7 @@ def legal_moves(session: GameSession) -> list[LegalMove]:
                     )
                     if comp_def is None:
                         continue
+                    zone_def = session.definition.zones[zone_name]
                     _generate_grid_moves(
                         session,
                         zone_name,
@@ -70,8 +71,7 @@ def legal_moves(session: GameSession) -> list[LegalMove]:
                         comp_def,
                         col,
                         row,
-                        zone.width,
-                        zone.height,
+                        zone_def.adjacency,
                         moves,
                     )
 
@@ -91,8 +91,7 @@ def _generate_grid_moves(
     comp_def: Component,
     col: int,
     row: int,
-    width: int,
-    height: int,
+    adjacency: AdjacencyLiteral | None,
     moves: list[LegalMove],
 ) -> None:
     """Generate moves for a piece on a grid using its movement primitives."""
@@ -107,12 +106,12 @@ def _generate_grid_moves(
 
     for mp in comp_def.movement:
         if mp.primitive == "step":
-            dirs = _resolve_directions(mp, player)
+            dirs = _resolve_directions(mp, player, adjacency)
             dist = mp.distance if mp.distance is not None else 1
             for dx, dy in dirs:
                 nx = col + dx * dist
                 ny = row + dy * dist
-                if nx < 0 or ny < 0 or nx >= width or ny >= height:
+                if not zone._cell_valid(nx, ny):
                     continue
                 if _check_cell_condition(zone, session, nx, ny, mp, player):
                     moves.append(
@@ -123,14 +122,13 @@ def _generate_grid_moves(
                     )
 
         elif mp.primitive == "slide":
-            dirs = _resolve_directions(mp, player)
+            dirs = _resolve_directions(mp, player, adjacency)
             for dx, dy in dirs:
                 nx = col + dx
                 ny = row + dy
-                while 0 <= nx < width and 0 <= ny < height:
+                while zone._cell_valid(nx, ny):
                     target = zone.grid_get(nx, ny)
                     if target is not None:
-                        # Occupied: can capture enemy, then stop
                         if _is_enemy(session, target, player):
                             moves.append(
                                 LegalMove(
@@ -155,11 +153,10 @@ def _generate_grid_moves(
             ldy = mp.dy
             if ldx is not None and ldy is not None:
                 for sx, sy in [(1, 1), (1, -1), (-1, 1), (-1, -1)]:
-                    # Both orientations of the leap
                     for adx, ady in [(ldx, ldy), (ldy, ldx)]:
                         nx = col + adx * sx
                         ny = row + ady * sy
-                        if nx < 0 or ny < 0 or nx >= width or ny >= height:
+                        if not zone._cell_valid(nx, ny):
                             continue
                         target = zone.grid_get(nx, ny)
                         if target is None:
@@ -182,22 +179,15 @@ def _generate_grid_moves(
                             )
 
         elif mp.primitive == "hop":
-            dirs = _resolve_directions(mp, player)
+            dirs = _resolve_directions(mp, player, adjacency)
             for dx, dy in dirs:
                 mid_x = col + dx
                 mid_y = row + dy
                 land_x = col + dx * 2
                 land_y = row + dy * 2
-                if (
-                    mid_x < 0
-                    or mid_y < 0
-                    or land_x < 0
-                    or land_y < 0
-                    or mid_x >= width
-                    or mid_y >= height
-                    or land_x >= width
-                    or land_y >= height
-                ):
+                if not zone._cell_valid(mid_x, mid_y):
+                    continue
+                if not zone._cell_valid(land_x, land_y):
                     continue
                 # Middle cell must be occupied
                 if zone.grid_get(mid_x, mid_y) is None:
@@ -226,31 +216,37 @@ def _generate_hand_plays(
 
 
 def _resolve_directions(
-    mp: MovementPrimitive, player: str
+    mp: MovementPrimitive,
+    player: str,
+    adjacency: AdjacencyLiteral | None = None,
 ) -> list[tuple[int, int]]:
-    """Resolve direction names to (dx, dy) vectors."""
+    """Resolve direction names to (dx, dy) vectors, respecting zone adjacency."""
     direction = mp.direction
     if direction is None:
-        return _adjacent_directions()
+        return _adjacent_directions(adjacency)
 
     if isinstance(direction, str):
-        return _direction_vectors(direction)
+        return _direction_vectors(direction, adjacency)
     if isinstance(direction, list):
         result: list[tuple[int, int]] = []
         for name in direction:
-            result.extend(_direction_vectors(name))
+            result.extend(_direction_vectors(name, adjacency))
         return result
-    return _adjacent_directions()
+    return _adjacent_directions(adjacency)
 
 
-def _direction_vectors(name: str) -> list[tuple[int, int]]:
+def _direction_vectors(
+    name: str, adjacency: AdjacencyLiteral | None = None
+) -> list[tuple[int, int]]:
     """Convert a direction name to (dx, dy) vectors."""
     if name == "orthogonal":
         return [(1, 0), (-1, 0), (0, 1), (0, -1)]
     if name == "diagonal":
+        if adjacency == "hex_6":
+            return [(-1, 1), (1, -1)]
         return [(1, 1), (1, -1), (-1, 1), (-1, -1)]
     if name == "adjacent":
-        return _adjacent_directions()
+        return _adjacent_directions(adjacency)
     if name == "forward":
         return [(0, 1)]
     if name == "forward_diagonal":
@@ -259,11 +255,22 @@ def _direction_vectors(name: str) -> list[tuple[int, int]]:
         return [(0, -1)]
     if name == "backward_diagonal":
         return [(1, -1), (-1, -1)]
-    return _adjacent_directions()
+    return _adjacent_directions(adjacency)
 
 
-def _adjacent_directions() -> list[tuple[int, int]]:
-    """All 8 adjacent directions."""
+_HEX_DIRECTIONS: list[tuple[int, int]] = [
+    (-1, 0), (1, 0), (0, -1), (0, 1), (-1, 1), (1, -1)
+]
+
+
+def _adjacent_directions(
+    adjacency: AdjacencyLiteral | None = None,
+) -> list[tuple[int, int]]:
+    """Return neighbor directions based on adjacency model."""
+    if adjacency == "hex_6":
+        return list(_HEX_DIRECTIONS)
+    if adjacency == "orthogonal_4":
+        return [(1, 0), (-1, 0), (0, 1), (0, -1)]
     return [
         (1, 0),
         (-1, 0),

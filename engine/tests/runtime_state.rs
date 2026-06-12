@@ -1,3 +1,5 @@
+use std::collections::HashSet;
+
 use baize_engine::runtime::*;
 use baize_engine::state::*;
 use baize_engine::GameDefinition;
@@ -373,5 +375,261 @@ fn grid_remove_span() {
     // All cells should now be empty
     for &(col, row) in &cells {
         assert!(zone.grid_get(col, row).is_none());
+    }
+}
+
+// --- valid_cells mask tests ---
+
+/// Helper: create a 3x3 grid with no valid_cells mask (all cells valid).
+fn grid_3x3_no_mask() -> RuntimeZone {
+    RuntimeZone::Grid {
+        width: 3,
+        height: 3,
+        cells: vec![None; 9],
+        stacks: Default::default(),
+        stacking_limit: 1,
+        cell_properties: Default::default(),
+        valid_cells: None,
+    }
+}
+
+/// Helper: create a 3x3 grid where only the diagonal cells (0,0), (1,1), (2,2) are valid.
+fn grid_3x3_diagonal_mask() -> RuntimeZone {
+    // flat indices: (0,0)=0, (1,1)=4, (2,2)=8
+    RuntimeZone::Grid {
+        width: 3,
+        height: 3,
+        cells: vec![None; 9],
+        stacks: Default::default(),
+        stacking_limit: 1,
+        cell_properties: Default::default(),
+        valid_cells: Some(HashSet::from([0, 4, 8])),
+    }
+}
+
+#[test]
+fn grid_cell_valid_no_mask() {
+    let grid = grid_3x3_no_mask();
+
+    // All in-bounds cells are valid
+    for row in 0..3u32 {
+        for col in 0..3u32 {
+            assert!(grid.grid_cell_valid(col, row), "({col},{row}) should be valid");
+        }
+    }
+
+    // Out-of-bounds cells are invalid
+    assert!(!grid.grid_cell_valid(3, 0));
+    assert!(!grid.grid_cell_valid(0, 3));
+    assert!(!grid.grid_cell_valid(3, 3));
+    assert!(!grid.grid_cell_valid(100, 100));
+}
+
+#[test]
+fn grid_cell_valid_with_mask() {
+    let grid = grid_3x3_diagonal_mask();
+
+    // Diagonal cells are valid
+    assert!(grid.grid_cell_valid(0, 0));
+    assert!(grid.grid_cell_valid(1, 1));
+    assert!(grid.grid_cell_valid(2, 2));
+
+    // Off-diagonal in-bounds cells are invalid
+    assert!(!grid.grid_cell_valid(1, 0));
+    assert!(!grid.grid_cell_valid(0, 1));
+    assert!(!grid.grid_cell_valid(2, 0));
+    assert!(!grid.grid_cell_valid(0, 2));
+    assert!(!grid.grid_cell_valid(2, 1));
+    assert!(!grid.grid_cell_valid(1, 2));
+
+    // Out-of-bounds still invalid
+    assert!(!grid.grid_cell_valid(3, 3));
+}
+
+#[test]
+fn grid_cell_valid_non_grid_zone() {
+    let zone = RuntimeZone::Set { components: Vec::new() };
+    // grid_cell_valid on a non-grid zone always returns false
+    assert!(!zone.grid_cell_valid(0, 0));
+}
+
+#[test]
+fn grid_get_set_masked_out_cell() {
+    let mut grid = grid_3x3_diagonal_mask();
+    let c1 = ComponentId(0);
+
+    // Set on a masked-out cell (1,0) returns None (no-op)
+    let prev = grid.grid_set(1, 0, Some(c1));
+    assert!(prev.is_none());
+
+    // Get on that masked-out cell returns None
+    assert!(grid.grid_get(1, 0).is_none());
+
+    // The underlying cell array should still be None (set was truly a no-op)
+    if let RuntimeZone::Grid { cells, .. } = &grid {
+        // flat index for (1,0) = 0*3 + 1 = 1
+        assert!(cells[1].is_none());
+    }
+}
+
+#[test]
+fn grid_get_set_valid_cell() {
+    let mut grid = grid_3x3_diagonal_mask();
+    let c1 = ComponentId(0);
+
+    // Set on a valid cell (1,1) works normally
+    let prev = grid.grid_set(1, 1, Some(c1));
+    assert!(prev.is_none()); // was empty
+
+    // Get on the valid cell returns the component
+    assert_eq!(grid.grid_get(1, 1), Some(c1));
+
+    // Replace it
+    let c2 = ComponentId(1);
+    let displaced = grid.grid_set(1, 1, Some(c2));
+    assert_eq!(displaced, Some(c1)); // previous component returned
+    assert_eq!(grid.grid_get(1, 1), Some(c2));
+}
+
+#[test]
+fn grid_push_masked_cell_is_noop() {
+    let mut grid = grid_3x3_diagonal_mask();
+    let c1 = ComponentId(0);
+
+    // Push to a masked-out cell (0,1) — should be a no-op
+    grid.grid_push(0, 1, c1);
+
+    // Cell should still be empty
+    assert!(grid.grid_get(0, 1).is_none());
+    assert_eq!(grid.count(), 0);
+}
+
+#[test]
+fn grid_pop_masked_cell_returns_none() {
+    let mut grid = grid_3x3_diagonal_mask();
+
+    // Pop from a masked-out cell (0,1) — should return None
+    assert!(grid.grid_pop(0, 1).is_none());
+}
+
+#[test]
+fn grid_push_pop_valid_cell() {
+    let mut grid = grid_3x3_diagonal_mask();
+    let c1 = ComponentId(0);
+    let c2 = ComponentId(1);
+
+    // Push to a valid cell (0,0) works normally
+    grid.grid_push(0, 0, c1);
+    assert_eq!(grid.grid_get(0, 0), Some(c1));
+
+    // Push again onto (0,0) — c2 becomes new top, c1 goes to stack
+    grid.grid_push(0, 0, c2);
+    assert_eq!(grid.grid_get(0, 0), Some(c2));
+
+    // Pop returns c2 (top), then c1
+    assert_eq!(grid.grid_pop(0, 0), Some(c2));
+    assert_eq!(grid.grid_get(0, 0), Some(c1));
+    assert_eq!(grid.grid_pop(0, 0), Some(c1));
+    assert!(grid.grid_get(0, 0).is_none());
+}
+
+#[test]
+fn grid_stack_masked_cell() {
+    let grid = grid_3x3_diagonal_mask();
+
+    // grid_stack on masked-out cell returns empty vec
+    assert!(grid.grid_stack(1, 0).is_empty());
+}
+
+#[test]
+fn grid_place_span_masked_cell() {
+    let mut grid = grid_3x3_diagonal_mask();
+    let c1 = ComponentId(0);
+
+    // Span of 2 starting at (0,0) horizontal would need (0,0) and (1,0).
+    // (0,0) is valid but (1,0) is masked out, so this should fail.
+    let result = grid.grid_place_span(0, 0, true, 2, c1);
+    assert!(result.is_err());
+}
+
+#[test]
+fn from_definition_valid_cells_populated() {
+    let def: GameDefinition = serde_json::from_str(
+        r#"{
+        "game": { "name": "Mask Test", "players": ["A", "B"], "information": "perfect" },
+        "zones": {
+            "board": {
+                "zone_type": "grid",
+                "dimensions": [3, 3],
+                "visibility": "public",
+                "valid_cells": [[0, 0], [1, 1], [2, 2]]
+            }
+        },
+        "components": { "piece": { "count": 3 } },
+        "turn_order": { "type": "alternating", "players": ["A", "B"] },
+        "end_conditions": [{ "result": "draw", "condition": "false" }],
+        "authority": { "server_only": [], "client_verifiable": ["all"] }
+    }"#,
+    )
+    .unwrap();
+
+    let session = GameSession::new(def).unwrap();
+    let board = session.runtime.zones.get("board").unwrap();
+
+    // Check that valid_cells is correctly populated
+    if let RuntimeZone::Grid { valid_cells, width, .. } = board {
+        let vc = valid_cells.as_ref().expect("valid_cells should be Some");
+        // (0,0) -> 0*3+0 = 0
+        // (1,1) -> 1*3+1 = 4
+        // (2,2) -> 2*3+2 = 8
+        assert_eq!(*width, 3);
+        assert_eq!(vc.len(), 3);
+        assert!(vc.contains(&0));
+        assert!(vc.contains(&4));
+        assert!(vc.contains(&8));
+    } else {
+        panic!("board should be a Grid");
+    }
+
+    // Verify via grid_cell_valid
+    assert!(board.grid_cell_valid(0, 0));
+    assert!(board.grid_cell_valid(1, 1));
+    assert!(board.grid_cell_valid(2, 2));
+    assert!(!board.grid_cell_valid(1, 0));
+    assert!(!board.grid_cell_valid(0, 1));
+}
+
+#[test]
+fn from_definition_valid_cells_filters_out_of_bounds() {
+    let def: GameDefinition = serde_json::from_str(
+        r#"{
+        "game": { "name": "Mask OOB", "players": ["A", "B"], "information": "perfect" },
+        "zones": {
+            "board": {
+                "zone_type": "grid",
+                "dimensions": [3, 3],
+                "visibility": "public",
+                "valid_cells": [[0, 0], [1, 1], [99, 99], [3, 0], [0, 3]]
+            }
+        },
+        "components": { "piece": { "count": 1 } },
+        "turn_order": { "type": "alternating", "players": ["A", "B"] },
+        "end_conditions": [{ "result": "draw", "condition": "false" }],
+        "authority": { "server_only": [], "client_verifiable": ["all"] }
+    }"#,
+    )
+    .unwrap();
+
+    let session = GameSession::new(def).unwrap();
+    let board = session.runtime.zones.get("board").unwrap();
+
+    if let RuntimeZone::Grid { valid_cells, .. } = board {
+        let vc = valid_cells.as_ref().expect("valid_cells should be Some");
+        // Only (0,0) and (1,1) should survive; (99,99), (3,0), (0,3) are out of bounds
+        assert_eq!(vc.len(), 2);
+        assert!(vc.contains(&0)); // (0,0)
+        assert!(vc.contains(&4)); // (1,1)
+    } else {
+        panic!("board should be a Grid");
     }
 }

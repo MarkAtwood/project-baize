@@ -215,6 +215,16 @@
           "enum": ["orthogonal_4", "orthogonal_8", "hex_6"],
           "description": "How cells connect to their neighbors."
         },
+        "valid_cells": {
+          "type": "array",
+          "items": {
+            "type": "array",
+            "items": { "type": "integer", "minimum": 0 },
+            "minItems": 2,
+            "maxItems": 2
+          },
+          "description": "Allowlist of [col, row] positions that exist on the board. If present, only these cells are valid; all others are treated as out-of-bounds. Used for irregular board shapes (e.g. star-shaped hex grids)."
+        },
         "star_points": {
           "type": "array",
           "items": {
