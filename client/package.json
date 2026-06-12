@@ -9,9 +9,12 @@
     "build": "esbuild src/index.ts --bundle --format=esm --outfile=dist/baize.js --sourcemap",
     "build:iife": "esbuild src/index.ts --bundle --format=iife --global-name=Baize --outfile=dist/baize.iife.js --sourcemap",
     "typecheck": "tsc --noEmit",
-    "dev": "esbuild src/index.ts --bundle --format=esm --outfile=dist/baize.js --sourcemap --watch --servedir=."
+    "dev": "esbuild src/index.ts --bundle --format=esm --outfile=dist/baize.js --sourcemap --watch --servedir=.",
+    "test:build": "esbuild src/tests/*.test.ts --bundle --platform=node --format=esm --outdir=dist/tests --external:node:test --external:node:assert",
+    "test": "npm run test:build && node --test dist/tests/*.test.js"
   },
   "devDependencies": {
+    "@types/node": "^25.9.3",
     "esbuild": "^0.25.0",
     "typescript": "^5.7.0"
   }

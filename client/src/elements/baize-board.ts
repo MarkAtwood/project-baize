@@ -603,38 +603,64 @@ export class BaizeBoardElement extends HTMLElement {
 
     const cells: string[] = [];
 
-    // Grid cells
-    for (let r = 0; r < rows; r++) {
-      for (let c = 0; c < cols; c++) {
-        const x = c * CELL_SIZE + ox;
-        const y = r * CELL_SIZE + oy;
-        const coord = this.cellCoord(c, r, zoneDef);
+    // Intersection mode (Go-style) vs regular grid
+    if (zoneDef.intersections === true && zoneState !== undefined && zoneState.zone_type === "grid") {
+      cells.push(...this.renderIntersectionGrid(cols, rows, ox, oy, zoneDef, zoneState, zoneName));
+    } else {
+      // Grid cells
+      for (let r = 0; r < rows; r++) {
+        for (let c = 0; c < cols; c++) {
+          const x = c * CELL_SIZE + ox;
+          const y = r * CELL_SIZE + oy;
+          const coord = this.cellCoord(c, r, zoneDef);
 
-        const isDark =
-          zoneDef.coloring === "alternating" ? (c + r) % 2 === 1 : false;
-        const fill = isDark ? COLORS.darkCell : COLORS.lightCell;
-        const isHighlighted = this.legalMoveTargets.has(coord);
+          const isDark =
+            zoneDef.coloring === "alternating" ? (c + r) % 2 === 1 : false;
+          const fill = isDark ? COLORS.darkCell : COLORS.lightCell;
+          const isHighlighted = this.legalMoveTargets.has(coord);
 
-        const safeCoord = BaizeBoardElement.escapeSvgAttr(coord);
-        cells.push(
-          `<rect x="${x}" y="${y}" width="${CELL_SIZE}" height="${CELL_SIZE}" ` +
-            `fill="${fill}" stroke="${COLORS.gridLine}" stroke-width="0.5" ` +
-            `data-cell="${safeCoord}" data-col="${c}" data-row="${r}" />`,
-        );
-
-        if (isHighlighted) {
+          const safeCoord = BaizeBoardElement.escapeSvgAttr(coord);
           cells.push(
             `<rect x="${x}" y="${y}" width="${CELL_SIZE}" height="${CELL_SIZE}" ` +
-              `fill="${COLORS.highlight}" data-highlight="${safeCoord}" pointer-events="none" />`,
+              `fill="${fill}" stroke="${COLORS.gridLine}" stroke-width="0.5" ` +
+              `data-cell="${safeCoord}" data-col="${c}" data-row="${r}" />`,
           );
-        }
 
-        // Render component if present (engine uses "col,row" coords)
-        if (zoneState !== undefined && zoneState.zone_type === "grid") {
-          const engineCoord = `${c},${r}`;
-          const component = this.getComponentAt(zoneState, engineCoord);
-          if (component !== null) {
-            cells.push(this.renderPiece(component, x, y, coord));
+          if (isHighlighted) {
+            cells.push(
+              `<rect x="${x}" y="${y}" width="${CELL_SIZE}" height="${CELL_SIZE}" ` +
+                `fill="${COLORS.highlight}" data-highlight="${safeCoord}" pointer-events="none" />`,
+            );
+          }
+
+          // Render component if present (engine uses "col,row" coords)
+          if (zoneState !== undefined && zoneState.zone_type === "grid") {
+            const engineCoord = `${c},${r}`;
+            const component = this.getComponentAt(zoneState, engineCoord);
+            if (component !== null) {
+              cells.push(this.renderPiece(component, x, y, coord));
+              const depth = this.getStackDepth(zoneState, engineCoord);
+              if (depth > 1) {
+                cells.push(this.renderStackBadge(x, y, depth));
+              }
+            }
+
+            // Render cell property indicator if present
+            if (zoneState.cell_properties !== undefined) {
+              const cellProps = zoneState.cell_properties[engineCoord];
+              if (cellProps !== undefined) {
+                const propText = Object.entries(cellProps)
+                  .map(([k, v]) => `${k}:${v}`)
+                  .join(" ");
+                if (propText.length > 0) {
+                  const safeText = BaizeBoardElement.escapeSvg(propText.slice(0, 8));
+                  cells.push(
+                    `<text x="${x + 3}" y="${y + CELL_SIZE - 4}" font-size="8" fill="#666" ` +
+                    `pointer-events="none">${safeText}</text>`
+                  );
+                }
+              }
+            }
           }
         }
       }
@@ -770,9 +796,17 @@ export class BaizeBoardElement extends HTMLElement {
     const cell = gridState.cells[coord];
     if (cell === null || cell === undefined) return null;
     if (Array.isArray(cell)) {
-      return cell.length > 0 ? (cell[0] as ComponentInstance) : null;
+      // Stacking: return top component (last in array = top of stack)
+      return cell.length > 0 ? (cell[cell.length - 1] as ComponentInstance) : null;
     }
     return cell as ComponentInstance;
+  }
+
+  private getStackDepth(gridState: GridState, coord: string): number {
+    const cell = gridState.cells[coord];
+    if (cell === null || cell === undefined) return 0;
+    if (Array.isArray(cell)) return cell.length;
+    return 1;
   }
 
   private renderPiece(
@@ -803,6 +837,85 @@ export class BaizeBoardElement extends HTMLElement {
       `font-weight="bold" fill="${stroke}">${label}</text>` +
       `</g>`
     );
+  }
+
+  private renderStackBadge(x: number, y: number, depth: number): string {
+    const bx = x + CELL_SIZE - 10;
+    const by = y + 10;
+    return (
+      `<g pointer-events="none">` +
+      `<circle cx="${bx}" cy="${by}" r="7" fill="#e74c3c" />` +
+      `<text x="${bx}" y="${by + 4}" text-anchor="middle" font-size="9" ` +
+      `font-weight="bold" fill="#fff">${depth}</text>` +
+      `</g>`
+    );
+  }
+
+  private renderIntersectionGrid(
+    cols: number,
+    rows: number,
+    ox: number,
+    oy: number,
+    zoneDef: Zone,
+    zoneState: GridState,
+    _zoneName: string,
+  ): string[] {
+    const lines: string[] = [];
+    const half = CELL_SIZE / 2;
+
+    // Draw grid lines
+    for (let r = 0; r < rows; r++) {
+      const y = oy + r * CELL_SIZE + half;
+      lines.push(
+        `<line x1="${ox + half}" y1="${y}" x2="${ox + (cols - 1) * CELL_SIZE + half}" y2="${y}" ` +
+        `stroke="${COLORS.gridLine}" stroke-width="1" />`
+      );
+    }
+    for (let c = 0; c < cols; c++) {
+      const x = ox + c * CELL_SIZE + half;
+      lines.push(
+        `<line x1="${x}" y1="${oy + half}" x2="${x}" y2="${oy + (rows - 1) * CELL_SIZE + half}" ` +
+        `stroke="${COLORS.gridLine}" stroke-width="1" />`
+      );
+    }
+
+    // Draw star points
+    if (zoneDef.star_points !== undefined) {
+      for (const [sc, sr] of zoneDef.star_points) {
+        const sx = ox + sc * CELL_SIZE + half;
+        const sy = oy + sr * CELL_SIZE + half;
+        lines.push(
+          `<circle cx="${sx}" cy="${sy}" r="3" fill="${COLORS.gridLine}" />`
+        );
+      }
+    }
+
+    // Draw click targets (invisible rects for interaction)
+    for (let r = 0; r < rows; r++) {
+      for (let c = 0; c < cols; c++) {
+        const x = c * CELL_SIZE + ox;
+        const y = r * CELL_SIZE + oy;
+        const coord = this.cellCoord(c, r, zoneDef);
+        const safeCoord = BaizeBoardElement.escapeSvgAttr(coord);
+        lines.push(
+          `<rect x="${x}" y="${y}" width="${CELL_SIZE}" height="${CELL_SIZE}" ` +
+          `fill="transparent" data-cell="${safeCoord}" data-col="${c}" data-row="${r}" />`
+        );
+
+        // Render piece at intersection
+        const engineCoord = `${c},${r}`;
+        const component = this.getComponentAt(zoneState, engineCoord);
+        if (component !== null) {
+          lines.push(this.renderPiece(component, x, y, coord));
+          const depth = this.getStackDepth(zoneState, engineCoord);
+          if (depth > 1) {
+            lines.push(this.renderStackBadge(x, y, depth));
+          }
+        }
+      }
+    }
+
+    return lines;
   }
 
   /** Escape text content for safe SVG/XML embedding. */

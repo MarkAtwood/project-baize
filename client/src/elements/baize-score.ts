@@ -63,6 +63,18 @@ export class BaizeScoreElement extends HTMLElement {
 
     const statusLine = this.renderStatus(this.state);
 
+    // Global counters
+    let counterSection = "";
+    if (this.state.counters !== undefined) {
+      const entries = Object.entries(this.state.counters);
+      if (entries.length > 0) {
+        const items = entries
+          .map(([k, v]) => `<span class="counter-item">${this.escapeHtml(k)}: ${v}</span>`)
+          .join(" ");
+        counterSection = `<div class="global-counters">${items}</div>`;
+      }
+    }
+
     this.shadowRoot.innerHTML = `
       <style>
         ${BaizeScoreElement.styles}
@@ -73,6 +85,7 @@ export class BaizeScoreElement extends HTMLElement {
             <tr>
               <th>Player</th>
               <th>Score</th>
+              <th>Counters</th>
               <th>Status</th>
             </tr>
           </thead>
@@ -80,6 +93,7 @@ export class BaizeScoreElement extends HTMLElement {
             ${rows}
           </tbody>
         </table>
+        ${counterSection}
         ${statusLine}
       </div>
     `;
@@ -96,10 +110,22 @@ export class BaizeScoreElement extends HTMLElement {
     const statusIcon = connected ? "" : " (disconnected)";
     const activeClass = isActive ? ' class="active"' : "";
 
+    // Format per-player counters
+    let counterText = "";
+    if (playerState.counters !== undefined) {
+      const entries = Object.entries(playerState.counters);
+      if (entries.length > 0) {
+        counterText = entries
+          .map(([k, v]) => `${this.escapeHtml(k)}: ${v}`)
+          .join(", ");
+      }
+    }
+
     return (
       `<tr${activeClass}>` +
       `<td>${this.escapeHtml(name)}${statusIcon}</td>` +
       `<td>${score}</td>` +
+      `<td>${counterText}</td>` +
       `<td>${isActive ? "Current turn" : ""}</td>` +
       `</tr>`
     );
@@ -187,6 +213,18 @@ export class BaizeScoreElement extends HTMLElement {
       text-align: center;
       color: #666;
       font-size: 0.75rem;
+    }
+    .global-counters {
+      display: flex;
+      gap: 1rem;
+      padding: 0.375rem 0.5rem;
+      margin-top: 0.25rem;
+      font-size: 0.75rem;
+      color: #555;
+      border-top: 1px solid #eee;
+    }
+    .counter-item {
+      white-space: nowrap;
     }
   `;
 }

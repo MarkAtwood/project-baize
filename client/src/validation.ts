@@ -127,6 +127,33 @@ export function validateServerMessage(data: unknown): ServerMessage | null {
       msg["full_state"] = validatedState;
     }
 
+    // token: optional bounded string (from welcome message)
+    if ("token" in data && data["token"] !== undefined) {
+      if (typeof data["token"] !== "string") return null;
+      if (!isReasonableString(data["token"])) return null;
+      msg["token"] = data["token"];
+    }
+
+    // seat: optional bounded string (from welcome message)
+    if ("seat" in data && data["seat"] !== undefined) {
+      if (typeof data["seat"] !== "string") return null;
+      if (!isReasonableString(data["seat"])) return null;
+      msg["seat"] = data["seat"];
+    }
+
+    // server_version: optional bounded string (from welcome message)
+    if ("server_version" in data && data["server_version"] !== undefined) {
+      if (typeof data["server_version"] !== "string") return null;
+      if (!isReasonableString(data["server_version"])) return null;
+      msg["server_version"] = data["server_version"];
+    }
+
+    // protocol_version: optional finite number (from welcome message)
+    if ("protocol_version" in data && data["protocol_version"] !== undefined) {
+      if (!isFiniteNumber(data["protocol_version"])) return null;
+      msg["protocol_version"] = data["protocol_version"];
+    }
+
     // Return as ServerMessage — only known fields were copied above,
     // so any unknown/extra fields from the wire are stripped.
     return msg as unknown as ServerMessage;
@@ -143,11 +170,16 @@ function isPlainObject(value: unknown): value is Record<string, unknown> {
   if (value === null || value === undefined) return false;
   if (typeof value !== "object") return false;
   if (Array.isArray(value)) return false;
-  // Defense against prototype pollution: reject objects with __proto__ or
+  // Defense against prototype pollution: reject objects with own __proto__ or
   // constructor properties that could tamper with the prototype chain.
+  // Use hasOwnProperty to distinguish own props from inherited ones —
+  // all objects inherit __proto__ and constructor from Object.prototype.
   const obj = value as Record<string, unknown>;
-  if ("__proto__" in obj) return false;
-  if ("constructor" in obj && obj["constructor"] !== Object) return false;
+  if (Object.prototype.hasOwnProperty.call(obj, "__proto__")) return false;
+  if (
+    Object.prototype.hasOwnProperty.call(obj, "constructor") &&
+    obj["constructor"] !== Object
+  ) return false;
   return true;
 }
 
@@ -181,6 +213,7 @@ function validateAction(
     "dice_type",
     "swap_with",
     "declaration",
+    "commitment",
     "side",
   ] as const;
 
@@ -340,6 +373,36 @@ function validateGameState(
     if (field in data && data[field] !== undefined) {
       state[field] = data[field];
     }
+  }
+
+  // counters: optional plain object of string->number
+  if ("counters" in data && data["counters"] !== undefined) {
+    if (!isPlainObject(data["counters"])) return null;
+    state["counters"] = data["counters"];
+  }
+
+  // pending_actions: optional array of objects
+  if ("pending_actions" in data && data["pending_actions"] !== undefined) {
+    if (!Array.isArray(data["pending_actions"])) return null;
+    if (data["pending_actions"].length > MAX_ARRAY_LENGTH) return null;
+    for (const pa of data["pending_actions"]) {
+      if (!isPlainObject(pa)) return null;
+      if (typeof pa["player"] !== "string") return null;
+      if (typeof pa["action_type"] !== "string") return null;
+    }
+    state["pending_actions"] = data["pending_actions"];
+  }
+
+  // pending_commits: optional plain object of string->string
+  if ("pending_commits" in data && data["pending_commits"] !== undefined) {
+    if (!isPlainObject(data["pending_commits"])) return null;
+    state["pending_commits"] = data["pending_commits"];
+  }
+
+  // simultaneous_actions: optional plain object
+  if ("simultaneous_actions" in data && data["simultaneous_actions"] !== undefined) {
+    if (!isPlainObject(data["simultaneous_actions"])) return null;
+    state["simultaneous_actions"] = data["simultaneous_actions"];
   }
 
   return state;
