@@ -14,16 +14,19 @@ from dataclasses import dataclass
 from typing import Any, Literal
 
 from baize.action import Action, Position
+from baize.betting import BettingRoundState
 from baize.definition import GameDefinition
 from baize.end_conditions import check_end_conditions
 from baize.error import IllegalActionError, InvalidCoordinateError, ResourceBudgetError, UnknownZoneError
 from baize.runtime import (
     ComponentData,
     ComponentId,
+    CounterZone,
     GameSession,
     GridZone,
     MAX_EVENTS_PER_GAME,
     MAX_STATE_SIZE_BYTES,
+    SetZone,
     STATE_SIZE_CHECK_INTERVAL,
     StackZone,
 )
@@ -85,6 +88,11 @@ EventTypeLiteral = Literal[
     "sunk",
     "commit",
     "reveal",
+    "fold",
+    "check",
+    "call",
+    "raise",
+    "all_in",
     "action_submitted",
     "turn_advance",
     "game_end",
@@ -600,6 +608,8 @@ def _execute_action(
             first_hand = next(iter(player_state.zones.values()))
             if isinstance(first_hand, StackZone):
                 first_hand.stack_push(cid_drawn)
+            elif isinstance(first_hand, SetZone):
+                first_hand.set_add(cid_drawn)
         events.append(
             _make_event(
                 session.runtime.sequence,
@@ -856,6 +866,130 @@ def _execute_action(
             )
         )
 
+    elif action.action_type == "fold":
+        bs = _get_or_init_betting_state(session, player)
+        if player not in bs.active_players:
+            raise IllegalActionError("player already folded")
+        bs.active_players.remove(player)
+        bs.acted.discard(player)
+        events.append(
+            _make_event(
+                session.runtime.sequence,
+                "fold",
+                player,
+                prev_hash=prev_hash,
+            )
+        )
+
+    elif action.action_type == "check":
+        bs = _get_or_init_betting_state(session, player)
+        if player not in bs.active_players:
+            raise IllegalActionError("player has folded")
+        player_contrib = bs.contributions.get(player, 0)
+        if bs.current_bet != player_contrib:
+            raise IllegalActionError(
+                f"cannot check: current bet is {bs.current_bet}, "
+                f"player has contributed {player_contrib}"
+            )
+        bs.acted.add(player)
+        events.append(
+            _make_event(
+                session.runtime.sequence,
+                "check",
+                player,
+                prev_hash=prev_hash,
+            )
+        )
+
+    elif action.action_type == "call":
+        bs = _get_or_init_betting_state(session, player)
+        if player not in bs.active_players:
+            raise IllegalActionError("player has folded")
+        player_contrib = bs.contributions.get(player, 0)
+        call_amount = bs.current_bet - player_contrib
+        if call_amount <= 0:
+            raise IllegalActionError("nothing to call")
+        chips = _get_player_chips(session, player)
+        if chips < call_amount:
+            raise IllegalActionError(
+                f"not enough chips to call: need {call_amount}, have {chips}"
+            )
+        _transfer_chips(session, player, call_amount)
+        bs.contributions[player] = bs.current_bet
+        bs.acted.add(player)
+        events.append(
+            _make_event(
+                session.runtime.sequence,
+                "call",
+                player,
+                detail=str(call_amount),
+                prev_hash=prev_hash,
+            )
+        )
+
+    elif action.action_type == "raise":
+        bs = _get_or_init_betting_state(session, player)
+        if player not in bs.active_players:
+            raise IllegalActionError("player has folded")
+        raise_to = action.amount
+        if raise_to is None:
+            raise IllegalActionError("raise requires amount")
+        raise_to = int(raise_to)
+        if raise_to <= bs.current_bet:
+            raise IllegalActionError(
+                f"raise amount {raise_to} must exceed current bet {bs.current_bet}"
+            )
+        player_contrib = bs.contributions.get(player, 0)
+        cost = raise_to - player_contrib
+        chips = _get_player_chips(session, player)
+        if chips < cost:
+            raise IllegalActionError(
+                f"not enough chips to raise: need {cost}, have {chips}"
+            )
+        _transfer_chips(session, player, cost)
+        bs.contributions[player] = raise_to
+        bs.current_bet = raise_to
+        bs.last_raiser = player
+        # Reset acted: everyone else must respond to the raise
+        bs.acted = {player}
+        events.append(
+            _make_event(
+                session.runtime.sequence,
+                "raise",
+                player,
+                detail=str(raise_to),
+                prev_hash=prev_hash,
+            )
+        )
+
+    elif action.action_type == "all_in":
+        bs = _get_or_init_betting_state(session, player)
+        if player not in bs.active_players:
+            raise IllegalActionError("player has folded")
+        chips = _get_player_chips(session, player)
+        if chips <= 0:
+            raise IllegalActionError("player has no chips")
+        player_contrib = bs.contributions.get(player, 0)
+        total_after = player_contrib + chips
+        _transfer_chips(session, player, chips)
+        bs.contributions[player] = total_after
+        bs.all_in_players.add(player)
+        bs.acted.add(player)
+        if total_after > bs.current_bet:
+            # All-in acts as a raise
+            bs.current_bet = total_after
+            bs.last_raiser = player
+            bs.acted = {player}
+        events.append(
+            _make_event(
+                session.runtime.sequence,
+                "all_in",
+                player,
+                detail=str(chips),
+                prev_hash=prev_hash,
+            )
+        )
+
     else:
         raise IllegalActionError(
             f"action type {action.action_type!r} not yet implemented"
@@ -956,6 +1090,7 @@ def _make_event(
     component_id: str | None = None,
     from_pos: str | None = None,
     to_pos: str | None = None,
+    detail: str | None = None,
     prev_hash: str | None = None,
 ) -> GameEvent:
     """Create a GameEvent with state_hash placeholder."""
@@ -966,6 +1101,274 @@ def _make_event(
         component_id=component_id,
         from_pos=from_pos,
         to_pos=to_pos,
+        detail=detail,
         state_hash="",  # filled in after state mutation
         prev_hash=prev_hash,
     )
+
+
+# ---------------------------------------------------------------------------
+# Betting helpers
+# ---------------------------------------------------------------------------
+
+
+def _get_or_init_betting_state(
+    session: GameSession, player: str
+) -> BettingRoundState:
+    """Return the session's BettingRoundState, initializing if needed."""
+    if session.runtime.betting_state is None:
+        bs = BettingRoundState()
+        bs.init_round(list(session.runtime.players.keys()))
+        session.runtime.betting_state = bs
+    return session.runtime.betting_state
+
+
+def _get_player_chips(session: GameSession, player: str) -> int:
+    """Get a player's chip count from their player_chips counter zone."""
+    pstate = session.runtime.players.get(player)
+    if pstate is None:
+        raise IllegalActionError(f"unknown player: {player}")
+    chip_zone = pstate.zones.get("player_chips")
+    if isinstance(chip_zone, CounterZone):
+        return chip_zone.value
+    raise IllegalActionError(f"player {player} has no chip counter")
+
+
+def _transfer_chips(session: GameSession, player: str, amount: int) -> None:
+    """Deduct chips from a player and add to the pot."""
+    pstate = session.runtime.players.get(player)
+    if pstate is None:
+        raise IllegalActionError(f"unknown player: {player}")
+    chip_zone = pstate.zones.get("player_chips")
+    if not isinstance(chip_zone, CounterZone):
+        raise IllegalActionError(f"player {player} has no chip counter")
+    chip_zone.value -= amount
+    pot = session.runtime.zones.get("pot")
+    if isinstance(pot, CounterZone):
+        pot.value += amount
+
+
+# ---------------------------------------------------------------------------
+# Server action parsing and execution (poker phases)
+# ---------------------------------------------------------------------------
+
+
+@dataclass
+class ParsedServerAction:
+    """Parsed representation of a server action string."""
+
+    verb: str
+    positional: list[str]
+    keyword: dict[str, str]
+
+
+def parse_server_action(action_str: str) -> ParsedServerAction:
+    """Parse a server action string like ``deal(deck, hand, count:2, to:each_player)``.
+
+    Returns a :class:`ParsedServerAction` with verb, positional args, and keyword args.
+    """
+    action_str = action_str.strip()
+    paren_open = action_str.find("(")
+    paren_close = action_str.rfind(")")
+    if paren_open == -1 or paren_close == -1 or paren_close <= paren_open:
+        raise IllegalActionError(f"invalid server action string: {action_str!r}")
+    verb = action_str[:paren_open].strip()
+    if not verb:
+        raise IllegalActionError(f"invalid server action string: {action_str!r}")
+    args_str = action_str[paren_open + 1 : paren_close].strip()
+    positional: list[str] = []
+    keyword: dict[str, str] = {}
+    if args_str:
+        for part in args_str.split(","):
+            part = part.strip()
+            if ":" in part:
+                key, _, val = part.partition(":")
+                keyword[key.strip()] = val.strip()
+            else:
+                positional.append(part)
+    return ParsedServerAction(verb=verb, positional=positional, keyword=keyword)
+
+
+def _resolve_zone(
+    session: GameSession,
+    zone_name: str,
+    player_name: str | None = None,
+) -> StackZone | SetZone:
+    """Look up a zone from the session, checking per-player zones if needed."""
+    # Try per-player zone first if player specified
+    if player_name is not None:
+        player_state = session.runtime.players.get(player_name)
+        if player_state is not None:
+            pzone = player_state.zones.get(zone_name)
+            if pzone is not None:
+                if not isinstance(pzone, (StackZone, SetZone)):
+                    raise IllegalActionError(
+                        f"player zone {zone_name!r} is not a stack or set"
+                    )
+                return pzone
+    # Try shared zones
+    zone = session.runtime.zones.get(zone_name)
+    if zone is not None:
+        if not isinstance(zone, (StackZone, SetZone)):
+            raise IllegalActionError(f"zone {zone_name!r} is not a stack or set")
+        return zone
+    raise UnknownZoneError(zone_name)
+
+
+def _pop_from_stack(session: GameSession, zone_name: str) -> ComponentId:
+    """Pop one component from a named StackZone; raises on empty or wrong type."""
+    zone = session.runtime.zones.get(zone_name)
+    if zone is None:
+        raise UnknownZoneError(zone_name)
+    if not isinstance(zone, StackZone):
+        raise IllegalActionError(f"zone {zone_name!r} is not a stack")
+    cid = zone.stack_pop()
+    if cid is None:
+        raise IllegalActionError(f"zone {zone_name!r} is empty")
+    return cid
+
+
+def _add_to_zone(zone: StackZone | SetZone, cid: ComponentId) -> None:
+    """Add a component to either a StackZone or SetZone."""
+    if isinstance(zone, StackZone):
+        zone.stack_push(cid)
+    elif isinstance(zone, SetZone):
+        zone.set_add(cid)
+
+
+def execute_server_action(session: GameSession, action_str: str) -> list[GameEvent]:
+    """Execute a single server action string against the session.
+
+    Supported verbs:
+      - ``deal(src, dst, count:N, to:each_player)`` — deal N cards from src to
+        each player's dst zone
+      - ``deal(src, dst, count:N)`` — deal N cards from src to active player's dst
+      - ``burn(src, dst, count:N)`` — move N cards from src to shared dst zone
+      - ``reveal(src, dst, count:N)`` — move N cards from src to shared dst zone
+    """
+    parsed = parse_server_action(action_str)
+    events: list[GameEvent] = []
+
+    if parsed.verb == "deal":
+        if len(parsed.positional) < 2:
+            raise IllegalActionError(
+                f"deal requires at least src and dst zones, got: {action_str!r}"
+            )
+        src_name = parsed.positional[0]
+        dst_name = parsed.positional[1]
+        count = int(parsed.keyword.get("count", "1"))
+        to = parsed.keyword.get("to")
+
+        if to == "each_player":
+            for _ in range(count):
+                for player_name in session.runtime.players:
+                    cid = _pop_from_stack(session, src_name)
+                    dst = _resolve_zone(session, dst_name, player_name)
+                    _add_to_zone(dst, cid)
+                    comp_data = session.runtime.components.get(cid)
+                    comp_id = comp_data.string_id if comp_data is not None else ""
+                    events.append(
+                        _make_event(
+                            session.runtime.sequence,
+                            "draw",
+                            player_name,
+                            component_id=comp_id,
+                        )
+                    )
+                    session.runtime.sequence += 1
+        else:
+            # Deal to active player (or first player)
+            player_name = next(iter(session.runtime.players), "server")
+            for _ in range(count):
+                cid = _pop_from_stack(session, src_name)
+                dst = _resolve_zone(session, dst_name, player_name)
+                _add_to_zone(dst, cid)
+                comp_data = session.runtime.components.get(cid)
+                comp_id = comp_data.string_id if comp_data is not None else ""
+                events.append(
+                    _make_event(
+                        session.runtime.sequence,
+                        "draw",
+                        player_name,
+                        component_id=comp_id,
+                    )
+                )
+                session.runtime.sequence += 1
+
+    elif parsed.verb == "burn":
+        if len(parsed.positional) < 2:
+            raise IllegalActionError(
+                f"burn requires src and dst zones, got: {action_str!r}"
+            )
+        src_name = parsed.positional[0]
+        dst_name = parsed.positional[1]
+        count = int(parsed.keyword.get("count", "1"))
+        dst = _resolve_zone(session, dst_name)
+        for _ in range(count):
+            cid = _pop_from_stack(session, src_name)
+            _add_to_zone(dst, cid)
+            events.append(
+                _make_event(
+                    session.runtime.sequence,
+                    "draw",
+                    "server",
+                    detail="burn",
+                )
+            )
+            session.runtime.sequence += 1
+
+    elif parsed.verb == "reveal":
+        if len(parsed.positional) < 2:
+            raise IllegalActionError(
+                f"reveal requires src and dst zones, got: {action_str!r}"
+            )
+        src_name = parsed.positional[0]
+        dst_name = parsed.positional[1]
+        count = int(parsed.keyword.get("count", "1"))
+        dst = _resolve_zone(session, dst_name)
+        for _ in range(count):
+            cid = _pop_from_stack(session, src_name)
+            _add_to_zone(dst, cid)
+            comp_data = session.runtime.components.get(cid)
+            comp_id = comp_data.string_id if comp_data is not None else ""
+            events.append(
+                _make_event(
+                    session.runtime.sequence,
+                    "reveal",
+                    "server",
+                    component_id=comp_id,
+                )
+            )
+            session.runtime.sequence += 1
+
+    else:
+        raise IllegalActionError(f"unknown server action verb: {parsed.verb!r}")
+
+    return events
+
+
+def execute_server_phase(session: GameSession, phase_name: str) -> list[GameEvent]:
+    """Find a phase by name and execute its server_action(s).
+
+    Raises ``IllegalActionError`` if the phase is not found or has no server_action.
+    """
+    phase = None
+    for p in session.definition.phases:
+        if p.name == phase_name:
+            phase = p
+            break
+    if phase is None:
+        raise IllegalActionError(f"unknown phase: {phase_name!r}")
+    if phase.server_action is None:
+        raise IllegalActionError(f"phase {phase_name!r} has no server_action")
+
+    actions: list[str]
+    if isinstance(phase.server_action, str):
+        actions = [phase.server_action]
+    else:
+        actions = phase.server_action
+
+    all_events: list[GameEvent] = []
+    for action_str in actions:
+        all_events.extend(execute_server_action(session, action_str))
+    return all_events

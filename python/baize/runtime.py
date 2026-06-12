@@ -15,6 +15,7 @@ from typing import Any, Iterator
 
 import blake3
 
+from baize.betting import BettingRoundState
 from baize.definition import (
     Capacity,
     GameDefinition,
@@ -630,6 +631,7 @@ class RuntimeState:
     simultaneous_actions: dict[str, dict[str, Any]] = field(default_factory=dict)
     history_hashes: list[str] = field(default_factory=list)
     result: GameResult | None = None
+    betting_state: BettingRoundState | None = None
 
 
 # ---------------------------------------------------------------------------

@@ -500,16 +500,8 @@ class TestTier1WireStateIncludesPokerZones:
 
 
 class TestTier2DrawActionGap:
-    """The 'draw' action exists but delivers to a StackZone, not a SetZone hand."""
+    """The 'draw' action delivers cards to SetZone hands (fixed)."""
 
-    @pytest.mark.xfail(
-        reason=(
-            "GAP: transition.draw puts card into player's first per-player zone only if "
-            "it's a StackZone (runtime.py line 373). Poker hand is a SetZone. "
-            "Bead filed: poker-draw-to-set-zone"
-        ),
-        strict=True,
-    )
     def test_draw_action_delivers_to_set_zone_hand(self) -> None:
         session = poker_session()
         _make_deck(session)
@@ -522,35 +514,19 @@ class TestTier2DrawActionGap:
         draw_action = Action(action_type="draw", zone="deck")
         apply_action(session, draw_action)
 
-        # This will fail: hand is SetZone but draw only writes to StackZone
         assert hand.count() == 1
 
 
-class TestTier2BettingActionsGap:
-    """fold/check/call/raise/all_in are in ActionTypeLiteral but not implemented."""
+class TestTier2BettingActions:
+    """fold/check/call/raise/all_in betting actions (implemented)."""
 
-    @pytest.mark.xfail(
-        reason=(
-            "GAP: fold action raises IllegalActionError('not yet implemented'). "
-            "Bead filed: poker-betting-actions"
-        ),
-        strict=True,
-    )
     def test_fold_action_is_handled(self) -> None:
         session = poker_session()
         session.runtime.status = "in_progress"
         fold_action = Action(action_type="fold")
-        # Should succeed; currently raises IllegalActionError
         events = apply_action(session, fold_action)
         assert any(e.event_type == "fold" for e in events)
 
-    @pytest.mark.xfail(
-        reason=(
-            "GAP: check action raises IllegalActionError('not yet implemented'). "
-            "Bead filed: poker-betting-actions"
-        ),
-        strict=True,
-    )
     def test_check_action_is_handled(self) -> None:
         session = poker_session()
         session.runtime.status = "in_progress"
@@ -558,27 +534,16 @@ class TestTier2BettingActionsGap:
         events = apply_action(session, check_action)
         assert any(e.event_type == "check" for e in events)
 
-    @pytest.mark.xfail(
-        reason=(
-            "GAP: call action raises IllegalActionError('not yet implemented'). "
-            "Bead filed: poker-betting-actions"
-        ),
-        strict=True,
-    )
     def test_call_action_is_handled(self) -> None:
         session = poker_session()
         session.runtime.status = "in_progress"
+        # Must have an outstanding bet to call
+        raise_action = Action(action_type="raise", amount=200)
+        apply_action(session, raise_action)
         call_action = Action(action_type="call")
-        events = apply_action(session, call_action)
+        events = apply_action(session, call_action, acting_player="bob")
         assert any(e.event_type == "call" for e in events)
 
-    @pytest.mark.xfail(
-        reason=(
-            "GAP: raise action raises IllegalActionError('not yet implemented'). "
-            "Bead filed: poker-betting-actions"
-        ),
-        strict=True,
-    )
     def test_raise_action_is_handled(self) -> None:
         session = poker_session()
         session.runtime.status = "in_progress"
@@ -588,25 +553,14 @@ class TestTier2BettingActionsGap:
 
 
 class TestTier2ServerDealGap:
-    """No server_action execution: 'deal' phase server_action is unparsed string."""
+    """Server phase execution: deal phase populates player hands (fixed)."""
 
-    @pytest.mark.xfail(
-        reason=(
-            "GAP: Phase.server_action is stored as a raw string/list but never executed. "
-            "There is no server_deal() function that bulk-deals N cards to each player. "
-            "Bead filed: poker-server-deal-action"
-        ),
-        strict=True,
-    )
     def test_advance_to_deal_phase_populates_hands(self) -> None:
         session = poker_session()
         _make_deck(session)
         _shuffle_deck(session)
 
-        # Pretend the server executes the "deal" phase server_action.
-        # Currently no such mechanism exists.
-        # This test documents what the interface SHOULD do.
-        from baize.transition import execute_server_phase  # type: ignore[attr-defined]
+        from baize.transition import execute_server_phase
 
         execute_server_phase(session, "deal")
 
