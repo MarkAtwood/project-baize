@@ -1,0 +1,617 @@
+{
+  "$schema": "../schema/game-definition.schema.json",
+  "game": {
+    "name": "Colossal Cave Adventure (350 points)",
+    "players": ["adventurer"],
+    "information": "perfect"
+  },
+  "zones": {
+    "cave": {
+      "zone_type": "graph",
+      "visibility": "public",
+      "stacking_limit": 0,
+      "nodes": [
+        "building",
+        "road",
+        "valley",
+        "forest",
+        "slit",
+        "depression",
+        "entrance",
+        "cobbles",
+        "debris",
+        "awkward_canyon",
+        "bird_chamber",
+        "pit_top",
+        "hall_of_mists",
+        "hall_of_mountain_king",
+        "west_side_chamber",
+        "south_side_chamber",
+        "y2",
+        "jumble",
+        "window_on_pit",
+        "dirty_passage",
+        "brink_of_pit",
+        "low_passage",
+        "dead_end_13",
+        "long_hall",
+        "cross_over",
+        "dead_end_14",
+        "complex_junction",
+        "bedquilt",
+        "swiss_cheese",
+        "slab_room",
+        "secret_canyon_n",
+        "secret_canyon_s",
+        "troll_bridge",
+        "volcano_view",
+        "plover_room",
+        "dark_room",
+        "shell_room",
+        "ragged_corridor",
+        "reservoir",
+        "pirates_lair",
+        "maze_1",
+        "maze_2",
+        "maze_3",
+        "maze_4",
+        "maze_5",
+        "dead_end_maze"
+      ],
+      "edges": [
+        ["building", "road"],
+        ["road", "valley"],
+        ["road", "forest"],
+        ["valley", "forest"],
+        ["valley", "slit"],
+        ["slit", "depression"],
+        ["depression", "entrance"],
+        ["entrance", "cobbles"],
+        ["cobbles", "debris"],
+        ["debris", "awkward_canyon"],
+        ["awkward_canyon", "bird_chamber"],
+        ["bird_chamber", "pit_top"],
+        ["pit_top", "hall_of_mists"],
+        ["hall_of_mists", "hall_of_mountain_king"],
+        ["hall_of_mountain_king", "west_side_chamber"],
+        ["hall_of_mountain_king", "south_side_chamber"],
+        ["hall_of_mists", "y2"],
+        ["hall_of_mists", "jumble"],
+        ["jumble", "window_on_pit"],
+        ["y2", "jumble"],
+        ["y2", "plover_room"],
+        ["hall_of_mountain_king", "long_hall"],
+        ["long_hall", "cross_over"],
+        ["long_hall", "dead_end_14"],
+        ["cross_over", "complex_junction"],
+        ["complex_junction", "bedquilt"],
+        ["complex_junction", "dirty_passage"],
+        ["dirty_passage", "brink_of_pit"],
+        ["brink_of_pit", "low_passage"],
+        ["low_passage", "dead_end_13"],
+        ["bedquilt", "swiss_cheese"],
+        ["swiss_cheese", "slab_room"],
+        ["slab_room", "secret_canyon_n"],
+        ["secret_canyon_n", "secret_canyon_s"],
+        ["secret_canyon_s", "troll_bridge"],
+        ["troll_bridge", "volcano_view"],
+        ["plover_room", "dark_room"],
+        ["dark_room", "shell_room"],
+        ["shell_room", "ragged_corridor"],
+        ["ragged_corridor", "reservoir"],
+        ["reservoir", "pirates_lair"],
+        ["bedquilt", "maze_1"],
+        ["maze_1", "maze_2"],
+        ["maze_2", "maze_3"],
+        ["maze_3", "maze_4"],
+        ["maze_4", "maze_5"],
+        ["maze_5", "dead_end_maze"],
+        ["maze_1", "maze_3"],
+        ["maze_2", "maze_5"],
+        ["maze_3", "maze_5"]
+      ],
+      "node_properties": {
+        "building": {
+          "description": "You are inside a building, a well house for a large spring.",
+          "light": true,
+          "start": true
+        },
+        "road": {
+          "description": "You are standing at the end of a road before a small brick building. Around you is a forest.",
+          "light": true
+        },
+        "valley": {
+          "description": "You are in a valley in the forest beside a stream tumbling along a rocky bed.",
+          "light": true
+        },
+        "forest": {
+          "description": "You are in open forest, with a deep valley to one side.",
+          "light": true
+        },
+        "slit": {
+          "description": "At your feet all the water of the stream splashes into a 2-inch slit in the rock. Downstream the streambed is bare rock.",
+          "light": true
+        },
+        "depression": {
+          "description": "You are in a 20-foot depression floored with bare dirt. Set into the dirt is a strong steel grate mounted in concrete.",
+          "light": true,
+          "has_grate": true
+        },
+        "entrance": {
+          "description": "You are in a small chamber beneath a 3x3 steel grate to the surface. A low crawl over cobbles leads inward to the west.",
+          "light": false,
+          "below_grate": true
+        },
+        "cobbles": {
+          "description": "You are crawling over cobbles in a low passage. There is a dim light at one end and darkness at the other.",
+          "light": false
+        },
+        "debris": {
+          "description": "You are in a debris room filled with stuff washed in from the surface. A low wide passage with cobbles becomes plugged with mud and debris here.",
+          "light": false
+        },
+        "awkward_canyon": {
+          "description": "You are in an awkward sloping east/west canyon.",
+          "light": false
+        },
+        "bird_chamber": {
+          "description": "You are in a splendid chamber thirty feet high. The walls are frozen rivers of orange stone. A cheerful little bird is singing.",
+          "light": false
+        },
+        "pit_top": {
+          "description": "At your feet is a small pit breathing traces of white mist. A rough stone stairway leads down into the pit.",
+          "light": false,
+          "needs_lamp": true
+        },
+        "hall_of_mists": {
+          "description": "You are at one end of a vast hall stretching forward out of sight to the west. There are openings to either side. The hall is filled with wisps of white mist swaying to and fro.",
+          "light": false
+        },
+        "hall_of_mountain_king": {
+          "description": "You are in the Hall of the Mountain King, with passages off in several directions.",
+          "light": false,
+          "has_snake": true
+        },
+        "west_side_chamber": {
+          "description": "You are in the west side chamber of the Hall of the Mountain King. A passage continues west and up here.",
+          "light": false
+        },
+        "south_side_chamber": {
+          "description": "You are in the south side chamber. The walls are covered with prehistoric murals.",
+          "light": false
+        },
+        "y2": {
+          "description": "A large room with the inscription 'Y2' on a rock in the room's center.",
+          "light": false
+        },
+        "jumble": {
+          "description": "You are in a jumble of rock, with cracks everywhere.",
+          "light": false
+        },
+        "window_on_pit": {
+          "description": "You're at a low window overlooking a huge pit, which extends up out of sight. A floor is indistinctly visible over 50 feet below.",
+          "light": false
+        },
+        "dirty_passage": {
+          "description": "You are in a dirty broken passage. To the east is a crawl. To the west is a large passage.",
+          "light": false
+        },
+        "brink_of_pit": {
+          "description": "You are on the brink of a thirty foot pit with a massive orange column down one wall.",
+          "light": false,
+          "has_pit": true
+        },
+        "low_passage": {
+          "description": "You are in a low passage at the edge of a large underground reservoir. Mist rises from the water.",
+          "light": false
+        },
+        "dead_end_13": {
+          "description": "Dead end.",
+          "light": false
+        },
+        "long_hall": {
+          "description": "You are in a long hall with a rounded ceiling. Several passages lead off in all directions.",
+          "light": false
+        },
+        "cross_over": {
+          "description": "You are at a crossover of a high N/S passage and a low E/W one.",
+          "light": false
+        },
+        "dead_end_14": {
+          "description": "Dead end. A bricked-up doorway is visible in the east wall.",
+          "light": false
+        },
+        "complex_junction": {
+          "description": "You are at a complex junction. A low hands-and-knees passage from the north joins a higher crawl from the east to make a walking passage going west.",
+          "light": false
+        },
+        "bedquilt": {
+          "description": "You are in Bedquilt, a long east/west passage with holes everywhere. To explore at random select north, south, up, or down.",
+          "light": false
+        },
+        "swiss_cheese": {
+          "description": "You are in a room whose walls resemble swiss cheese. Obvious passages go west, east, ne, and nw. Part of the room is occupied by a large bedrock block.",
+          "light": false
+        },
+        "slab_room": {
+          "description": "You are in a large low room. Crawls lead north, se, and sw.",
+          "light": false
+        },
+        "secret_canyon_n": {
+          "description": "You are in a secret N/S canyon above a large room.",
+          "light": false
+        },
+        "secret_canyon_s": {
+          "description": "You are in a secret canyon at a junction of three canyons. A passage leads south to a wider passage.",
+          "light": false
+        },
+        "troll_bridge": {
+          "description": "You are on one side of a large, deep chasm. A heavy white mist rising up from below obscures all view of the far side. A rickety wooden bridge spans the chasm. A burly troll stands by the bridge and insists you throw him a treasure before you may cross.",
+          "light": false,
+          "has_troll": true
+        },
+        "volcano_view": {
+          "description": "You are on the far side of the chasm. A southwest path leads to a glowing passage. The sound of a volcano can be heard to the south.",
+          "light": false
+        },
+        "plover_room": {
+          "description": "You are in a small chamber lit by an eerie green light. An extremely tight passage leads north. A dark corridor leads west.",
+          "light": false
+        },
+        "dark_room": {
+          "description": "You are in the dark-room. A corridor leads east to a dim light. A passage leads south.",
+          "light": false
+        },
+        "shell_room": {
+          "description": "You are in a large room carved out of sedimentary rock. The floor and walls are littered with bits of shells imbedded in the stone. A shallow passage proceeds downward.",
+          "light": false
+        },
+        "ragged_corridor": {
+          "description": "You are in a long sloping corridor with ragged sharp walls.",
+          "light": false
+        },
+        "reservoir": {
+          "description": "You are at the edge of a large underground reservoir. The water appears quite deep. A dimly-lit passage leads south.",
+          "light": false
+        },
+        "pirates_lair": {
+          "description": "You have found a large chamber deep in the cave. Pirate treasure is scattered everywhere!",
+          "light": false
+        },
+        "maze_1": {
+          "description": "You are in a maze of twisty little passages, all alike.",
+          "light": false
+        },
+        "maze_2": {
+          "description": "You are in a maze of twisty little passages, all alike.",
+          "light": false
+        },
+        "maze_3": {
+          "description": "You are in a maze of twisty little passages, all alike.",
+          "light": false
+        },
+        "maze_4": {
+          "description": "You are in a maze of twisty little passages, all alike.",
+          "light": false
+        },
+        "maze_5": {
+          "description": "You are in a maze of twisty little passages, all alike.",
+          "light": false
+        },
+        "dead_end_maze": {
+          "description": "Dead end.",
+          "light": false
+        }
+      },
+      "note": "Expanded Colossal Cave (350 points): 46 rooms. The grate between depression and entrance requires keys. The snake in Hall of the Mountain King requires the bird. The troll at the bridge demands a treasure. The pit at brink_of_pit requires rope. Dark rooms require the lamp, which has a limited battery (330 turns). The maze consists of identical-looking rooms."
+    },
+    "inventory": {
+      "zone_type": "set",
+      "visibility": "public",
+      "per_player": true,
+      "capacity": "unlimited",
+      "note": "Items carried by the player."
+    },
+    "lamp_battery": {
+      "zone_type": "counter",
+      "visibility": "public",
+      "note": "Remaining lamp battery turns. Starts at 330. Decremented each turn when the lamp is on (player is in a dark room with lamp). At 0 the lamp dies and darkness becomes lethal."
+    }
+  },
+  "components": {
+    "player_token": {
+      "owner": "adventurer",
+      "count": 1,
+      "note": "The adventurer's position marker, placed at current room node."
+    },
+    "keys": {
+      "owner": "neutral",
+      "count": 1,
+      "properties": {
+        "portable": true,
+        "item_type": "tool"
+      },
+      "note": "Set of keys found in the building. Unlocks the steel grate."
+    },
+    "lamp": {
+      "owner": "neutral",
+      "count": 1,
+      "properties": {
+        "portable": true,
+        "item_type": "tool"
+      },
+      "note": "Brass lantern found in the building. Required for dark rooms. Battery lasts 330 turns."
+    },
+    "bird": {
+      "owner": "neutral",
+      "count": 1,
+      "properties": {
+        "portable": true,
+        "item_type": "tool"
+      },
+      "note": "A little bird in the bird chamber. Scares away the snake."
+    },
+    "rope": {
+      "owner": "neutral",
+      "count": 1,
+      "properties": {
+        "portable": true,
+        "item_type": "tool"
+      },
+      "note": "A sturdy rope. Required to descend the pit at brink_of_pit."
+    },
+    "gold_nugget": {
+      "owner": "neutral",
+      "count": 1,
+      "properties": {
+        "portable": true,
+        "item_type": "treasure",
+        "points": "50"
+      },
+      "note": "A large sparkling gold nugget!"
+    },
+    "diamonds": {
+      "owner": "neutral",
+      "count": 1,
+      "properties": {
+        "portable": true,
+        "item_type": "treasure",
+        "points": "50"
+      },
+      "note": "Several large sparkling diamonds."
+    },
+    "silver_bars": {
+      "owner": "neutral",
+      "count": 1,
+      "properties": {
+        "portable": true,
+        "item_type": "treasure",
+        "points": "30"
+      },
+      "note": "Bars of silver."
+    },
+    "rare_coins": {
+      "owner": "neutral",
+      "count": 1,
+      "properties": {
+        "portable": true,
+        "item_type": "treasure",
+        "points": "20"
+      },
+      "note": "A collection of rare coins."
+    },
+    "ming_vase": {
+      "owner": "neutral",
+      "count": 1,
+      "properties": {
+        "portable": true,
+        "item_type": "treasure",
+        "points": "20"
+      },
+      "note": "A delicate precious Ming vase!"
+    },
+    "pearl": {
+      "owner": "neutral",
+      "count": 1,
+      "properties": {
+        "portable": true,
+        "item_type": "treasure",
+        "points": "30"
+      },
+      "note": "A glistening pearl the size of a bird's egg."
+    },
+    "golden_eggs": {
+      "owner": "neutral",
+      "count": 1,
+      "properties": {
+        "portable": true,
+        "item_type": "treasure",
+        "points": "40"
+      },
+      "note": "A nest of golden eggs!"
+    },
+    "trident": {
+      "owner": "neutral",
+      "count": 1,
+      "properties": {
+        "portable": true,
+        "item_type": "treasure",
+        "points": "40"
+      },
+      "note": "A jewel-encrusted trident."
+    },
+    "persian_rug": {
+      "owner": "neutral",
+      "count": 1,
+      "properties": {
+        "portable": true,
+        "item_type": "treasure",
+        "points": "40"
+      },
+      "note": "A Persian rug of exquisite workmanship."
+    },
+    "spices": {
+      "owner": "neutral",
+      "count": 1,
+      "properties": {
+        "portable": true,
+        "item_type": "treasure",
+        "points": "30"
+      },
+      "note": "Rare spices from the orient."
+    },
+    "snake": {
+      "owner": "neutral",
+      "count": 1,
+      "properties": {
+        "portable": false,
+        "item_type": "obstacle"
+      },
+      "note": "A huge green fierce snake. Blocks passages in the Hall of the Mountain King."
+    },
+    "grate": {
+      "owner": "neutral",
+      "count": 1,
+      "properties": {
+        "portable": false,
+        "item_type": "obstacle",
+        "locked": true
+      },
+      "note": "A locked steel grate between the depression and the entrance."
+    },
+    "troll": {
+      "owner": "neutral",
+      "count": 1,
+      "properties": {
+        "portable": false,
+        "item_type": "obstacle"
+      },
+      "note": "A burly troll who demands a treasure to let you cross the bridge."
+    },
+    "pit_obstacle": {
+      "owner": "neutral",
+      "count": 1,
+      "properties": {
+        "portable": false,
+        "item_type": "obstacle"
+      },
+      "note": "A thirty-foot pit that requires rope to descend safely."
+    }
+  },
+  "turn_order": {
+    "type": "alternating",
+    "players": ["adventurer"],
+    "actions_per_turn": 1,
+    "mandatory": true
+  },
+  "phases": [
+    {
+      "name": "explore",
+      "action": "move_or_interact",
+      "actions_per_turn": 1,
+      "ends_when": "all_treasures_at_building"
+    }
+  ],
+  "rules": {
+    "move": {
+      "action": "move(player_token, cave/node)",
+      "constraint": "target node is adjacent to current node",
+      "definition": "Move the adventurer to an adjacent room."
+    },
+    "pick_up": {
+      "action": "pick_up(item, inventory)",
+      "constraint": "item is at current room AND item.portable == true",
+      "definition": "Pick up a portable item from the current room into inventory."
+    },
+    "drop": {
+      "action": "drop(item, cave/node)",
+      "constraint": "item is in inventory",
+      "definition": "Drop an item from inventory into the current room."
+    },
+    "use_keys": {
+      "action": "use(keys, grate)",
+      "constraint": "keys in inventory AND player at depression or entrance",
+      "effect": "grate.locked = false; passage between depression and entrance opens",
+      "definition": "Use keys to unlock the steel grate."
+    },
+    "use_bird": {
+      "action": "use(bird, snake)",
+      "constraint": "bird in inventory AND player at hall_of_mountain_king",
+      "effect": "snake removed; passages from hall_of_mountain_king open",
+      "definition": "Release the bird to scare away the snake."
+    },
+    "use_rope": {
+      "action": "use(rope, pit_obstacle)",
+      "constraint": "rope in inventory AND player at brink_of_pit",
+      "effect": "pit_obstacle removed; passage from brink_of_pit to low_passage safe",
+      "definition": "Use rope to safely descend the pit."
+    },
+    "pay_troll": {
+      "action": "give(treasure, troll)",
+      "constraint": "treasure in inventory AND player at troll_bridge",
+      "effect": "troll satisfied; passage across bridge to volcano_view opens; given treasure is consumed",
+      "definition": "Give the troll a treasure to cross the bridge. The treasure is lost."
+    },
+    "grate_blocks": {
+      "trigger": "move from depression to entrance OR entrance to depression",
+      "constraint": "grate.locked == false",
+      "definition": "The locked grate blocks passage between the depression and the entrance."
+    },
+    "snake_blocks": {
+      "trigger": "move from hall_of_mountain_king to west_side_chamber, south_side_chamber, or long_hall",
+      "constraint": "snake is not present at hall_of_mountain_king",
+      "definition": "The fierce snake blocks passage deeper into the cave."
+    },
+    "troll_blocks": {
+      "trigger": "move from troll_bridge to volcano_view",
+      "constraint": "troll is not present at troll_bridge",
+      "definition": "The troll blocks passage across the bridge unless paid."
+    },
+    "pit_blocks": {
+      "trigger": "move from brink_of_pit to low_passage",
+      "constraint": "pit_obstacle is not present at brink_of_pit",
+      "definition": "The deep pit at brink_of_pit blocks descent without rope."
+    },
+    "darkness": {
+      "trigger": "move into a room with light == false",
+      "constraint": "lamp in inventory AND lamp_battery > 0",
+      "definition": "Dark rooms require the lamp with battery remaining. Without it, you are likely to be eaten by a grue."
+    },
+    "lamp_drain": {
+      "trigger": "each turn spent in a dark room with lamp",
+      "effect": "lamp_battery -= 1",
+      "definition": "Each turn in a dark room drains one unit of lamp battery."
+    }
+  },
+  "library": {
+    "all_treasures_at_building": "all treasures (gold_nugget, diamonds, silver_bars, rare_coins, ming_vase, pearl, golden_eggs, trident, persian_rug, spices) are at building node AND player is at building",
+    "lamp_battery_initial": "330",
+    "max_score": "350"
+  },
+  "end_conditions": [
+    {
+      "result": "win",
+      "player": "adventurer",
+      "condition": "all_treasures_at_building",
+      "name": "all_treasures_collected"
+    },
+    {
+      "result": "loss",
+      "player": "adventurer",
+      "condition": "player in dark room without lamp or lamp_battery == 0",
+      "name": "eaten_by_grue"
+    }
+  ],
+  "authority": {
+    "server_only": [],
+    "client_verifiable": [
+      "move(player_token, cave/node)",
+      "pick_up(item, inventory)",
+      "drop(item, cave/node)",
+      "use(keys, grate)",
+      "use(bird, snake)",
+      "use(rope, pit_obstacle)",
+      "give(treasure, troll)"
+    ]
+  }
+}
