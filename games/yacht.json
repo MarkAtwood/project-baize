@@ -1,0 +1,54 @@
+{
+  "$schema": "../schema/game-definition.schema.json",
+  "game": {
+    "name": "Yacht",
+    "players": ["P1", "P2"],
+    "information": "perfect"
+  },
+  "zones": {
+    "dice": {
+      "zone_type": "counter",
+      "visibility": "public",
+      "note": "Current dice values stored in runtime counters die_1..die_5."
+    }
+  },
+  "components": {
+    "die": {
+      "owner": "neutral",
+      "count": 5,
+      "properties": {
+        "faces": "6"
+      }
+    }
+  },
+  "turn_order": {
+    "type": "alternating",
+    "players": ["P1", "P2"],
+    "actions_per_turn": 1,
+    "mandatory": true
+  },
+  "library": {
+    "never": "false"
+  },
+  "rules": {
+    "turn": {
+      "definition": "Roll 5d6. Optionally keep some dice and re-roll the rest (up to 2 re-rolls). Then assign the result to one unused scoring category.",
+      "note": "Each player has 13 categories. Game ends after 13 rounds (all categories filled)."
+    },
+    "categories": {
+      "definition": "Ones, Twos, Threes, Fours, Fives, Sixes (sum of matching), Three of a Kind (sum all), Four of a Kind (sum all), Full House (25), Small Straight (30), Large Straight (40), Yacht/Yahtzee (50), Chance (sum all)"
+    }
+  },
+  "end_conditions": [
+    {
+      "result": "win",
+      "player": "higher_score",
+      "condition": "never",
+      "name": "all_categories_filled"
+    }
+  ],
+  "authority": {
+    "server_only": ["roll_dice"],
+    "client_verifiable": ["keep_dice", "assign_category"]
+  }
+}
