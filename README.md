@@ -140,24 +140,47 @@ Out-of-band player communication (chat, voice, emoji) is out of scope.
 Baize handles game state, rules, and trust. Player communication belongs
 in external tools.
 
-## Game Definitions
+## Game Catalog
 
-Ten reference games spanning the complexity spectrum. Games marked ✓ are
-fully playable end-to-end with tests; others parse and validate but lack
-full gameplay integration.
+Twenty reference games spanning the complexity spectrum. Games marked ✓
+are fully playable end-to-end with tests. Games marked `def` have a JSON
+definition that parses and validates. Planned games have beads issues
+tracking their implementation.
 
-| Game | Information | Playable | Notable features |
-|------|------------|:--------:|-----------------|
-| Tic-Tac-Toe | Perfect | ✓ | Simplest definition; library CEL expressions; zero server authority |
-| Four in a Row | Perfect | ✓ | 7×6 grid, gravity drop placement, 4-in-a-line detection |
-| Pig | Perfect + random | ✓ | Push-your-luck dice, multi-action turns, counter-based scoring |
-| Rock Paper Scissors | Imperfect | ✓ | Simultaneous moves (workaround), best-of-3 |
-| Naval Battle | Imperfect | ✓ | Hidden ship placement, multi-cell spans, hit/miss/sunk tracking |
-| Chess | Perfect | — | 6 piece types, step/slide/leap/castle primitives, promotion |
-| Go | Perfect | — | Intersection play; WASM required for captures/scoring |
-| Backgammon | Perfect + random | — | Dice-driven track movement, bar, bearing off |
-| Texas Hold'em | Imperfect | partial | Deck/deal/shuffle work; betting/phases/hand ranking need engine work |
-| Tile Kingdoms | Imperfect | — | Dynamic grid, 71-tile draw pile; WASM for field scoring |
+### Playable
+
+| Game | Information | Notable features |
+|------|------------|-----------------|
+| Tic-Tac-Toe | Perfect | Simplest definition; library CEL expressions; zero server authority |
+| Four in a Row | Perfect | 7×6 grid, gravity drop placement, 4-in-a-line detection |
+| Pig | Perfect + random | Push-your-luck dice, multi-action turns, counter-based scoring |
+| Naval Battle | Imperfect | Hidden ship placement, multi-cell spans, hit/miss/sunk tracking |
+| Rock Paper Scissors | Imperfect | Simultaneous moves, best-of-3 |
+| Rubik's Cube | Perfect | Single-player puzzle, 6-zone cycle perturbers, solved-state CEL |
+
+### Definition exists (parse + validate, not yet fully playable)
+
+| Game | Information | Notable features |
+|------|------------|-----------------|
+| Chess | Perfect | 6 piece types, step/slide/leap/castle primitives, promotion |
+| Go | Perfect | Intersection play; WASM required for captures/scoring |
+| Backgammon | Perfect + random | Dice-driven track movement, bar, bearing off |
+| Texas Hold'em | Imperfect | Deck/deal/shuffle work; betting/phases/hand ranking in progress |
+| Tile Kingdoms | Imperfect | Dynamic grid, 71-tile draw pile; WASM for field scoring |
+
+### Planned (beads filed)
+
+| Game | What it proves |
+|------|---------------|
+| Checkers | Hop captures, multi-jump chains, repeat_until_stable |
+| Reversi | Chain-reaction flipping (the canonical perturber example) |
+| Yacht | Multi-phase dice turns, scoring categories |
+| Snakes & Ladders | Track zones, dice, triggered position effects |
+| Liar's Dice | Hidden dice, bidding, player elimination |
+| Hex | Hex grid, graph connectivity win condition |
+| Chinese Checkers | Star-shaped triangular lattice, multi-hop |
+| Polyomino Placement | 2D multi-cell spans, corner-only adjacency |
+| Ogre | Hex wargame — stacking, CRT combat, asymmetric forces |
 
 ## Component Registry
 
