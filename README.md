@@ -107,7 +107,7 @@ implementation, even before full mental poker support.
 
 ## Status
 
-Core engine complete. 144 of 176 issues closed. Twelve games are fully
+Core engine complete. 146 of 176 issues closed. Fourteen games are fully
 playable end-to-end. The engine parses and validates game definitions,
 manages runtime state, generates legal moves, evaluates CEL expressions
 for win/constraint conditions, applies state transitions with a structured
@@ -121,7 +121,7 @@ vectors ensure the Rust and Python engines produce identical results.
 |-----------|-------|-----------|
 | Schema (5 JSON Schemas) | — | Game definitions, state, actions, events, component registry |
 | Rust engine | 162 | Parse, validate, state machine, move gen, transitions, CEL end conditions, perturber effects (cycle, remove, flip, promote, counters, invoke), commit-reveal, simultaneous phases, hash-chained events, tamper detection, visibility filtering |
-| Python engine | 562 | Feature-parallel with Rust, plus game analysis, Jupyter notebook, terminal CLI, interactive REPL, agent framework (Random/Greedy/MCTS) |
+| Python engine | 610 | Feature-parallel with Rust, plus game analysis, Jupyter notebook, terminal CLI, interactive REPL, agent framework (Random/Greedy/MCTS) |
 | Server | 31 | Room management, WebSocket protocol, hidden-state vault (ChaCha20Rng), per-player visibility, rate limiting, token auth, spectator isolation, persistence |
 | Client (TypeScript) | — | Full type definitions for all schemas; Web Components (`<baize-game>`, `<baize-board>`) |
 
@@ -144,7 +144,7 @@ in external tools.
 
 ## Game Catalog
 
-Twenty-one reference games spanning the complexity spectrum (15 defined, 6 planned). Games marked ✓
+Twenty-one reference games spanning the complexity spectrum (16 defined, 5 planned). Games marked ✓
 are fully playable end-to-end with tests. Games marked `def` have a JSON
 definition that parses and validates. Planned games have beads issues
 tracking their implementation.
@@ -164,6 +164,8 @@ tracking their implementation.
 | Checkers | Perfect | Hop captures, multi-jump chains, mandatory captures, king promotion |
 | Snakes & Ladders | Perfect + random | TrackZone, d6 dice, snake/ladder triggered effects, bounce-back |
 | Yacht | Perfect + random | 5d6, keep/re-roll, 13 scoring categories, upper bonus |
+| Liar's Dice | Imperfect | Hidden per-player dice, escalating bids, challenge/reveal, elimination |
+| Backgammon | Perfect + random | 24-point track, hitting/bar, re-entry, bearing off, doubles |
 | Rubik's Cube | Perfect | Single-player puzzle, 6-zone cycle perturbers, solved-state CEL |
 
 ### Definition exists (parse + validate, not yet fully playable)
@@ -171,7 +173,6 @@ tracking their implementation.
 | Game | Information | Notable features |
 |------|------------|-----------------|
 | Chess | Perfect | 6 piece types, step/slide/leap/castle primitives, promotion |
-| Backgammon | Perfect + random | Dice-driven track movement, bar, bearing off |
 | Texas Hold'em | Imperfect | Deck/deal/shuffle work; betting/phases/hand ranking in progress |
 
 ### Planned (beads filed)
@@ -179,7 +180,6 @@ tracking their implementation.
 | Game | What it proves |
 |------|---------------|
 | Tile Kingdoms | Dynamic grid, 71-tile draw pile; WASM for field scoring |
-| Liar's Dice | Hidden dice, bidding, player elimination |
 | Hex | Hex grid, graph connectivity win condition |
 | Chinese Checkers | Star-shaped triangular lattice, multi-hop |
 | Polyomino Placement | 2D multi-cell spans, corner-only adjacency |
