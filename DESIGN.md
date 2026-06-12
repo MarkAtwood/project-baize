@@ -73,7 +73,7 @@ render valid targets, and validate actions locally.
 
 Covers the remaining ~10%: logic too complex for declarative predicates.
 
-- Complex scoring (Carcassonne field scoring, Go territory)
+- Complex scoring (tile-placement field scoring, Go territory)
 - Chain reactions (Othello flips, Candy Crush cascades)
 - Custom phase logic (Magic: The Gathering stack resolution)
 - Non-trivial win conditions (checkmate detection)
@@ -97,7 +97,7 @@ Only what cannot be computed locally:
 
 For perfect-information games (chess, Go, checkers), Tier 3 is just a
 sequencer — a message bus that stamps move order. For imperfect-information
-games (poker, Battleship), Tier 3 holds the hidden state and reveals it
+games (poker, Naval Battle), Tier 3 holds the hidden state and reveals it
 according to the schema's visibility rules.
 
 But none of these operations *inherently* require a trusted third party.
@@ -250,7 +250,7 @@ Primitives that every game is built from:
 - **Card** — has suit, rank, face-up/down. Lives in stacks or sets.
 - **Die/Dice** — N-sided, produces random value on roll.
 - **Counter** — numeric value (score, hit points, mana).
-- **Tile** — placed onto grid/board, may have edges/sides (Carcassonne).
+- **Tile** — placed onto grid/board, may have edges/sides (Tile Kingdoms).
 - **Marker** — stateless position indicator (last-move dot, legal-move highlight).
 
 ### Properties
@@ -334,7 +334,7 @@ zone("board").cells.all(c, c.component != null)
 // Rule trigger: pawn reaches promotion rank
 component.position.rank == promote_rank(component.owner)
 
-// Carcassonne: tile edges must match neighbors
+// Tile Kingdoms: tile edges must match neighbors
 adjacent_cells(target).all(neighbor,
     neighbor.component == null ||
     edge_matches(component, target.rotation, neighbor.component, neighbor.direction))
@@ -479,7 +479,7 @@ a finite resource:
 | Checkers | Multi-jump captures | Opponent pieces |
 | Match-3 / Candy Crush | Remove matches, gravity fill, re-match | Pieces on board |
 | Othello | Flip sandwiched lines | N/A (one pass, not cascading) |
-| Carcassonne | Complete feature → return meeples | Meeples on features |
+| Tile Kingdoms | Complete feature → return meeples | Meeples on features |
 | MTG/Dominion | Card triggers card | Actions/mana remaining |
 
 ### Tier Boundary Redefined
@@ -491,7 +491,7 @@ With CEL constraints and structured perturbers, the three tiers become:
   transitions, and most end conditions. Guaranteed to terminate.
 
 - **Tier 2 (WASM)**: Needed only for logic that exceeds Tier 1:
-  - Computed scoring with complex tiebreakers (Carcassonne field majority)
+  - Computed scoring with complex tiebreakers (tile-placement field majority)
   - Predicates requiring game-tree search (checkmate detection via
     move enumeration — though `in_check()` as a library function may
     suffice for most cases)
@@ -669,7 +669,7 @@ For perfect-information games, the server is already just a sequencer
 and can be replaced by any message ordering mechanism (turn-based
 WebRTC, blockchain, or even email).
 
-For imperfect-information games (poker, Battleship), the full mental
+For imperfect-information games (poker, Naval Battle), the full mental
 poker protocol replaces the server as card dealer. The 1979 SRA protocol
 uses commutative encryption: each player encrypts every card with their
 own key, they shuffle in encrypted form, and a card is revealed only
@@ -814,7 +814,7 @@ Five JSON Schema definitions (draft 2020-12) in `schema/`:
 - `component-registry.schema.json` — Reusable component definitions
 
 Seven reference game definitions in `games/`: Tic-Tac-Toe, Chess, Go,
-Backgammon, Battleship, Texas Hold'em, Carcassonne. 49 reusable component
+Backgammon, Naval Battle, Texas Hold'em, Tile Kingdoms. 49 reusable component
 definitions in `registry/` (card decks, dice, piece sets, boards, tiles,
 tokens).
 

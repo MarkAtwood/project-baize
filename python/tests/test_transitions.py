@@ -211,8 +211,8 @@ def test_events_are_jsonl_serializable() -> None:
         assert isinstance(parsed, dict)
 
 
-BATTLESHIP_JSON = """{
-    "game": { "name": "Battleship", "players": ["A", "B"], "information": "imperfect" },
+NAVAL_BATTLE_JSON = """{
+    "game": { "name": "Naval Battle", "players": ["A", "B"], "information": "imperfect" },
     "zones": {
         "ocean": { "zone_type": "grid", "dimensions": [10, 10], "per_player": true, "visibility": { "private": "owner" } },
         "target": { "zone_type": "grid", "dimensions": [10, 10], "per_player": true, "visibility": { "private": "owner" } },
@@ -234,8 +234,8 @@ BATTLESHIP_JSON = """{
 }"""
 
 
-def battleship_session() -> GameSession:
-    definition = GameDefinition.from_json(BATTLESHIP_JSON)
+def naval_battle_session() -> GameSession:
+    definition = GameDefinition.from_json(NAVAL_BATTLE_JSON)
     session = GameSession(definition)
     for player in session.runtime.players.values():
         player.counters["ships_remaining"] = 2
@@ -262,7 +262,7 @@ def fire_action(col: int, row: int) -> Action:
 
 
 def test_place_ship_horizontal() -> None:
-    session = battleship_session()
+    session = naval_battle_session()
 
     events = apply_action(
         session, place_ship_action("carrier", 0, 0, "horizontal")
@@ -284,7 +284,7 @@ def test_place_ship_horizontal() -> None:
 
 
 def test_place_ship_vertical() -> None:
-    session = battleship_session()
+    session = naval_battle_session()
 
     events = apply_action(
         session, place_ship_action("destroyer", 9, 8, "vertical")
@@ -302,7 +302,7 @@ def test_place_ship_vertical() -> None:
 def test_place_ship_overlap_rejected() -> None:
     import pytest
 
-    session = battleship_session()
+    session = naval_battle_session()
 
     apply_action(
         session, place_ship_action("carrier", 0, 0, "horizontal")
@@ -318,7 +318,7 @@ def test_place_ship_overlap_rejected() -> None:
 def test_place_ship_out_of_bounds_rejected() -> None:
     import pytest
 
-    session = battleship_session()
+    session = naval_battle_session()
 
     with pytest.raises(IllegalActionError):
         apply_action(
@@ -327,7 +327,7 @@ def test_place_ship_out_of_bounds_rejected() -> None:
 
 
 def test_fire_miss() -> None:
-    session = battleship_session()
+    session = naval_battle_session()
     session.runtime.status = "in_progress"
 
     # B places destroyer at (5,5)
@@ -351,7 +351,7 @@ def test_fire_miss() -> None:
 
 
 def test_fire_hit() -> None:
-    session = battleship_session()
+    session = naval_battle_session()
     session.runtime.status = "in_progress"
 
     # B places destroyer at (5,5)
@@ -374,7 +374,7 @@ def test_fire_hit() -> None:
 
 
 def test_fire_sunk() -> None:
-    session = battleship_session()
+    session = naval_battle_session()
     session.runtime.status = "in_progress"
 
     # B places destroyer (span 2) at (5,5) horizontal
@@ -400,7 +400,7 @@ def test_fire_sunk() -> None:
 def test_fire_duplicate_rejected() -> None:
     import pytest
 
-    session = battleship_session()
+    session = naval_battle_session()
     session.runtime.status = "in_progress"
 
     session.runtime.turn_index = 0

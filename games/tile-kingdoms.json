@@ -1,7 +1,7 @@
 {
   "$schema": "../schema/game-definition.schema.json",
   "game": {
-    "name": "Carcassonne",
+    "name": "Tile Kingdoms",
     "players": { "min": 2, "max": 5 },
     "information": "imperfect"
   },
@@ -162,5 +162,5 @@
       "majority_resolution"
     ]
   },
-  "wasm_module": "carcassonne.wasm"
+  "wasm_module": "tile-kingdoms.wasm"
 }

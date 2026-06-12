@@ -85,7 +85,7 @@ JMAP Scene's `visible` property on SceneObject handles the display layer:
 - Face-down cards: `visible: true` (object exists) but `visualRef` shows
   card back. The `customProperties.rank` and `customProperties.suit` are
   omitted from /get responses for non-owners (server filters).
-- Opponent's grid in Battleship: objects exist but are not included in
+- Opponent's grid in Naval Battle: objects exist but are not included in
   query results for the opponent (access control).
 
 The game schema's visibility model drives Scene's per-user object filtering:

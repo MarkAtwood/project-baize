@@ -239,14 +239,14 @@ authority:
     - hand_comparison()  # given visible cards, client knows rankings
 ```
 
-## Carcassonne (tile placement, complex scoring needs WASM)
+## Tile Kingdoms (tile placement, complex scoring needs WASM)
 
 ```yaml
 game:
-  name: Carcassonne
+  name: Tile Kingdoms
   players: { min: 2, max: 5 }
   information: imperfect  # tile draw is hidden
-  wasm_module: carcassonne_scoring.wasm  # field scoring is too complex
+  wasm_module: tile_kingdoms_scoring.wasm  # field scoring is too complex
 
 zones:
   draw_pile:
@@ -383,11 +383,11 @@ authority:
   client_verifiable: [all]
 ```
 
-## Battleship (hidden information, spatial)
+## Naval Battle (hidden information, spatial)
 
 ```yaml
 game:
-  name: Battleship
+  name: Naval Battle
   players: [A, B]
   information: imperfect
 
