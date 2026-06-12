@@ -57,6 +57,7 @@ EventTypeLiteral = Literal[
     "sunk",
     "commit",
     "reveal",
+    "action_submitted",
     "turn_advance",
     "game_end",
 ]
@@ -110,23 +111,189 @@ class GameEvent:
 # ---------------------------------------------------------------------------
 
 
-def apply_action(session: GameSession, action: Action) -> list[GameEvent]:
-    """Apply an action to the game session, mutating state and returning events."""
-    player = session.current_player()
-    if player is None:
-        raise IllegalActionError("no current player")
+def _current_phase(session: GameSession):
+    """Return the current Phase definition, or None if no phases defined."""
+    if session.definition.phases and session.runtime.phase_index < len(
+        session.definition.phases
+    ):
+        return session.definition.phases[session.runtime.phase_index]
+    return None
 
+
+def apply_action(
+    session: GameSession,
+    action: Action,
+    *,
+    acting_player: str | None = None,
+) -> list[GameEvent]:
+    """Apply an action to the game session, mutating state and returning events.
+
+    For simultaneous phases, pass acting_player to identify the submitter.
+    Actions are buffered until all players submit, then resolved atomically.
+    """
     if session.runtime.status == "finished":
         raise IllegalActionError("game is finished")
 
     if session.runtime.status == "setup":
         session.runtime.status = "in_progress"
 
+    # Check if we're in a simultaneous phase
+    phase = _current_phase(session)
+    if phase and phase.simultaneous:
+        return _apply_simultaneous(session, action, acting_player)
+
+    player = acting_player or session.current_player()
+    if player is None:
+        raise IllegalActionError("no current player")
+
     prev_hash = (
         session.runtime.history_hashes[-1]
         if session.runtime.history_hashes
         else None
     )
+
+    events = _execute_action(session, player, action, prev_hash)
+
+    # Check end conditions before advancing turn ("current" = player who just moved)
+    if session.runtime.status != "finished":
+        result = check_end_conditions(session)
+        if result is not None:
+            session.runtime.status = "finished"
+            session.runtime.result = result
+
+            new_hash = session.compute_state_hash()
+            session.runtime.history_hashes.append(new_hash)
+
+            for event in events:
+                event.state_hash = new_hash
+
+            events.append(
+                GameEvent(
+                    sequence=session.runtime.sequence,
+                    event_type="game_end",
+                    player=result.winner or "",
+                    detail=result.condition,
+                    state_hash=new_hash,
+                    prev_hash=prev_hash,
+                )
+            )
+
+            return events
+
+    # Advance turn
+    session.advance_turn()
+    new_hash = session.compute_state_hash()
+    session.runtime.history_hashes.append(new_hash)
+
+    for event in events:
+        event.state_hash = new_hash
+
+    next_player = session.current_player() or ""
+    events.append(
+        GameEvent(
+            sequence=session.runtime.sequence,
+            event_type="turn_advance",
+            player=next_player,
+            state_hash=new_hash,
+            prev_hash=prev_hash,
+        )
+    )
+
+    return events
+
+
+def _apply_simultaneous(
+    session: GameSession, action: Action, acting_player: str | None
+) -> list[GameEvent]:
+    """Buffer an action for a simultaneous phase; resolve when all submit."""
+    player = acting_player or session.current_player()
+    if player is None:
+        raise IllegalActionError("no player specified for simultaneous action")
+    if player not in session.runtime.players:
+        raise IllegalActionError(f"unknown player: {player}")
+    if player in session.runtime.simultaneous_actions:
+        raise IllegalActionError(
+            f"player {player} has already submitted for this phase"
+        )
+
+    prev_hash = (
+        session.runtime.history_hashes[-1]
+        if session.runtime.history_hashes
+        else None
+    )
+
+    # Buffer the action
+    session.runtime.simultaneous_actions[player] = action.to_dict()
+    events: list[GameEvent] = [
+        _make_event(
+            session.runtime.sequence,
+            "action_submitted",
+            player,
+            prev_hash=prev_hash,
+        )
+    ]
+
+    # Check if all players have submitted
+    all_players = list(session.runtime.players.keys())
+    if all(p in session.runtime.simultaneous_actions for p in all_players):
+        # Resolve: apply each action in player order
+        buffered = dict(session.runtime.simultaneous_actions)
+        session.runtime.simultaneous_actions.clear()
+
+        for p in all_players:
+            act = Action.from_dict(buffered[p])
+            resolve_events = _execute_action(session, p, act, prev_hash)
+            events.extend(resolve_events)
+
+        # Check end conditions after all actions resolved
+        if session.runtime.status != "finished":
+            result = check_end_conditions(session)
+            if result is not None:
+                session.runtime.status = "finished"
+                session.runtime.result = result
+
+                new_hash = session.compute_state_hash()
+                session.runtime.history_hashes.append(new_hash)
+                for event in events:
+                    event.state_hash = new_hash
+                events.append(
+                    GameEvent(
+                        sequence=session.runtime.sequence,
+                        event_type="game_end",
+                        player=result.winner or "",
+                        detail=result.condition,
+                        state_hash=new_hash,
+                        prev_hash=prev_hash,
+                    )
+                )
+                return events
+
+        # Advance turn after resolution
+        session.advance_turn()
+        new_hash = session.compute_state_hash()
+        session.runtime.history_hashes.append(new_hash)
+        for event in events:
+            event.state_hash = new_hash
+        events.append(
+            GameEvent(
+                sequence=session.runtime.sequence,
+                event_type="turn_advance",
+                player=session.current_player() or "",
+                state_hash=new_hash,
+                prev_hash=prev_hash,
+            )
+        )
+
+    return events
+
+
+def _execute_action(
+    session: GameSession, player: str, action: Action, prev_hash: str | None
+) -> list[GameEvent]:
+    """Execute action mechanics: mutate state and return events.
+
+    Does NOT advance turn or check end conditions — caller handles that.
+    """
     events: list[GameEvent] = []
 
     if action.action_type == "move_piece":
@@ -199,11 +366,18 @@ def apply_action(session: GameSession, action: Action) -> list[GameEvent]:
             )
         )
 
-        zone = session.runtime.zones.get(zone_name)
+        zone: GridZone | None = None
+        pstate = session.runtime.players.get(player)
+        if pstate is not None:
+            pz = pstate.zones.get(zone_name)
+            if isinstance(pz, GridZone):
+                zone = pz
+        if zone is None:
+            gz = session.runtime.zones.get(zone_name)
+            if isinstance(gz, GridZone):
+                zone = gz
         if zone is None:
             raise UnknownZoneError(zone_name)
-        if not isinstance(zone, GridZone):
-            raise IllegalActionError(f"zone {zone_name} is not a grid")
         _validate_grid_coords(zone, to_col, to_row, zone_name)
         zone.grid_set(to_col, to_row, cid)
 
@@ -632,52 +806,6 @@ def apply_action(session: GameSession, action: Action) -> list[GameEvent]:
         raise IllegalActionError(
             f"action type {action.action_type!r} not yet implemented"
         )
-
-    # Check end conditions before advancing turn ("current" = player who just moved)
-    if session.runtime.status != "finished":
-        result = check_end_conditions(session)
-        if result is not None:
-            session.runtime.status = "finished"
-            session.runtime.result = result
-
-            new_hash = session.compute_state_hash()
-            session.runtime.history_hashes.append(new_hash)
-
-            for event in events:
-                event.state_hash = new_hash
-
-            events.append(
-                GameEvent(
-                    sequence=session.runtime.sequence,
-                    event_type="game_end",
-                    player=result.winner or "",
-                    detail=result.condition,
-                    state_hash=new_hash,
-                    prev_hash=prev_hash,
-                )
-            )
-
-            return events
-
-    # Advance turn
-    session.advance_turn()
-    new_hash = session.compute_state_hash()
-    session.runtime.history_hashes.append(new_hash)
-
-    # Update hashes on all events
-    for event in events:
-        event.state_hash = new_hash
-
-    next_player = session.current_player() or ""
-    events.append(
-        GameEvent(
-            sequence=session.runtime.sequence,
-            event_type="turn_advance",
-            player=next_player,
-            state_hash=new_hash,
-            prev_hash=prev_hash,
-        )
-    )
 
     return events
 

@@ -36,6 +36,14 @@
     "actions_per_turn": 1,
     "mandatory": true
   },
+  "phases": [
+    {
+      "name": "choose",
+      "simultaneous": true,
+      "action": "place(gesture, choice)",
+      "note": "Both players submit their gesture simultaneously. Engine buffers until both have submitted, then resolves."
+    }
+  ],
   "library": {
     "p1_wins_match": "p1_wins >= 2",
     "p2_wins_match": "p2_wins >= 2"

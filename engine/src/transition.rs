@@ -48,17 +48,39 @@ pub enum EventType {
     Sunk,
     Commit,
     Reveal,
+    ActionSubmitted,
     TurnAdvance,
     GameEnd,
 }
 
-/// Apply an action to the game session, mutating state and returning events.
-pub fn apply_action(session: &mut GameSession, action: &Action) -> Result<Vec<GameEvent>> {
-    let player = session
-        .current_player()
-        .ok_or_else(|| BaizeError::IllegalAction("no current player".into()))?
-        .to_string();
+/// Return the current Phase definition, or None if no phases are defined.
+fn current_phase(session: &GameSession) -> Option<&crate::definition::Phase> {
+    session
+        .definition
+        .phases
+        .get(session.runtime.phase_index)
+}
 
+/// Apply an action to the game session, mutating state and returning events.
+///
+/// For non-simultaneous phases this works exactly as before. For simultaneous
+/// phases it buffers the action under the current player; use
+/// [`apply_action_for_player`] when the caller knows the acting player's
+/// identity (e.g. the server knows which WebSocket submitted the move).
+pub fn apply_action(session: &mut GameSession, action: &Action) -> Result<Vec<GameEvent>> {
+    apply_action_for_player(session, action, None)
+}
+
+/// Apply an action with an explicit acting player.
+///
+/// When `acting_player` is `Some`, that player is used instead of the
+/// current-turn player. This is required for simultaneous phases where
+/// multiple players submit moves independently.
+pub fn apply_action_for_player(
+    session: &mut GameSession,
+    action: &Action,
+    acting_player: Option<&str>,
+) -> Result<Vec<GameEvent>> {
     if session.runtime.status == GameStatus::Finished {
         return Err(BaizeError::IllegalAction("game is finished".into()));
     }
@@ -67,7 +89,111 @@ pub fn apply_action(session: &mut GameSession, action: &Action) -> Result<Vec<Ga
         session.runtime.status = GameStatus::InProgress;
     }
 
+    // Check if we're in a simultaneous phase
+    let is_simultaneous = current_phase(session)
+        .and_then(|p| p.simultaneous)
+        .unwrap_or(false);
+
+    if is_simultaneous {
+        return apply_simultaneous(session, action, acting_player);
+    }
+
+    let player = acting_player
+        .map(String::from)
+        .or_else(|| session.current_player().map(String::from))
+        .ok_or_else(|| BaizeError::IllegalAction("no current player".into()))?;
+
     let prev_hash = session.runtime.history_hashes.last().cloned();
+    let events = execute_action(session, &player, action, &prev_hash)?;
+    finalize_turn(session, events, prev_hash)
+}
+
+/// Buffer an action for a simultaneous phase; resolve when all players submit.
+fn apply_simultaneous(
+    session: &mut GameSession,
+    action: &Action,
+    acting_player: Option<&str>,
+) -> Result<Vec<GameEvent>> {
+    let player = acting_player
+        .map(String::from)
+        .or_else(|| session.current_player().map(String::from))
+        .ok_or_else(|| {
+            BaizeError::IllegalAction("no player specified for simultaneous action".into())
+        })?;
+
+    if !session.runtime.players.contains_key(&player) {
+        return Err(BaizeError::IllegalAction(format!(
+            "unknown player: {player}"
+        )));
+    }
+    if session.runtime.simultaneous_actions.contains_key(&player) {
+        return Err(BaizeError::IllegalAction(format!(
+            "player {player} has already submitted for this phase"
+        )));
+    }
+
+    let prev_hash = session.runtime.history_hashes.last().cloned();
+
+    // Buffer the action as a JSON value
+    let action_value = serde_json::to_value(action)
+        .map_err(|e| BaizeError::IllegalAction(format!("failed to serialize action: {e}")))?;
+    session
+        .runtime
+        .simultaneous_actions
+        .insert(player.clone(), action_value);
+
+    let mut events = vec![make_event(
+        session.runtime.sequence,
+        EventType::ActionSubmitted,
+        &player,
+        None,
+        None,
+        None,
+        "",
+        &prev_hash,
+    )];
+
+    // Check if all players have submitted
+    let all_players: Vec<String> = session.runtime.players.keys().cloned().collect();
+    let all_submitted = all_players
+        .iter()
+        .all(|p| session.runtime.simultaneous_actions.contains_key(p));
+
+    if all_submitted {
+        // Drain the buffer (take ownership before mutating session)
+        let buffered: IndexMap<String, serde_json::Value> =
+            std::mem::take(&mut session.runtime.simultaneous_actions);
+
+        // Resolve: apply each action in player-definition order
+        for p in &all_players {
+            let act_value = buffered
+                .get(p)
+                .expect("all_submitted guarantees presence");
+            let act: Action = serde_json::from_value(act_value.clone()).map_err(|e| {
+                BaizeError::IllegalAction(format!(
+                    "failed to deserialize buffered action for {p}: {e}"
+                ))
+            })?;
+            let resolve_events = execute_action(session, p, &act, &prev_hash)?;
+            events.extend(resolve_events);
+        }
+
+        // Check end conditions after all actions resolved
+        events = finalize_turn(session, events, prev_hash)?;
+    }
+
+    Ok(events)
+}
+
+/// Execute action mechanics: mutate state and return events.
+///
+/// Does NOT advance turn or check end conditions — the caller handles that.
+fn execute_action(
+    session: &mut GameSession,
+    player: &str,
+    action: &Action,
+    prev_hash: &Option<String>,
+) -> Result<Vec<GameEvent>> {
     let mut events = Vec::new();
 
     match action.action_type {
@@ -98,12 +224,12 @@ pub fn apply_action(session: &mut GameSession, action: &Action) -> Result<Vec<Ga
                 events.push(make_event(
                     session.runtime.sequence,
                     EventType::Capture,
-                    &player,
+                    player,
                     Some(&cap_name),
                     None,
                     Some(&format!("{},{}", to_col, to_row)),
                     "",
-                    &prev_hash,
+                    prev_hash,
                 ));
             }
 
@@ -121,12 +247,12 @@ pub fn apply_action(session: &mut GameSession, action: &Action) -> Result<Vec<Ga
             events.push(make_event(
                 session.runtime.sequence,
                 EventType::MovePiece,
-                &player,
+                player,
                 Some(&comp_name),
                 Some(&format!("{},{}", from_col, from_row)),
                 Some(&format!("{},{}", to_col, to_row)),
                 "",
-                &prev_hash,
+                prev_hash,
             ));
         }
         ActionType::Place => {
@@ -148,7 +274,7 @@ pub fn apply_action(session: &mut GameSession, action: &Action) -> Result<Vec<Ga
                 id: ComponentId(0),
                 string_id: instance_id.clone(),
                 component_type: comp_type.to_string(),
-                owner: Some(player.clone()),
+                owner: Some(player.to_string()),
                 facing: None,
                 state: None,
                 properties: IndexMap::new(),
@@ -156,46 +282,49 @@ pub fn apply_action(session: &mut GameSession, action: &Action) -> Result<Vec<Ga
                 orientation: None,
             })?;
 
+            // Try player zone first, then shared zones
             let zone = session
                 .runtime
-                .zones
-                .get_mut(&zone_name)
+                .players
+                .get_mut(player)
+                .and_then(|p| p.zones.get_mut(&zone_name))
+                .or_else(|| session.runtime.zones.get_mut(&zone_name))
                 .ok_or_else(|| BaizeError::UnknownZone(zone_name.clone()))?;
             zone.grid_set(to_col, to_row, Some(cid));
 
             events.push(make_event(
                 session.runtime.sequence,
                 EventType::Place,
-                &player,
+                player,
                 Some(&instance_id),
                 None,
                 Some(&format!("{},{}", to_col, to_row)),
                 "",
-                &prev_hash,
+                prev_hash,
             ));
         }
         ActionType::Pass => {
             events.push(make_event(
                 session.runtime.sequence,
                 EventType::Pass,
-                &player,
+                player,
                 None,
                 None,
                 None,
                 "",
-                &prev_hash,
+                prev_hash,
             ));
         }
         ActionType::Resign => {
             events.push(make_event(
                 session.runtime.sequence,
                 EventType::Resign,
-                &player,
+                player,
                 None,
                 None,
                 None,
                 "",
-                &prev_hash,
+                prev_hash,
             ));
             session.runtime.status = GameStatus::Finished;
         }
@@ -221,12 +350,12 @@ pub fn apply_action(session: &mut GameSession, action: &Action) -> Result<Vec<Ga
                     events.push(make_event(
                         session.runtime.sequence,
                         EventType::Flip,
-                        &player,
+                        player,
                         Some(comp_id_str),
                         None,
                         None,
                         "",
-                        &prev_hash,
+                        prev_hash,
                     ));
                 }
             }
@@ -262,12 +391,12 @@ pub fn apply_action(session: &mut GameSession, action: &Action) -> Result<Vec<Ga
             events.push(make_event(
                 session.runtime.sequence,
                 EventType::Remove,
-                &player,
+                player,
                 Some(comp_id_str),
                 Some(&format!("{col},{row}")),
                 None,
                 "",
-                &prev_hash,
+                prev_hash,
             ));
         }
         ActionType::Swap => {
@@ -304,12 +433,12 @@ pub fn apply_action(session: &mut GameSession, action: &Action) -> Result<Vec<Ga
             events.push(make_event(
                 session.runtime.sequence,
                 EventType::Swap,
-                &player,
+                player,
                 Some(comp_id_str),
                 Some(&format!("{col_a},{row_a}")),
                 Some(&format!("{col_b},{row_b}")),
                 "",
-                &prev_hash,
+                prev_hash,
             ));
         }
         ActionType::Promote => {
@@ -343,12 +472,12 @@ pub fn apply_action(session: &mut GameSession, action: &Action) -> Result<Vec<Ga
             events.push(make_event(
                 session.runtime.sequence,
                 EventType::Promote,
-                &player,
+                player,
                 Some(comp_id_str),
                 None,
                 None,
                 "",
-                &prev_hash,
+                prev_hash,
             ));
         }
         ActionType::Draw => {
@@ -375,7 +504,7 @@ pub fn apply_action(session: &mut GameSession, action: &Action) -> Result<Vec<Ga
                 .unwrap_or_default();
 
             // Add to the player's first per-player zone (hand)
-            if let Some(player_state) = session.runtime.players.get_mut(&player) {
+            if let Some(player_state) = session.runtime.players.get_mut(player) {
                 if let Some(hand) = player_state.zones.values_mut().next() {
                     hand.stack_push(cid);
                 }
@@ -384,12 +513,12 @@ pub fn apply_action(session: &mut GameSession, action: &Action) -> Result<Vec<Ga
             events.push(make_event(
                 session.runtime.sequence,
                 EventType::Draw,
-                &player,
+                player,
                 Some(&comp_name),
                 None,
                 None,
                 "",
-                &prev_hash,
+                prev_hash,
             ));
         }
         ActionType::PlaceShip => {
@@ -425,7 +554,7 @@ pub fn apply_action(session: &mut GameSession, action: &Action) -> Result<Vec<Ga
                 id: ComponentId(0),
                 string_id: instance_id.clone(),
                 component_type: comp_type.to_string(),
-                owner: Some(player.clone()),
+                owner: Some(player.to_string()),
                 facing: None,
                 state: None,
                 properties: IndexMap::new(),
@@ -437,7 +566,7 @@ pub fn apply_action(session: &mut GameSession, action: &Action) -> Result<Vec<Ga
             let zone = session
                 .runtime
                 .players
-                .get_mut(&player)
+                .get_mut(player)
                 .and_then(|p| p.zones.get_mut(&zone_name))
                 .or_else(|| session.runtime.zones.get_mut(&zone_name))
                 .ok_or_else(|| BaizeError::UnknownZone(zone_name.clone()))?;
@@ -452,12 +581,12 @@ pub fn apply_action(session: &mut GameSession, action: &Action) -> Result<Vec<Ga
             events.push(make_event(
                 session.runtime.sequence,
                 EventType::Place,
-                &player,
+                player,
                 Some(&instance_id),
                 None,
                 Some(&format!("{},{}", to_col, to_row)),
                 "",
-                &prev_hash,
+                prev_hash,
             ));
         }
         ActionType::Fire => {
@@ -482,7 +611,7 @@ pub fn apply_action(session: &mut GameSession, action: &Action) -> Result<Vec<Ga
                 let attacker_target = session
                     .runtime
                     .players
-                    .get(&player)
+                    .get(player)
                     .and_then(|p| p.zones.get(peg_zone_name));
                 if let Some(tz) = attacker_target {
                     if tz.grid_get(target_col, target_row).is_some() {
@@ -515,7 +644,7 @@ pub fn apply_action(session: &mut GameSession, action: &Action) -> Result<Vec<Ga
                 id: ComponentId(0),
                 string_id: peg_id.clone(),
                 component_type: peg_type.to_string(),
-                owner: Some(player.clone()),
+                owner: Some(player.to_string()),
                 facing: None,
                 state: None,
                 properties: IndexMap::new(),
@@ -524,7 +653,7 @@ pub fn apply_action(session: &mut GameSession, action: &Action) -> Result<Vec<Ga
             })?;
 
             // Place peg on attacker's target grid
-            if let Some(attacker) = session.runtime.players.get_mut(&player) {
+            if let Some(attacker) = session.runtime.players.get_mut(player) {
                 if let Some(target_zone) = attacker.zones.get_mut(peg_zone_name) {
                     target_zone.grid_set(target_col, target_row, Some(peg_cid));
                 }
@@ -534,12 +663,12 @@ pub fn apply_action(session: &mut GameSession, action: &Action) -> Result<Vec<Ga
             events.push(make_event(
                 session.runtime.sequence,
                 EventType::Fire,
-                &player,
+                player,
                 None,
                 None,
                 Some(&format!("{target_col},{target_row}")),
                 "",
-                &prev_hash,
+                prev_hash,
             ));
 
             if is_hit {
@@ -564,12 +693,12 @@ pub fn apply_action(session: &mut GameSession, action: &Action) -> Result<Vec<Ga
                 events.push(make_event(
                     session.runtime.sequence,
                     EventType::Hit,
-                    &player,
+                    player,
                     Some(&peg_id),
                     None,
                     Some(&format!("{target_col},{target_row}")),
                     "",
-                    &prev_hash,
+                    prev_hash,
                 ));
 
                 // Check if ship is sunk (hit_count == span length)
@@ -577,7 +706,7 @@ pub fn apply_action(session: &mut GameSession, action: &Action) -> Result<Vec<Ga
                     events.push(GameEvent {
                         sequence: session.runtime.sequence,
                         event_type: EventType::Sunk,
-                        player: player.clone(),
+                        player: player.to_string(),
                         component_id: Some(ship_type),
                         from: None,
                         to: None,
@@ -598,12 +727,12 @@ pub fn apply_action(session: &mut GameSession, action: &Action) -> Result<Vec<Ga
                 events.push(make_event(
                     session.runtime.sequence,
                     EventType::Miss,
-                    &player,
+                    player,
                     Some(&peg_id),
                     None,
                     Some(&format!("{target_col},{target_row}")),
                     "",
-                    &prev_hash,
+                    prev_hash,
                 ));
             }
         }
@@ -611,7 +740,7 @@ pub fn apply_action(session: &mut GameSession, action: &Action) -> Result<Vec<Ga
             let hash = action.declaration.as_deref().ok_or_else(|| {
                 BaizeError::IllegalAction("commit action requires declaration (hash)".into())
             })?;
-            if session.runtime.pending_commits.contains_key(&player) {
+            if session.runtime.pending_commits.contains_key(player) {
                 return Err(BaizeError::IllegalAction(
                     format!("player {player} already has a pending commitment"),
                 ));
@@ -623,12 +752,12 @@ pub fn apply_action(session: &mut GameSession, action: &Action) -> Result<Vec<Ga
             events.push(make_event(
                 session.runtime.sequence,
                 EventType::Commit,
-                &player,
+                player,
                 None,
                 None,
                 None,
                 "",
-                &prev_hash,
+                prev_hash,
             ));
         }
         ActionType::Reveal => {
@@ -637,7 +766,7 @@ pub fn apply_action(session: &mut GameSession, action: &Action) -> Result<Vec<Ga
             let stored = session
                 .runtime
                 .pending_commits
-                .get(&player)
+                .get(player)
                 .cloned()
                 .ok_or_else(|| {
                     BaizeError::IllegalAction(format!(
@@ -657,7 +786,7 @@ pub fn apply_action(session: &mut GameSession, action: &Action) -> Result<Vec<Ga
                     "commitment verification failed: SHA-256({value}|<nonce>) != stored hash"
                 )));
             }
-            session.runtime.pending_commits.swap_remove(&player);
+            session.runtime.pending_commits.swap_remove(player);
 
             // Place the revealed component if component_type and position are provided
             if let (Some(comp_type), Some(to_pos)) =
@@ -677,7 +806,7 @@ pub fn apply_action(session: &mut GameSession, action: &Action) -> Result<Vec<Ga
                     id: ComponentId(0),
                     string_id: instance_id,
                     component_type: comp_type.clone(),
-                    owner: Some(player.clone()),
+                    owner: Some(player.to_string()),
                     facing: None,
                     state: None,
                     properties: IndexMap::new(),
@@ -694,7 +823,7 @@ pub fn apply_action(session: &mut GameSession, action: &Action) -> Result<Vec<Ga
                         session
                             .runtime
                             .players
-                            .get_mut(&player)
+                            .get_mut(player)
                             .and_then(|p| p.zones.get_mut(&zone_name))
                     });
                 if let Some(zone) = zone {
@@ -705,12 +834,12 @@ pub fn apply_action(session: &mut GameSession, action: &Action) -> Result<Vec<Ga
             events.push(make_event(
                 session.runtime.sequence,
                 EventType::Reveal,
-                &player,
+                player,
                 None,
                 None,
                 None,
                 "",
-                &prev_hash,
+                prev_hash,
             ));
         }
         _ => {
@@ -721,6 +850,15 @@ pub fn apply_action(session: &mut GameSession, action: &Action) -> Result<Vec<Ga
         }
     }
 
+    Ok(events)
+}
+
+/// Check end conditions, advance turn, compute hash, and stamp all events.
+fn finalize_turn(
+    session: &mut GameSession,
+    mut events: Vec<GameEvent>,
+    prev_hash: Option<String>,
+) -> Result<Vec<GameEvent>> {
     // Check end conditions before advancing turn ("current" = player who just moved)
     if session.runtime.status != GameStatus::Finished {
         if let Some(result) = check_end_conditions(session) {
