@@ -10,6 +10,27 @@ const MAX_CEL_LENGTH: usize = 4096;
 /// Maximum grid cells before skipping CEL grid context population.
 const MAX_CEL_GRID_CELLS: usize = 10_000;
 
+/// Maximum nesting depth (parentheses) allowed in CEL expressions.
+/// Prevents stack overflow from deeply nested expressions.
+const MAX_CEL_NESTING: usize = 32;
+
+/// Check that a CEL expression does not exceed nesting limits.
+/// Returns false if the expression is too deeply nested.
+fn check_cel_nesting(expr: &str) -> bool {
+    let mut depth: usize = 0;
+    for ch in expr.chars() {
+        if ch == '(' {
+            depth += 1;
+            if depth > MAX_CEL_NESTING {
+                return false;
+            }
+        } else if ch == ')' {
+            depth = depth.saturating_sub(1);
+        }
+    }
+    true
+}
+
 /// Try to evaluate a condition string as a CEL expression for end-condition checking.
 ///
 /// Returns `Some(result)` if the string is valid CEL and evaluates successfully.
@@ -20,7 +41,7 @@ pub fn try_eval_end_condition(
     condition: &str,
     current_player: &str,
 ) -> Option<bool> {
-    if condition.len() > MAX_CEL_LENGTH {
+    if condition.len() > MAX_CEL_LENGTH || !check_cel_nesting(condition) {
         return None;
     }
     let program = Program::compile(condition).ok()?;
@@ -41,7 +62,7 @@ pub fn try_eval_move_condition(
     is_enemy: bool,
     condition: &str,
 ) -> Option<bool> {
-    if condition.len() > MAX_CEL_LENGTH {
+    if condition.len() > MAX_CEL_LENGTH || !check_cel_nesting(condition) {
         return None;
     }
     let program = Program::compile(condition).ok()?;
@@ -290,6 +311,14 @@ fn populate_grid_lines(ctx: &mut Context<'_>, session: &GameSession) {
     for (name, zone) in &session.runtime.zones {
         if let RuntimeZone::Grid { width, height, cells, .. } = zone
         {
+            debug_assert_eq!(
+                cells.len(),
+                (*width as usize) * (*height as usize),
+                "grid cells length {} != width*height {}x{} in zone {name}",
+                cells.len(),
+                width,
+                height
+            );
             let uniform = *width > 0
                 && *height > 0
                 && !cells.is_empty()
@@ -448,6 +477,29 @@ mod tests {
     #[test]
     fn invalid_cel_returns_none() {
         let result = try_eval_move_condition(true, false, "three_in_line(current.marks, row OR column)");
+        assert_eq!(result, None);
+    }
+
+    #[test]
+    fn deeply_nested_expression_rejected() {
+        // 33 levels of nesting exceeds MAX_CEL_NESTING (32)
+        let expr = "(".repeat(33) + "true" + &")".repeat(33);
+        let result = try_eval_move_condition(true, false, &expr);
+        assert_eq!(result, None);
+    }
+
+    #[test]
+    fn acceptable_nesting_works() {
+        // 5 levels of nesting is fine
+        let expr = "(((((!false)))))";
+        let result = try_eval_move_condition(true, false, expr);
+        assert_eq!(result, Some(true));
+    }
+
+    #[test]
+    fn oversized_expression_rejected() {
+        let expr = "a".repeat(MAX_CEL_LENGTH + 1);
+        let result = try_eval_move_condition(true, false, &expr);
         assert_eq!(result, None);
     }
 }

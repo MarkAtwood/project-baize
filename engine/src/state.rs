@@ -181,7 +181,8 @@ impl GameState {
         // Safety rationale: GameState contains only String, u64, Option,
         // Vec, IndexMap<String, _>, and serde_json::Number — all of which
         // are infallibly serializable by serde_json.
-        let canonical = serde_json::to_string(self).unwrap();
+        let canonical = serde_json::to_string(self)
+            .expect("GameState serialization is infallible: all fields are plain data types");
         blake3::hash(canonical.as_bytes()).to_hex().to_string()
     }
 }

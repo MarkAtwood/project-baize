@@ -23,6 +23,38 @@ try:
 except ImportError:
     _HAS_CELPY = False
 
+# --- Fuel / resource limits ---
+
+MAX_CEL_LENGTH = 4096
+MAX_CEL_NESTING = 32
+MAX_CEL_EVAL_STEPS = 10_000
+
+# Module-level step counter, reset before each evaluation.
+_fuel_remaining = MAX_CEL_EVAL_STEPS
+
+
+class _FuelExhausted(Exception):
+    pass
+
+
+def _consume_fuel(cost: int = 1) -> None:
+    global _fuel_remaining
+    _fuel_remaining -= cost
+    if _fuel_remaining < 0:
+        raise _FuelExhausted("CEL evaluation exceeded step limit")
+
+
+def _check_nesting(expr: str) -> bool:
+    depth = 0
+    for ch in expr:
+        if ch == "(":
+            depth += 1
+            if depth > MAX_CEL_NESTING:
+                return False
+        elif ch == ")":
+            depth = max(0, depth - 1)
+    return True
+
 
 def try_eval_end_condition(
     variables: dict[str, Any],
@@ -54,6 +86,10 @@ def _eval_expression(expr: str, variables: dict[str, Any]) -> bool | None:
     """Evaluate a CEL expression. Returns None if unparseable."""
     expr = expr.strip()
     if not expr:
+        return None
+    if len(expr) > MAX_CEL_LENGTH:
+        return None
+    if not _check_nesting(expr):
         return None
 
     result = _builtin_eval(expr, variables)
@@ -132,6 +168,9 @@ def _builtin_eval(expr: str, variables: dict[str, Any]) -> bool | None:
     Supports: variable lookup, !, &&, ||, comparisons (>=, <=, etc.),
     integer and boolean literals. Returns None for anything it can't handle.
     """
+    global _fuel_remaining
+    _fuel_remaining = MAX_CEL_EVAL_STEPS
+
     tokens = _tokenize(expr)
     if not tokens:
         return None
@@ -141,7 +180,7 @@ def _builtin_eval(expr: str, variables: dict[str, Any]) -> bool | None:
         if pos != len(tokens):
             return None
         return bool(result)
-    except (KeyError, IndexError, TypeError, ValueError):
+    except (KeyError, IndexError, TypeError, ValueError, _FuelExhausted):
         return None
 
 
@@ -150,6 +189,7 @@ def _parse_or(
 ) -> tuple[Any, int]:
     left, pos = _parse_and(tokens, pos, variables)
     while pos < len(tokens) and tokens[pos] == ("OP", "||"):
+        _consume_fuel()
         right, pos = _parse_and(tokens, pos + 1, variables)
         left = left or right
     return left, pos
@@ -160,6 +200,7 @@ def _parse_and(
 ) -> tuple[Any, int]:
     left, pos = _parse_comparison(tokens, pos, variables)
     while pos < len(tokens) and tokens[pos] == ("OP", "&&"):
+        _consume_fuel()
         right, pos = _parse_comparison(tokens, pos + 1, variables)
         left = left and right
     return left, pos
@@ -170,6 +211,7 @@ def _parse_comparison(
 ) -> tuple[Any, int]:
     left, pos = _parse_unary(tokens, pos, variables)
     if pos < len(tokens) and tokens[pos][0] == "CMP":
+        _consume_fuel()
         op_fn = _CMP_OPS[tokens[pos][1]]
         right, pos = _parse_unary(tokens, pos + 1, variables)
         return op_fn(left, right), pos
@@ -180,6 +222,7 @@ def _parse_unary(
     tokens: list[tuple[str, str]], pos: int, variables: dict[str, Any]
 ) -> tuple[Any, int]:
     if pos < len(tokens) and tokens[pos] == ("OP", "!"):
+        _consume_fuel()
         val, pos = _parse_unary(tokens, pos + 1, variables)
         return not val, pos
     return _parse_primary(tokens, pos, variables)
@@ -191,6 +234,7 @@ def _parse_primary(
     if pos >= len(tokens):
         raise ValueError("unexpected end of expression")
 
+    _consume_fuel()
     kind, value = tokens[pos]
 
     if kind == "BOOL":
@@ -232,6 +276,7 @@ def _parse_postfix(
         pos += 2  # skip dot and method name
 
         if method in ("exists", "all", "filter") and isinstance(value, list):
+            _consume_fuel()
             # Expect: (var_name, predicate_expr...)
             if pos >= len(tokens) or tokens[pos] != ("OP", "("):
                 raise ValueError(f"expected ( after .{method}")
@@ -264,6 +309,7 @@ def _parse_postfix(
             if method == "filter":
                 filtered = []
                 for item in value:
+                    _consume_fuel()
                     inner_vars = dict(variables)
                     inner_vars[bind_var] = item
                     pred_result, _ = _parse_or(pred_tokens, 0, inner_vars)
@@ -273,6 +319,7 @@ def _parse_postfix(
             else:
                 results = []
                 for item in value:
+                    _consume_fuel()
                     inner_vars = dict(variables)
                     inner_vars[bind_var] = item
                     pred_result, _ = _parse_or(pred_tokens, 0, inner_vars)
@@ -280,6 +327,7 @@ def _parse_postfix(
                 value = any(results) if method == "exists" else all(results)
 
         elif method == "size" and isinstance(value, (list, str)):
+            _consume_fuel()
             # .size() — no args needed
             if pos < len(tokens) and tokens[pos] == ("OP", "("):
                 pos += 1  # skip (

@@ -161,6 +161,23 @@ class GridZone:
     )
     valid_cells: set[int] | None = None
 
+    def __post_init__(self) -> None:
+        if not isinstance(self.width, int) or not isinstance(self.height, int):
+            raise ValidationError(
+                f"grid dimensions must be integers, got "
+                f"({type(self.width).__name__}, {type(self.height).__name__})"
+            )
+        if self.width < 0 or self.height < 0:
+            raise ValidationError(
+                f"grid dimensions must be non-negative, got ({self.width}, {self.height})"
+            )
+        expected_len = self.width * self.height
+        if len(self.cells) != expected_len:
+            raise ValidationError(
+                f"cells length {len(self.cells)} != width*height "
+                f"{self.width}x{self.height} = {expected_len}"
+            )
+
     def _cell_valid(self, col: int, row: int) -> bool:
         if col < 0 or row < 0 or col >= self.width or row >= self.height:
             return False
@@ -393,6 +410,10 @@ class TrackZone:
 
     positions: list[list[ComponentId]] = field(default_factory=list)
 
+    def __post_init__(self) -> None:
+        if len(self.positions) == 0:
+            raise ValidationError("track zone must have at least 1 position")
+
     def count(self) -> int:
         return sum(len(p) for p in self.positions)
 
@@ -415,6 +436,13 @@ class GraphZone:
     adjacency: dict[int, list[int]]
     occupants: list[ComponentId | None]
     node_properties: dict[int, dict[str, str | int | bool]] = field(default_factory=dict)
+
+    def __post_init__(self) -> None:
+        if len(self.node_names) != len(self.occupants):
+            raise ValidationError(
+                f"graph occupants length {len(self.occupants)} != "
+                f"node count {len(self.node_names)}"
+            )
 
     def graph_get(self, node: str) -> ComponentId | None:
         idx = self.name_to_index.get(node)
@@ -468,6 +496,10 @@ def runtime_zone_from_definition(zone_def: Zone) -> RuntimeZone:
         if w < 0 or h < 0:
             raise ValidationError(
                 f"grid dimensions must be non-negative, got ({w}, {h})"
+            )
+        if w > 1000 or h > 1000:
+            raise ValidationError(
+                f"grid dimensions ({w}, {h}) exceed maximum (1000)"
             )
         vc: set[int] | None = None
         if zone_def.valid_cells is not None:
@@ -627,6 +659,10 @@ class GameSession:
 
     def current_player(self) -> str | None:
         """The name of the player whose turn it is."""
+        assert self.runtime.players or self.runtime.turn_index == 0, (
+            f"turn_index {self.runtime.turn_index} out of range "
+            f"for {len(self.runtime.players)} players"
+        )
         if isinstance(self.definition.game.players, list):
             names = self.definition.game.players
             if self.runtime.turn_index < len(names):
@@ -647,6 +683,10 @@ class GameSession:
         player_count = len(self.runtime.players)
         if player_count > 0:
             self.runtime.turn_index = (self.runtime.turn_index + 1) % player_count
+            assert self.runtime.turn_index < player_count, (
+                f"turn_index {self.runtime.turn_index} >= "
+                f"player_count {player_count} after advance"
+            )
         self.runtime.sequence += 1
         self.runtime.move_count += 1
 

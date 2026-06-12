@@ -131,6 +131,12 @@ def apply_action(
     For simultaneous phases, pass acting_player to identify the submitter.
     Actions are buffered until all players submit, then resolved atomically.
     """
+    assert isinstance(session, GameSession), (
+        f"session must be GameSession, got {type(session).__name__}"
+    )
+    assert isinstance(action, Action), (
+        f"action must be Action, got {type(action).__name__}"
+    )
     if session.runtime.status == "finished":
         raise IllegalActionError("game is finished")
 
@@ -294,6 +300,12 @@ def _execute_action(
 
     Does NOT advance turn or check end conditions — caller handles that.
     """
+    assert isinstance(player, str) and len(player) > 0, (
+        f"player must be a non-empty string, got {player!r}"
+    )
+    assert isinstance(action, Action), (
+        f"action must be Action, got {type(action).__name__}"
+    )
     events: list[GameEvent] = []
 
     if action.action_type == "move_piece":

@@ -155,6 +155,11 @@ impl ComponentTable {
         self.entries.get_mut(id.0 as usize)
     }
 
+    /// Returns true if the given ComponentId is valid (in range).
+    pub fn contains(&self, id: ComponentId) -> bool {
+        (id.0 as usize) < self.entries.len()
+    }
+
     pub fn len(&self) -> usize {
         self.entries.len()
     }
@@ -236,7 +241,13 @@ impl RuntimeZone {
             ZoneType::SingleSlot => Ok(RuntimeZone::SingleSlot { component: None }),
             ZoneType::Counter => Ok(RuntimeZone::Counter { value: 0 }),
             ZoneType::Track => {
-                let len = zone_def.length.or(zone_def.points).unwrap_or(1) as usize;
+                let raw_len = zone_def.length.or(zone_def.points).unwrap_or(1);
+                if raw_len == 0 {
+                    return Err(BaizeError::Validation(
+                        "track zone length must be at least 1".into(),
+                    ));
+                }
+                let len = raw_len as usize;
                 Ok(RuntimeZone::Track {
                     positions: vec![Vec::new(); len],
                 })
@@ -310,10 +321,18 @@ impl RuntimeZone {
     /// Check if a grid cell is valid (in bounds and in the valid_cells mask if present).
     pub fn grid_cell_valid(&self, col: u32, row: u32) -> bool {
         match self {
-            RuntimeZone::Grid { width, height, valid_cells, .. } => {
+            RuntimeZone::Grid { width, height, cells, valid_cells, .. } => {
                 if col >= *width || row >= *height {
                     return false;
                 }
+                debug_assert_eq!(
+                    cells.len(),
+                    (*width as usize) * (*height as usize),
+                    "grid cells length {} != width*height {}x{}",
+                    cells.len(),
+                    width,
+                    height
+                );
                 if let Some(vc) = valid_cells {
                     let idx = (row as usize) * (*width as usize) + (col as usize);
                     vc.contains(&idx)
@@ -664,6 +683,13 @@ impl GameSession {
 
     /// The name of the player whose turn it is.
     pub fn current_player(&self) -> Option<&str> {
+        debug_assert!(
+            self.runtime.players.is_empty()
+                || self.runtime.turn_index < self.runtime.players.len(),
+            "turn_index {} out of range for {} players",
+            self.runtime.turn_index,
+            self.runtime.players.len()
+        );
         match &self.definition.game.players {
             Players::Named(names) => names.get(self.runtime.turn_index).map(|s| s.as_str()),
             Players::Range { .. } => self
@@ -684,6 +710,12 @@ impl GameSession {
         let player_count = self.runtime.players.len();
         if player_count > 0 {
             self.runtime.turn_index = (self.runtime.turn_index + 1) % player_count;
+            debug_assert!(
+                self.runtime.turn_index < player_count,
+                "turn_index {} >= player_count {} after advance",
+                self.runtime.turn_index,
+                player_count
+            );
         }
         self.runtime.sequence = self.runtime.sequence.saturating_add(1);
         self.runtime.move_count = self.runtime.move_count.saturating_add(1);
