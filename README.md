@@ -107,7 +107,7 @@ implementation, even before full mental poker support.
 
 ## Status
 
-Core engine complete. 201 of 233 issues closed. Twenty games are fully
+Core engine complete. 203 of 248 issues closed. Twenty games are fully
 playable end-to-end. The engine parses and validates game definitions,
 manages runtime state, generates legal moves, evaluates CEL expressions
 for win/constraint conditions, applies state transitions with a structured
@@ -118,7 +118,8 @@ crypto and hidden-choice games are live. Cross-implementation test
 vectors ensure the Rust and Python engines produce identical results.
 Comprehensive defensive hardening: constant-time crypto, input
 validation, fuel limits, WASM sandboxing, resource budgets, and
-fuzzing infrastructure.
+fuzzing infrastructure. Felt language designed — a pure, total,
+board-native DSL for game extensions that compiles to WASM GC.
 
 | Component | Tests | What works |
 |-----------|-------|-----------|
@@ -126,6 +127,7 @@ fuzzing infrastructure.
 | Rust engine | 304 | Parse, validate, state machine, move gen, transitions, CEL end conditions, perturber effects (cycle, remove, flip, promote, counters, invoke), commit-reveal, simultaneous phases, hash-chained events, tamper detection, visibility filtering, valid_cells grid mask, graph zone, hostile input rejection, invariant guards, fuel limits, resource budgets, serialization round-trips, cross-engine determinism |
 | Python engine | 1,300 | Feature-parallel with Rust, plus game analysis, Jupyter notebook, terminal CLI, interactive REPL, agent framework (Random/Greedy/MCTS), notation adapter, adversarial input tests, error leak audit, hypothesis fuzzing, cross-engine determinism |
 | Server | 130 | Room management, WebSocket protocol, hidden-state vault (ChaCha20Rng), per-player visibility, rate limiting, token auth, spectator isolation, persistence, WASM sandboxing (fuel + memory caps), abuse resistance, protocol hardening, debug redaction, graceful shutdown |
+| Felt language | — | Spec complete (FELT.md). Pure, total, board-native DSL → WASM GC. Host import API, no JSON in extensions. Compiler epic filed (lexer → parser → type checker → codegen). |
 | Client (TypeScript) | — | Full type definitions for all schemas; Web Components (`<baize-game>`, `<baize-board>`) |
 
 ### Tools
