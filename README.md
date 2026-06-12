@@ -75,14 +75,19 @@ platform is finally ready.
 
 ## Architecture: Three Tiers
 
-**Tier 1 — Declarative Schema** (~90% of games). JSON game definitions
-validated against JSON Schema (draft 2020-12). Describes zones, components,
-movement primitives, visibility, win conditions. Data only — parsed, not
-executed.
+**Tier 1 — Declarative Schema + CEL + Perturbers** (~90% of games). JSON
+game definitions validated against JSON Schema (draft 2020-12). Describes
+zones, components, movement primitives, visibility, win conditions.
+[CEL](https://github.com/google/cel-spec) expressions evaluate end
+conditions and movement constraints. Structured perturber effects handle
+state mutations (captures, chain reactions, puzzle moves) with guaranteed
+termination. Game definitions can declare a `library` of named CEL
+expressions and perturber sequences.
 
-**Tier 2 — WASM Extensions** (~10%). For logic too complex for declarative
-predicates: scoring (tile-placement field scoring), chain reactions (Othello flips),
-custom validation (checkmate). Same WASM binary runs on client and server.
+**Tier 2 — WASM Extensions** (~10%). For logic too complex for Tier 1:
+complex scoring (tile-placement field scoring, Go territory), graph
+algorithms (connection games, supply lines), chain reactions requiring
+flood fill (Go captures). Same WASM binary runs on client and server.
 Deterministic, sandboxed, no I/O.
 
 **Tier 3 — Trust Services** (irreducible minimum — but the provider is
@@ -102,66 +107,57 @@ implementation, even before full mental poker support.
 
 ## Status
 
-Core engine complete. 123 of 135 issues closed. The engine parses and
-validates game definitions, manages runtime state, generates legal moves,
-evaluates CEL expressions for win/constraint conditions, applies state
-transitions with a structured perturber language, and produces BLAKE3
-hash-chained event logs. Cross-implementation test vectors ensure the Rust
-and Python engines produce identical results.
+Core engine complete. 134 of 175 issues closed. Six games are fully
+playable end-to-end. The engine parses and validates game definitions,
+manages runtime state, generates legal moves, evaluates CEL expressions
+for win/constraint conditions, applies state transitions with a structured
+perturber language, and produces BLAKE3 hash-chained event logs.
+Cross-implementation test vectors ensure the Rust and Python engines
+produce identical results.
 
 | Component | Tests | What works |
 |-----------|-------|-----------|
 | Schema (5 JSON Schemas) | — | Game definitions, state, actions, events, component registry |
-| Rust engine | 153 | Parse, validate, state machine, move gen, transitions, CEL end conditions, perturber effects (cycle, remove, flip, promote, counters), hash-chained events, tamper detection, visibility filtering |
-| Python engine | 259 | Feature-parallel with Rust, plus game analysis (branching factor, complexity), Jupyter notebook integration (SVG rendering, interactive widget), terminal CLI client |
-| Server | 31 | Room management, WebSocket protocol, hidden-state vault (ChaCha20Rng), per-player visibility, rate limiting, token auth, spectator isolation |
+| Rust engine | 153 | Parse, validate, state machine, move gen, transitions, CEL end conditions, perturber effects (cycle, remove, flip, promote, counters, invoke), hash-chained events, tamper detection, visibility filtering |
+| Python engine | 391 | Feature-parallel with Rust, plus game analysis, Jupyter notebook, terminal CLI, interactive REPL, agent framework (Random/Greedy/MCTS) |
+| Server | 31 | Room management, WebSocket protocol, hidden-state vault (ChaCha20Rng), per-player visibility, rate limiting, token auth, spectator isolation, persistence |
 | Client (TypeScript) | — | Full type definitions for all schemas; Web Components (`<baize-game>`, `<baize-board>`) |
 
-### CEL Expression Language
-
-End conditions and movement constraints use [CEL](https://github.com/google/cel-spec)
-(Common Expression Language) — a safe, sandboxed expression evaluator with no
-side effects. Grid state is serialized into composable variables (`lines`,
-`rows`, `cols`, `type_rows`, `zone_uniform_<name>`) so win conditions can be
-expressed as one-liners:
-
-```cel
-lines.exists(line, line.all(cell, cell == current_player))          // tic-tac-toe
-zone_uniform_up && zone_uniform_down && zone_uniform_front && ...   // rubik's cube
-```
-
-### Perturber Language
-
-State mutations (captures, chain reactions, puzzle moves) use a structured
-effect language with guaranteed termination: `sequence`, `if`/`then`/`else`,
-`for_each`, `repeat(n)`, `repeat_until_stable`, plus primitives: `remove`,
-`flip`, `promote`, `cycle`, `add_counter`, `set_counter`. The `cycle`
-primitive rotates components through an ordered list of positions across
-zones — e.g., a Rubik's Cube face rotation is 5 cycles (2 face + 3 strip).
-
-### CLI and Tools
+### Tools
 
 ```bash
+python -m baize.repl [game.json]             # interactive engine REPL
 python -m baize.cli <server_url> <room_id>   # terminal game client
 ```
 
-The terminal client connects to a Baize server via WebSocket, renders ASCII
-boards, and accepts text commands (`place`, `move`, `pass`, `resign`, `flip`,
-`board`).
+The REPL loads game definitions locally — step through moves, inspect
+state, test CEL expressions, run perturber effects, undo. No server
+required. The CLI connects to a running server via WebSocket.
+
+### Non-goals
+
+Out-of-band player communication (chat, voice, emoji) is out of scope.
+Baize handles game state, rules, and trust. Player communication belongs
+in external tools.
 
 ## Game Definitions
 
-Seven reference games spanning the complexity spectrum:
+Ten reference games spanning the complexity spectrum. Games marked ✓ are
+fully playable end-to-end with tests; others parse and validate but lack
+full gameplay integration.
 
-| Game | Information | Zones | Notable features |
-|------|------------|-------|-----------------|
-| Tic-Tac-Toe | Perfect | 3×3 grid | Simplest possible definition; zero server authority needed |
-| Chess | Perfect | 8×8 grid | 6 piece types, step/slide/leap/castle primitives, promotion, 5 end conditions |
-| Go | Perfect | 19×19 grid | Intersection play, star points; WASM required for ko/scoring |
-| Backgammon | Perfect + random | 24-point track | Dice-driven movement, bar, bearing off |
-| Naval Battle | Imperfect | Per-player grids | Hidden ship placement, multi-cell spans, hit/miss/sunk tracking |
-| Texas Hold'em | Imperfect | Deck + hands + community | 6 phases, betting rounds, server-only shuffle/deal/reveal |
-| Tile Kingdoms | Imperfect | Dynamic grid | Growing board, 71-tile draw pile, meeple placement; WASM for field scoring |
+| Game | Information | Playable | Notable features |
+|------|------------|:--------:|-----------------|
+| Tic-Tac-Toe | Perfect | ✓ | Simplest definition; library CEL expressions; zero server authority |
+| Four in a Row | Perfect | ✓ | 7×6 grid, gravity drop placement, 4-in-a-line detection |
+| Pig | Perfect + random | ✓ | Push-your-luck dice, multi-action turns, counter-based scoring |
+| Rock Paper Scissors | Imperfect | ✓ | Simultaneous moves (workaround), best-of-3 |
+| Naval Battle | Imperfect | ✓ | Hidden ship placement, multi-cell spans, hit/miss/sunk tracking |
+| Chess | Perfect | — | 6 piece types, step/slide/leap/castle primitives, promotion |
+| Go | Perfect | — | Intersection play; WASM required for captures/scoring |
+| Backgammon | Perfect + random | — | Dice-driven track movement, bar, bearing off |
+| Texas Hold'em | Imperfect | partial | Deck/deal/shuffle work; betting/phases/hand ranking need engine work |
+| Tile Kingdoms | Imperfect | — | Dynamic grid, 71-tile draw pile; WASM for field scoring |
 
 ## Component Registry
 
