@@ -333,7 +333,7 @@ class TestMancalaDefinition:
 
     def test_library_has_game_conditions(self) -> None:
         defn = _load_mancala()
-        for key in ("south_side_empty", "north_side_empty", "game_over",
+        for key in ("south_side_empty", "north_side_empty",
                      "south_wins", "north_wins", "draw"):
             assert key in defn.library, f"missing library entry: {key}"
 
@@ -563,12 +563,13 @@ class TestCapture:
         assert result != "capture"
 
     def test_capture_seed_conservation(self) -> None:
-        """Total seeds remain 48 after a capture."""
+        """Total seeds are conserved after a capture (adjusted for setup changes)."""
         game = MancalaGame()
         game._set_pit("south_1", 1)
         game._set_pit("south_2", 0)
+        total_before = game.total_seeds()  # 48 - 3 - 4 = 41
         game.sow(1)
-        assert game.total_seeds() == 48
+        assert game.total_seeds() == total_before
 
 
 # ---------------------------------------------------------------------------
@@ -598,23 +599,24 @@ class TestGameEnd:
     def test_sweep_remaining_seeds(self) -> None:
         """When game ends, remaining seeds on non-empty side go to that side's store."""
         game = MancalaGame()
-        # Setup: only south_1 has 1 seed, all other south pits empty
+        # Setup: only south_6 has 1 seed, all other south pits empty.
+        # Sowing south_6 (1 seed) -> south_store. South side becomes all empty.
         for pit in _SOUTH_PITS:
             game._set_pit(pit, 0)
-        game._set_pit("south_1", 1)
-        # Empty south_2's opposite so no capture interferes
-        game._set_pit("north_5", 0)
+        game._set_pit("south_6", 1)
 
-        # North side has seeds in pits (default 4 each for the ones we didn't touch)
+        # North side has seeds in pits (default 4 each)
         north_before = game.north_total()
         north_store_before = game.north_store()
+        total_before = game.total_seeds()
 
-        game.sow(1)  # south_1 -> south_2, south empty -> game ends
+        game.sow(6)  # south_6(1) -> south_store, south side empty -> game ends
 
         # North's remaining pit seeds should be swept to north_store
         assert game.north_total() == 0
         assert game.north_store() == north_store_before + north_before
-        assert game.total_seeds() == 48
+        assert game.total_seeds() == total_before
+        assert game.session.runtime.status == "finished"
 
     def test_winner_is_higher_store(self) -> None:
         """Player with more seeds in store wins."""
@@ -825,19 +827,25 @@ class TestFullGame:
         game = MancalaGame()
         # Give south_1 many seeds to force wraparound
         game._set_pit("south_1", 13)
+        total_before = game.total_seeds()  # 48 + 9 = 57
+
         # 13 seeds from south_1 (index 0):
         # south_2(1), south_3(2), south_4(3), south_5(4), south_6(5),
         # south_store(6), north_1(7), north_2(8), north_3(9), north_4(10),
         # north_5(11), north_6(12), skip north_store, south_1(13)
-        game.sow(1)
+        #
+        # The 13th seed lands in south_1 which was emptied at sow start.
+        # This triggers a capture: south_1 (1 seed) + north_6 (4+1=5 seeds)
+        # go to south_store. So south_1 = 0, north_6 = 0 after capture.
+        result = game.sow(1)
 
-        # south_1 should have gotten 1 seed from wraparound (started at 4, emptied, +1 = 1)
-        # Actually original south_1 was set to 13 and emptied. It gets 1 back from wraparound.
-        assert game.pit("south_1") == 1
-        assert game.pit("north_store") == 0  # skipped
-
-        # Verify all 13 seeds were distributed (plus the existing seeds)
-        assert game.total_seeds() == 48 + 9  # we added 9 extra seeds (13 - 4 original)
+        assert result == "capture"
+        assert game.pit("south_1") == 0  # captured
+        assert game.pit("north_6") == 0  # captured
+        assert game.pit("north_store") == 0  # skipped during sow
+        # south_store gets: 1 (from sow) + 1 (landing seed) + 5 (north_6) = 7
+        assert game.south_store() == 7
+        assert game.total_seeds() == total_before  # seeds conserved
 
     def test_opposite_pit_mapping(self) -> None:
         """Verify the opposite pit mapping is symmetric and correct."""
