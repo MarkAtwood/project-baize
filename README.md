@@ -107,7 +107,7 @@ implementation, even before full mental poker support.
 
 ## Status
 
-Core engine complete. 164 of 203 issues closed. Nineteen games are fully
+Core engine complete. 171 of 209 issues closed. Twenty games are fully
 playable end-to-end. The engine parses and validates game definitions,
 manages runtime state, generates legal moves, evaluates CEL expressions
 for win/constraint conditions, applies state transitions with a structured
@@ -121,7 +121,7 @@ vectors ensure the Rust and Python engines produce identical results.
 |-----------|-------|-----------|
 | Schema (5 JSON Schemas) | — | Game definitions, state, actions, events, component registry |
 | Rust engine | 184 | Parse, validate, state machine, move gen, transitions, CEL end conditions, perturber effects (cycle, remove, flip, promote, counters, invoke), commit-reveal, simultaneous phases, hash-chained events, tamper detection, visibility filtering, valid_cells grid mask, graph zone |
-| Python engine | 900 | Feature-parallel with Rust, plus game analysis, Jupyter notebook, terminal CLI, interactive REPL, agent framework (Random/Greedy/MCTS) |
+| Python engine | 960 | Feature-parallel with Rust, plus game analysis, Jupyter notebook, terminal CLI, interactive REPL, agent framework (Random/Greedy/MCTS) |
 | Server | 31 | Room management, WebSocket protocol, hidden-state vault (ChaCha20Rng), per-player visibility, rate limiting, token auth, spectator isolation, persistence |
 | Client (TypeScript) | — | Full type definitions for all schemas; Web Components (`<baize-game>`, `<baize-board>`) |
 
@@ -144,7 +144,7 @@ in external tools.
 
 ## Game Catalog
 
-Thirty-three reference games spanning the complexity spectrum (20 defined, 13 planned). Games marked ✓
+Thirty-three reference games spanning the complexity spectrum (21 defined, 12 planned). Games marked ✓
 are fully playable end-to-end with tests. Games marked `def` have a JSON
 definition that parses and validates. Planned games have beads issues
 tracking their implementation.
@@ -171,6 +171,7 @@ tracking their implementation.
 | Chinese Checkers | Perfect | 121-position hexagram via valid_cells mask, hex_6 adjacency, step/hop, multi-hop chains |
 | Polyomino Placement | Perfect | 20×20 grid, 21 polyomino shapes, rotation/flip, corner-only adjacency |
 | Polyiamond Placement | Perfect | 486-cell hex triangular grid, D6 symmetry, 22 polyiamond pieces |
+| Ogre | Perfect | 22×15 hex wargame, Ogre Mk III subsystem targeting, CRT combat, GEV hit-and-run, overrun |
 | Rubik's Cube | Perfect | Single-player puzzle, 6-zone cycle perturbers, solved-state CEL |
 
 ### Definition exists (parse + validate, not yet fully playable)
@@ -189,7 +190,6 @@ tracking their implementation.
 | Colossal Cave Adventure | Graph zone text adventure — rooms as nodes, Tier 1 only |
 | Carcassonne | Dynamic grid, tile placement, farmer scoring |
 | Tile Kingdoms | Dynamic grid, 71-tile draw pile; WASM for field scoring |
-| Ogre | Hex wargame — stacking, CRT combat, asymmetric forces |
 | Triangle Dominoes | Triangular grid tile matching |
 | Diplomacy | Simultaneous secret orders, graph zone |
 | Scotland Yard | Hidden movement on transit network |
