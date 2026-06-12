@@ -621,12 +621,54 @@ felt run poker.felt --state game.json   # interpret locally (for debugging)
 
 ```
 Source (.felt)
-  → Lexer → Tokens
-  → Parser → AST
-  → Type Checker → Typed AST
-  → Termination Checker → Verified AST
-  → WASM Code Generator → .wasm binary
+  → Lexer (logos)        → Tokens
+  → Parser (chumsky)     → AST
+  → Type Checker         → Typed AST
+  → Termination Checker  → Verified AST
+  → WASM Codegen         → .wasm binary
+    (wasm-encoder)
 ```
+
+### Implementation: Off-the-Shelf Rust
+
+The compiler uses established Rust crates wherever possible. Custom
+code is limited to the two game-specific passes (type checking with
+game types, termination checking).
+
+| Stage | Crate | Role |
+|-------|-------|------|
+| Lexer | `logos` | Derive-macro lexer. Define tokens as an enum, logos generates a zero-copy DFA. |
+| Parser | `chumsky` | Parser combinator with error recovery and source spans. Integrates with logos via zero-copy adapter. |
+| Type checker | Hand-rolled | ~500 lines. Hindley-Milner inference with game-specific base types (State, Zone, Cell, Component, Player). |
+| Termination checker | Hand-rolled | ~200 lines. Verify recursion is structural (argument is strict sub-part of input). |
+| WASM codegen | `wasm-encoder` | Bytecode Alliance crate. Direct WASM binary emission — build type, function, export, and code sections, then serialize. No intermediate representation. |
+| Error reporting | `ariadne` | Beautiful terminal diagnostics with source spans and colored annotations. Pairs with chumsky's error types. |
+| CLI | `clap` | Standard Rust CLI argument parsing. |
+
+**Why `wasm-encoder` and not Cranelift?** Cranelift compiles *from*
+WASM to native. We compile *to* WASM. `wasm-encoder` is the right
+tool: you emit WASM stack-machine bytecodes directly. For a language
+this simple (no closures, no GC, no exceptions, no mutation), codegen
+is straightforward — each Felt expression maps to a short sequence of
+WASM instructions.
+
+**WASM codegen strategy:** Felt is expression-oriented and pure, which
+maps naturally to WASM's stack machine:
+- Literals push values onto the stack.
+- Binary operators pop two values, push one result.
+- Function calls use WASM `call` instructions.
+- `if/else` uses WASM `if/else/end` blocks.
+- `let` bindings become WASM `local.set`/`local.get`.
+- Pattern matching compiles to cascading `if` blocks with `br_table`
+  for integer dispatch.
+- List operations (map, filter, fold) compile to linear memory
+  iteration with bounds-checked indexing.
+- The pipe operator `|>` is just syntactic sugar — desugared to
+  function application before codegen.
+
+**Target output:** typical Felt extensions (poker scoring, Go
+territory) should produce WASM binaries under 50KB, including the
+embedded JSON deserialization runtime.
 
 The WASM binary exports the standard `alloc`, `dealloc`, and whichever
 of the five extension functions (`is_legal`, `legal_moves`,
