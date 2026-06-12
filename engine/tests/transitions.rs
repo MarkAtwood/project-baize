@@ -50,6 +50,7 @@ fn place_action(col: u32, row: u32) -> Action {
         dice_type: None,
         swap_with: None,
         declaration: None,
+        commitment: None,
         custom_data: None,
     }
 }
@@ -81,6 +82,7 @@ fn move_action(from_col: u32, from_row: u32, to_col: u32, to_row: u32) -> Action
         dice_type: None,
         swap_with: None,
         declaration: None,
+        commitment: None,
         custom_data: None,
     }
 }
@@ -255,6 +257,7 @@ fn resign_ends_game() {
         dice_type: None,
         swap_with: None,
         declaration: None,
+        commitment: None,
         custom_data: None,
     };
 
@@ -341,6 +344,7 @@ fn place_ship_action(comp_type: &str, col: u32, row: u32, orient: Orientation) -
         dice_type: None,
         swap_with: None,
         declaration: None,
+        commitment: None,
         custom_data: None,
     }
 }
@@ -368,6 +372,7 @@ fn fire_action(col: u32, row: u32) -> Action {
         dice_type: None,
         swap_with: None,
         declaration: None,
+        commitment: None,
         custom_data: None,
     }
 }

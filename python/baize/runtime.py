@@ -490,6 +490,7 @@ class RuntimeState:
     zones: dict[str, RuntimeZone] = field(default_factory=dict)
     players: dict[str, RuntimePlayer] = field(default_factory=dict)
     counters: dict[str, int] = field(default_factory=dict)
+    pending_commits: dict[str, str] = field(default_factory=dict)
     history_hashes: list[str] = field(default_factory=list)
     result: GameResult | None = None
 
@@ -625,6 +626,11 @@ class GameSession:
             move_count=self.runtime.move_count,
             halfmove_clock=self.runtime.halfmove_clock,
             counters=counters,
+            pending_commits=(
+                dict(self.runtime.pending_commits)
+                if self.runtime.pending_commits
+                else None
+            ),
             history_hash=(
                 self.runtime.history_hashes[-1]
                 if self.runtime.history_hashes

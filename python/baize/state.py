@@ -398,6 +398,7 @@ class GameState:
     halfmove_clock: int | None = None
     counters: dict[str, int | float] | None = None
     pending_actions: list[PendingAction] = field(default_factory=list)
+    pending_commits: dict[str, str] | None = None
     history_hash: str | None = None
     timestamp: str | None = None
 
@@ -442,6 +443,7 @@ class GameState:
                 halfmove_clock=d.get("halfmove_clock"),
                 counters=d.get("counters"),
                 pending_actions=pending,
+                pending_commits=d.get("pending_commits"),
                 history_hash=d.get("history_hash"),
                 timestamp=d.get("timestamp"),
             )
@@ -477,6 +479,8 @@ class GameState:
             out["counters"] = self.counters
         if self.pending_actions:
             out["pending_actions"] = [pa.to_dict() for pa in self.pending_actions]
+        if self.pending_commits:
+            out["pending_commits"] = self.pending_commits
         if self.history_hash is not None:
             out["history_hash"] = self.history_hash
         if self.timestamp is not None:

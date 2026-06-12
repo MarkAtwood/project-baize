@@ -33,6 +33,7 @@ pub struct RuntimeState {
     pub zones: IndexMap<String, RuntimeZone>,
     pub players: IndexMap<String, RuntimePlayer>,
     pub counters: IndexMap<String, i64>,
+    pub pending_commits: IndexMap<String, String>,
     pub history_hashes: Vec<String>,
     pub result: Option<GameResult>,
 }
@@ -499,6 +500,7 @@ impl GameSession {
                 zones,
                 players,
                 counters: IndexMap::new(),
+                pending_commits: IndexMap::new(),
                 history_hashes: Vec::new(),
                 result: None,
             },
@@ -599,6 +601,11 @@ impl GameSession {
                 .map(|(k, v)| (k.clone(), serde_json::Number::from(*v)))
                 .collect(),
             pending_actions: Vec::new(),
+            pending_commits: if self.runtime.pending_commits.is_empty() {
+                None
+            } else {
+                Some(self.runtime.pending_commits.clone())
+            },
             history_hash: self.runtime.history_hashes.last().cloned(),
             timestamp: None,
         }

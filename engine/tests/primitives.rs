@@ -77,6 +77,7 @@ fn action_with_defaults(action_type: ActionType) -> Action {
         dice_type: None,
         swap_with: None,
         declaration: None,
+        commitment: None,
         custom_data: None,
     }
 }

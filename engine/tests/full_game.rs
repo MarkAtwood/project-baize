@@ -28,6 +28,7 @@ fn place(col: u32, row: u32) -> Action {
         dice_type: None,
         swap_with: None,
         declaration: None,
+        commitment: None,
         custom_data: None,
     }
 }
@@ -51,6 +52,7 @@ fn resign_action() -> Action {
         dice_type: None,
         swap_with: None,
         declaration: None,
+        commitment: None,
         custom_data: None,
     }
 }
