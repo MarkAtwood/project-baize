@@ -13,6 +13,7 @@ import type {
   GameDefinition,
   GameState,
   SetState,
+  StackState,
   ZoneState,
 } from "../types.js";
 
@@ -159,7 +160,7 @@ export class BaizeHandElement extends HTMLElement {
     const playerState = this.state.players[this.player];
     if (playerState?.zones !== undefined) {
       for (const zone of Object.values(playerState.zones)) {
-        const components = this.extractSetComponents(zone);
+        const components = this.extractComponents(zone);
         if (components.length > 0) return components;
       }
     }
@@ -167,7 +168,7 @@ export class BaizeHandElement extends HTMLElement {
     // Fall back to top-level zones that might be per-player hands.
     for (const [name, zone] of Object.entries(this.state.zones)) {
       if (!name.includes("hand")) continue;
-      const components = this.extractSetComponents(zone);
+      const components = this.extractComponents(zone);
       if (components.length > 0) {
         return components.filter(
           (c) => c.owner === this.player || c.owner === undefined,
@@ -178,9 +179,12 @@ export class BaizeHandElement extends HTMLElement {
     return [];
   }
 
-  private extractSetComponents(zone: ZoneState): readonly ComponentInstance[] {
+  private extractComponents(zone: ZoneState): readonly ComponentInstance[] {
     if (zone.zone_type === "set") {
       return (zone as SetState).components;
+    }
+    if (zone.zone_type === "ordered_stack") {
+      return (zone as StackState).components;
     }
     return [];
   }
@@ -198,16 +202,30 @@ export class BaizeHandElement extends HTMLElement {
     const label = isFaceDown
       ? "?"
       : BaizeHandElement.escapeSvg(
-          component.component_type.charAt(0).toUpperCase(),
+          component.properties?.["rank"] !== undefined
+            ? String(component.properties["rank"])
+            : component.component_type.charAt(0).toUpperCase(),
         );
 
     const safeId = BaizeHandElement.escapeSvgAttr(component.id);
 
-    const subtitle = isFaceDown
-      ? ""
-      : `<text x="${x + CARD_WIDTH / 2}" y="${y + CARD_HEIGHT / 2 + 14}" ` +
-        `text-anchor="middle" font-size="9" fill="#999">` +
-        `${BaizeHandElement.escapeSvg(component.component_type)}</text>`;
+    // Show properties like suit/rank if available
+    let subtitle = "";
+    if (!isFaceDown && component.properties !== undefined) {
+      const props = component.properties;
+      const rank = props["rank"] ?? props["value"];
+      const suit = props["suit"];
+      if (rank !== undefined || suit !== undefined) {
+        const propText = [rank, suit].filter(v => v !== undefined).join(" ");
+        subtitle = `<text x="${x + CARD_WIDTH / 2}" y="${y + CARD_HEIGHT / 2 + 14}" ` +
+          `text-anchor="middle" font-size="9" fill="#999">` +
+          `${BaizeHandElement.escapeSvg(String(propText))}</text>`;
+      } else {
+        subtitle = `<text x="${x + CARD_WIDTH / 2}" y="${y + CARD_HEIGHT / 2 + 14}" ` +
+          `text-anchor="middle" font-size="9" fill="#999">` +
+          `${BaizeHandElement.escapeSvg(component.component_type)}</text>`;
+      }
+    }
 
     return (
       `<g class="card" data-component-id="${safeId}">` +

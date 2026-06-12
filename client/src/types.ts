@@ -14,9 +14,11 @@ export interface GameDefinition {
   readonly turn_order: TurnOrder;
   readonly phases?: readonly Phase[];
   readonly rules?: Record<string, Rule>;
+  readonly library?: Record<string, LibraryEntry>;
   readonly end_conditions: readonly EndCondition[];
   readonly authority: Authority;
   readonly wasm_module?: string;
+  readonly notation?: NotationSpec;
   readonly hand_rankings?: readonly string[];
   readonly betting_round?: BettingRound;
 }
@@ -30,6 +32,18 @@ export interface GameMetadata {
 export interface PlayerRange {
   readonly min: number;
   readonly max: number;
+}
+
+export interface LibraryEntry {
+  readonly expression?: string;
+  readonly effect?: Effect;
+  readonly description?: string;
+}
+
+export interface NotationSpec {
+  readonly piece_symbols?: Record<string, string>;
+  readonly capture_marker?: string;
+  readonly disambiguation?: string;
 }
 
 export type Visibility = "public" | "hidden" | { readonly private: string };
@@ -68,6 +82,12 @@ export interface Zone {
   readonly edge_ownership?: Record<string, unknown>;
   readonly cell_type?: string;
   readonly direction?: string;
+  readonly valid_cells?: ReadonlyArray<readonly [number, number]>;
+  readonly stacking_limit?: number;
+  readonly nodes?: readonly string[];
+  readonly edges?: ReadonlyArray<readonly [string, string]>;
+  readonly node_properties?: Record<string, Record<string, unknown>>;
+  readonly cell_properties?: Record<string, Record<string, unknown>>;
   readonly note?: string;
 }
 
@@ -123,6 +143,7 @@ export interface Component {
   readonly special?: string;
   readonly types?: Record<string, Record<string, unknown>>;
   readonly one_of_each?: boolean;
+  readonly span?: number;
   readonly supply?: number | "unlimited" | "configurable";
   readonly adds?: Record<string, unknown>;
   readonly note?: string;
@@ -206,6 +227,8 @@ export interface GameState {
   readonly players: Record<string, PlayerState>;
   readonly counters?: Record<string, number>;
   readonly pending_actions?: readonly PendingAction[];
+  readonly pending_commits?: Record<string, string>;
+  readonly simultaneous_actions?: Record<string, unknown>;
   readonly history_hash?: string;
   readonly timestamp?: string;
 }
@@ -216,11 +239,13 @@ export type ZoneState =
   | SetState
   | SlotState
   | CounterState
-  | TrackState;
+  | TrackState
+  | GraphState;
 
 export interface GridState {
   readonly zone_type: "grid";
   readonly cells: Record<string, ComponentInstance | readonly ComponentInstance[] | null>;
+  readonly cell_properties?: Record<string, Record<string, unknown>>;
 }
 
 export interface StackState {
@@ -248,6 +273,12 @@ export interface CounterState {
 export interface TrackState {
   readonly zone_type: "track";
   readonly positions: Record<string, readonly ComponentInstance[]>;
+}
+
+export interface GraphState {
+  readonly zone_type: "graph";
+  readonly occupants: Record<string, readonly ComponentInstance[]>;
+  readonly node_properties?: Record<string, Record<string, unknown>>;
 }
 
 export interface ComponentInstance {
@@ -319,6 +350,8 @@ export type ActionType =
   | "castle"
   | "en_passant"
   | "declare_action"
+  | "commit"
+  | "reveal"
   | "custom";
 
 export type Position =
@@ -343,6 +376,7 @@ export interface Action {
   readonly dice_type?: string;
   readonly swap_with?: string;
   readonly declaration?: string;
+  readonly commitment?: string;
   readonly custom_data?: Record<string, unknown>;
 }
 
@@ -401,4 +435,172 @@ export interface Fact {
   readonly properties?: Record<string, unknown>;
   readonly previous_visibility?: "hidden" | "private";
   readonly new_visibility?: "public" | "private";
+}
+
+// ---------------------------------------------------------------------------
+// Event Log (hash-chained JSONL for tournament integrity)
+// ---------------------------------------------------------------------------
+
+export type EventType =
+  | "move_applied"
+  | "state_transition"
+  | "game_over"
+  | "random_value"
+  | "visibility_change";
+
+export interface GameEvent {
+  readonly game_id: string;
+  readonly sequence: number;
+  readonly event_type: EventType;
+  readonly player: string;
+  readonly state_hash: string;
+  readonly prev_hash: string;
+  readonly event_hash: string;
+  readonly payload: EventPayload;
+}
+
+export interface EventPayload {
+  readonly action?: string;
+  readonly component_id?: string;
+  readonly from?: string;
+  readonly to?: string;
+  readonly captured?: string;
+  readonly detail?: string;
+  readonly transition?: string;
+  readonly next_player?: string;
+  readonly outcome?: "win" | "draw" | "abandoned";
+  readonly winner?: string;
+  readonly condition?: string;
+  readonly random_type?: string;
+  readonly random_result?: unknown;
+  readonly zone?: string;
+  readonly visibility?: string;
+  readonly revealed_to?: string;
+  readonly final_scores?: Record<string, number>;
+}
+
+// ---------------------------------------------------------------------------
+// Component Registry (reusable component definitions)
+// ---------------------------------------------------------------------------
+
+export type ComponentType =
+  | "stone"
+  | "disc"
+  | "pawn"
+  | "token"
+  | "die"
+  | "card_deck"
+  | "tile"
+  | "piece_set"
+  | "counter"
+  | "card"
+  | "tile_set";
+
+export interface RegistryEntry {
+  readonly id: string;
+  readonly component_type: ComponentType;
+  readonly name?: string;
+  readonly extends?: string;
+  readonly subset_of?: string;
+  readonly shape?: string;
+  readonly available_colors?: readonly string[];
+  readonly supply?: number | "unlimited" | "configurable";
+  readonly count?: number;
+  readonly total?: number;
+  readonly facing?: string;
+  readonly flip?: boolean;
+  readonly variants?: Record<string, Variant> | readonly Variant[];
+  readonly properties?: readonly string[];
+  readonly sides?: Record<string, unknown>;
+  readonly suits?: readonly string[];
+  readonly suit_symbols?: readonly string[];
+  readonly suit_colors?: Record<string, string>;
+  readonly ranks?: readonly (string | number)[];
+  readonly rank_values?: Record<string, number | readonly number[]>;
+  readonly faces?: number;
+  readonly values?: readonly (string | number)[];
+  readonly pieces?: Record<string, PieceDefinition>;
+  readonly movement?: Record<string, string>;
+  readonly distribution?: Record<string, TileDistribution>;
+  readonly physical?: PhysicalForm;
+  readonly visibility?: Visibility;
+  readonly glyphs?: Record<string, Record<string, string>>;
+  readonly note?: string;
+}
+
+export interface Variant {
+  readonly shape?: string;
+  readonly fill?: string;
+  readonly stroke?: string;
+  readonly glyph?: string;
+  readonly glyph_color?: string;
+  readonly label?: string;
+  readonly size?: string;
+  readonly color?: string;
+  readonly pattern?: string;
+}
+
+export interface PieceDefinition {
+  readonly glyph?: string;
+  readonly promoted?: string;
+  readonly count?: number;
+  readonly movement?: string;
+}
+
+export interface TileDistribution {
+  readonly count: number;
+  readonly points: number;
+}
+
+export interface PhysicalForm {
+  readonly size_mm?: readonly number[];
+  readonly thickness_mm?: number;
+  readonly material?: string;
+  readonly weight_g?: number;
+}
+
+// ---------------------------------------------------------------------------
+// Effects (used by library entries)
+// ---------------------------------------------------------------------------
+
+export type Effect =
+  | { readonly sequence: readonly Effect[] }
+  | { readonly if: string; readonly then: Effect; readonly else?: Effect }
+  | { readonly for_each: ForEachSpec; readonly do: Effect }
+  | { readonly repeat: number; readonly body: Effect }
+  | { readonly remove: TargetSpec }
+  | { readonly flip: TargetSpec }
+  | { readonly promote: PromoteSpec }
+  | { readonly add_counter: CounterSpec }
+  | { readonly set_counter: CounterSpec }
+  | { readonly invoke: string }
+  | { readonly set_cell_property: CellPropertySpec };
+
+export interface ForEachSpec {
+  readonly collection: string;
+  readonly variable: string;
+}
+
+export interface TargetSpec {
+  readonly zone?: string;
+  readonly position?: string;
+  readonly condition?: string;
+}
+
+export interface PromoteSpec {
+  readonly target: TargetSpec;
+  readonly to: string;
+}
+
+export interface CounterSpec {
+  readonly counter: string;
+  readonly value: number | string;
+  readonly player?: string;
+}
+
+export interface CellPropertySpec {
+  readonly zone: string;
+  readonly position: string;
+  readonly property: string;
+  readonly value: unknown;
 }

@@ -44,12 +44,14 @@ export class BaizeGameElement extends HTMLElement {
   connectedCallback(): void {
     void this.initialize();
     this.addEventListener("baize-cell-click", this.handleCellClick);
+    this.addEventListener("baize-move", this.handleBoardMove);
   }
 
   disconnectedCallback(): void {
     this.connection?.disconnect();
     this.engine?.dispose();
     this.removeEventListener("baize-cell-click", this.handleCellClick);
+    this.removeEventListener("baize-move", this.handleBoardMove);
   }
 
   attributeChangedCallback(
@@ -145,6 +147,7 @@ export class BaizeGameElement extends HTMLElement {
     const gameId = this.extractGameId(serverUrl);
     this.connection = new BaizeConnection(serverUrl, gameId, player);
 
+    this.connection.on("welcome", (msg) => this.handleWelcome(msg));
     this.connection.on("move_confirmed", (msg) => this.handleMoveConfirmed(msg));
     this.connection.on("move_rejected", (msg) => this.handleMoveRejected(msg));
     this.connection.on("state_sync", (msg) => this.handleStateSync(msg));
@@ -160,10 +163,23 @@ export class BaizeGameElement extends HTMLElement {
     this.connection.connect();
   }
 
+  private handleWelcome(msg: ServerMessage): void {
+    this.dispatchEvent(
+      new CustomEvent("baize-connection", {
+        detail: { status: "connected", seat: msg.seat, serverVersion: msg.server_version },
+        bubbles: true,
+      }),
+    );
+  }
+
   private handleMoveConfirmed(msg: ServerMessage): void {
     if (msg.full_state !== undefined) {
       this.state = msg.full_state;
-    } else if (msg.sequence !== undefined) {
+    } else if (msg.result_state !== undefined) {
+      // result_state may contain a full GameState
+      this.state = msg.result_state as unknown as GameState;
+    }
+    if (msg.sequence !== undefined) {
       this.connection?.updateSequence(msg.sequence);
     }
     this.distributeState();
@@ -222,6 +238,42 @@ export class BaizeGameElement extends HTMLElement {
     };
     this.submitMove(action);
   };
+
+  /**
+   * Handle drag-and-drop move from child <baize-board>.
+   * Builds a move_piece action from the from/to coordinates.
+   */
+  private handleBoardMove = (event: Event): void => {
+    const detail = (event as CustomEvent<{
+      from: { row: number; col: number };
+      to: { row: number; col: number };
+      component_id: string;
+    }>).detail;
+    if (this.connection === null || this.definition === null || this.state === null) return;
+    if (this.state.status !== "in_progress") return;
+
+    // Find the board zone name
+    const boardZone = this.findBoardZoneName();
+    if (boardZone === null) return;
+
+    const action: Action = {
+      action_type: "move_piece",
+      component_id: detail.component_id,
+      from: { zone: boardZone, cell: `${detail.from.col},${detail.from.row}` },
+      to: { zone: boardZone, cell: `${detail.to.col},${detail.to.row}` },
+    };
+    this.submitMove(action);
+  };
+
+  private findBoardZoneName(): string | null {
+    if (this.definition === null) return null;
+    for (const [name, zone] of Object.entries(this.definition.zones)) {
+      if (zone.zone_type === "grid" || zone.zone_type === "hex_grid") {
+        return name;
+      }
+    }
+    return null;
+  }
 
   /** Push current state to all child baize-* elements. */
   private distributeState(): void {
