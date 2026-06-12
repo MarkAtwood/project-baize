@@ -105,6 +105,12 @@ pub struct Zone {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub direction: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub nodes: Option<Vec<String>>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub edges: Option<Vec<[String; 2]>>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub node_properties: Option<IndexMap<String, IndexMap<String, serde_json::Value>>>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub note: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub cell_properties: Option<IndexMap<String, IndexMap<String, serde_json::Value>>>,

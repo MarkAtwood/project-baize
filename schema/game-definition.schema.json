@@ -272,6 +272,35 @@
           "type": "string",
           "description": "Movement direction on a track (e.g. \"per_player\")."
         },
+        "nodes": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Named node positions for graph zones. Each node is a unique string identifier."
+        },
+        "edges": {
+          "type": "array",
+          "items": {
+            "type": "array",
+            "items": { "type": "string" },
+            "minItems": 2,
+            "maxItems": 2
+          },
+          "description": "Undirected edges as pairs of node names, e.g. [[\"alaska\",\"kamchatka\"]]."
+        },
+        "node_properties": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "object",
+            "additionalProperties": {
+              "oneOf": [
+                { "type": "string" },
+                { "type": "integer" },
+                { "type": "boolean" }
+              ]
+            }
+          },
+          "description": "Per-node properties keyed by node name, e.g. {\"alaska\": {\"continent\": \"North America\"}}."
+        },
         "note": {
           "type": "string",
           "description": "Human-readable note about this zone."

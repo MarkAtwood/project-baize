@@ -273,6 +273,9 @@ class Zone:
     edge_ownership: Any | None = None
     cell_type: str | None = None
     direction: str | None = None
+    nodes: list[str] | None = None
+    edges: list[list[str]] | None = None
+    node_properties: dict[str, dict[str, str | int | bool]] | None = None
     note: str | None = None
     cell_properties: dict[str, dict[str, str | int | bool]] | None = None
 
@@ -307,6 +310,9 @@ class Zone:
             edge_ownership=d.get("edge_ownership"),
             cell_type=d.get("cell_type"),
             direction=d.get("direction"),
+            nodes=d.get("nodes"),
+            edges=d.get("edges"),
+            node_properties=d.get("node_properties"),
             note=d.get("note"),
             cell_properties=d.get("cell_properties"),
         )
@@ -352,6 +358,12 @@ class Zone:
             out["cell_type"] = self.cell_type
         if self.direction is not None:
             out["direction"] = self.direction
+        if self.nodes is not None:
+            out["nodes"] = self.nodes
+        if self.edges is not None:
+            out["edges"] = self.edges
+        if self.node_properties is not None:
+            out["node_properties"] = self.node_properties
         if self.note is not None:
             out["note"] = self.note
         if self.cell_properties is not None:
