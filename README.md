@@ -107,27 +107,28 @@ implementation, even before full mental poker support.
 
 ## Status
 
-Core engine complete. 203 of 248 issues closed. Twenty games are fully
-playable end-to-end. The engine parses and validates game definitions,
-manages runtime state, generates legal moves, evaluates CEL expressions
-for win/constraint conditions, applies state transitions with a structured
-perturber language, and produces BLAKE3 hash-chained event logs.
-Commit-reveal protocol (SHA-256) and simultaneous move collection
-implemented in both engines — the forcing functions for serverless
-crypto and hidden-choice games are live. Cross-implementation test
+Core engine complete. 229 of 248 issues closed. Thirty-two games
+defined, twenty-one fully playable end-to-end. Texas Hold'em poker
+now playable with full betting, hand evaluation, and showdown.
+The engine parses and validates game definitions, manages runtime
+state, generates legal moves, evaluates CEL expressions for
+win/constraint conditions, applies state transitions with a
+structured perturber language, and produces BLAKE3 hash-chained
+event logs. Commit-reveal protocol (SHA-256) and simultaneous move
+collection implemented in both engines. Cross-implementation test
 vectors ensure the Rust and Python engines produce identical results.
 Comprehensive defensive hardening: constant-time crypto, input
 validation, fuel limits, WASM sandboxing, resource budgets, and
-fuzzing infrastructure. Felt language designed — a pure, total,
-board-native DSL for game extensions that compiles to WASM GC.
+fuzzing infrastructure. Felt compiler complete — a pure, total,
+board-native DSL for game extensions, compiles to WASM GC (123 tests).
 
 | Component | Tests | What works |
 |-----------|-------|-----------|
 | Schema (5 JSON Schemas) | — | Game definitions, state, actions, events, component registry |
 | Rust engine | 304 | Parse, validate, state machine, move gen, transitions, CEL end conditions, perturber effects (cycle, remove, flip, promote, counters, invoke), commit-reveal, simultaneous phases, hash-chained events, tamper detection, visibility filtering, valid_cells grid mask, graph zone, hostile input rejection, invariant guards, fuel limits, resource budgets, serialization round-trips, cross-engine determinism |
-| Python engine | 1,300 | Feature-parallel with Rust, plus game analysis, Jupyter notebook, terminal CLI, interactive REPL, agent framework (Random/Greedy/MCTS), notation adapter, adversarial input tests, error leak audit, hypothesis fuzzing, cross-engine determinism |
-| Server | 130 | Room management, WebSocket protocol, hidden-state vault (ChaCha20Rng), per-player visibility, rate limiting, token auth, spectator isolation, persistence, WASM sandboxing (fuel + memory caps), abuse resistance, protocol hardening, debug redaction, graceful shutdown |
-| Felt language | — | Spec complete (FELT.md). Pure, total, board-native DSL → WASM GC. Host import API, no JSON in extensions. Compiler epic filed (lexer → parser → type checker → codegen). |
+| Python engine | 2,104 | Feature-parallel with Rust, plus game analysis, Jupyter notebook, terminal CLI, interactive REPL, agent framework (Random/Greedy/MCTS), notation adapter, adversarial input tests, error leak audit, hypothesis fuzzing, cross-engine determinism, poker (hand evaluator, betting FSM, showdown) |
+| Server | 130 | Room management, WebSocket protocol, hidden-state vault (ChaCha20Rng), per-player visibility, rate limiting, token auth, spectator isolation, persistence, WASM sandboxing (fuel + memory caps), abuse resistance, protocol hardening, debug redaction, graceful shutdown, Felt host imports |
+| Felt compiler | 123 | Lexer (logos), parser (chumsky), type checker, call graph checker, WASM GC codegen (wasm-encoder), CLI (compile/check), host import API, example extensions (poker, chess, go) |
 | Client (TypeScript) | — | Full type definitions for all schemas; Web Components (`<baize-game>`, `<baize-board>`) |
 
 ### Tools
@@ -149,7 +150,7 @@ in external tools.
 
 ## Game Catalog
 
-Thirty-three reference games spanning the complexity spectrum (21 defined, 12 planned). Games marked ✓
+Thirty-two reference game definitions spanning the complexity spectrum. Games marked ✓
 are fully playable end-to-end with tests. Games marked `def` have a JSON
 definition that parses and validates. Planned games have beads issues
 tracking their implementation.
@@ -179,28 +180,30 @@ tracking their implementation.
 | Ogre | Perfect | 22×15 hex wargame, Ogre Mk III subsystem targeting, CRT combat, GEV hit-and-run, overrun |
 | Rubik's Cube | Perfect | Single-player puzzle, 6-zone cycle perturbers, solved-state CEL |
 
-### Definition exists (parse + validate, not yet fully playable)
+### Definition exists (parse + validate, with gameplay tests)
 
 | Game | Information | Notable features |
 |------|------------|-----------------|
-| Texas Hold'em | Imperfect | Deck/deal/shuffle work; betting/phases/hand ranking in progress |
+| Texas Hold'em | Imperfect | Betting FSM, hand evaluator (7-card best-of-21), server deal/burn/reveal phases, showdown with pot distribution |
+| Risk | Imperfect | 12 territories, 3 continents, dice combat, reinforcement/fortification phases |
+| Pandemic | Imperfect | Cooperative, 12 cities, disease cubes, outbreaks, cure mechanics |
+| Ticket to Ride | Imperfect | 10-city route network, train card deck, route claiming/scoring |
+| Carcassonne | Imperfect | 30 tiles with edge matching, meeple placement, city/road/monastery scoring |
+| Clue | Imperfect | 9 rooms + hallways graph, hidden envelope, deduction, secret passages |
+| Scotland Yard | Imperfect | 20-location transit network, hidden Mr. X movement, reveal turns |
+| Diplomacy | Imperfect | 12 territories, simultaneous secret orders, support/strength resolution |
+| Settlers of Catan | Imperfect | 7-hex resource map, graph settlement placement, dice production, bank trading |
+| Colossal Cave Adventure | Perfect | 17-room graph text adventure, obstacles, treasures, single player |
+| Colossal Cave 350 | Perfect | 46-room expanded version, lamp battery, darkness, 10 treasures, 350 points |
 
 ### Planned (beads filed)
 
 | Game | What it proves |
 |------|---------------|
-| Risk | Graph zone territory control, dice combat, continent bonuses |
-| Pandemic | Graph zone cooperative play, disease spreading, infection deck |
-| Ticket to Ride | Graph zone route claiming, card collection |
-| Colossal Cave Adventure | Graph zone text adventure — rooms as nodes, Tier 1 only |
-| Carcassonne | Dynamic grid, tile placement, farmer scoring |
 | Tile Kingdoms | Dynamic grid, 71-tile draw pile; WASM for field scoring |
 | Triangle Dominoes | Triangular grid tile matching |
-| Diplomacy | Simultaneous secret orders, graph zone |
-| Scotland Yard | Hidden movement on transit network |
-| Settlers of Catan | Graph vertex/edge placement, resource economy |
-| Clue | Deduction on room graph |
 | Power Grid | City network with auction economy |
+| Fury of Dracula | Hidden movement on European map |
 
 ## Component Registry
 
