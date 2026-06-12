@@ -1,0 +1,20 @@
+[package]
+name = "felt"
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.85"
+license = "MIT"
+description = "Felt language compiler — pure game logic to WASM"
+
+[[bin]]
+name = "felt"
+path = "src/main.rs"
+
+[lib]
+name = "felt"
+path = "src/lib.rs"
+
+[dependencies]
+logos = "0.16"
+ariadne = "0.5"
+clap = { version = "4", features = ["derive"] }
