@@ -107,19 +107,20 @@ implementation, even before full mental poker support.
 
 ## Status
 
-Core engine complete. 134 of 175 issues closed. Six games are fully
+Core engine complete. 138 of 176 issues closed. Seven games are fully
 playable end-to-end. The engine parses and validates game definitions,
 manages runtime state, generates legal moves, evaluates CEL expressions
 for win/constraint conditions, applies state transitions with a structured
 perturber language, and produces BLAKE3 hash-chained event logs.
-Cross-implementation test vectors ensure the Rust and Python engines
-produce identical results.
+Commit-reveal protocol (SHA-256) implemented in both engines — the
+forcing function for serverless crypto is live. Cross-implementation
+test vectors ensure the Rust and Python engines produce identical results.
 
 | Component | Tests | What works |
 |-----------|-------|-----------|
 | Schema (5 JSON Schemas) | — | Game definitions, state, actions, events, component registry |
-| Rust engine | 153 | Parse, validate, state machine, move gen, transitions, CEL end conditions, perturber effects (cycle, remove, flip, promote, counters, invoke), hash-chained events, tamper detection, visibility filtering |
-| Python engine | 391 | Feature-parallel with Rust, plus game analysis, Jupyter notebook, terminal CLI, interactive REPL, agent framework (Random/Greedy/MCTS) |
+| Rust engine | 153 | Parse, validate, state machine, move gen, transitions, CEL end conditions, perturber effects (cycle, remove, flip, promote, counters, invoke), commit-reveal, hash-chained events, tamper detection, visibility filtering |
+| Python engine | 440 | Feature-parallel with Rust, plus game analysis, Jupyter notebook, terminal CLI, interactive REPL, agent framework (Random/Greedy/MCTS) |
 | Server | 31 | Room management, WebSocket protocol, hidden-state vault (ChaCha20Rng), per-player visibility, rate limiting, token auth, spectator isolation, persistence |
 | Client (TypeScript) | — | Full type definitions for all schemas; Web Components (`<baize-game>`, `<baize-board>`) |
 
@@ -142,7 +143,7 @@ in external tools.
 
 ## Game Catalog
 
-Twenty reference games spanning the complexity spectrum. Games marked ✓
+Twenty-one reference games spanning the complexity spectrum. Games marked ✓
 are fully playable end-to-end with tests. Games marked `def` have a JSON
 definition that parses and validates. Planned games have beads issues
 tracking their implementation.
@@ -152,10 +153,11 @@ tracking their implementation.
 | Game | Information | Notable features |
 |------|------------|-----------------|
 | Tic-Tac-Toe | Perfect | Simplest definition; library CEL expressions; zero server authority |
-| Four in a Row | Perfect | 7×6 grid, gravity drop placement, 4-in-a-line detection |
+| Four in a Row | Perfect | 7×6 grid, gravity drop placement, CEL `lines_4` window detection |
 | Pig | Perfect + random | Push-your-luck dice, multi-action turns, counter-based scoring |
 | Naval Battle | Imperfect | Hidden ship placement, multi-cell spans, hit/miss/sunk tracking |
-| Rock Paper Scissors | Imperfect | Simultaneous moves, best-of-3 |
+| Rock Paper Scissors | Imperfect | Commit-reveal protocol (SHA-256), best-of-3 |
+| High Card | Imperfect | Deck shuffle/deal pipeline, private hands, rank comparison |
 | Rubik's Cube | Perfect | Single-player puzzle, 6-zone cycle perturbers, solved-state CEL |
 
 ### Definition exists (parse + validate, not yet fully playable)
@@ -166,12 +168,12 @@ tracking their implementation.
 | Go | Perfect | Intersection play; WASM required for captures/scoring |
 | Backgammon | Perfect + random | Dice-driven track movement, bar, bearing off |
 | Texas Hold'em | Imperfect | Deck/deal/shuffle work; betting/phases/hand ranking in progress |
-| Tile Kingdoms | Imperfect | Dynamic grid, 71-tile draw pile; WASM for field scoring |
 
 ### Planned (beads filed)
 
 | Game | What it proves |
 |------|---------------|
+| Tile Kingdoms | Dynamic grid, 71-tile draw pile; WASM for field scoring |
 | Checkers | Hop captures, multi-jump chains, repeat_until_stable |
 | Reversi | Chain-reaction flipping (the canonical perturber example) |
 | Yacht | Multi-phase dice turns, scoring categories |
