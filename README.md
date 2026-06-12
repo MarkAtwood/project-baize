@@ -107,7 +107,7 @@ implementation, even before full mental poker support.
 
 ## Status
 
-Core engine complete. 146 of 176 issues closed. Fourteen games are fully
+Core engine complete. 148 of 176 issues closed. Fifteen games are fully
 playable end-to-end. The engine parses and validates game definitions,
 manages runtime state, generates legal moves, evaluates CEL expressions
 for win/constraint conditions, applies state transitions with a structured
@@ -121,7 +121,7 @@ vectors ensure the Rust and Python engines produce identical results.
 |-----------|-------|-----------|
 | Schema (5 JSON Schemas) | — | Game definitions, state, actions, events, component registry |
 | Rust engine | 162 | Parse, validate, state machine, move gen, transitions, CEL end conditions, perturber effects (cycle, remove, flip, promote, counters, invoke), commit-reveal, simultaneous phases, hash-chained events, tamper detection, visibility filtering |
-| Python engine | 610 | Feature-parallel with Rust, plus game analysis, Jupyter notebook, terminal CLI, interactive REPL, agent framework (Random/Greedy/MCTS) |
+| Python engine | 640 | Feature-parallel with Rust, plus game analysis, Jupyter notebook, terminal CLI, interactive REPL, agent framework (Random/Greedy/MCTS) |
 | Server | 31 | Room management, WebSocket protocol, hidden-state vault (ChaCha20Rng), per-player visibility, rate limiting, token auth, spectator isolation, persistence |
 | Client (TypeScript) | — | Full type definitions for all schemas; Web Components (`<baize-game>`, `<baize-board>`) |
 
@@ -144,7 +144,7 @@ in external tools.
 
 ## Game Catalog
 
-Twenty-one reference games spanning the complexity spectrum (16 defined, 5 planned). Games marked ✓
+Twenty-one reference games spanning the complexity spectrum (17 defined, 4 planned). Games marked ✓
 are fully playable end-to-end with tests. Games marked `def` have a JSON
 definition that parses and validates. Planned games have beads issues
 tracking their implementation.
@@ -166,6 +166,7 @@ tracking their implementation.
 | Yacht | Perfect + random | 5d6, keep/re-roll, 13 scoring categories, upper bonus |
 | Liar's Dice | Imperfect | Hidden per-player dice, escalating bids, challenge/reveal, elimination |
 | Backgammon | Perfect + random | 24-point track, hitting/bar, re-entry, bearing off, doubles |
+| Hex | Perfect | Hex grid, 6-neighbor adjacency, BFS edge-to-edge connectivity win |
 | Rubik's Cube | Perfect | Single-player puzzle, 6-zone cycle perturbers, solved-state CEL |
 
 ### Definition exists (parse + validate, not yet fully playable)
