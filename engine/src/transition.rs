@@ -46,6 +46,8 @@ pub enum EventType {
     Hit,
     Miss,
     Sunk,
+    Commit,
+    Reveal,
     TurnAdvance,
     GameEnd,
 }
@@ -604,6 +606,112 @@ pub fn apply_action(session: &mut GameSession, action: &Action) -> Result<Vec<Ga
                     &prev_hash,
                 ));
             }
+        }
+        ActionType::Commit => {
+            let hash = action.declaration.as_deref().ok_or_else(|| {
+                BaizeError::IllegalAction("commit action requires declaration (hash)".into())
+            })?;
+            if session.runtime.pending_commits.contains_key(&player) {
+                return Err(BaizeError::IllegalAction(
+                    format!("player {player} already has a pending commitment"),
+                ));
+            }
+            session
+                .runtime
+                .pending_commits
+                .insert(player.to_string(), hash.to_string());
+            events.push(make_event(
+                session.runtime.sequence,
+                EventType::Commit,
+                &player,
+                None,
+                None,
+                None,
+                "",
+                &prev_hash,
+            ));
+        }
+        ActionType::Reveal => {
+            use sha2::{Digest, Sha256};
+
+            let stored = session
+                .runtime
+                .pending_commits
+                .get(&player)
+                .cloned()
+                .ok_or_else(|| {
+                    BaizeError::IllegalAction(format!(
+                        "player {player} has no pending commitment to reveal"
+                    ))
+                })?;
+            let value = action.declaration.as_deref().ok_or_else(|| {
+                BaizeError::IllegalAction("reveal action requires declaration (value)".into())
+            })?;
+            let nonce = action.commitment.as_deref().ok_or_else(|| {
+                BaizeError::IllegalAction("reveal action requires commitment (nonce)".into())
+            })?;
+            let preimage = format!("{value}|{nonce}");
+            let actual = format!("{:x}", Sha256::digest(preimage.as_bytes()));
+            if actual != stored {
+                return Err(BaizeError::IllegalAction(format!(
+                    "commitment verification failed: SHA-256({value}|<nonce>) != stored hash"
+                )));
+            }
+            session.runtime.pending_commits.swap_remove(&player);
+
+            // Place the revealed component if component_type and position are provided
+            if let (Some(comp_type), Some(to_pos)) =
+                (&action.component_type, &action.to)
+            {
+                let (to_col, to_row) = parse_position(Some(to_pos))?;
+                let zone_name =
+                    position_zone(Some(to_pos)).unwrap_or("board".to_string());
+
+                let instance_id = format!(
+                    "{}-{}-{}",
+                    comp_type,
+                    player,
+                    session.runtime.components.len()
+                );
+                let cid = session.runtime.components.insert(ComponentData {
+                    id: ComponentId(0),
+                    string_id: instance_id,
+                    component_type: comp_type.clone(),
+                    owner: Some(player.clone()),
+                    facing: None,
+                    state: None,
+                    properties: IndexMap::new(),
+                    span_cells: Vec::new(),
+                    orientation: None,
+                })?;
+
+                // Try global zones first, then player zones
+                let zone = session
+                    .runtime
+                    .zones
+                    .get_mut(&zone_name)
+                    .or_else(|| {
+                        session
+                            .runtime
+                            .players
+                            .get_mut(&player)
+                            .and_then(|p| p.zones.get_mut(&zone_name))
+                    });
+                if let Some(zone) = zone {
+                    zone.grid_set(to_col, to_row, Some(cid));
+                }
+            }
+
+            events.push(make_event(
+                session.runtime.sequence,
+                EventType::Reveal,
+                &player,
+                None,
+                None,
+                None,
+                "",
+                &prev_hash,
+            ));
         }
         _ => {
             return Err(BaizeError::IllegalAction(format!(

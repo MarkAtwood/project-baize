@@ -427,6 +427,7 @@ fn default_action() -> Action {
         dice_type: None,
         swap_with: None,
         declaration: None,
+        commitment: None,
         custom_data: None,
     }
 }
@@ -458,6 +459,7 @@ fn make_move_action(zone: &str, from_col: u32, from_row: u32, to_col: u32, to_ro
         dice_type: None,
         swap_with: None,
         declaration: None,
+        commitment: None,
         custom_data: None,
     }
 }

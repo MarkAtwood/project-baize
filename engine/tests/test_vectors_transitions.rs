@@ -107,6 +107,7 @@ fn build_action(v: &Value) -> Action {
         dice_type: None,
         swap_with: None,
         declaration: None,
+        commitment: None,
         custom_data: None,
     }
 }

@@ -411,6 +411,7 @@ fn empty_action() -> Action {
         dice_type: None,
         swap_with: None,
         declaration: None,
+        commitment: None,
         custom_data: None,
     }
 }

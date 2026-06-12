@@ -138,6 +138,8 @@ pub struct Action {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub declaration: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub commitment: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub custom_data: Option<serde_json::Value>,
 }
 
@@ -168,6 +170,8 @@ pub enum ActionType {
     Fire,
     Castle,
     EnPassant,
+    Commit,
+    Reveal,
     DeclareAction,
     Custom,
 }

@@ -25,6 +25,8 @@ pub struct GameState {
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub pending_actions: Vec<PendingAction>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub pending_commits: Option<IndexMap<String, String>>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub history_hash: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub timestamp: Option<String>,

@@ -55,6 +55,8 @@ EventTypeLiteral = Literal[
     "hit",
     "miss",
     "sunk",
+    "commit",
+    "reveal",
     "turn_advance",
     "game_end",
 ]
@@ -552,6 +554,79 @@ def apply_action(session: GameSession, action: Action) -> list[GameEvent]:
                     prev_hash=prev_hash,
                 )
             )
+
+    elif action.action_type == "commit":
+        # Commit-reveal protocol: store SHA-256 commitment hash
+        if not action.declaration:
+            raise IllegalActionError("commit action requires declaration (hash)")
+        if player in session.runtime.pending_commits:
+            raise IllegalActionError(
+                f"player {player} already has a pending commitment"
+            )
+        session.runtime.pending_commits[player] = action.declaration
+        events.append(
+            _make_event(
+                session.runtime.sequence,
+                "commit",
+                player,
+                prev_hash=prev_hash,
+            )
+        )
+
+    elif action.action_type == "reveal":
+        # Commit-reveal protocol: verify hash and place revealed component
+        import hashlib
+
+        if player not in session.runtime.pending_commits:
+            raise IllegalActionError(
+                f"player {player} has no pending commitment to reveal"
+            )
+        if not action.declaration:
+            raise IllegalActionError("reveal action requires declaration (value)")
+        if not action.commitment:
+            raise IllegalActionError("reveal action requires commitment (nonce)")
+
+        expected = session.runtime.pending_commits[player]
+        preimage = f"{action.declaration}|{action.commitment}"
+        actual = hashlib.sha256(preimage.encode()).hexdigest()
+        if actual != expected:
+            raise IllegalActionError(
+                f"commitment verification failed: "
+                f"SHA-256({action.declaration}|<nonce>) != stored hash"
+            )
+        del session.runtime.pending_commits[player]
+
+        # Place the revealed component (same logic as place action)
+        if action.component_type and action.to_pos:
+            to_col, to_row = _parse_position(action.to_pos)
+            zone_name = _position_zone(action.to_pos) or "board"
+            zone = session.runtime.zones.get(zone_name)
+            if zone is None:
+                rp = session.runtime.players.get(player)
+                if rp is not None:
+                    zone = rp.zones.get(zone_name)
+            if zone is not None and isinstance(zone, GridZone):
+                instance_id = (
+                    f"{action.component_type}-{player}"
+                    f"-{len(session.runtime.components)}"
+                )
+                comp = ComponentData(
+                    id=ComponentId(0),
+                    string_id=instance_id,
+                    component_type=action.component_type,
+                    owner=player,
+                )
+                cid = session.runtime.components.insert(comp)
+                zone.grid_set(to_col, to_row, cid)
+
+        events.append(
+            _make_event(
+                session.runtime.sequence,
+                "reveal",
+                player,
+                prev_hash=prev_hash,
+            )
+        )
 
     else:
         raise IllegalActionError(

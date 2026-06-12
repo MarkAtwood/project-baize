@@ -30,6 +30,7 @@ ActionTypeLiteral = Literal[
     "place_ship", "fire",
     "castle", "en_passant",
     "declare_action",
+    "commit", "reveal",
     "custom",
 ]
 
@@ -75,6 +76,7 @@ class Action:
     dice_type: str | None = None
     swap_with: str | None = None
     declaration: str | None = None
+    commitment: str | None = None
     custom_data: dict[str, Any] | None = None
 
     @staticmethod
@@ -99,6 +101,7 @@ class Action:
             dice_type=d.get("dice_type"),
             swap_with=d.get("swap_with"),
             declaration=d.get("declaration"),
+            commitment=d.get("commitment"),
             custom_data=d.get("custom_data"),
         )
 
@@ -136,6 +139,8 @@ class Action:
             out["swap_with"] = self.swap_with
         if self.declaration is not None:
             out["declaration"] = self.declaration
+        if self.commitment is not None:
+            out["commitment"] = self.commitment
         if self.custom_data is not None:
             out["custom_data"] = self.custom_data
         return out

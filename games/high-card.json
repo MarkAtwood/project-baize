@@ -1,0 +1,72 @@
+{
+  "$schema": "../schema/game-definition.schema.json",
+  "game": {
+    "name": "High Card",
+    "players": ["Alice", "Bob"],
+    "information": "imperfect"
+  },
+  "zones": {
+    "deck": {
+      "zone_type": "ordered_stack",
+      "visibility": "hidden",
+      "note": "Shuffled deck. Server deals from here."
+    },
+    "hand": {
+      "zone_type": "single_slot",
+      "visibility": {"private": "owner"},
+      "per_player": true,
+      "note": "Each player's dealt card, hidden from opponent until reveal."
+    },
+    "table": {
+      "zone_type": "grid",
+      "dimensions": [2, 1],
+      "visibility": "public",
+      "note": "Revealed cards: col 0 = Alice, col 1 = Bob."
+    }
+  },
+  "components": {
+    "card": {
+      "owner": "neutral",
+      "count": 52,
+      "properties": {
+        "suit": ["hearts", "diamonds", "clubs", "spades"],
+        "rank": ["2", "3", "4", "5", "6", "7", "8", "9", "10", "J", "Q", "K", "A"],
+        "rank_value": [2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14]
+      },
+      "note": "Standard French playing card. rank_value used for comparison (A=14 high)."
+    }
+  },
+  "turn_order": {
+    "type": "alternating",
+    "players": ["Alice", "Bob"],
+    "actions_per_turn": 1,
+    "mandatory": true
+  },
+  "phases": [
+    {
+      "name": "deal",
+      "server_action": "deal_cards",
+      "note": "Server shuffles deck and deals one card to each player's hand."
+    },
+    {
+      "name": "reveal",
+      "action": "reveal_card",
+      "note": "Each player reveals their card to the table."
+    }
+  ],
+  "library": {
+    "cards_revealed": "occupied_count == 2",
+    "never": "false"
+  },
+  "end_conditions": [
+    {
+      "result": "draw",
+      "condition": "never",
+      "name": "never"
+    }
+  ],
+  "authority": {
+    "server_only": ["shuffle", "deal_cards"],
+    "client_verifiable": ["reveal_card"]
+  }
+}
