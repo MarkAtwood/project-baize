@@ -1,0 +1,99 @@
+{
+  "$schema": "../schema/game-definition.schema.json",
+  "game": {
+    "name": "Ogre",
+    "players": ["Ogre", "Defender"],
+    "information": "perfect"
+  },
+  "zones": {
+    "board": {
+      "zone_type": "hex_grid",
+      "dimensions": [22, 15],
+      "visibility": "public",
+      "adjacency": "hex_6",
+      "stacking_limit": 0,
+      "note": "22x15 hex grid. Ogre enters from south edge (row 14), CP at north (row 2). Terrain via cell_properties."
+    }
+  },
+  "components": {
+    "infantry": {
+      "owner": "Defender",
+      "count": 12,
+      "stats": { "attack": 1, "defense": 1, "range": 1, "move": 2 }
+    },
+    "heavy_tank": {
+      "owner": "Defender",
+      "count": 2,
+      "stats": { "attack": 4, "defense": 3, "range": 2, "move": 3 }
+    },
+    "missile_tank": {
+      "owner": "Defender",
+      "count": 2,
+      "stats": { "attack": 3, "defense": 2, "range": 4, "move": 2 }
+    },
+    "howitzer": {
+      "owner": "Defender",
+      "count": 1,
+      "stats": { "attack": 6, "defense": 1, "range": 8, "move": 0 }
+    },
+    "gev": {
+      "owner": "Defender",
+      "count": 2,
+      "stats": { "attack": 2, "defense": 2, "range": 2, "move": 4 }
+    },
+    "command_post": {
+      "owner": "Defender",
+      "count": 1,
+      "stats": { "attack": 0, "defense": 1, "range": 0, "move": 0 }
+    },
+    "ogre": {
+      "owner": "Ogre",
+      "count": 1,
+      "note": "Ogre Mk III cybertank. Subsystems tracked separately: main battery, secondary batteries, missiles, AP guns, treads."
+    }
+  },
+  "turn_order": {
+    "type": "alternating",
+    "players": ["Ogre", "Defender"],
+    "actions_per_turn": 1,
+    "mandatory": true
+  },
+  "rules": {
+    "movement": {
+      "description": "Units move up to their movement allowance in hexes per turn. Ogre speed derived from remaining tread units."
+    },
+    "combat": {
+      "description": "Attacker sums attack strength vs target defense. Resolve on CRT (combat results table). Multiple units may combine fire."
+    },
+    "ogre_subsystems": {
+      "description": "Defender may target individual Ogre subsystems. Each has its own defense rating. Destroyed subsystems are permanently lost."
+    },
+    "overrun": {
+      "description": "Ogre may ram adjacent units after movement. Infantry destroyed, vehicles disabled."
+    }
+  },
+  "end_conditions": [
+    {
+      "result": "win",
+      "player": "Ogre",
+      "condition": "command_post destroyed",
+      "name": "cp_destroyed"
+    },
+    {
+      "result": "win",
+      "player": "Defender",
+      "condition": "ogre immobilized (0 treads) AND all weapons destroyed",
+      "name": "ogre_neutralized"
+    },
+    {
+      "result": "win",
+      "player": "Defender",
+      "condition": "ogre exits south map edge without destroying CP",
+      "name": "ogre_retreats"
+    }
+  ],
+  "authority": {
+    "server_only": [],
+    "client_verifiable": ["all"]
+  }
+}
