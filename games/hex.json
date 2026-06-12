@@ -1,0 +1,56 @@
+{
+  "$schema": "../schema/game-definition.schema.json",
+  "game": {
+    "name": "Hex",
+    "players": ["Red", "Blue"],
+    "information": "perfect"
+  },
+  "zones": {
+    "board": {
+      "zone_type": "hex_grid",
+      "dimensions": [11, 11],
+      "visibility": "public",
+      "adjacency": "hex_6",
+      "edge_ownership": {
+        "top": "Red",
+        "bottom": "Red",
+        "left": "Blue",
+        "right": "Blue"
+      },
+      "note": "11×11 hex grid. Red connects top-bottom, Blue connects left-right."
+    }
+  },
+  "components": {
+    "stone": {
+      "owner": "per_player",
+      "count": "unlimited"
+    }
+  },
+  "turn_order": {
+    "type": "alternating",
+    "players": ["Red", "Blue"],
+    "actions_per_turn": 1,
+    "mandatory": true
+  },
+  "library": {
+    "never": "false"
+  },
+  "rules": {
+    "placement": {
+      "action": "place(stone, board/cell)",
+      "constraint": "cell must be empty"
+    }
+  },
+  "end_conditions": [
+    {
+      "result": "win",
+      "player": "current",
+      "condition": "connected_path",
+      "name": "connection"
+    }
+  ],
+  "authority": {
+    "server_only": [],
+    "client_verifiable": ["place(stone, board/cell)"]
+  }
+}
