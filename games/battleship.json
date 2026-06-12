@@ -1,7 +1,7 @@
 {
   "$schema": "../schema/game-definition.schema.json",
   "game": {
-    "name": "Naval Battle",
+    "name": "Battleship",
     "players": ["player_1", "player_2"],
     "information": "imperfect"
   },

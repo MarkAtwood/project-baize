@@ -23,7 +23,7 @@ from baize.runtime import GameSession
 # Game data
 # ---------------------------------------------------------------------------
 
-_GAME_PATH = Path(__file__).parent.parent.parent / "games" / "yacht.json"
+_GAME_PATH = Path(__file__).parent.parent.parent / "games" / "yahtzee.json"
 
 
 def _load_yacht() -> GameDefinition:
@@ -213,7 +213,7 @@ class YachtGame:
 class TestYachtDefinition:
     def test_loads(self) -> None:
         defn = _load_yacht()
-        assert defn.game.name == "Yacht"
+        assert defn.game.name == "Yahtzee"
 
     def test_two_players(self) -> None:
         defn = _load_yacht()

@@ -24,7 +24,7 @@ from baize.transition import apply_action
 
 
 def _load_game() -> GameDefinition:
-    path = Path(__file__).parent.parent.parent / "games" / "four-in-a-row.json"
+    path = Path(__file__).parent.parent.parent / "games" / "connect-four.json"
     return GameDefinition.from_json(path.read_text())
 
 

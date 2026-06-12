@@ -235,7 +235,7 @@ def test_full_game_player2_wins() -> None:
 def test_game_end_condition_ships_remaining_zero() -> None:
     """End condition: ships_remaining == 0 is the correct terminal state.
 
-    This test verifies the game-end condition defined in naval-battle.json:
+    This test verifies the game-end condition defined in battleship.json:
       'opponent ships_remaining == 0'
 
     We play until all opponent ships are sunk, then assert:

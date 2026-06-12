@@ -12,6 +12,9 @@
 # When true, bd will use .beads/issues.jsonl as the source of truth
 # no-db: false
 
+# Database backend: "embedded" (single-writer) or "server" (concurrent via dolt sql-server)
+backend: server
+
 # Enable JSON output by default
 # json: false
 

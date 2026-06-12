@@ -1,7 +1,7 @@
 {
   "$schema": "../schema/game-definition.schema.json",
   "game": {
-    "name": "Four in a Row",
+    "name": "Connect Four",
     "players": ["Red", "Yellow"],
     "information": "perfect"
   },
