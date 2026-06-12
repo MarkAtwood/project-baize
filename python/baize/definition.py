@@ -273,6 +273,7 @@ class Zone:
     cell_type: str | None = None
     direction: str | None = None
     note: str | None = None
+    cell_properties: dict[str, dict[str, str | int | bool]] | None = None
 
     @staticmethod
     def from_dict(d: dict[str, Any]) -> Zone:
@@ -305,6 +306,7 @@ class Zone:
             cell_type=d.get("cell_type"),
             direction=d.get("direction"),
             note=d.get("note"),
+            cell_properties=d.get("cell_properties"),
         )
 
     def to_dict(self) -> dict[str, Any]:
@@ -348,6 +350,8 @@ class Zone:
             out["direction"] = self.direction
         if self.note is not None:
             out["note"] = self.note
+        if self.cell_properties is not None:
+            out["cell_properties"] = self.cell_properties
         return out
 
 

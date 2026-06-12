@@ -131,6 +131,20 @@ def _execute_effect_inner(
             )
         session.runtime.counters[spec["counter"]] = value
 
+    elif "set_cell_property" in effect:
+        spec = effect["set_cell_property"]
+        zone_name = spec["zone"]
+        zone = session.runtime.zones.get(zone_name)
+        if zone is None:
+            raise ValueError(f"unknown zone: {zone_name}")
+        from baize.runtime import GridZone
+
+        if not isinstance(zone, GridZone):
+            raise ValueError(f"zone '{zone_name}' is not a grid zone")
+        zone.set_cell_property(
+            int(spec["col"]), int(spec["row"]), spec["key"], spec["value"]
+        )
+
     elif "cycle" in effect:
         positions = effect["cycle"]
         if len(positions) < 2:

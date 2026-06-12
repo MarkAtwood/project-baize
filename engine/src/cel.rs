@@ -244,6 +244,43 @@ fn populate_grid_lines(ctx: &mut Context<'_>, session: &GameSession) {
             ctx.add_variable_from_value("type_rows", Value::List(Arc::new(type_rows)));
             ctx.add_variable_from_value("type_cols", Value::List(Arc::new(type_cols)));
 
+            // Cell properties: expose prop_{key} as 2D arrays (rows format).
+            if let RuntimeZone::Grid { cell_properties, .. } = zone {
+                let mut all_keys = std::collections::BTreeSet::new();
+                for props in cell_properties.values() {
+                    for key in props.keys() {
+                        all_keys.insert(key.clone());
+                    }
+                }
+                for key in &all_keys {
+                    let prop_rows: Vec<Value> = (0..h)
+                        .map(|row| {
+                            let line: Vec<Value> = (0..w)
+                                .map(|col| {
+                                    let idx = row * w + col;
+                                    let val = cell_properties
+                                        .get(&idx)
+                                        .and_then(|p| p.get(key.as_str()))
+                                        .map(|v| match v {
+                                            serde_json::Value::String(s) => s.clone(),
+                                            serde_json::Value::Number(n) => n.to_string(),
+                                            serde_json::Value::Bool(b) => b.to_string(),
+                                            _ => String::new(),
+                                        })
+                                        .unwrap_or_default();
+                                    Value::String(Arc::new(val))
+                                })
+                                .collect();
+                            Value::List(Arc::new(line))
+                        })
+                        .collect();
+                    ctx.add_variable_from_value(
+                        format!("prop_{key}"),
+                        Value::List(Arc::new(prop_rows)),
+                    );
+                }
+            }
+
             break; // Use the first grid zone
         }
     }

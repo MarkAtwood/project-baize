@@ -72,6 +72,8 @@ pub enum RuntimeZone {
         stacks: IndexMap<usize, Vec<ComponentId>>,
         /// Maximum components per cell: 1 = no stacking (default), 0 = unlimited.
         stacking_limit: u32,
+        /// Arbitrary key-value properties per cell (sparse).
+        cell_properties: IndexMap<usize, IndexMap<String, serde_json::Value>>,
     },
     OrderedStack {
         components: Vec<ComponentId>,
@@ -169,12 +171,30 @@ impl RuntimeZone {
                         "grid dimensions {w}x{h} overflow cell count"
                     ))
                 })?;
+                let mut cell_props = IndexMap::new();
+                if let Some(ref cp) = zone_def.cell_properties {
+                    for (coord, props) in cp {
+                        let parts: Vec<&str> = coord.split(',').collect();
+                        if parts.len() == 2 {
+                            if let (Ok(c), Ok(r)) = (
+                                parts[0].trim().parse::<u32>(),
+                                parts[1].trim().parse::<u32>(),
+                            ) {
+                                if c < w && r < h {
+                                    let idx = (r as usize) * (w as usize) + (c as usize);
+                                    cell_props.insert(idx, props.clone());
+                                }
+                            }
+                        }
+                    }
+                }
                 Ok(RuntimeZone::Grid {
                     width: w,
                     height: h,
                     cells: vec![None; cell_count],
                     stacks: IndexMap::new(),
                     stacking_limit: 1,
+                    cell_properties: cell_props,
                 })
             }
             ZoneType::OrderedStack => Ok(RuntimeZone::OrderedStack {
@@ -586,7 +606,7 @@ impl GameSession {
 
     fn zone_to_wire(&self, zone: &RuntimeZone) -> ZoneState {
         match zone {
-            RuntimeZone::Grid { width, height, cells, .. } => {
+            RuntimeZone::Grid { width, height, cells, cell_properties, .. } => {
                 let mut wire_cells = IndexMap::new();
                 for row in 0..*height {
                     for col in 0..*width {
@@ -606,7 +626,18 @@ impl GameSession {
                         }
                     }
                 }
-                ZoneState::Grid { cells: wire_cells }
+                let wire_props = if cell_properties.is_empty() {
+                    None
+                } else {
+                    let mut props_map = IndexMap::new();
+                    for (idx, props) in cell_properties {
+                        let col = idx % (*width as usize);
+                        let row = idx / (*width as usize);
+                        props_map.insert(format!("{},{}", col, row), props.clone());
+                    }
+                    Some(props_map)
+                };
+                ZoneState::Grid { cells: wire_cells, cell_properties: wire_props }
             }
             RuntimeZone::OrderedStack { components } => ZoneState::OrderedStack {
                 components: components

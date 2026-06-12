@@ -171,6 +171,22 @@ def _populate_grid_lines(
             [type_at(c, r) for r in range(h)] for c in range(w)
         ]
 
+        # Cell properties: expose prop_{key} as 2D arrays (rows format).
+        # Each cell value is the property value as a string, or "" if unset.
+        if zone.cell_properties:
+            all_keys: set[str] = set()
+            for props in zone.cell_properties.values():
+                all_keys.update(props.keys())
+            for key in sorted(all_keys):
+                prop_rows = []
+                for row in range(h):
+                    prop_row = []
+                    for col in range(w):
+                        val = zone.get_cell_property(col, row, key)
+                        prop_row.append(str(val) if val is not None else "")
+                    prop_rows.append(prop_row)
+                variables[f"prop_{key}"] = prop_rows
+
         break  # Use the first grid zone
 
     # Per-zone uniform-type booleans: zone_uniform_<name> is true when all

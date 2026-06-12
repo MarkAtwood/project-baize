@@ -265,6 +265,20 @@
         "note": {
           "type": "string",
           "description": "Human-readable note about this zone."
+        },
+        "cell_properties": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "object",
+            "additionalProperties": {
+              "oneOf": [
+                { "type": "string" },
+                { "type": "integer" },
+                { "type": "boolean" }
+              ]
+            }
+          },
+          "description": "Initial cell properties keyed by coordinate (e.g. \"0,0\": {\"terrain\": \"forest\"}). Values are string, integer, or boolean."
         }
       }
     },

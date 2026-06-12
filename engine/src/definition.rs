@@ -104,6 +104,8 @@ pub struct Zone {
     pub direction: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub note: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub cell_properties: Option<IndexMap<String, IndexMap<String, serde_json::Value>>>,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
