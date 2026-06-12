@@ -130,6 +130,14 @@
       "name": "gammon"
     }
   ],
+  "notation": {
+    "move_separator": "/",
+    "hit_marker": "*",
+    "special_moves": {
+      "bar": {"action_type": "enter", "from": "bar"},
+      "off": {"action_type": "bear_off"}
+    }
+  },
   "authority": {
     "server_only": [
       "roll(dice)",

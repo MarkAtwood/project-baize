@@ -101,5 +101,12 @@
     "client_verifiable": ["place(stone, board/intersection)", "pass"],
     "wasm_required": ["capture_detection", "liberty_counting", "ko_detection", "territory_scoring", "life_death_analysis"]
   },
+  "notation": {
+    "piece_symbols": {"stone": ""},
+    "special_moves": {
+      "pass": {"action_type": "pass"},
+      "resign": {"action_type": "resign"}
+    }
+  },
   "wasm_module": "go.wasm"
 }

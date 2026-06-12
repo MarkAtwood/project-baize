@@ -1,0 +1,71 @@
+{
+  "$schema": "../schema/game-definition.schema.json",
+  "game": {
+    "name": "Rubik's Cube",
+    "players": ["solver"]
+  },
+  "zones": {
+    "cube": {
+      "zone_type": "grid",
+      "dimensions": [3, 3],
+      "visibility": "public",
+      "note": "Six 3x3 faces: U, D, L, R, F, B"
+    }
+  },
+  "components": {
+    "facelet": {
+      "owner": "neutral",
+      "count": 54,
+      "properties": {
+        "color": "string",
+        "face": "string"
+      }
+    }
+  },
+  "turn_order": {
+    "type": "alternating",
+    "players": ["solver"],
+    "actions_per_turn": 1,
+    "mandatory": true
+  },
+  "rules": {
+    "face_turn": {
+      "action": "custom",
+      "definition": "rotate one face 90 degrees clockwise; prime suffix reverses direction; 2 suffix means 180 degrees"
+    }
+  },
+  "end_conditions": [
+    {
+      "result": "win",
+      "player": "solver",
+      "condition": "all_faces_uniform_color",
+      "name": "solved"
+    }
+  ],
+  "notation": {
+    "special_moves": {
+      "U":  {"action_type": "custom", "custom_data": {"move_name": "U"}},
+      "U'": {"action_type": "custom", "custom_data": {"move_name": "U_prime"}},
+      "U2": {"action_type": "custom", "custom_data": {"move_name": "U2"}},
+      "R":  {"action_type": "custom", "custom_data": {"move_name": "R"}},
+      "R'": {"action_type": "custom", "custom_data": {"move_name": "R_prime"}},
+      "R2": {"action_type": "custom", "custom_data": {"move_name": "R2"}},
+      "F":  {"action_type": "custom", "custom_data": {"move_name": "F"}},
+      "F'": {"action_type": "custom", "custom_data": {"move_name": "F_prime"}},
+      "F2": {"action_type": "custom", "custom_data": {"move_name": "F2"}},
+      "D":  {"action_type": "custom", "custom_data": {"move_name": "D"}},
+      "D'": {"action_type": "custom", "custom_data": {"move_name": "D_prime"}},
+      "D2": {"action_type": "custom", "custom_data": {"move_name": "D2"}},
+      "L":  {"action_type": "custom", "custom_data": {"move_name": "L"}},
+      "L'": {"action_type": "custom", "custom_data": {"move_name": "L_prime"}},
+      "L2": {"action_type": "custom", "custom_data": {"move_name": "L2"}},
+      "B":  {"action_type": "custom", "custom_data": {"move_name": "B"}},
+      "B'": {"action_type": "custom", "custom_data": {"move_name": "B_prime"}},
+      "B2": {"action_type": "custom", "custom_data": {"move_name": "B2"}}
+    }
+  },
+  "authority": {
+    "server_only": [],
+    "client_verifiable": ["custom"]
+  }
+}

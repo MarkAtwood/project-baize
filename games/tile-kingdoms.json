@@ -140,6 +140,11 @@
       "name": "all_tiles_placed"
     }
   ],
+  "notation": {
+    "special_moves": {
+      "pass": {"action_type": "pass"}
+    }
+  },
   "authority": {
     "server_only": [
       "shuffle(draw_pile)",
