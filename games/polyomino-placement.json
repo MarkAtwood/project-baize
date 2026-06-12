@@ -1,0 +1,55 @@
+{
+  "$schema": "../schema/game-definition.schema.json",
+  "game": {
+    "name": "Polyomino Placement",
+    "players": ["Blue", "Yellow", "Red", "Green"],
+    "information": "perfect"
+  },
+  "zones": {
+    "board": {
+      "zone_type": "grid",
+      "dimensions": [20, 20],
+      "visibility": "public",
+      "adjacency": "orthogonal_4",
+      "note": "20x20 square grid. Starting corners: Blue(0,0), Yellow(19,0), Red(19,19), Green(0,19)."
+    }
+  },
+  "components": {
+    "polyomino": {
+      "owner": "per_player",
+      "count": 21,
+      "note": "21 distinct polyomino shapes per player (1+1+2+5+12, monomino through pentomino). Each piece is placed once and cannot be moved."
+    }
+  },
+  "turn_order": {
+    "type": "round_robin",
+    "players": ["Blue", "Yellow", "Red", "Green"],
+    "actions_per_turn": 1,
+    "mandatory": false
+  },
+  "library": {
+    "never": "false"
+  },
+  "rules": {
+    "place": {
+      "action": "place(polyomino, board/cells)",
+      "constraint": "First piece must cover player's starting corner. Each subsequent piece must corner-touch (diagonal adjacency) at least one of the player's existing pieces. Must NOT edge-touch (orthogonal adjacency) any of the player's existing pieces. All cells must be empty and in bounds. Pieces may be rotated and flipped."
+    },
+    "pass": {
+      "action": "pass",
+      "constraint": "Player may pass if no legal placement exists. Game ends when all players pass consecutively."
+    }
+  },
+  "end_conditions": [
+    {
+      "result": "win",
+      "player": "highest_score",
+      "condition": "all_players_passed",
+      "name": "no_placements"
+    }
+  ],
+  "authority": {
+    "server_only": [],
+    "client_verifiable": ["place(polyomino, board/cells)"]
+  }
+}
