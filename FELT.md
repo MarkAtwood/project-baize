@@ -12,22 +12,160 @@ games into WASM.
 ## Design Principles
 
 1. **Pure.** Every function takes values in and returns values out. No
-   mutation, no I/O, no side effects. A Felt function called twice with
-   the same game state returns the same answer.
+   mutation, no I/O, no side effects.
 
-2. **Total.** Every Felt program terminates. Recursion is structural
-   only (you can recurse on sub-lists and sub-trees, not on computed
-   values). No unbounded loops.
+2. **Total.** Every Felt program terminates. No recursion. No loops.
+   All iteration is through built-in higher-order functions (map,
+   filter, fold) operating on finite collections from game state.
 
 3. **Board-native.** Built-in types and functions for zones, cells,
-   components, adjacency, flood-fill, and connected components. You
-   don't implement graph traversal — you call `flood_fill`.
+   components, adjacency, flood-fill, and connected components.
 
 4. **Readable.** ML-inspired syntax with pipe operators. Code reads
-   left-to-right, top-to-bottom. No parenthesis soup.
+   left-to-right, top-to-bottom.
 
 5. **Small.** The entire language fits in this document. No modules, no
-   classes, no generics, no macros, no operator overloading.
+   classes, no generics, no macros, no operator overloading, no
+   recursion, no user-defined sum types.
+
+## Not In The Language
+
+These features are deliberately excluded. If you need them, write your
+extension in Rust.
+
+- **Recursion.** Functions cannot call themselves, directly or through
+  cycles. All iteration uses built-in higher-order functions.
+- **Loops.** No `while`, `for`, `loop`. Not keywords. Not syntax.
+- **Mutation.** No variables, no assignment, no mutable state.
+- **User-defined sum types.** `Option` and `Result` are built-in.
+  You cannot define new sum types.
+- **Modules or imports.** One file = one extension. No multi-file.
+- **Generics.** Built-in functions are polymorphic. User functions
+  are monomorphic (concrete types only).
+- **String interpolation.** Use `concat` for string building.
+- **Exceptions.** Errors are `Option`/`Result` values.
+- **Closures capturing mutable state.** Lambdas can capture
+  immutable bindings from enclosing scope (see Lambdas section).
+
+---
+
+## Formal Grammar (EBNF)
+
+```ebnf
+program     = { fn_def } ;
+
+fn_def      = "fn" IDENT "(" [ param_list ] ")" "->" type "="
+              expr [ where_clause ] ;
+
+param_list  = param { "," param } ;
+param       = IDENT ":" type ;
+
+where_clause = "where" { where_bind } ;
+where_bind   = IDENT { IDENT } "=" expr ;
+
+type        = "Int" | "Float" | "Bool" | "String"
+            | "State" | "Zone" | "Cell" | "Component" | "Player"
+            | "Action"
+            | "List" type
+            | "Set" type
+            | "Map" type type
+            | "Option" type
+            | "(" type { "," type } ")"
+            | "{" field_type { "," field_type } "}"
+            | type "->" type ;
+
+field_type  = IDENT ":" type ;
+
+expr        = pipe_expr ;
+
+pipe_expr   = or_expr { "|>" or_expr } ;
+
+or_expr     = and_expr { "or" and_expr } ;
+
+and_expr    = cmp_expr { "and" cmp_expr } ;
+
+cmp_expr    = concat_expr [ cmp_op concat_expr ] ;
+cmp_op      = "==" | "!=" | "<" | ">" | "<=" | ">=" ;
+
+concat_expr = add_expr { "++" add_expr } ;
+
+add_expr    = mul_expr { ("+" | "-") mul_expr } ;
+
+mul_expr    = unary_expr { ("*" | "/" | "%") unary_expr } ;
+
+unary_expr  = [ "not" | "-" ] apply_expr ;
+
+apply_expr  = atom_expr { atom_expr } ;
+
+atom_expr   = INT_LIT | FLOAT_LIT | STRING_LIT
+            | "true" | "false"
+            | IDENT
+            | "(" expr { "," expr } ")"
+            | "[" [ expr { "," expr } ] "]"
+            | "[" expr "|" generator { "," generator } "]"
+            | "{" [ expr { "," expr } ] "}"
+            | "{" field_val { "," field_val } "}"
+            | "." IDENT
+            | lambda
+            | let_expr
+            | if_expr
+            | match_expr ;
+
+generator   = IDENT "<-" expr [ "," expr ] ;
+
+lambda      = "\\" IDENT { IDENT } "->" expr ;
+
+let_expr    = "let" let_bind { let_bind } "in" expr ;
+let_bind    = IDENT "=" expr ;
+
+if_expr     = "if" expr "then" expr "else" expr ;
+
+match_expr  = "match" expr "with" { "|" pattern "->" expr } ;
+
+pattern     = "_"
+            | INT_LIT
+            | STRING_LIT
+            | "true" | "false"
+            | "None"
+            | "Some" IDENT
+            | IDENT ;
+
+field_val   = IDENT "=" expr ;
+
+INT_LIT     = digit { digit } ;
+FLOAT_LIT   = digit { digit } "." digit { digit } ;
+STRING_LIT  = '"' { any_char } '"' ;
+IDENT       = letter { letter | digit | "_" } ;
+
+(* Line comments start with -- and extend to end of line *)
+```
+
+### Operator Precedence (lowest to highest)
+
+| Level | Operators | Associativity |
+|-------|-----------|---------------|
+| 1 | `\|>` (pipe) | Left |
+| 2 | `or` | Left |
+| 3 | `and` | Left |
+| 4 | `==` `!=` `<` `>` `<=` `>=` | None (no chaining) |
+| 5 | `++` (list/string concat) | Right |
+| 6 | `+` `-` | Left |
+| 7 | `*` `/` `%` | Left |
+| 8 | `not` `-` (unary) | Prefix |
+| 9 | Function application | Left |
+| 10 | `.field` (record access) | Postfix |
+
+### Reserved Keywords
+
+```
+fn let in if then else match with where
+true false not and or
+type None Some
+```
+
+No other identifiers are reserved. Built-in function names (`map`,
+`filter`, `zone`, etc.) can be shadowed by local bindings, though
+this is not recommended.
 
 ---
 
@@ -35,35 +173,47 @@ games into WASM.
 
 ### Primitive Types
 
-```
-Int         -- 64-bit signed integer
-Float       -- 64-bit IEEE 754
-Bool        -- true, false
-String      -- UTF-8 text
-```
+| Type | WASM repr | Size | Description |
+|------|-----------|------|-------------|
+| `Int` | `i64` | 8 bytes | 64-bit signed integer |
+| `Float` | `f64` | 8 bytes | 64-bit IEEE 754 |
+| `Bool` | `i32` | 4 bytes | 0 = false, 1 = true |
+| `String` | `i32` (ptr) | 4 bytes | Pointer to (len: i32, bytes: u8[]) in linear memory |
 
 ### Collection Types
 
+| Type | WASM repr | Layout in linear memory |
+|------|-----------|------------------------|
+| `List a` | `i32` (ptr) | (len: i32, elements: a[]) |
+| `Set a` | `i32` (ptr) | (len: i32, sorted_elements: a[]) — sorted, no duplicates |
+| `Map k v` | `i32` (ptr) | (len: i32, entries: (k, v)[]) — sorted by key |
+
+### Game Types (Opaque Handles)
+
+These are `i32` indices into a runtime table populated during JSON
+deserialization. You cannot construct them — you receive them from
+the game state.
+
+| Type | WASM repr | What it is |
+|------|-----------|------------|
+| `State` | `i32` | Full game state handle |
+| `Zone` | `i32` | Index into zones table |
+| `Cell` | `i32` | Index into cells table |
+| `Component` | `i32` | Index into components table |
+| `Player` | `i32` | Index into players table |
+| `Action` | `i32` | Index into actions table |
+
+### Tuple Types
+
 ```
-List a      -- ordered sequence: [1, 2, 3]
-Set a       -- unordered unique elements: {1, 2, 3}
-Map k v     -- key-value pairs: {"a": 1, "b": 2}
+(Int, Int)           -- pair
+(String, Int, Bool)  -- triple
 ```
 
-### Game Types
+WASM layout: elements packed sequentially. `(Int, Int)` = 16 bytes
+(two i64). Accessed by position: `fst`, `snd`, or destructuring.
 
-These are provided by the runtime. You can't construct them — you
-receive them from the game state.
-
-```
-State       -- the full game state (opaque, query it with functions)
-Zone        -- a named zone (grid, stack, set, counter, track, graph)
-Cell        -- a position in a zone (col, row for grids; node name for graphs)
-Component   -- a game piece/card/token on the board
-Player      -- a player identity
-```
-
-### Product Types
+### Record Types
 
 ```
 type Score = { player: String, points: Int, breakdown: List Entry }
@@ -71,28 +221,40 @@ type Entry = { category: String, points: Int }
 type EndResult = { game_over: Bool, winner: String, condition: String }
 ```
 
-### Sum Types
+These are the only three user-definable record types. They correspond
+to the `GameExtension` return types. WASM layout: fields packed in
+declaration order. Accessed with `.field` syntax: `s.player`, `s.points`.
+
+Record types are declared at the top of a `.felt` file. They are
+product types only — no inheritance, no methods.
+
+### Option Type (Built-in)
 
 ```
-type Option a = Some a | None
-type Result a = Ok a | Error String
+Option a = Some a | None
+```
+
+WASM layout: `(tag: i32, value: a)`. Tag 0 = None, tag 1 = Some.
+When tag is 0, value bytes are zero-filled.
+
+Pattern match to extract:
+```
+match cell_at board 3 4 with
+| Some c -> type_of c
+| None   -> "empty"
+```
+
+### Convenience Functions for Option
+
+```
+unwrap_or : Option a -> a -> a      -- extract or use default
+is_some   : Option a -> Bool
+is_none   : Option a -> Bool
 ```
 
 ---
 
-## Syntax
-
-### Literals
-
-```
-42                     -- Int
-3.14                   -- Float
-true                   -- Bool
-"hello"                -- String
-[1, 2, 3]             -- List Int
-{1, 2, 3}             -- Set Int
-{"a": 1, "b": 2}      -- Map String Int
-```
+## Syntax Details
 
 ### Let Bindings
 
@@ -102,24 +264,39 @@ let name = "poker"
 let cards = zone state "hand" player |> components
 ```
 
-All bindings are immutable. There is no assignment operator.
+Multiple `let` bindings use `let ... in` for scoping:
+
+```
+let ranks = cards |> map rank |> sort
+    suits = cards |> map suit
+in if all_same suits then "flush" else "not flush"
+```
+
+Each binding's right-hand side can reference all previous bindings
+in the same `let` block. Bindings are immutable.
 
 ### Functions
 
+All functions are top-level. No nested `fn` definitions.
+
 ```
--- Named function
 fn score_hand(cards: List Component) -> Int =
   let ranks = cards |> map rank |> sort |> reverse
-  let suits = cards |> map suit
-  if all_same suits and consecutive ranks then 800 + max ranks
-  else if has_group ranks 4 then 700 + group_value ranks 4
-  else if has_group ranks 3 and has_group ranks 2 then 600
-  else 0
+      suits = cards |> map suit
+  in
+    if all_same suits and consecutive ranks then 800 + max ranks
+    else 0
+```
 
--- Anonymous function (lambda)
-cards |> filter (\c -> rank c > 10)
+Functions cannot call themselves (no recursion). The compiler rejects
+any cycle in the call graph. Functions CAN call other top-level
+functions — the call graph must be a DAG.
 
--- Multi-line with where clause
+### Where Clauses
+
+Sugar for `let ... in` at the end of a function body:
+
+```
 fn territory(state: State, player: Player) -> Int =
   empty_cells board
   |> flood_groups board
@@ -128,275 +305,780 @@ fn territory(state: State, player: Player) -> Int =
   |> sum
   where
     board = zone state "board"
-    surrounded_by p group = border_owners group |> all (== p)
+    surrounded_by p group = border_owners board group |> all (== p)
 ```
+
+Where bindings desugar to:
+```
+let board = zone state "board"
+    surrounded_by = \p -> \group -> border_owners board group |> all (== p)
+in empty_cells board |> ...
+```
+
+### Lambdas
+
+Anonymous functions with `\param -> body` syntax:
+
+```
+cards |> filter (\c -> rank c > 10)
+cards |> map (\c -> (rank c, suit c))
+```
+
+Lambdas capture immutable bindings from their enclosing scope.
+
+**Compilation:** closure conversion. Captured variables become extra
+parameters. The compiler rewrites:
+
+```
+let threshold = 10
+in cards |> filter (\c -> rank c > threshold)
+```
+
+to:
+
+```
+let threshold = 10
+in cards |> filter (__lambda_1 threshold)
+
+fn __lambda_1(threshold: Int, c: Component) -> Bool =
+  rank c > threshold
+```
+
+The caller passes captured values at the call site. The lambda becomes
+a plain function with extra parameters. No heap-allocated closures,
+no function pointers, no GC.
+
+**Multi-parameter lambdas:** `\x y -> x + y` is sugar for
+`\x -> \y -> x + y`.
 
 ### Pipe Operator
 
-The pipe `|>` passes the result of the left side as the last argument
-to the right side. Chains read left-to-right.
+`a |> f` desugars to `f a` (f applied to a as its LAST argument).
 
 ```
--- These are equivalent:
-sum (map size (filter f groups))
-groups |> filter f |> map size |> sum
+cards |> filter (\c -> rank c > 10) |> map rank |> sum
+-- desugars to:
+sum (map rank (filter (\c -> rank c > 10) cards))
 ```
+
+The pipe is purely syntactic sugar. It is eliminated during parsing
+(before type checking). The desugared form is all the compiler sees.
+
+### Partial Application
+
+`(== player)` is sugar for `\x -> x == player`.
+`(+ 1)` is sugar for `\x -> x + 1`.
+`(f a)` where `f` takes 2+ arguments returns a function waiting for
+the remaining arguments.
+
+Implementation: the compiler desugars partial application into
+explicit lambdas during parsing.
 
 ### Pattern Matching
 
-```
-fn describe_hand(hand_type: Int) -> String =
-  match hand_type with
-  | 800 -> "straight flush"
-  | 700 -> "four of a kind"
-  | 600 -> "full house"
-  | 500 -> "flush"
-  | 400 -> "straight"
-  | _   -> "other"
-
-fn component_value(c: Component) -> Int =
-  match type_of c with
-  | "king"   -> 10
-  | "queen"  -> 9
-  | "rook"   -> 5
-  | "bishop" -> 3
-  | "knight" -> 3
-  | "pawn"   -> 1
-  | _        -> 0
-```
-
-### Conditionals
+Match on values. Every match must be exhaustive (have a wildcard `_`
+or cover all cases).
 
 ```
-if x > 0 then x else -x
-
-if is_flush and is_straight then "straight flush"
-else if is_flush then "flush"
-else if is_straight then "straight"
-else "high card"
+match expr with
+| pattern_1 -> result_1
+| pattern_2 -> result_2
+| _         -> default_result
 ```
 
-Every `if` must have an `else`. There are no statements — `if` is an
-expression that returns a value.
+Patterns can match:
+- Integer literals: `| 42 -> ...`
+- String literals: `| "king" -> ...`
+- Booleans: `| true -> ...`
+- Option: `| Some x -> ...` and `| None -> ...`
+- Wildcard: `| _ -> ...`
+- Variable binding: `| x -> ...` (binds the matched value to x)
+
+Patterns CANNOT match:
+- List destructuring (`x :: rest` — not supported, use `head`/`tail`)
+- Nested patterns (`Some (Some x)` — not supported)
+- Guards (`| x if x > 0` — not supported, use `if` in the body)
+
+**WASM compilation:** cascade of `if`/`else` blocks.
+
+```
+match x with
+| 1 -> "one"
+| 2 -> "two"
+| _ -> "other"
+```
+
+compiles to:
+
+```wasm
+local.get $x
+i64.const 1
+i64.eq
+if (result i32)
+  ;; push "one" string pointer
+else
+  local.get $x
+  i64.const 2
+  i64.eq
+  if (result i32)
+    ;; push "two" string pointer
+  else
+    ;; push "other" string pointer
+  end
+end
+```
 
 ### List Comprehensions
 
 ```
--- All pieces owned by player on the board
-[c | c <- components board, owner c == player]
-
--- Scores for each player
-[{ player = p, points = count_territory state p } | p <- players state]
+[expr | var <- collection]
+[expr | var <- collection, predicate]
 ```
+
+Desugar to `map` and `filter`:
+
+```
+[rank c | c <- cards, owner c == player]
+-- desugars to:
+cards |> filter (\c -> owner c == player) |> map (\c -> rank c)
+```
+
+Comprehensions are syntactic sugar only — eliminated during parsing.
+
+### Record Construction and Access
+
+```
+-- Construction
+{ player = "X", points = 42, breakdown = [] }
+
+-- Field access
+score.player     -- "X"
+score.points     -- 42
+```
+
+Field access compiles to a fixed offset load (fields are packed in
+declaration order).
 
 ---
 
-## Board Query Functions
+## Built-in Functions (Complete)
 
-These are built-in. They operate on the game types provided by the
-runtime. You don't implement graph algorithms — you call these.
+Every built-in has a fixed type signature. The compiler knows these
+types without any declaration.
 
 ### Zone Access
 
-```
-zone : State -> String -> Zone
-  -- Get a zone by name.
-
-zone_for : State -> String -> Player -> Zone
-  -- Get a per-player zone instance.
-
-components : Zone -> List Component
-  -- All components in a zone.
-
-cells : Zone -> List Cell
-  -- All cells in a zone (grid: all positions; graph: all nodes).
-
-cell_at : Zone -> Int -> Int -> Option Component
-  -- What's at (col, row) in a grid zone? None if empty.
-
-count : Zone -> Int
-  -- Number of components in a zone.
-
-counter_value : Zone -> Int
-  -- Value of a counter zone.
-```
+| Signature | Description |
+|-----------|-------------|
+| `zone : State -> String -> Zone` | Get zone by name |
+| `zone_for : State -> String -> Player -> Zone` | Get per-player zone |
+| `components : Zone -> List Component` | All components in zone |
+| `cells : Zone -> List Cell` | All cells in zone |
+| `cell_at : Zone -> Int -> Int -> Option Component` | Component at (col, row) |
+| `count : Zone -> Int` | Component count |
+| `counter_value : Zone -> Int` | Counter zone value |
 
 ### Component Properties
 
-```
-type_of : Component -> String
-  -- Component type name ("pawn", "king", "ace_spades").
-
-owner : Component -> Option Player
-  -- Who owns this component.
-
-rank : Component -> Int
-  -- Numeric rank (cards: 1-13, pieces: defined by game).
-
-suit : Component -> String
-  -- Suit or color group.
-
-property : Component -> String -> String
-  -- Arbitrary named property from the game definition.
-
-position : Component -> Option Cell
-  -- Where is this component on the board?
-```
+| Signature | Description |
+|-----------|-------------|
+| `type_of : Component -> String` | Type name |
+| `owner : Component -> Option Player` | Owning player |
+| `rank : Component -> Int` | Numeric rank |
+| `suit : Component -> String` | Suit/color group |
+| `property : Component -> String -> String` | Named property |
+| `position : Component -> Option Cell` | Board position |
+| `col : Cell -> Int` | Cell column |
+| `row : Cell -> Int` | Cell row |
 
 ### Grid Operations
 
-```
-adjacent : Zone -> Cell -> List Cell
-  -- Orthogonally adjacent cells.
-
-diagonal : Zone -> Cell -> List Cell
-  -- Diagonally adjacent cells.
-
-neighbors : Zone -> Cell -> List Cell
-  -- All 8 neighbors (adjacent + diagonal).
-
-in_bounds : Zone -> Int -> Int -> Bool
-  -- Is (col, row) within the grid?
-
-dimensions : Zone -> (Int, Int)
-  -- (width, height) of a grid zone.
-
-row_cells : Zone -> Int -> List Cell
-  -- All cells in a row.
-
-col_cells : Zone -> Int -> List Cell
-  -- All cells in a column.
-
-line_cells : Zone -> Cell -> (Int, Int) -> List Cell
-  -- Cells along a direction (dx, dy) from a starting cell.
-```
+| Signature | Description |
+|-----------|-------------|
+| `adjacent : Zone -> Cell -> List Cell` | 4 orthogonal neighbors |
+| `diagonal : Zone -> Cell -> List Cell` | 4 diagonal neighbors |
+| `neighbors : Zone -> Cell -> List Cell` | All 8 neighbors |
+| `in_bounds : Zone -> Int -> Int -> Bool` | Bounds check |
+| `dimensions : Zone -> (Int, Int)` | (width, height) |
+| `row_cells : Zone -> Int -> List Cell` | All cells in row |
+| `col_cells : Zone -> Int -> List Cell` | All cells in column |
+| `line_cells : Zone -> Cell -> Int -> Int -> List Cell` | Cells along (dx,dy) direction |
 
 ### Graph Operations
 
-```
-flood_fill : Zone -> Cell -> (Cell -> Bool) -> Set Cell
-  -- Starting from a cell, expand to all connected cells
-  -- satisfying the predicate. Adjacency-based.
+| Signature | Description |
+|-----------|-------------|
+| `flood_fill : Zone -> Cell -> (Cell -> Bool) -> Set Cell` | BFS from cell through matching cells |
+| `flood_groups : Zone -> (Cell -> Bool) -> List (Set Cell)` | All connected components matching predicate |
+| `connected : Zone -> Cell -> Cell -> (Cell -> Bool) -> Bool` | Reachability test |
+| `border : Zone -> Set Cell -> Set Cell` | Cells adjacent to group but not in it |
+| `border_owners : Zone -> Set Cell -> Set Player` | Owners on border cells |
+| `liberties : Zone -> Set Cell -> Int` | Empty cells adjacent to group |
 
-flood_groups : Zone -> (Cell -> Bool) -> List (Set Cell)
-  -- Partition all cells matching the predicate into connected
-  -- groups. Each group is a maximal connected component.
+### List Operations
 
-connected : Zone -> Cell -> Cell -> (Cell -> Bool) -> Bool
-  -- Can you reach cell B from cell A through cells satisfying
-  -- the predicate?
+| Signature | Description |
+|-----------|-------------|
+| `map : (a -> b) -> List a -> List b` | Transform each element |
+| `filter : (a -> Bool) -> List a -> List a` | Keep matching elements |
+| `fold : (b -> a -> b) -> b -> List a -> b` | Left fold with accumulator |
+| `flat_map : (a -> List b) -> List a -> List b` | Map then flatten |
+| `sum : List Int -> Int` | Sum of integers |
+| `max : List Int -> Int` | Maximum (0 if empty) |
+| `min : List Int -> Int` | Minimum (0 if empty) |
+| `sort : List Int -> List Int` | Ascending sort |
+| `sort_by : (a -> Int) -> List a -> List a` | Sort by key function |
+| `reverse : List a -> List a` | Reverse order |
+| `length : List a -> Int` | Element count |
+| `head : List a -> Option a` | First element |
+| `tail : List a -> List a` | All but first (empty if empty) |
+| `zip : List a -> List b -> List (a, b)` | Pair elements |
+| `flatten : List (List a) -> List a` | Concatenate nested lists |
+| `unique : List a -> Set a` | Deduplicate into set |
+| `contains : List a -> a -> Bool` | Membership test |
+| `all : (a -> Bool) -> List a -> Bool` | Every element matches |
+| `any : (a -> Bool) -> List a -> Bool` | At least one matches |
+| `all_same : List a -> Bool` | All elements equal |
+| `consecutive : List Int -> Bool` | Sequential integers (e.g., [3,4,5,6]) |
+| `combinations : List a -> Int -> List (List a)` | All k-combinations |
+| `concat : String -> String -> String` | String concatenation |
+| `range : Int -> Int -> List Int` | Integer range [lo, hi) |
+| `enumerate : List a -> List (Int, a)` | Pair with index |
 
-path_exists : Zone -> Cell -> Cell -> (Cell -> Bool) -> Bool
-  -- Alias for connected.
+### Set Operations
 
-border : Zone -> Set Cell -> Set Cell
-  -- Cells adjacent to the group but not in the group.
+| Signature | Description |
+|-----------|-------------|
+| `union : Set a -> Set a -> Set a` | Set union |
+| `intersect : Set a -> Set a -> Set a` | Set intersection |
+| `difference : Set a -> Set a -> Set a` | Set difference |
+| `size : Set a -> Int` | Cardinality |
+| `member : Set a -> a -> Bool` | Membership test |
+| `to_list : Set a -> List a` | Convert to sorted list |
+| `from_list : List a -> Set a` | Convert from list (dedup+sort) |
 
-border_owners : Zone -> Set Cell -> Set Player
-  -- Distinct owners of components on border cells.
+### Map Operations
 
-liberties : Zone -> Set Cell -> Int
-  -- Count of empty cells adjacent to the group.
-  -- (Go-specific but generally useful.)
-```
+| Signature | Description |
+|-----------|-------------|
+| `lookup : Map k v -> k -> Option v` | Key lookup |
+| `keys : Map k v -> List k` | All keys |
+| `values : Map k v -> List v` | All values |
+| `entries : Map k v -> List (k, v)` | All key-value pairs |
+| `insert : Map k v -> k -> v -> Map k v` | Insert/replace (returns new map) |
 
-### Set and List Operations
+### Grouping (Card Games)
 
-```
-map : (a -> b) -> List a -> List b
-filter : (a -> Bool) -> List a -> List a
-fold : (b -> a -> b) -> b -> List a -> b
-sum : List Int -> Int
-max : List Int -> Int
-min : List Int -> Int
-sort : List Int -> List Int
-reverse : List a -> List a
-length : List a -> Int
-head : List a -> Option a
-tail : List a -> List a
-zip : List a -> List b -> List (a, b)
-flatten : List (List a) -> List a
-unique : List a -> Set a
-contains : List a -> a -> Bool
-all : (a -> Bool) -> List a -> Bool
-any : (a -> Bool) -> List a -> Bool
-all_same : List a -> Bool
-consecutive : List Int -> Bool
-
--- Set operations
-union : Set a -> Set a -> Set a
-intersect : Set a -> Set a -> Set a
-difference : Set a -> Set a -> Set a
-size : Set a -> Int
-member : Set a -> a -> Bool
-
--- Map operations
-lookup : Map k v -> k -> Option v
-keys : Map k v -> List k
-values : Map k v -> List v
-```
-
-### Grouping (for card games)
-
-```
-group_by : (a -> k) -> List a -> Map k (List a)
-  -- Group elements by a key function.
-  -- Example: group_by rank cards -> {10: [10h, 10s], 7: [7d]}
-
-count_groups : List Int -> Int -> Int
-  -- How many groups of exactly size N exist?
-  -- count_groups [10, 10, 10, 7, 7] 3 -> 1  (one triple)
-
-has_group : List Int -> Int -> Bool
-  -- Is there a group of size >= N?
-
-group_value : List Int -> Int -> Int
-  -- Value of the largest group of size N.
-  -- group_value [10, 10, 10, 7, 7] 3 -> 10
-```
+| Signature | Description |
+|-----------|-------------|
+| `group_by : (a -> k) -> List a -> Map k (List a)` | Group by key function |
+| `count_groups : List Int -> Int -> Int` | How many groups of exactly size N |
+| `has_group : List Int -> Int -> Bool` | Is there a group of size >= N |
+| `group_value : List Int -> Int -> Int` | Value of largest group of size N |
 
 ### Game State
 
-```
-players : State -> List Player
-current_player : State -> Player
-turn : State -> Int
-phase : State -> String
-counters : State -> Map String Int
-is_finished : State -> Bool
-```
+| Signature | Description |
+|-----------|-------------|
+| `players : State -> List Player` | All players |
+| `current_player : State -> Player` | Whose turn |
+| `other_player : State -> Player -> Player` | Opponent (2-player games) |
+| `turn : State -> Int` | Turn number |
+| `phase : State -> String` | Current phase name |
+| `counters : State -> Map String Int` | Global counters |
+| `is_finished : State -> Bool` | Game over? |
+
+### Tuple Operations
+
+| Signature | Description |
+|-----------|-------------|
+| `fst : (a, b) -> a` | First element |
+| `snd : (a, b) -> b` | Second element |
+
+### Option Operations
+
+| Signature | Description |
+|-----------|-------------|
+| `unwrap_or : Option a -> a -> a` | Extract or default |
+| `is_some : Option a -> Bool` | Has value |
+| `is_none : Option a -> Bool` | No value |
+| `map_opt : (a -> b) -> Option a -> Option b` | Transform inner value |
+
+### Arithmetic
+
+| Signature | Description |
+|-----------|-------------|
+| `abs : Int -> Int` | Absolute value |
+| `max_of : Int -> Int -> Int` | Maximum of two |
+| `min_of : Int -> Int -> Int` | Minimum of two |
 
 ---
 
 ## Extension Interface
 
 A Felt file implements one or more of five standard functions. Each
-corresponds to a method on the `GameExtension` trait:
+corresponds to a method on the `GameExtension` trait.
 
 ```
--- Optional: custom move legality check
-fn is_legal(state: State, player: Player, action: Action) -> Option Bool =
-  ...
-
--- Optional: additional legal moves
-fn legal_moves(state: State, player: Player) -> List Action =
-  ...
-
--- Optional: post-move effects (chain reactions)
-fn apply_effect(state: State, trigger: String) -> State =
-  ...
-
--- Optional: compute scores for all players
-fn score(state: State) -> List Score =
-  ...
-
--- Optional: check if the game has ended
-fn check_end(state: State) -> Option EndResult =
-  ...
+fn is_legal(state: State, player: Player, action: Action) -> Option Bool
+fn legal_moves(state: State, player: Player) -> List Action
+fn apply_effect(state: State, trigger: String) -> State
+fn score(state: State) -> List Score
+fn check_end(state: State) -> Option EndResult
 ```
 
-You implement only the functions your game needs. Unimplemented
-functions defer to the declarative engine.
+Implement only the ones your game needs. The compiler emits WASM
+exports only for functions that are defined.
+
+These five names are special. The compiler recognizes them and
+generates the JSON marshaling code (deserialize arguments from JSON,
+call the function, serialize results to JSON).
+
+All other top-level `fn` definitions become internal WASM functions
+(not exported). They are helper functions.
+
+---
+
+## Termination
+
+Felt guarantees termination trivially:
+
+1. **No recursion.** The compiler builds a call graph of all `fn`
+   definitions. Any cycle is a compile error. Functions can call
+   other functions, but the call graph must be a DAG.
+
+2. **No loops.** There is no `while`, `for`, or `loop` keyword.
+
+3. **All iteration is through builtins.** `map`, `filter`, `fold`,
+   `flood_fill`, `combinations`, etc. iterate over finite collections
+   from game state. These are implemented in the runtime, not in Felt.
+   They always terminate because game state is finite.
+
+This means the termination check is trivial: detect cycles in the
+call graph. No structural recursion analysis needed, no fuel
+budgets, no dependent types.
+
+### WASM Fuel (Runtime Backstop)
+
+The Baize server's wasmtime runtime enforces a fuel limit on all
+WASM modules (1 billion instructions per call). This catches Felt
+programs that terminate but are slow (e.g., `combinations cards 7`
+on a 52-card deck). Game designers never see this — it's a server
+safety net.
+
+```
+Felt (.felt)  →  termination guaranteed (compile-time, no recursion)
+                 + WASM fuel limit (runtime backstop)
+
+Rust (.rs)    →  no termination guarantee
+                 + WASM fuel limit (runtime, only defense)
+```
+
+---
+
+## WASM Memory Layout
+
+### Arena Allocator
+
+Felt uses a bump allocator. All allocations grow a pointer forward.
+Nothing is freed individually. The entire arena is reset between
+extension calls.
+
+```
+WASM linear memory:
+  [0 .. STACK_SIZE)         -- WASM operand stack (managed by WASM runtime)
+  [STACK_SIZE .. HEAP_PTR)  -- static data (string literals, etc.)
+  [HEAP_PTR .. memory.size) -- arena: bump-allocated runtime data
+```
+
+Export: `alloc(size: i32) -> i32` bumps the pointer and returns the
+old value. Export: `dealloc(ptr: i32, size: i32)` is a no-op (arena
+frees all at once).
+
+### Value Representation
+
+| Felt type | WASM type | In-memory layout |
+|-----------|-----------|-----------------|
+| `Int` | `i64` | 8 bytes, little-endian |
+| `Float` | `f64` | 8 bytes, IEEE 754 |
+| `Bool` | `i32` | 4 bytes (0 or 1) |
+| `String` | `i32` (ptr) | At ptr: (len: i32, bytes: u8[len]) |
+| `List a` | `i32` (ptr) | At ptr: (len: i32, elements: a[len]) |
+| `Set a` | `i32` (ptr) | Same as List but sorted, no duplicates |
+| `Map k v` | `i32` (ptr) | At ptr: (len: i32, pairs: (k,v)[len]) |
+| `(a, b)` | Packed struct | a followed by b, no padding |
+| `Option a` | `(i32, a)` | (tag, value). Tag 0 = None, 1 = Some |
+| `{ f1: T1, f2: T2 }` | Packed struct | Fields in declaration order |
+| Game handles | `i32` | Index into runtime table |
+
+Elements in List/Set/Map are stored at their natural size:
+- `List Int` = ptr → (len: i32, i64[len])
+- `List Component` = ptr → (len: i32, i32[len]) — list of handles
+- `List (Int, String)` = ptr → (len: i32, (i64, i32)[len])
+
+### JSON Serde Runtime
+
+The compiled WASM binary includes a small runtime (~5KB) that:
+
+1. **Deserializes** JSON game state into the runtime tables and
+   returns a `State` handle (i32 = 0).
+2. **Serializes** Felt result values back to JSON.
+
+The runtime is pre-compiled WASM (written in Rust, compiled to
+`wasm32-unknown-unknown`). The Felt compiler links it into every
+output binary by appending its function and data sections.
+
+**Deserialization strategy:** Walk the JSON, populate parallel arrays:
+- `zones[]` — zone metadata (type, dimensions)
+- `cells[]` — cell data (zone_index, col, row, component_index)
+- `components[]` — component data (type string ptr, owner, rank, ...)
+- `players[]` — player names
+
+Game type handles are indices into these arrays. `zone state "board"`
+does a linear scan of `zones[]` for a matching name. Board query
+functions operate on these arrays.
+
+**Serialization strategy:** The five extension functions return
+known types. The runtime has a dedicated serializer for each:
+- `List Score` → JSON array of `{"player":...,"points":...,...}`
+- `Option EndResult` → JSON object or null
+- `Option Bool` → JSON `true`/`false`/`null`
+- `List Action` → JSON array
+- `State` → full JSON state (for `apply_effect`)
+
+---
+
+## Compilation Details
+
+```
+felt compile poker.felt -o poker.wasm
+felt check poker.felt                    -- type-check only
+felt run poker.felt --state game.json    -- interpret locally
+```
+
+### Pipeline
+
+```
+Source (.felt)
+  → Lexer (logos)          → Token stream with spans
+  → Parser (chumsky)       → AST (with source locations)
+  → Desugar                → Core AST (pipes, comprehensions, partials eliminated)
+  → Type Checker           → Typed AST (every node annotated with type)
+  → Call Graph Check       → Verified AST (no cycles)
+  → WASM Codegen           → .wasm binary
+    (wasm-encoder)
+```
+
+### Stage 1: Lexer (logos)
+
+```rust
+#[derive(Logos, Debug, Clone, PartialEq)]
+enum Token {
+    // Keywords
+    #[token("fn")]     Fn,
+    #[token("let")]    Let,
+    #[token("in")]     In,
+    #[token("if")]     If,
+    #[token("then")]   Then,
+    #[token("else")]   Else,
+    #[token("match")]  Match,
+    #[token("with")]   With,
+    #[token("where")]  Where,
+    #[token("true")]   True,
+    #[token("false")]  False,
+    #[token("not")]    Not,
+    #[token("and")]    And,
+    #[token("or")]     Or,
+    #[token("type")]   Type,
+    #[token("None")]   None_,
+    #[token("Some")]   Some_,
+
+    // Operators
+    #[token("|>")]     Pipe,
+    #[token("->")]     Arrow,
+    #[token("==")]     Eq,
+    #[token("!=")]     Neq,
+    #[token(">=")]     Gte,
+    #[token("<=")]     Lte,
+    #[token(">")]      Gt,
+    #[token("<")]      Lt,
+    #[token("+")]      Plus,
+    #[token("-")]      Minus,
+    #[token("*")]      Star,
+    #[token("/")]      Slash,
+    #[token("%")]      Percent,
+    #[token("++")]     PlusPlus,
+    #[token("\\")]     Backslash,
+    #[token("|")]      Bar,
+    #[token("=")]      Assign,
+    #[token(".")]      Dot,
+
+    // Punctuation
+    #[token("(")]      LParen,
+    #[token(")")]      RParen,
+    #[token("[")]      LBracket,
+    #[token("]")]      RBracket,
+    #[token("{")]      LBrace,
+    #[token("}")]      RBrace,
+    #[token(",")]      Comma,
+    #[token(":")]      Colon,
+    #[token("_")]      Underscore,
+    #[token("<-")]     LeftArrow,
+
+    // Literals
+    #[regex(r"[0-9]+\.[0-9]+", |lex| lex.slice().parse::<f64>().ok())]
+    FloatLit(f64),
+    #[regex(r"[0-9]+", |lex| lex.slice().parse::<i64>().ok())]
+    IntLit(i64),
+    #[regex(r#""[^"]*""#, |lex| Some(lex.slice()[1..lex.slice().len()-1].to_string()))]
+    StringLit(String),
+
+    // Identifiers
+    #[regex(r"[a-zA-Z_][a-zA-Z0-9_]*", |lex| Some(lex.slice().to_string()))]
+    Ident(String),
+
+    // Skip
+    #[regex(r"--[^\n]*", logos::skip)]    // line comments
+    #[regex(r"[ \t\n\r]+", logos::skip)]  // whitespace
+}
+```
+
+**Test vectors for lexer:**
+
+| Input | Expected tokens |
+|-------|----------------|
+| `fn f(x: Int) -> Int = x + 1` | `Fn Ident("f") LParen Ident("x") Colon Ident("Int") RParen Arrow Ident("Int") Assign Ident("x") Plus IntLit(1)` |
+| `x \|> map f` | `Ident("x") Pipe Ident("map") Ident("f")` |
+| `\x -> x + 1` | `Backslash Ident("x") Arrow Ident("x") Plus IntLit(1)` |
+| `-- comment\n42` | `IntLit(42)` |
+| `"hello"` | `StringLit("hello")` |
+| `3.14` | `FloatLit(3.14)` |
+| `true and false` | `True And False` |
+| `match x with \| 1 -> "a"` | `Match Ident("x") With Bar IntLit(1) Arrow StringLit("a")` |
+
+### Stage 2: Parser (chumsky)
+
+Produces this AST:
+
+```rust
+enum Expr {
+    IntLit(i64),
+    FloatLit(f64),
+    BoolLit(bool),
+    StringLit(String),
+    Ident(String),
+    Apply(Box<Expr>, Box<Expr>),           // f(x)
+    Lambda(String, Box<Expr>),             // \x -> body
+    Let(Vec<(String, Expr)>, Box<Expr>),   // let x = e in body
+    If(Box<Expr>, Box<Expr>, Box<Expr>),   // if c then t else f
+    Match(Box<Expr>, Vec<(Pattern, Expr)>),
+    BinOp(BinOp, Box<Expr>, Box<Expr>),
+    UnOp(UnOp, Box<Expr>),
+    List(Vec<Expr>),
+    Set(Vec<Expr>),
+    Record(Vec<(String, Expr)>),           // { field = value }
+    FieldAccess(Box<Expr>, String),        // expr.field
+    Tuple(Vec<Expr>),                      // (a, b)
+    NoneLit,
+    SomeWrap(Box<Expr>),                   // Some x
+}
+
+enum Pattern {
+    Wildcard,
+    IntPat(i64),
+    StringPat(String),
+    BoolPat(bool),
+    NonePat,
+    SomePat(String),     // Some x — binds x
+    VarPat(String),      // x — binds x
+}
+
+enum BinOp { Add, Sub, Mul, Div, Mod, Eq, Neq, Lt, Gt, Lte, Gte,
+             And, Or, Concat }
+enum UnOp { Neg, Not }
+
+struct FnDef {
+    name: String,
+    params: Vec<(String, Type)>,
+    return_type: Type,
+    body: Expr,
+}
+
+struct Program {
+    type_defs: Vec<TypeDef>,
+    functions: Vec<FnDef>,
+}
+```
+
+**Desugaring (done during parsing, before type checking):**
+- `a |> f` → `Apply(f, a)`
+- `[e | x <- xs, p]` → `Apply(map, Lambda(x, e), Apply(filter, Lambda(x, p), xs))`
+- `where x = e` → `Let([(x, e)], body)`
+- `(== val)` → `Lambda(__x, BinOp(Eq, Ident(__x), val))`
+- `(+ 1)` → `Lambda(__x, BinOp(Add, Ident(__x), IntLit(1)))`
+- `\x y -> e` → `Lambda(x, Lambda(y, e))`
+
+**Test vectors for parser:**
+
+| Input | Expected AST (simplified) |
+|-------|--------------------------|
+| `42` | `IntLit(42)` |
+| `x + y * z` | `BinOp(Add, x, BinOp(Mul, y, z))` |
+| `f a b` | `Apply(Apply(f, a), b)` |
+| `x \|> f \|> g` | `Apply(g, Apply(f, x))` |
+| `if true then 1 else 2` | `If(BoolLit(true), IntLit(1), IntLit(2))` |
+| `\x -> x + 1` | `Lambda("x", BinOp(Add, Ident("x"), IntLit(1)))` |
+
+### Stage 3: Type Checker
+
+Bidirectional type checking (not full Hindley-Milner — simpler, since
+no user-defined polymorphism). Every function has an explicit type
+signature. The checker:
+
+1. Populates the type environment with all built-in function signatures.
+2. Adds all user `fn` definitions to the environment.
+3. Checks each function body against its declared return type.
+4. Infers types for `let` bindings, lambda parameters (from context),
+   and subexpressions.
+5. Resolves polymorphic builtins (`map`, `filter`, etc.) by
+   unification at each call site.
+
+**Type errors reported with source spans via ariadne.**
+
+**Checked invariants:**
+- Every `if` has matching `then`/`else` types.
+- Every `match` arm has the same result type.
+- Every `match` has a wildcard or covers all patterns.
+- Binary operators have matching operand types.
+- Function arguments match parameter types.
+- Record field access is valid (field exists in record type).
+- The five extension functions (if defined) have the correct signatures.
+
+### Stage 4: Call Graph Check
+
+Build a directed graph: edge from `f` to `g` if `f`'s body calls `g`.
+Check for cycles (topological sort — if it fails, there's a cycle).
+Report the cycle in the error message.
+
+This is ~50 lines. It replaces the structural recursion termination
+checker from the earlier spec.
+
+### Stage 5: WASM Codegen (wasm-encoder)
+
+**Function compilation:** Each `fn` becomes a WASM function. Local
+variables are WASM locals. The body is compiled as a single
+expression that leaves its result on the stack.
+
+**Compilation rules:**
+
+| Felt construct | WASM output |
+|---------------|-------------|
+| `IntLit(n)` | `i64.const n` |
+| `FloatLit(f)` | `f64.const f` |
+| `BoolLit(b)` | `i32.const 0\|1` |
+| `StringLit(s)` | `i32.const <ptr>` (ptr into data section) |
+| `Ident(x)` | `local.get $x` |
+| `BinOp(Add, a, b)` | `[compile a] [compile b] i64.add` |
+| `BinOp(Eq, a, b)` | `[compile a] [compile b] i64.eq` |
+| `Apply(f, x)` | `[compile x] call $f` |
+| `Let(binds, body)` | For each: `[compile val] local.set $var`. Then `[compile body]` |
+| `If(c, t, f)` | `[compile c] if [compile t] else [compile f] end` |
+| `Match(e, arms)` | `[compile e] local.set $match_val` then cascade of if/else |
+| `Lambda(...)` | After closure conversion: `call $__lambda_N` with captured vars |
+| `List([a,b,c])` | Alloc `(3+len*elem_size)`, store len, store each element |
+| `Record({f=v,...})` | Alloc struct size, store each field at offset |
+| `.field` | `i32.load offset=<field_offset>` |
+| `None` | `i32.const 0` (tag), zero-fill value |
+| `Some x` | `i32.const 1` (tag), `[compile x]` |
+
+**Built-in functions** are compiled as WASM function bodies in the
+runtime module. They are linked into the output binary. Each built-in
+has a known function index.
+
+**WASM module structure:**
+
+```
+TypeSection:    function signatures
+ImportSection:  (none — self-contained)
+FunctionSection: function indices
+MemorySection:  1 memory, min 1 page, max 1024 pages (64MB)
+ExportSection:  "memory", "alloc", "dealloc", + extension functions
+DataSection:    string literals, runtime tables
+CodeSection:    function bodies (user functions + runtime)
+```
+
+---
+
+## Error Catalog
+
+### Lexer Errors
+
+| Code | Message | Cause |
+|------|---------|-------|
+| E001 | `unexpected character '{c}'` | Character not part of any token |
+| E002 | `unterminated string literal` | String missing closing `"` |
+
+### Parser Errors
+
+| Code | Message | Cause |
+|------|---------|-------|
+| E100 | `expected {token}, found {actual}` | Syntax error |
+| E101 | `expected expression` | Missing expression after operator |
+| E102 | `expected '->' in lambda` | Lambda missing arrow |
+| E103 | `expected 'then' after 'if' condition` | If missing then |
+| E104 | `expected 'else' branch` | If without else |
+| E105 | `expected '\|' pattern` | Match without arms |
+| E106 | `expected type annotation after ':'` | Missing type |
+| E107 | `expected '=' after function signature` | Fn missing body |
+
+### Type Errors
+
+| Code | Message | Cause |
+|------|---------|-------|
+| E200 | `type mismatch: expected {t1}, found {t2}` | Expression has wrong type |
+| E201 | `unknown identifier '{name}'` | Undefined variable/function |
+| E202 | `'{name}' is not a function` | Applying non-function |
+| E203 | `wrong number of arguments: {name} takes {n}, got {m}` | Arity mismatch |
+| E204 | `field '{f}' does not exist on type {t}` | Bad field access |
+| E205 | `non-exhaustive match: missing {patterns}` | Match doesn't cover all cases |
+| E206 | `if branches have different types: {t1} vs {t2}` | Branch type mismatch |
+| E207 | `extension function '{name}' has wrong signature` | Extension fn type mismatch |
+
+### Call Graph Errors
+
+| Code | Message | Cause |
+|------|---------|-------|
+| E300 | `recursive call: {f} -> {g} -> ... -> {f}` | Cycle in call graph |
+
+---
+
+## Edge Cases and Defined Behavior
+
+| Situation | Behavior |
+|-----------|----------|
+| Division by zero (Int) | Returns 0 |
+| Division by zero (Float) | Returns `Infinity` or `NaN` (IEEE 754) |
+| Integer overflow | Wraps (two's complement, same as WASM `i64`) |
+| `max []` / `min []` | Returns 0 |
+| `head []` | Returns `None` |
+| `tail []` | Returns `[]` |
+| `sum []` | Returns 0 |
+| `all_same []` | Returns `true` (vacuous truth) |
+| `consecutive []` | Returns `true` |
+| `combinations xs k` where k > length xs | Returns `[]` |
+| `combinations xs k` where k < 0 | Returns `[]` |
+| `cell_at` out of bounds | Returns `None` |
+| `zone` with unknown name | Returns empty zone (0 cells, 0 components) |
+| `zone_for` with unknown player | Returns empty zone |
+| `counter_value` on non-counter zone | Returns 0 |
+| `property` with unknown key | Returns `""` |
+| `rank` on component without rank | Returns 0 |
+| `suit` on component without suit | Returns `""` |
+| `unwrap_or None default` | Returns `default` |
+| `unwrap_or (Some x) default` | Returns `x` |
+| Record field type mismatch in JSON | Deserialization returns zero/empty |
+| String comparison | Lexicographic (UTF-8 byte order) |
+| Set ordering | Sorted by natural order (Int < String < handle) |
 
 ---
 
@@ -405,24 +1087,25 @@ functions defer to the declarative engine.
 ### Poker Hand Scoring
 
 ```
+type Score = { player: String, points: Int, breakdown: List Entry }
+type Entry = { category: String, points: Int }
+
 fn score(state: State) -> List Score =
   players state |> map (\p ->
     let hand = zone_for state "hand" p |> components
         community = zone state "community" |> components
         all_cards = hand ++ community
         best = best_five all_cards
-    in { player = p
+    in { player = name p
        , points = hand_rank best
        , breakdown = [{ category = hand_name best, points = hand_rank best }]
        })
 
 fn best_five(cards: List Component) -> List Component =
   combinations cards 5
-  |> map (\combo -> (hand_rank combo, combo))
-  |> sort_by fst
+  |> sort_by (\combo -> hand_rank combo)
   |> reverse
   |> head
-  |> map snd
   |> unwrap_or []
 
 fn hand_rank(cards: List Component) -> Int =
@@ -458,12 +1141,15 @@ fn hand_name(cards: List Component) -> String =
 ### Go Territory Scoring
 
 ```
+type Score = { player: String, points: Int, breakdown: List Entry }
+type Entry = { category: String, points: Int }
+
 fn score(state: State) -> List Score =
   let board = zone state "board"
   in players state |> map (\p ->
     let territory = count_territory board p
         captures = counter_value (zone_for state "captures" p)
-    in { player = p
+    in { player = name p
        , points = territory + captures
        , breakdown = [ { category = "territory", points = territory }
                      , { category = "captures", points = captures }
@@ -471,243 +1157,82 @@ fn score(state: State) -> List Score =
        })
 
 fn count_territory(board: Zone, player: Player) -> Int =
-  empty_cells board
+  cells board
+  |> filter (\c -> is_none (cell_at board (col c) (row c)))
   |> flood_groups board
   |> filter (\group -> is_controlled_by board group player)
   |> map size
   |> sum
 
-fn empty_cells(board: Zone) -> List Cell =
-  cells board |> filter (\c -> cell_at board (col c) (row c) == None)
-
 fn is_controlled_by(board: Zone, group: Set Cell, player: Player) -> Bool =
-  border_owners board group == {player}
-```
-
-### Carcassonne City Scoring
-
-```
-fn score(state: State) -> List Score =
-  let board = zone state "board"
-      cities = flood_groups board is_city_tile
-  in players state |> map (\p ->
-    let city_points = cities
-          |> filter (has_meeple p)
-          |> map (\city -> score_city board city)
-          |> sum
-    in { player = p
-       , points = city_points
-       , breakdown = [{ category = "cities", points = city_points }]
-       })
-
-fn is_city_tile(cell: Cell) -> Bool =
-  match cell_at board (col cell) (row cell) with
-  | Some c -> property c "terrain" == "city"
-  | None   -> false
-
-fn score_city(board: Zone, city: Set Cell) -> Int =
-  let tile_count = size city
-      has_pennant = city |> any (\c ->
-        match cell_at board (col c) (row c) with
-        | Some comp -> property comp "pennant" == "true"
-        | None -> false)
-      pennant_bonus = if has_pennant then 2 else 0
-      complete = border board city |> all (\c ->
-        cell_at board (col c) (row c) != None)
-      multiplier = if complete then 2 else 1
-  in (tile_count + pennant_bonus) * multiplier
-
-fn has_meeple(player: Player, group: Set Cell) -> Bool =
-  group |> any (\c ->
-    match cell_at board (col c) (row c) with
-    | Some comp -> type_of comp == "meeple" and owner comp == Some player
-    | None -> false)
+  border_owners board group == from_list [player]
 ```
 
 ### Checkmate Detection
 
 ```
+type EndResult = { game_over: Bool, winner: String, condition: String }
+
 fn check_end(state: State) -> Option EndResult =
   let board = zone state "board"
       current = current_player state
       opponent = other_player state current
   in
-    if in_check board current and no_legal_escape board current then
+    if in_check board current and no_legal_escape state board current then
       Some { game_over = true
-           , winner = opponent
+           , winner = name opponent
            , condition = "checkmate"
            }
-    else if not (in_check board current) and no_legal_moves board current then
+    else if not (in_check board current) and no_legal_moves state board current then
       Some { game_over = true
            , winner = ""
            , condition = "stalemate"
            }
-    else
-      None
+    else None
 
 fn in_check(board: Zone, player: Player) -> Bool =
-  let king_cell = find_king board player
+  let king_pos = find_king board player
   in opponent_pieces board player
-     |> any (\piece -> can_attack board piece king_cell)
-
-fn no_legal_escape(board: Zone, player: Player) -> Bool =
-  own_pieces board player
-  |> flat_map (\piece -> legal_destinations board piece)
-  |> all (\move -> still_in_check board player move)
+     |> any (\piece -> attacks board piece king_pos)
 
 fn find_king(board: Zone, player: Player) -> Cell =
   components board
   |> filter (\c -> type_of c == "king" and owner c == Some player)
   |> head
-  |> map position
+  |> map_opt position
   |> flatten
-  |> unwrap_or (0, 0)
+  |> unwrap_or (cell_at board 0 0 |> unwrap_or_default)
+
+fn opponent_pieces(board: Zone, player: Player) -> List Component =
+  components board
+  |> filter (\c -> owner c != Some player and is_some (owner c))
+
+fn no_legal_escape(state: State, board: Zone, player: Player) -> Bool =
+  -- delegates to the declarative engine's legal_moves
+  -- then checks each one still results in check
+  legal_moves_for state player |> all (\m -> still_in_check board player m)
+
+fn no_legal_moves(state: State, board: Zone, player: Player) -> Bool =
+  legal_moves_for state player |> length == 0
 ```
 
 ---
 
-## Termination
+## Implementation Toolchain
 
-Felt guarantees termination through two restrictions:
+| Stage | Crate | Custom code |
+|-------|-------|-------------|
+| Lexer | `logos` | Token enum (~50 lines) |
+| Parser | `chumsky` | Grammar combinators (~400 lines) |
+| Desugar | — | Pipe/comprehension/partial elimination (~100 lines) |
+| Type checker | — | Bidirectional checking (~500 lines) |
+| Call graph check | — | Topological sort (~50 lines) |
+| WASM codegen | `wasm-encoder` | Expression compiler (~800 lines) |
+| JSON runtime | Pre-compiled WASM | State deserializer, result serializer (~300 lines Rust) |
+| Error reporting | `ariadne` | Diagnostic formatting (~100 lines) |
+| CLI | `clap` | Three subcommands (~50 lines) |
 
-1. **No general recursion.** Functions can only recurse on structural
-   sub-parts of their arguments (a sub-list, a subset, a smaller
-   collection). The compiler rejects recursion on computed values.
-
-2. **No unbounded iteration.** `map`, `filter`, `fold`, and list
-   comprehensions iterate over finite collections received from the
-   game state. There is no `while` or `loop`.
-
-The compiler performs a termination check during compilation and
-rejects programs that cannot be proven total.
-
-### What You Can Do
-
-```
--- OK: structural recursion on a sub-list
-fn sum_list(xs: List Int) -> Int =
-  match xs with
-  | [] -> 0
-  | x :: rest -> x + sum_list rest    -- rest is strictly smaller
-
--- OK: iterate over a finite collection from game state
-components board |> map rank |> sum
-```
-
-### What You Cannot Do
-
-```
--- REJECTED: recursion on a computed value
-fn collatz(n: Int) -> Int =
-  if n == 1 then 0
-  else if n % 2 == 0 then 1 + collatz (n / 2)    -- not structural
-  else 1 + collatz (3 * n + 1)                    -- not structural
-
--- REJECTED: no loop construct exists
-while not_done do ...    -- syntax error: 'while' is not a keyword
-```
-
-### No Gas — Termination + WASM Fuel Instead
-
-Felt does **not** have a gas or fuel mechanism. Two layers provide
-safety without burdening game designers:
-
-1. **Compile-time termination.** The Felt compiler proves every
-   program terminates before emitting WASM. This is a stronger
-   property than gas — gas says "we'll kill it if it runs too long,"
-   termination says "it's impossible for it to run too long." Game
-   designers never see a gas budget or hit a gas error.
-
-2. **WASM fuel (runtime backstop).** The Baize server's wasmtime
-   runtime enforces an instruction-level fuel limit on all WASM
-   modules (1 billion instructions per call). This catches Felt
-   programs that terminate but are slow (e.g., combinatorial
-   explosion on large game states), and also protects against
-   hand-crafted WASM that bypasses Felt entirely.
-
-```
-Felt (.felt)  →  termination guaranteed (compile-time)
-                 + WASM fuel limit (runtime backstop)
-
-Rust (.rs)    →  no termination guarantee
-                 + WASM fuel limit (runtime, only defense)
-```
-
-This is defense-in-depth at different layers. Felt is the compile-time
-guarantee for game designers. WASM fuel is the runtime guarantee for
-everyone, including Rust power users writing extensions directly.
-
----
-
-## Compilation
-
-```
-felt compile poker.felt -o poker.wasm
-felt check poker.felt              # type-check and termination-check only
-felt run poker.felt --state game.json   # interpret locally (for debugging)
-```
-
-### Pipeline
-
-```
-Source (.felt)
-  → Lexer (logos)        → Tokens
-  → Parser (chumsky)     → AST
-  → Type Checker         → Typed AST
-  → Termination Checker  → Verified AST
-  → WASM Codegen         → .wasm binary
-    (wasm-encoder)
-```
-
-### Implementation: Off-the-Shelf Rust
-
-The compiler uses established Rust crates wherever possible. Custom
-code is limited to the two game-specific passes (type checking with
-game types, termination checking).
-
-| Stage | Crate | Role |
-|-------|-------|------|
-| Lexer | `logos` | Derive-macro lexer. Define tokens as an enum, logos generates a zero-copy DFA. |
-| Parser | `chumsky` | Parser combinator with error recovery and source spans. Integrates with logos via zero-copy adapter. |
-| Type checker | Hand-rolled | ~500 lines. Hindley-Milner inference with game-specific base types (State, Zone, Cell, Component, Player). |
-| Termination checker | Hand-rolled | ~200 lines. Verify recursion is structural (argument is strict sub-part of input). |
-| WASM codegen | `wasm-encoder` | Bytecode Alliance crate. Direct WASM binary emission — build type, function, export, and code sections, then serialize. No intermediate representation. |
-| Error reporting | `ariadne` | Beautiful terminal diagnostics with source spans and colored annotations. Pairs with chumsky's error types. |
-| CLI | `clap` | Standard Rust CLI argument parsing. |
-
-**Why `wasm-encoder` and not Cranelift?** Cranelift compiles *from*
-WASM to native. We compile *to* WASM. `wasm-encoder` is the right
-tool: you emit WASM stack-machine bytecodes directly. For a language
-this simple (no closures, no GC, no exceptions, no mutation), codegen
-is straightforward — each Felt expression maps to a short sequence of
-WASM instructions.
-
-**WASM codegen strategy:** Felt is expression-oriented and pure, which
-maps naturally to WASM's stack machine:
-- Literals push values onto the stack.
-- Binary operators pop two values, push one result.
-- Function calls use WASM `call` instructions.
-- `if/else` uses WASM `if/else/end` blocks.
-- `let` bindings become WASM `local.set`/`local.get`.
-- Pattern matching compiles to cascading `if` blocks with `br_table`
-  for integer dispatch.
-- List operations (map, filter, fold) compile to linear memory
-  iteration with bounds-checked indexing.
-- The pipe operator `|>` is just syntactic sugar — desugared to
-  function application before codegen.
-
-**Target output:** typical Felt extensions (poker scoring, Go
-territory) should produce WASM binaries under 50KB, including the
-embedded JSON deserialization runtime.
-
-The WASM binary exports the standard `alloc`, `dealloc`, and whichever
-of the five extension functions (`is_legal`, `legal_moves`,
-`apply_effect`, `score`, `check_end`) the source file defines.
-
-The JSON-string ABI matches the existing `WasmHost` in the Baize
-server: game state is passed as serialized JSON, results are returned
-as serialized JSON. The Felt runtime (compiled into the WASM binary)
-handles deserialization into Felt's native types.
+**Total estimated custom code: ~2,400 lines of Rust.**
 
 ---
 
@@ -729,15 +1254,13 @@ If your game logic fits in CEL + perturber, you don't need Felt.
 Felt is for when you need algorithms: hand ranking, territory
 counting, connected component analysis, complex spatial queries.
 
+If Felt isn't enough, write your extension in Rust.
+
 ---
 
 ## File Extension
 
 `.felt`
-
-## MIME Type
-
-`application/x-felt`
 
 ## Name
 
