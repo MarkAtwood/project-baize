@@ -875,6 +875,10 @@ class GameDefinition:
         """Semantic validation: resource limits to prevent computational DoS."""
         from baize.error import ValidationError
 
+        # Game name must be a non-empty string
+        if not isinstance(self.game.name, str) or not self.game.name.strip():
+            raise ValidationError("game name must be a non-empty string")
+
         # Player count limits (max 100)
         if isinstance(self.game.players, list):
             if len(self.game.players) > 100:
@@ -895,7 +899,10 @@ class GameDefinition:
                 elif isinstance(zone.dimensions, int):
                     dims = [zone.dimensions, zone.dimensions]
                 else:
-                    dims = []
+                    raise ValidationError(
+                        f"zone {name!r} dimensions must be a list or int, "
+                        f"got {type(zone.dimensions).__name__}"
+                    )
                 for i, d in enumerate(dims):
                     if isinstance(d, (int, float)) and d > 1000:
                         raise ValidationError(

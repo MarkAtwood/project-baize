@@ -89,6 +89,29 @@ impl FileStore {
     }
 }
 
+/// Write data to a file atomically: write to a temporary sibling file,
+/// then rename over the target. On POSIX, rename is atomic within the
+/// same filesystem, so readers always see either the old or new content,
+/// never a partial write.
+fn atomic_write(path: &std::path::Path, data: &str) -> Result<(), std::io::Error> {
+    use std::io::Write;
+
+    let dir = path.parent().ok_or_else(|| {
+        std::io::Error::new(std::io::ErrorKind::InvalidInput, "path has no parent directory")
+    })?;
+    let file_name = path.file_name().ok_or_else(|| {
+        std::io::Error::new(std::io::ErrorKind::InvalidInput, "path has no file name")
+    })?;
+    let tmp_name = format!(".{}.tmp", file_name.to_string_lossy());
+    let tmp_path = dir.join(tmp_name);
+
+    let mut file = fs::File::create(&tmp_path)?;
+    file.write_all(data.as_bytes())?;
+    file.sync_all()?;
+    fs::rename(&tmp_path, path)?;
+    Ok(())
+}
+
 impl Store for FileStore {
     fn save_room(
         &self,
@@ -98,8 +121,8 @@ impl Store for FileStore {
     ) -> Result<(), StoreError> {
         let dir = self.room_dir(room_id);
         fs::create_dir_all(&dir)?;
-        fs::write(dir.join("definition.json"), definition_json)?;
-        fs::write(dir.join("state.json"), state_json)?;
+        atomic_write(&dir.join("definition.json"), definition_json)?;
+        atomic_write(&dir.join("state.json"), state_json)?;
         Ok(())
     }
 
@@ -111,7 +134,7 @@ impl Store for FileStore {
                 format!("room {room_id} not found in store"),
             )));
         }
-        fs::write(dir.join("state.json"), state_json)?;
+        atomic_write(&dir.join("state.json"), state_json)?;
         Ok(())
     }
 
@@ -211,7 +234,7 @@ impl Store for MemoryStore {
         definition_json: &str,
         state_json: &str,
     ) -> Result<(), StoreError> {
-        let mut rooms = self.rooms.lock().unwrap();
+        let mut rooms = self.rooms.lock().expect("MemoryStore mutex poisoned in save_room");
         rooms.insert(
             room_id.to_string(),
             MemoryRoom {
@@ -224,7 +247,7 @@ impl Store for MemoryStore {
     }
 
     fn update_state(&self, room_id: &str, state_json: &str) -> Result<(), StoreError> {
-        let mut rooms = self.rooms.lock().unwrap();
+        let mut rooms = self.rooms.lock().expect("MemoryStore mutex poisoned in update_state");
         match rooms.get_mut(room_id) {
             Some(room) => {
                 room.state_json = state_json.to_string();
@@ -238,7 +261,7 @@ impl Store for MemoryStore {
     }
 
     fn append_events(&self, room_id: &str, events: &[String]) -> Result<(), StoreError> {
-        let mut rooms = self.rooms.lock().unwrap();
+        let mut rooms = self.rooms.lock().expect("MemoryStore mutex poisoned in append_events");
         if let Some(room) = rooms.get_mut(room_id) {
             room.events.extend(events.iter().cloned());
         }
@@ -246,7 +269,7 @@ impl Store for MemoryStore {
     }
 
     fn load_room(&self, room_id: &str) -> Result<Option<RoomData>, StoreError> {
-        let rooms = self.rooms.lock().unwrap();
+        let rooms = self.rooms.lock().expect("MemoryStore mutex poisoned in load_room");
         Ok(rooms.get(room_id).map(|r| RoomData {
             definition_json: r.definition_json.clone(),
             state_json: r.state_json.clone(),
@@ -254,12 +277,12 @@ impl Store for MemoryStore {
     }
 
     fn list_rooms(&self) -> Result<Vec<String>, StoreError> {
-        let rooms = self.rooms.lock().unwrap();
+        let rooms = self.rooms.lock().expect("MemoryStore mutex poisoned in list_rooms");
         Ok(rooms.keys().cloned().collect())
     }
 
     fn delete_room(&self, room_id: &str) -> Result<(), StoreError> {
-        let mut rooms = self.rooms.lock().unwrap();
+        let mut rooms = self.rooms.lock().expect("MemoryStore mutex poisoned in delete_room");
         rooms.remove(room_id);
         Ok(())
     }
@@ -311,7 +334,7 @@ mod tests {
         store
             .append_events("ev", &["event1".into(), "event2".into()])
             .unwrap();
-        let rooms = store.rooms.lock().unwrap();
+        let rooms = store.rooms.lock().expect("test mutex poisoned");
         assert_eq!(rooms["ev"].events, vec!["event1", "event2"]);
     }
 

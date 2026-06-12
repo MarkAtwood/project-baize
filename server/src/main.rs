@@ -16,6 +16,27 @@ use axum::routing::{get, post};
 use room::RoomRegistry;
 use tower_http::cors::{Any, CorsLayer};
 
+/// Wait for SIGINT (Ctrl+C) or SIGTERM, then return.
+async fn shutdown_signal() {
+    let ctrl_c = tokio::signal::ctrl_c();
+
+    #[cfg(unix)]
+    let terminate = async {
+        tokio::signal::unix::signal(tokio::signal::unix::SignalKind::terminate())
+            .expect("failed to register SIGTERM handler")
+            .recv()
+            .await;
+    };
+
+    #[cfg(not(unix))]
+    let terminate = std::future::pending::<()>();
+
+    tokio::select! {
+        _ = ctrl_c => { eprintln!("received SIGINT, shutting down gracefully"); }
+        _ = terminate => { eprintln!("received SIGTERM, shutting down gracefully"); }
+    }
+}
+
 #[tokio::main]
 async fn main() {
     let data_dir = std::env::var("BAIZE_DATA_DIR").unwrap_or_else(|_| "data".to_string());
@@ -59,8 +80,10 @@ async fn main() {
         listener,
         app.into_make_service_with_connect_info::<SocketAddr>(),
     )
+    .with_graceful_shutdown(shutdown_signal())
     .await
     .expect("server error");
+    eprintln!("server shut down cleanly");
 }
 
 async fn health() -> &'static str {

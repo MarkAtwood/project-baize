@@ -1,6 +1,7 @@
 #![allow(dead_code)]
 
 use std::collections::HashMap;
+use std::fmt;
 use std::net::IpAddr;
 use std::sync::Arc;
 use std::sync::atomic::{AtomicUsize, Ordering};
@@ -15,6 +16,9 @@ use crate::store::Store;
 use crate::vault::Vault;
 
 /// A single game room: one game session with connected players.
+///
+/// **Security**: Debug output redacts the vault (hidden state) and
+/// player tokens to prevent secret leakage through panic backtraces.
 pub struct Room {
     pub id: String,
     pub session: GameSession,
@@ -25,6 +29,24 @@ pub struct Room {
     pub max_players: usize,
     /// Map of auth token to seat name for reconnection.
     pub player_tokens: HashMap<String, String>,
+}
+
+impl fmt::Debug for Room {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("Room")
+            .field("id", &self.id)
+            .field("vault", &self.vault)
+            .field(
+                "players",
+                &format_args!("<{} connected>", self.players.len()),
+            )
+            .field("max_players", &self.max_players)
+            .field(
+                "player_tokens",
+                &format_args!("<{} tokens redacted>", self.player_tokens.len()),
+            )
+            .finish()
+    }
 }
 
 /// Tracks a connected player's WebSocket sender.
@@ -122,11 +144,20 @@ impl RoomRegistry {
 
     /// Create a new room from a game definition JSON string.
     /// Returns the room ID.
+    ///
+    /// Preconditions:
+    /// - room_id must not be empty
+    /// - definition_json must not be empty
     pub async fn create_room(
         &self,
         room_id: String,
         definition_json: &str,
     ) -> Result<String, String> {
+        debug_assert!(!room_id.is_empty(), "room: create_room room_id must not be empty");
+        debug_assert!(
+            !definition_json.is_empty(),
+            "room: create_room definition_json must not be empty"
+        );
         {
             let rooms = self.rooms.read().await;
             if rooms.len() >= config::MAX_ROOMS {
@@ -146,6 +177,11 @@ impl RoomRegistry {
         let session = GameSession::new(definition).map_err(|e| e.to_string())?;
         let vault = Vault::new();
 
+        debug_assert!(
+            max_players > 0,
+            "room: max_players must be > 0, got {max_players}"
+        );
+
         let room = Room {
             id: room_id.clone(),
             session,
@@ -158,7 +194,7 @@ impl RoomRegistry {
         // Persist to store if available
         if let Some(ref store) = self.store {
             let state_json = serde_json::to_string(&room.session.to_wire_state())
-                .unwrap_or_default();
+                .expect("wire state should serialize to JSON");
             if let Err(e) = store.save_room(&room_id, definition_json, &state_json) {
                 eprintln!("[store] failed to persist room {room_id}: {e}");
             }
@@ -166,6 +202,14 @@ impl RoomRegistry {
 
         let mut rooms = self.rooms.write().await;
         rooms.insert(room_id.clone(), Arc::new(Mutex::new(room)));
+
+        // Postcondition: room must exist in the registry after insertion.
+        debug_assert!(
+            rooms.contains_key(&room_id),
+            "room: postcondition failed — room '{}' not in registry after create",
+            room_id
+        );
+
         Ok(room_id)
     }
 
@@ -184,8 +228,8 @@ impl RoomRegistry {
     /// Persist state and events for a room after a mutation.
     pub fn persist_state(&self, room: &Room, event_lines: &[String]) {
         if let Some(ref store) = self.store {
-            let state_json =
-                serde_json::to_string(&room.session.to_wire_state()).unwrap_or_default();
+            let state_json = serde_json::to_string(&room.session.to_wire_state())
+                .expect("wire state should serialize to JSON");
             if let Err(e) = store.update_state(&room.id, &state_json) {
                 eprintln!("[store] failed to update state for {}: {e}", room.id);
             }
@@ -215,7 +259,12 @@ impl IpConnectionGuard {
     /// Explicitly release the slot (also happens on drop).
     pub fn release(&mut self) {
         if !self.released {
-            self.counter.fetch_sub(1, Ordering::SeqCst);
+            let prev = self.counter.fetch_sub(1, Ordering::SeqCst);
+            debug_assert!(
+                prev > 0,
+                "room: IpConnectionGuard release underflow for {}",
+                self.ip
+            );
             self.released = true;
         }
     }
@@ -245,7 +294,10 @@ pub fn seat_for_token(room: &Room, token: &str) -> Option<String> {
 }
 
 /// Register a token for a seat. Returns the token.
+///
+/// Precondition: seat must not be empty.
 pub fn register_token(room: &mut Room, seat: &str) -> String {
+    debug_assert!(!seat.is_empty(), "room: seat name must not be empty for token registration");
     let token = generate_player_token();
     room.player_tokens.insert(token.clone(), seat.to_string());
     token
@@ -259,10 +311,20 @@ pub fn room_has_capacity(room: &Room) -> bool {
 /// Join a room as a player. Returns a bounded receiver for outbound messages.
 /// The channel has MAX_OUTBOUND_QUEUE capacity; if a client falls behind,
 /// the send will fail and the connection should be dropped.
+///
+/// Precondition: caller must verify room has capacity (via `room_has_capacity`)
+/// before calling this for non-reconnection joins.
+///
+/// Postcondition: player count does not exceed max_players + reasonable spectator headroom.
 pub fn join_room(
     room: &mut Room,
     seat: String,
 ) -> tokio::sync::mpsc::Receiver<String> {
+    debug_assert!(
+        !seat.is_empty(),
+        "room: seat name must not be empty"
+    );
+
     let (tx, rx) = tokio::sync::mpsc::channel(config::MAX_OUTBOUND_QUEUE);
     room.players.insert(
         seat.clone(),
@@ -271,6 +333,18 @@ pub fn join_room(
             tx,
         },
     );
+
+    // Postcondition: player count sanity check.
+    // We allow max_players + spectators, but cap at a generous upper bound
+    // to catch bugs where players are added without capacity checks.
+    debug_assert!(
+        room.players.len() <= room.max_players + config::MAX_CONNECTIONS_PER_IP,
+        "room: postcondition failed — player count {} exceeds max_players {} + headroom {}",
+        room.players.len(),
+        room.max_players,
+        config::MAX_CONNECTIONS_PER_IP
+    );
+
     rx
 }
 
@@ -278,7 +352,10 @@ pub fn join_room(
 /// Uses try_send to avoid blocking; if a player's queue is full,
 /// the message is dropped and a warning is logged (the connection
 /// handler will detect the closed channel and disconnect).
+///
+/// Precondition: message must not be empty (empty broadcasts are always bugs).
 pub fn broadcast(room: &Room, message: &str) {
+    debug_assert!(!message.is_empty(), "room: broadcast message must not be empty");
     for conn in room.players.values() {
         if conn.tx.try_send(message.to_string()).is_err() {
             eprintln!(
@@ -290,7 +367,13 @@ pub fn broadcast(room: &Room, message: &str) {
 }
 
 /// Send a JSON message to a specific player.
+///
+/// Preconditions:
+/// - seat must not be empty
+/// - message must not be empty
 pub fn send_to_player(room: &Room, seat: &str, message: &str) {
+    debug_assert!(!seat.is_empty(), "room: send_to_player seat must not be empty");
+    debug_assert!(!message.is_empty(), "room: send_to_player message must not be empty");
     if let Some(conn) = room.players.get(seat) {
         if conn.tx.try_send(message.to_string()).is_err() {
             eprintln!(

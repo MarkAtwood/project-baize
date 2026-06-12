@@ -42,6 +42,11 @@ pub enum HandleResult {
 /// - Player name matches the connection's assigned seat
 /// - Sequence number is monotonically increasing (if present)
 ///
+/// Preconditions:
+/// - seat must not be empty (connection must have completed handshake and seat assignment)
+/// - raw must not be empty (WebSocket text frames are never empty from axum)
+/// - room.id must not be empty
+///
 /// `expected_seq` is the next expected sequence number for this connection.
 /// Updated in-place on success.
 pub fn handle_client_message(
@@ -50,6 +55,19 @@ pub fn handle_client_message(
     raw: &str,
     expected_seq: &mut u64,
 ) -> HandleResult {
+    debug_assert!(
+        !seat.is_empty(),
+        "protocol: handle_client_message called with empty seat"
+    );
+    debug_assert!(
+        !raw.is_empty(),
+        "protocol: handle_client_message called with empty message"
+    );
+    debug_assert!(
+        !room.id.is_empty(),
+        "protocol: handle_client_message called on room with empty id"
+    );
+
     let game_id = room.id.clone();
 
     // Parse JSON
@@ -425,8 +443,16 @@ fn handle_submit_move(
     }
 
     // Apply through the engine
+    let seq_before = room.session.runtime.sequence;
     match apply_action(&mut room.session, &action) {
         Ok(_events) => {
+            // Postcondition: sequence must advance after a successful action
+            debug_assert!(
+                room.session.runtime.sequence > seq_before,
+                "protocol: postcondition failed — sequence did not advance after apply_action \
+                 (before={seq_before}, after={})",
+                room.session.runtime.sequence
+            );
             let wire_state = room.session.to_wire_state();
             let sequence = wire_state.sequence;
             let definition = &room.session.definition;
@@ -434,7 +460,10 @@ fn handle_submit_move(
             let mut per_player = HashMap::new();
             for seat_name in room.players.keys() {
                 let filtered = filter_for_viewer(&wire_state, seat_name, definition);
-                let result_state = serde_json::to_value(&filtered).ok();
+                let result_state = Some(
+                    serde_json::to_value(&filtered)
+                        .expect("filtered state should serialize to JSON"),
+                );
                 per_player.insert(
                     seat_name.clone(),
                     ServerMessage::MoveConfirmed {
@@ -458,6 +487,9 @@ fn handle_submit_move(
 
 /// Process a request_random message:
 /// Delegate to the vault for dice rolls, card draws, and shuffles.
+///
+/// Precondition: caller must have validated the random request via
+/// `validate_random_request` before calling this function.
 fn handle_request_random(
     room: &mut Room,
     _seat: &str,
@@ -476,7 +508,8 @@ fn handle_request_random(
                 .unwrap_or(6);
 
             let results = vault::roll_dice(&mut room.vault, dice_count, faces);
-            let random_value = serde_json::to_value(&results).unwrap_or_default();
+            let random_value = serde_json::to_value(&results)
+                .expect("dice roll results should serialize to JSON");
 
             vec![ServerMessage::RandomResult {
                 game_id,
@@ -488,8 +521,40 @@ fn handle_request_random(
             let draw_count = request.draw_count.unwrap_or(1);
             let zone = request.draw_from.as_deref().unwrap_or("deck");
 
-            let drawn = vault::draw_cards(&mut room.vault, zone, draw_count);
-            let random_value = serde_json::to_value(&drawn).unwrap_or_default();
+            // Precondition: deck must exist before drawing
+            if !room.vault.deck_exists(zone) {
+                eprintln!(
+                    "[guard] draw from non-existent deck zone '{zone}' \
+                     in room '{game_id}'"
+                );
+                return vec![ServerMessage::RandomResult {
+                    game_id,
+                    random_type: "draw".to_string(),
+                    random_value: serde_json::json!({
+                        "error": format!("deck zone '{zone}' does not exist")
+                    }),
+                }];
+            }
+
+            let deck_size_before = room.vault.deck_size(zone);
+            let drawn = vault::draw_cards(&mut room.vault, zone, draw_count)
+                .expect("vault: draw_cards failed after deck_exists check");
+
+            // Postcondition: drew at most what was available
+            debug_assert!(
+                drawn.len() <= deck_size_before,
+                "protocol: postcondition failed — drew {} cards from deck with {deck_size_before}",
+                drawn.len()
+            );
+            // Postcondition: drew at most what was requested
+            debug_assert!(
+                drawn.len() <= draw_count as usize,
+                "protocol: postcondition failed — drew {} cards but only requested {draw_count}",
+                drawn.len()
+            );
+
+            let random_value = serde_json::to_value(&drawn)
+                .expect("vault: drawn cards should serialize to JSON");
 
             vec![ServerMessage::RandomResult {
                 game_id,
@@ -499,7 +564,24 @@ fn handle_request_random(
         }
         RandomType::Shuffle => {
             let zone = request.shuffle_zone.as_deref().unwrap_or("deck");
-            vault::shuffle_zone(&mut room.vault, zone);
+
+            // Precondition: deck must exist before shuffling
+            if !room.vault.deck_exists(zone) {
+                eprintln!(
+                    "[guard] shuffle of non-existent deck zone '{zone}' \
+                     in room '{game_id}'"
+                );
+                return vec![ServerMessage::RandomResult {
+                    game_id,
+                    random_type: "shuffle".to_string(),
+                    random_value: serde_json::json!({
+                        "error": format!("deck zone '{zone}' does not exist")
+                    }),
+                }];
+            }
+
+            vault::shuffle_zone(&mut room.vault, zone)
+                .expect("vault: shuffle_zone failed after deck_exists check");
 
             vec![ServerMessage::RandomResult {
                 game_id,
@@ -533,7 +615,8 @@ fn handle_acknowledge_state(
         let wire_state = room.session.to_wire_state();
         let sequence = wire_state.sequence;
         let filtered = filter_for_viewer(&wire_state, seat, &room.session.definition);
-        let full_state = serde_json::to_value(&filtered).unwrap_or_default();
+        let full_state = serde_json::to_value(&filtered)
+            .expect("filtered state should serialize to JSON");
 
         vec![ServerMessage::StateSync {
             game_id,

@@ -269,7 +269,8 @@ async fn handle_socket(
             "message_type": "state_sync",
             "game_id": room_guard.id,
             "sequence": state.sequence,
-            "full_state": serde_json::to_value(&filtered).unwrap_or_default(),
+            "full_state": serde_json::to_value(&filtered)
+                .expect("filtered state should serialize to JSON"),
         });
         room::send_to_player(&room_guard, &seat, &sync_msg.to_string());
 
@@ -341,15 +342,15 @@ async fn handle_socket(
                         ) {
                             HandleResult::Broadcast(responses) => {
                                 for response in responses {
-                                    let json =
-                                        serde_json::to_string(&response).unwrap_or_default();
+                                    let json = serde_json::to_string(&response)
+                                        .expect("ServerMessage should serialize to JSON");
                                     room::broadcast(&room_guard, &json);
                                 }
                             }
                             HandleResult::FilteredBroadcast { per_player } => {
                                 for (target_seat, msg) in per_player {
-                                    let json =
-                                        serde_json::to_string(&msg).unwrap_or_default();
+                                    let json = serde_json::to_string(&msg)
+                                        .expect("ServerMessage should serialize to JSON");
                                     room::send_to_player(
                                         &room_guard,
                                         &target_seat,
@@ -359,8 +360,8 @@ async fn handle_socket(
                             }
                             HandleResult::Reply(responses) => {
                                 for response in responses {
-                                    let json =
-                                        serde_json::to_string(&response).unwrap_or_default();
+                                    let json = serde_json::to_string(&response)
+                                        .expect("ServerMessage should serialize to JSON");
                                     room::send_to_player(&room_guard, &seat, &json);
                                 }
                             }
@@ -388,7 +389,17 @@ async fn handle_socket(
     // Clean up: remove player from room
     {
         let mut room_guard = room.lock().await;
-        room_guard.players.remove(&seat);
+        let had_player = room_guard.players.remove(&seat).is_some();
+        debug_assert!(
+            had_player,
+            "connection: player '{seat}' was not in room '{room_id}' at disconnect"
+        );
+        // Postcondition: player count must not exceed max_players after removal
+        debug_assert!(
+            room_guard.players.len() <= room_guard.max_players + config::MAX_CONNECTIONS_PER_IP,
+            "connection: postcondition failed — player count {} exceeds bounds after removal",
+            room_guard.players.len()
+        );
         eprintln!("player '{seat}' left room '{room_id}'");
     }
     // _ip_guard drops here, releasing the per-IP connection slot
@@ -503,6 +514,9 @@ pub async fn list_rooms_handler(
 }
 
 /// Pick the next available seat for a connecting player.
+///
+/// Precondition: room must have at least one defined player in the game definition.
+/// Postcondition: returned seat name is never empty.
 fn pick_seat(room: &Room) -> String {
     let defined_players: Vec<String> = room
         .session
@@ -512,12 +526,26 @@ fn pick_seat(room: &Room) -> String {
         .cloned()
         .collect();
 
+    debug_assert!(
+        !defined_players.is_empty(),
+        "connection: pick_seat called on room with no defined players"
+    );
+
     for name in &defined_players {
         if !room.players.contains_key(name) {
+            debug_assert!(
+                !name.is_empty(),
+                "connection: defined player name must not be empty"
+            );
             return name.clone();
         }
     }
 
     // All seats taken -- assign as spectator with a numbered seat
-    format!("spectator_{}", room.players.len())
+    let seat = format!("spectator_{}", room.players.len());
+    debug_assert!(
+        !seat.is_empty(),
+        "connection: pick_seat produced empty seat name"
+    );
+    seat
 }
