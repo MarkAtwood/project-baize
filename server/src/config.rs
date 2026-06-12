@@ -39,3 +39,14 @@ pub const MAX_MOVES_PER_GAME: u64 = 10_000;
 
 /// Maximum length for action string fields (component_id, zone, etc.).
 pub const MAX_ACTION_FIELD_LENGTH: usize = 256;
+
+/// Maximum total WebSocket connections across all IPs.
+pub const MAX_TOTAL_CONNECTIONS: usize = 500;
+
+/// Maximum events per game before rejecting further moves (DoS prevention).
+pub const MAX_EVENTS_PER_GAME: u64 = 100_000;
+
+/// Maximum serialized state size in bytes (10 MB).
+/// Engine checks this periodically; server reserves the constant for future use.
+#[allow(dead_code)]
+pub const MAX_STATE_SIZE: usize = 10 * 1024 * 1024;

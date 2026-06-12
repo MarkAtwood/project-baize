@@ -3,7 +3,10 @@ use indexmap::IndexMap;
 use crate::action::{Action, ActionType, Position};
 use crate::end_conditions::check_end_conditions;
 use crate::error::{BaizeError, Result};
-use crate::runtime::{ComponentData, ComponentId, GameSession};
+use crate::runtime::{
+    ComponentData, ComponentId, GameSession, MAX_EVENTS_PER_GAME, MAX_STATE_SIZE_BYTES,
+    STATE_SIZE_CHECK_INTERVAL,
+};
 use crate::state::GameStatus;
 
 /// An event emitted by a state transition, for JSONL event logging.
@@ -867,6 +870,32 @@ fn finalize_turn(
     mut events: Vec<GameEvent>,
     prev_hash: Option<String>,
 ) -> Result<Vec<GameEvent>> {
+    // Enforce event budget (+1 for the turn_advance or game_end event added below)
+    let projected = session
+        .runtime
+        .event_count
+        .saturating_add(events.len() as u64 + 1);
+    if projected > MAX_EVENTS_PER_GAME as u64 {
+        return Err(BaizeError::ResourceBudget(format!(
+            "event count ({projected}) would exceed limit ({MAX_EVENTS_PER_GAME})"
+        )));
+    }
+
+    // Periodic state size check (amortized)
+    if session.runtime.move_count % STATE_SIZE_CHECK_INTERVAL == 0
+        && session.runtime.move_count > 0
+    {
+        let wire = session.to_wire_state();
+        let size = serde_json::to_string(&wire)
+            .map(|s| s.len())
+            .unwrap_or(0);
+        if size > MAX_STATE_SIZE_BYTES {
+            return Err(BaizeError::ResourceBudget(format!(
+                "serialized state size ({size} bytes) exceeds limit ({MAX_STATE_SIZE_BYTES} bytes)"
+            )));
+        }
+    }
+
     // Check end conditions before advancing turn ("current" = player who just moved)
     if session.runtime.status != GameStatus::Finished {
         if let Some(result) = check_end_conditions(session) {
@@ -893,6 +922,7 @@ fn finalize_turn(
                 prev_hash,
             });
 
+            session.runtime.event_count += events.len() as u64;
             return Ok(events);
         }
     }
@@ -923,6 +953,7 @@ fn finalize_turn(
         prev_hash,
     });
 
+    session.runtime.event_count += events.len() as u64;
     Ok(events)
 }
 

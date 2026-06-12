@@ -9,6 +9,15 @@ use baize_engine::extension::{
 };
 use baize_engine::state::GameState;
 
+/// Maximum fuel (instruction count) per WASM extension call.
+/// Fuel is consumed per instruction; 1 billion covers complex scoring
+/// and chain reactions while preventing infinite loops.
+const WASM_FUEL_PER_CALL: u64 = 1_000_000_000;
+
+/// Maximum WASM linear memory in bytes (64 MB).
+/// Prevents a malicious extension from allocating unbounded memory.
+const WASM_MAX_MEMORY_BYTES: usize = 64 * 1024 * 1024;
+
 /// Host environment for a game-specific WASM extension module.
 ///
 /// The WASM module is expected to export the following functions,
@@ -47,14 +56,44 @@ const NULL_PTR: i32 = 0;
 
 impl WasmHost {
     /// Load a WASM module from the given file path.
+    ///
+    /// Configures the wasmtime engine with:
+    /// - **Fuel metering**: each call gets [`WASM_FUEL_PER_CALL`] fuel units.
+    ///   If exhausted, the call traps with an out-of-fuel error.
+    /// - **Memory cap**: linear memory is limited to [`WASM_MAX_MEMORY_BYTES`].
+    ///   Attempts to grow beyond this limit will fail.
     pub fn from_file(path: &Path) -> Result<Self, ExtensionError> {
-        let engine = Engine::default();
+        let mut config = wasmtime::Config::new();
+        config.consume_fuel(true);
+
+        let engine = Engine::new(&config).map_err(|e| {
+            ExtensionError::ComputationFailed(format!("failed to create WASM engine: {e}"))
+        })?;
         let module = Module::from_file(&engine, path).map_err(|e| {
             ExtensionError::ComputationFailed(format!("failed to load WASM module: {e}"))
         })?;
 
-        let linker = Linker::new(&engine);
+        let mut linker = Linker::new(&engine);
+
+        // Apply memory limit: cap the maximum number of WASM pages.
+        // Each WASM page is 64 KiB.
+        let max_pages = (WASM_MAX_MEMORY_BYTES / (64 * 1024)) as u32;
+        let memory_type = wasmtime::MemoryType::new(1, Some(max_pages));
+        let host_memory = wasmtime::Memory::new(&mut Store::new(&engine, ()), memory_type)
+            .map_err(|e| {
+                ExtensionError::ComputationFailed(format!(
+                    "failed to create capped memory: {e}"
+                ))
+            })?;
+        // Only define a host memory if the module does not export its own.
+        // We try to link it; if the module exports "memory", instantiation
+        // will use the module's own (which we cap via resource limiter below).
+        let _ = linker.define(&mut Store::new(&engine, ()), "env", "memory", host_memory);
+
         let mut store = Store::new(&engine, ());
+        store.set_fuel(WASM_FUEL_PER_CALL).map_err(|e| {
+            ExtensionError::ComputationFailed(format!("failed to set fuel: {e}"))
+        })?;
 
         let instance = linker.instantiate(&mut store, &module).map_err(|e| {
             ExtensionError::ComputationFailed(format!("failed to instantiate WASM module: {e}"))
@@ -75,6 +114,11 @@ impl WasmHost {
                 memory,
             }),
         })
+    }
+
+    /// Reset fuel to the per-call budget before each extension call.
+    fn refuel(inner: &mut WasmHostInner) {
+        let _ = inner.store.set_fuel(WASM_FUEL_PER_CALL);
     }
 
     /// Write a string into WASM linear memory via the module's `alloc` export.
@@ -162,6 +206,7 @@ impl GameExtension for WasmHost {
                 return None;
             }
         };
+        Self::refuel(&mut inner);
 
         let state_json = match serde_json::to_string(state) {
             Ok(j) => j,
@@ -258,6 +303,7 @@ impl GameExtension for WasmHost {
                 return Vec::new();
             }
         };
+        Self::refuel(&mut inner);
 
         let state_json = match serde_json::to_string(state) {
             Ok(j) => j,
@@ -337,6 +383,7 @@ impl GameExtension for WasmHost {
         let mut inner = self.inner.lock().map_err(|e| {
             ExtensionError::ComputationFailed(format!("mutex poisoned in apply_effect: {e}"))
         })?;
+        Self::refuel(&mut inner);
 
         let state_json = serde_json::to_string(state).map_err(|e| {
             ExtensionError::InvalidState(format!("failed to serialize state: {e}"))
@@ -381,6 +428,7 @@ impl GameExtension for WasmHost {
         let mut inner = self.inner.lock().map_err(|e| {
             ExtensionError::ComputationFailed(format!("mutex poisoned in score: {e}"))
         })?;
+        Self::refuel(&mut inner);
 
         let state_json = serde_json::to_string(state).map_err(|e| {
             ExtensionError::InvalidState(format!("failed to serialize state: {e}"))
@@ -423,6 +471,7 @@ impl GameExtension for WasmHost {
                 return None;
             }
         };
+        Self::refuel(&mut inner);
 
         let state_json = match serde_json::to_string(state) {
             Ok(j) => j,

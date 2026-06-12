@@ -16,14 +16,42 @@ from typing import Any, Literal
 from baize.action import Action, Position
 from baize.definition import GameDefinition
 from baize.end_conditions import check_end_conditions
-from baize.error import IllegalActionError, InvalidCoordinateError, UnknownZoneError
+from baize.error import IllegalActionError, InvalidCoordinateError, ResourceBudgetError, UnknownZoneError
 from baize.runtime import (
     ComponentData,
     ComponentId,
     GameSession,
     GridZone,
+    MAX_EVENTS_PER_GAME,
+    MAX_STATE_SIZE_BYTES,
+    STATE_SIZE_CHECK_INTERVAL,
     StackZone,
 )
+
+
+def _enforce_event_budget(session: GameSession, new_events: int) -> None:
+    """Raise ResourceBudgetError if the event budget would be exceeded."""
+    new_total = session.runtime.event_count + new_events
+    if new_total > MAX_EVENTS_PER_GAME:
+        raise ResourceBudgetError(
+            "events", new_total, MAX_EVENTS_PER_GAME
+        )
+
+
+def _enforce_state_size(session: GameSession) -> None:
+    """Check serialized state size periodically (amortized)."""
+    if (
+        session.runtime.move_count > 0
+        and session.runtime.move_count % STATE_SIZE_CHECK_INTERVAL == 0
+    ):
+        import json as _json
+
+        wire = session.to_wire_state()
+        size = len(_json.dumps(wire._to_dict(), separators=(",", ":")))
+        if size > MAX_STATE_SIZE_BYTES:
+            raise ResourceBudgetError(
+                "state_size_bytes", size, MAX_STATE_SIZE_BYTES
+            )
 
 
 def _validate_grid_coords(
@@ -160,6 +188,10 @@ def apply_action(
 
     events = _execute_action(session, player, action, prev_hash)
 
+    # Enforce resource budgets
+    _enforce_event_budget(session, len(events) + 1)  # +1 for turn_advance/game_end
+    _enforce_state_size(session)
+
     # Check end conditions before advancing turn ("current" = player who just moved)
     if session.runtime.status != "finished":
         result = check_end_conditions(session)
@@ -184,6 +216,7 @@ def apply_action(
                 )
             )
 
+            session.runtime.event_count += len(events)
             return events
 
     # Advance turn
@@ -205,6 +238,7 @@ def apply_action(
         )
     )
 
+    session.runtime.event_count += len(events)
     return events
 
 
@@ -251,6 +285,10 @@ def _apply_simultaneous(
             resolve_events = _execute_action(session, p, act, prev_hash)
             events.extend(resolve_events)
 
+        # Enforce resource budgets
+        _enforce_event_budget(session, len(events) + 1)
+        _enforce_state_size(session)
+
         # Check end conditions after all actions resolved
         if session.runtime.status != "finished":
             result = check_end_conditions(session)
@@ -272,6 +310,7 @@ def _apply_simultaneous(
                         prev_hash=prev_hash,
                     )
                 )
+                session.runtime.event_count += len(events)
                 return events
 
         # Advance turn after resolution
@@ -289,6 +328,7 @@ def _apply_simultaneous(
                 prev_hash=prev_hash,
             )
         )
+        session.runtime.event_count += len(events)
 
     return events
 

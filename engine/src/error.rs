@@ -28,6 +28,9 @@ pub enum BaizeError {
 
     #[error("integer overflow: {0}")]
     Overflow(String),
+
+    #[error("resource budget exceeded: {0}")]
+    ResourceBudget(String),
 }
 
 pub type Result<T> = std::result::Result<T, BaizeError>;

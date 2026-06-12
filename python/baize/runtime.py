@@ -24,9 +24,26 @@ from baize.definition import (
 from baize.error import (
     IllegalActionError,
     InvalidComponentIdError,
+    ResourceBudgetError,
     UnknownZoneError,
     ValidationError,
 )
+
+# ---------------------------------------------------------------------------
+# Resource budget defaults
+# ---------------------------------------------------------------------------
+
+#: Maximum component instances per game session.
+MAX_COMPONENTS_PER_GAME: int = 10_000
+
+#: Maximum event log entries per game session.
+MAX_EVENTS_PER_GAME: int = 100_000
+
+#: Maximum serialized state size in bytes (checked periodically, not every move).
+MAX_STATE_SIZE_BYTES: int = 10 * 1024 * 1024  # 10 MB
+
+#: Check state size every N moves (amortized cost).
+STATE_SIZE_CHECK_INTERVAL: int = 100
 from baize.state import (
     ComponentInstance,
     CounterState,
@@ -117,6 +134,12 @@ class ComponentTable:
 
     def insert(self, data: ComponentData) -> ComponentId:
         """Insert a component and return its assigned ID."""
+        if len(self._entries) >= MAX_COMPONENTS_PER_GAME:
+            raise ResourceBudgetError(
+                "components",
+                len(self._entries),
+                MAX_COMPONENTS_PER_GAME,
+            )
         cid = ComponentId(len(self._entries))
         data.id = cid
         self._entries.append(data)
@@ -598,6 +621,7 @@ class RuntimeState:
     sequence: int = 0
     move_count: int = 0
     halfmove_clock: int = 0
+    event_count: int = 0
     components: ComponentTable = field(default_factory=ComponentTable)
     zones: dict[str, RuntimeZone] = field(default_factory=dict)
     players: dict[str, RuntimePlayer] = field(default_factory=dict)

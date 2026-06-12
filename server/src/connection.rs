@@ -1,7 +1,6 @@
-use std::collections::VecDeque;
 use std::net::SocketAddr;
 use std::sync::Arc;
-use std::time::{Duration, Instant};
+use std::time::Duration;
 
 use axum::extract::ws::{Message, WebSocket};
 use axum::extract::{ConnectInfo, Json, Path, State, WebSocketUpgrade};
@@ -15,6 +14,8 @@ use baize_engine::visibility::filter_for_viewer;
 use crate::config;
 use crate::protocol::{self, HandleResult};
 use crate::room::{self, Room, RoomRegistry};
+
+use baize_server::rate_limiter::RateLimiter;
 
 /// Validate a room ID: must be 1-64 chars, alphanumeric plus hyphens and underscores.
 fn validate_room_id(room_id: &str) -> Result<(), String> {
@@ -93,46 +94,6 @@ pub async fn ws_handler(
     ws.max_message_size(config::MAX_MESSAGE_SIZE)
         .on_upgrade(move |socket| handle_socket(socket, room, room_id, ip_guard))
         .into_response()
-}
-
-/// Per-connection rate limiter using a sliding window of message timestamps.
-struct RateLimiter {
-    /// Timestamps of recent messages within the current window.
-    timestamps: VecDeque<Instant>,
-    /// Maximum allowed messages per second.
-    max_per_second: usize,
-}
-
-impl RateLimiter {
-    fn new(max_per_second: usize) -> Self {
-        Self {
-            timestamps: VecDeque::with_capacity(max_per_second + 1),
-            max_per_second,
-        }
-    }
-
-    /// Record a message arrival. Returns `true` if the message is allowed,
-    /// `false` if the rate limit is exceeded.
-    fn check(&mut self) -> bool {
-        let now = Instant::now();
-        let window_start = now - Duration::from_secs(1);
-
-        // Drop timestamps older than the 1-second window
-        while self
-            .timestamps
-            .front()
-            .is_some_and(|&t| t < window_start)
-        {
-            self.timestamps.pop_front();
-        }
-
-        if self.timestamps.len() >= self.max_per_second {
-            return false;
-        }
-
-        self.timestamps.push_back(now);
-        true
-    }
 }
 
 /// Main per-connection loop.

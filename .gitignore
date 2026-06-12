@@ -18,3 +18,4 @@ __pycache__/
 # TypeScript
 client/node_modules/
 client/dist/
+engine/fuzz/target/
