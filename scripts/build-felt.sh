@@ -74,6 +74,7 @@ claude \
     --verbose \
     --max-turns 200 \
     --model claude-opus-4-6 \
+    --dangerously-skip-permissions \
     -p "$(cat "$PROMPT_FILE")" \
     2>&1 | tee -a "$LOGFILE"
 
