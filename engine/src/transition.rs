@@ -151,6 +151,7 @@ pub fn apply_action(session: &mut GameSession, action: &Action) -> Result<Vec<Ga
                 state: None,
                 properties: IndexMap::new(),
                 span_cells: Vec::new(),
+                orientation: None,
             })?;
 
             let zone = session
@@ -427,6 +428,7 @@ pub fn apply_action(session: &mut GameSession, action: &Action) -> Result<Vec<Ga
                 state: None,
                 properties: IndexMap::new(),
                 span_cells: Vec::new(),
+                orientation: None,
             })?;
 
             // Try player zone first, then shared zones
@@ -516,6 +518,7 @@ pub fn apply_action(session: &mut GameSession, action: &Action) -> Result<Vec<Ga
                 state: None,
                 properties: IndexMap::new(),
                 span_cells: Vec::new(),
+                orientation: None,
             })?;
 
             // Place peg on attacker's target grid
@@ -716,11 +719,7 @@ fn find_component_on_grid(
         })?;
 
     for (zone_name, zone) in &session.runtime.zones {
-        if let crate::runtime::RuntimeZone::Grid {
-            width,
-            height,
-            cells,
-        } = zone
+        if let crate::runtime::RuntimeZone::Grid { width, height, cells, .. } = zone
         {
             for row in 0..*height {
                 for col in 0..*width {

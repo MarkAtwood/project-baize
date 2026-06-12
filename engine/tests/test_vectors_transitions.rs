@@ -57,6 +57,7 @@ fn setup_session(def: GameDefinition, setup: &[Value]) -> GameSession {
             state: None,
             properties: IndexMap::new(),
             span_cells: Vec::new(),
+                orientation: None,
         }).unwrap();
 
         if let Some(zone_name) = item.get("zone").and_then(|v| v.as_str()) {

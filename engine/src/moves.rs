@@ -26,11 +26,7 @@ pub fn legal_moves(session: &GameSession) -> Vec<LegalMove> {
         };
 
         match zone {
-            RuntimeZone::Grid {
-                width,
-                height,
-                cells,
-            } => {
+            RuntimeZone::Grid { width, height, cells, .. } => {
                 // Track seen components to avoid duplicate processing of multi-cell spans
                 let mut seen = std::collections::HashSet::new();
                 for row in 0..*height {

@@ -56,6 +56,8 @@ pub struct ComponentData {
     /// Cells occupied by this component on a grid (col, row pairs).
     /// Empty for single-cell components.
     pub span_cells: Vec<(u32, u32)>,
+    /// Facing direction: 0-5 for hex grids, 0-3 for square grids. None = no facing.
+    pub orientation: Option<u32>,
 }
 
 /// Runtime zone — efficient storage for each zone type.
@@ -65,6 +67,11 @@ pub enum RuntimeZone {
         width: u32,
         height: u32,
         cells: Vec<Option<ComponentId>>,
+        /// Additional components below the top at each cell (sparse).
+        /// Only populated when stacking_limit > 1.
+        stacks: IndexMap<usize, Vec<ComponentId>>,
+        /// Maximum components per cell: 1 = no stacking (default), 0 = unlimited.
+        stacking_limit: u32,
     },
     OrderedStack {
         components: Vec<ComponentId>,
@@ -166,6 +173,8 @@ impl RuntimeZone {
                     width: w,
                     height: h,
                     cells: vec![None; cell_count],
+                    stacks: IndexMap::new(),
+                    stacking_limit: 1,
                 })
             }
             ZoneType::OrderedStack => Ok(RuntimeZone::OrderedStack {
@@ -219,11 +228,7 @@ impl RuntimeZone {
     /// Get component at grid coordinate. Returns None if out of bounds or empty.
     pub fn grid_get(&self, col: u32, row: u32) -> Option<ComponentId> {
         match self {
-            RuntimeZone::Grid {
-                width,
-                height,
-                cells,
-            } => {
+            RuntimeZone::Grid { width, height, cells, .. } => {
                 if col >= *width || row >= *height {
                     return None;
                 }
@@ -244,11 +249,7 @@ impl RuntimeZone {
         component: Option<ComponentId>,
     ) -> Option<ComponentId> {
         match self {
-            RuntimeZone::Grid {
-                width,
-                height,
-                cells,
-            } => {
+            RuntimeZone::Grid { width, height, cells, .. } => {
                 if col >= *width || row >= *height {
                     return None;
                 }
@@ -262,6 +263,71 @@ impl RuntimeZone {
                 prev
             }
             _ => None,
+        }
+    }
+
+    /// Push a component onto a cell's stack (below existing top).
+    pub fn grid_push(&mut self, col: u32, row: u32, component: ComponentId) {
+        if let RuntimeZone::Grid { width, height, cells, stacks, .. } = self {
+            if col >= *width || row >= *height {
+                return;
+            }
+            let idx = (row as usize) * (*width as usize) + (col as usize);
+            if let Some(existing) = cells.get(idx).copied().flatten() {
+                // Move current top to stack, put new component on top
+                stacks.entry(idx).or_default().push(existing);
+                if let Some(cell) = cells.get_mut(idx) {
+                    *cell = Some(component);
+                }
+            } else if let Some(cell) = cells.get_mut(idx) {
+                *cell = Some(component);
+            }
+        }
+    }
+
+    /// Pop the top component from a cell's stack.
+    pub fn grid_pop(&mut self, col: u32, row: u32) -> Option<ComponentId> {
+        if let RuntimeZone::Grid { width, height, cells, stacks, .. } = self {
+            if col >= *width || row >= *height {
+                return None;
+            }
+            let idx = (row as usize) * (*width as usize) + (col as usize);
+            let top = cells.get(idx).copied().flatten()?;
+            // Promote next from stack, or clear cell
+            if let Some(stack) = stacks.get_mut(&idx) {
+                if let Some(next) = stack.pop() {
+                    if let Some(cell) = cells.get_mut(idx) {
+                        *cell = Some(next);
+                    }
+                } else {
+                    stacks.swap_remove(&idx);
+                    if let Some(cell) = cells.get_mut(idx) {
+                        *cell = None;
+                    }
+                }
+            } else if let Some(cell) = cells.get_mut(idx) {
+                *cell = None;
+            }
+            Some(top)
+        } else {
+            None
+        }
+    }
+
+    /// Get all components at a grid position (bottom to top).
+    pub fn grid_stack(&self, col: u32, row: u32) -> Vec<ComponentId> {
+        if let RuntimeZone::Grid { width, height, cells, stacks, .. } = self {
+            if col >= *width || row >= *height {
+                return Vec::new();
+            }
+            let idx = (row as usize) * (*width as usize) + (col as usize);
+            let mut result = stacks.get(&idx).cloned().unwrap_or_default();
+            if let Some(top) = cells.get(idx).copied().flatten() {
+                result.push(top);
+            }
+            result
+        } else {
+            Vec::new()
         }
     }
 
@@ -520,11 +586,7 @@ impl GameSession {
 
     fn zone_to_wire(&self, zone: &RuntimeZone) -> ZoneState {
         match zone {
-            RuntimeZone::Grid {
-                width,
-                height,
-                cells,
-            } => {
+            RuntimeZone::Grid { width, height, cells, .. } => {
                 let mut wire_cells = IndexMap::new();
                 for row in 0..*height {
                     for col in 0..*width {

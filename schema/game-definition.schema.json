@@ -206,6 +206,11 @@
           "type": "string",
           "description": "Visual pattern for grid cells (e.g. \"alternating\")."
         },
+        "stacking_limit": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Maximum components per cell. 1 = no stacking (default), 0 = unlimited."
+        },
         "adjacency": {
           "enum": ["orthogonal_4", "orthogonal_8", "hex_6"],
           "description": "How cells connect to their neighbors."
