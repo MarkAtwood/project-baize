@@ -1,0 +1,161 @@
+{
+  "$schema": "../schema/game-definition.schema.json",
+  "game": {
+    "name": "Ticket to Ride",
+    "players": ["red", "blue"],
+    "information": "imperfect"
+  },
+  "zones": {
+    "deck": {
+      "zone_type": "ordered_stack",
+      "visibility": "hidden",
+      "note": "Shuffled train card deck. Server deals from here."
+    },
+    "discard": {
+      "zone_type": "set",
+      "visibility": "public",
+      "note": "Discarded train cards from route claims."
+    },
+    "hand": {
+      "zone_type": "set",
+      "per_player": true,
+      "visibility": {"private": "owner"},
+      "note": "Player's train cards, hidden from opponent."
+    },
+    "score": {
+      "zone_type": "counter",
+      "per_player": true,
+      "visibility": "public",
+      "note": "Player's running score."
+    },
+    "routes": {
+      "zone_type": "graph",
+      "visibility": "public",
+      "nodes": [
+        "seattle-portland",
+        "seattle-calgary",
+        "portland-san-francisco",
+        "portland-salt-lake-city",
+        "san-francisco-los-angeles",
+        "los-angeles-phoenix",
+        "los-angeles-las-vegas",
+        "phoenix-denver",
+        "phoenix-el-paso",
+        "las-vegas-salt-lake-city",
+        "salt-lake-city-denver",
+        "salt-lake-city-calgary",
+        "denver-el-paso",
+        "denver-omaha",
+        "calgary-omaha"
+      ],
+      "edges": [],
+      "node_properties": {
+        "seattle-portland": {"city_a": "seattle", "city_b": "portland", "color": "green", "length": 1, "points": 1},
+        "seattle-calgary": {"city_a": "seattle", "city_b": "calgary", "color": "any", "length": 4, "points": 7},
+        "portland-san-francisco": {"city_a": "portland", "city_b": "san-francisco", "color": "pink", "length": 3, "points": 4},
+        "portland-salt-lake-city": {"city_a": "portland", "city_b": "salt-lake-city", "color": "blue", "length": 3, "points": 4},
+        "san-francisco-los-angeles": {"city_a": "san-francisco", "city_b": "los-angeles", "color": "yellow", "length": 2, "points": 2},
+        "los-angeles-phoenix": {"city_a": "los-angeles", "city_b": "phoenix", "color": "any", "length": 3, "points": 4},
+        "los-angeles-las-vegas": {"city_a": "los-angeles", "city_b": "las-vegas", "color": "any", "length": 2, "points": 2},
+        "phoenix-denver": {"city_a": "phoenix", "city_b": "denver", "color": "white", "length": 3, "points": 4},
+        "phoenix-el-paso": {"city_a": "phoenix", "city_b": "el-paso", "color": "any", "length": 3, "points": 4},
+        "las-vegas-salt-lake-city": {"city_a": "las-vegas", "city_b": "salt-lake-city", "color": "orange", "length": 3, "points": 4},
+        "salt-lake-city-denver": {"city_a": "salt-lake-city", "city_b": "denver", "color": "red", "length": 2, "points": 2},
+        "salt-lake-city-calgary": {"city_a": "salt-lake-city", "city_b": "calgary", "color": "any", "length": 3, "points": 4},
+        "denver-el-paso": {"city_a": "denver", "city_b": "el-paso", "color": "green", "length": 4, "points": 7},
+        "denver-omaha": {"city_a": "denver", "city_b": "omaha", "color": "pink", "length": 4, "points": 7},
+        "calgary-omaha": {"city_a": "calgary", "city_b": "omaha", "color": "any", "length": 4, "points": 7}
+      },
+      "note": "Each node represents a route between two cities. Occupant marks the player who claimed it."
+    }
+  },
+  "components": {
+    "train_card": {
+      "owner": "neutral",
+      "count": 80,
+      "properties": {
+        "color": ["red", "orange", "yellow", "green", "blue", "pink", "white", "black", "wild"]
+      },
+      "note": "Train cards: 10 each of 8 colors (80) plus wildcards dealt separately. The 'wild' color matches any route color."
+    },
+    "route_marker": {
+      "owner": "per_player",
+      "count": 15,
+      "note": "Marker placed on a route node when claimed."
+    }
+  },
+  "turn_order": {
+    "type": "alternating",
+    "players": ["red", "blue"],
+    "actions_per_turn": 1,
+    "mandatory": true
+  },
+  "phases": [
+    {
+      "name": "setup",
+      "server_action": "shuffle(deck)",
+      "note": "Server shuffles train card deck and deals 4 cards to each player."
+    },
+    {
+      "name": "main",
+      "action": "draw_cards OR claim_route",
+      "note": "On each turn: draw 2 cards from deck, OR claim one route by discarding matching cards."
+    }
+  ],
+  "library": {
+    "route_unclaimed": "route.occupant == null",
+    "has_matching_cards": "hand.count(card.color == route.color OR card.color == 'wild') >= route.length",
+    "deck_empty": "deck.count == 0",
+    "route_limit_reached": "player.claimed_routes >= 10"
+  },
+  "rules": {
+    "draw_cards": {
+      "action": "draw(deck, hand, count:2)",
+      "constraint": "deck.count >= 1",
+      "definition": "Draw up to 2 train cards from the deck into hand."
+    },
+    "claim_route": {
+      "action": "claim(route)",
+      "constraints": [
+        "route is unclaimed",
+        "hand contains N cards matching route color (or wild), where N = route length",
+        "discard matching cards from hand"
+      ],
+      "effect": "place route_marker on route node; score points by route length",
+      "definition": "Spend train cards to claim an unclaimed route and score points."
+    },
+    "scoring": {
+      "definition": "Points by route length: 1->1, 2->2, 3->4, 4->7",
+      "trigger": "route_claimed"
+    }
+  },
+  "end_conditions": [
+    {
+      "result": "win",
+      "player": "current",
+      "condition": "deck_empty AND player.score > opponent.score",
+      "name": "highest_score_deck_empty"
+    },
+    {
+      "result": "win",
+      "player": "current",
+      "condition": "route_limit_reached AND player.score > opponent.score",
+      "name": "highest_score_route_limit"
+    },
+    {
+      "result": "draw",
+      "condition": "(deck_empty OR route_limit_reached) AND player.score == opponent.score",
+      "name": "tie"
+    }
+  ],
+  "authority": {
+    "server_only": [
+      "shuffle(deck)",
+      "deal(deck, hand)"
+    ],
+    "client_verifiable": [
+      "draw(deck, hand)",
+      "claim(route)"
+    ]
+  }
+}

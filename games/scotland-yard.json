@@ -1,0 +1,246 @@
+{
+  "$schema": "../schema/game-definition.schema.json",
+  "game": {
+    "name": "Scotland Yard",
+    "players": ["mr_x", "detective_1", "detective_2"],
+    "information": "imperfect"
+  },
+  "zones": {
+    "board": {
+      "zone_type": "graph",
+      "visibility": "public",
+      "nodes": [
+        "loc_1", "loc_2", "loc_3", "loc_4", "loc_5",
+        "loc_6", "loc_7", "loc_8", "loc_9", "loc_10",
+        "loc_11", "loc_12", "loc_13", "loc_14", "loc_15",
+        "loc_16", "loc_17", "loc_18", "loc_19", "loc_20"
+      ],
+      "edges": [
+        ["loc_1", "loc_2"],
+        ["loc_1", "loc_6"],
+        ["loc_2", "loc_3"],
+        ["loc_2", "loc_7"],
+        ["loc_3", "loc_4"],
+        ["loc_3", "loc_8"],
+        ["loc_4", "loc_5"],
+        ["loc_4", "loc_9"],
+        ["loc_5", "loc_10"],
+        ["loc_6", "loc_7"],
+        ["loc_6", "loc_11"],
+        ["loc_7", "loc_8"],
+        ["loc_7", "loc_12"],
+        ["loc_8", "loc_9"],
+        ["loc_8", "loc_13"],
+        ["loc_9", "loc_10"],
+        ["loc_9", "loc_14"],
+        ["loc_10", "loc_15"],
+        ["loc_11", "loc_12"],
+        ["loc_11", "loc_16"],
+        ["loc_12", "loc_13"],
+        ["loc_12", "loc_17"],
+        ["loc_13", "loc_14"],
+        ["loc_13", "loc_18"],
+        ["loc_14", "loc_15"],
+        ["loc_14", "loc_19"],
+        ["loc_15", "loc_20"],
+        ["loc_16", "loc_17"],
+        ["loc_17", "loc_18"],
+        ["loc_18", "loc_19"],
+        ["loc_19", "loc_20"],
+        ["loc_1", "loc_7"],
+        ["loc_3", "loc_9"],
+        ["loc_6", "loc_12"],
+        ["loc_8", "loc_14"],
+        ["loc_11", "loc_17"],
+        ["loc_13", "loc_19"],
+        ["loc_1", "loc_11"],
+        ["loc_5", "loc_15"],
+        ["loc_6", "loc_16"],
+        ["loc_10", "loc_20"]
+      ],
+      "node_properties": {
+        "loc_1":  {"label": "Baker Street",       "has_taxi": true, "has_bus": true,  "has_underground": true},
+        "loc_2":  {"label": "Paddington",          "has_taxi": true, "has_bus": true,  "has_underground": false},
+        "loc_3":  {"label": "Bond Street",         "has_taxi": true, "has_bus": true,  "has_underground": true},
+        "loc_4":  {"label": "Piccadilly",           "has_taxi": true, "has_bus": true,  "has_underground": false},
+        "loc_5":  {"label": "Victoria",             "has_taxi": true, "has_bus": true,  "has_underground": true},
+        "loc_6":  {"label": "Marylebone",           "has_taxi": true, "has_bus": true,  "has_underground": true},
+        "loc_7":  {"label": "Oxford Circus",        "has_taxi": true, "has_bus": true,  "has_underground": false},
+        "loc_8":  {"label": "Tottenham Court Rd",  "has_taxi": true, "has_bus": true,  "has_underground": false},
+        "loc_9":  {"label": "Leicester Square",     "has_taxi": true, "has_bus": true,  "has_underground": true},
+        "loc_10": {"label": "Westminster",          "has_taxi": true, "has_bus": true,  "has_underground": true},
+        "loc_11": {"label": "Kings Cross",          "has_taxi": true, "has_bus": true,  "has_underground": true},
+        "loc_12": {"label": "Euston",               "has_taxi": true, "has_bus": true,  "has_underground": false},
+        "loc_13": {"label": "Holborn",              "has_taxi": true, "has_bus": true,  "has_underground": true},
+        "loc_14": {"label": "Covent Garden",        "has_taxi": true, "has_bus": true,  "has_underground": false},
+        "loc_15": {"label": "Embankment",           "has_taxi": true, "has_bus": true,  "has_underground": true},
+        "loc_16": {"label": "Angel",                "has_taxi": true, "has_bus": true,  "has_underground": false},
+        "loc_17": {"label": "Clerkenwell",          "has_taxi": true, "has_bus": true,  "has_underground": false},
+        "loc_18": {"label": "Barbican",             "has_taxi": true, "has_bus": true,  "has_underground": true},
+        "loc_19": {"label": "Bank",                 "has_taxi": true, "has_bus": true,  "has_underground": true},
+        "loc_20": {"label": "Tower Hill",           "has_taxi": true, "has_bus": true,  "has_underground": true}
+      },
+      "note": "Simplified London board with 20 locations. Adjacent locations share taxi edges; bus routes run along diagonal/express edges; underground connects distant stations marked has_underground."
+    },
+    "mr_x_position": {
+      "zone_type": "single_slot",
+      "visibility": "hidden",
+      "note": "Mr. X's true position, hidden from detectives. Revealed on turns 3, 8, 13, 18."
+    },
+    "ticket_supply": {
+      "zone_type": "set",
+      "per_player": true,
+      "visibility": {"private": "owner"},
+      "note": "Each player's available transport tickets (taxi, bus, underground)."
+    },
+    "mr_x_travel_log": {
+      "zone_type": "ordered_stack",
+      "visibility": "public",
+      "note": "Log of ticket types Mr. X has used each turn. Detectives see the transport mode but not the destination (except on reveal turns)."
+    },
+    "turn_counter": {
+      "zone_type": "counter",
+      "visibility": "public",
+      "note": "Tracks the current round number (1-22)."
+    }
+  },
+  "components": {
+    "mr_x_token": {
+      "owner": "mr_x",
+      "count": 1,
+      "note": "Mr. X's game token. True position stored in hidden mr_x_position zone."
+    },
+    "detective_token": {
+      "owner": "per_player",
+      "count": 1,
+      "note": "Detective game tokens placed on the public board."
+    },
+    "taxi_ticket": {
+      "owner": "per_player",
+      "count": "unlimited",
+      "properties": {
+        "transport_type": "taxi"
+      },
+      "note": "Taxi tickets for short moves between adjacent locations."
+    },
+    "bus_ticket": {
+      "owner": "per_player",
+      "count": "unlimited",
+      "properties": {
+        "transport_type": "bus"
+      },
+      "note": "Bus tickets for medium-range moves along bus routes."
+    },
+    "underground_ticket": {
+      "owner": "per_player",
+      "count": "unlimited",
+      "properties": {
+        "transport_type": "underground"
+      },
+      "note": "Underground tickets for long-range moves between underground stations."
+    }
+  },
+  "turn_order": {
+    "type": "round_robin",
+    "players": ["mr_x", "detective_1", "detective_2"],
+    "actions_per_turn": 1,
+    "mandatory": true
+  },
+  "phases": [
+    {
+      "name": "setup",
+      "server_action": ["place(mr_x_token, mr_x_position)", "place(detective_tokens, board)"],
+      "note": "Server places Mr. X at a hidden starting location and detectives at public starting locations. Distribute starting tickets."
+    },
+    {
+      "name": "move",
+      "action": "move(token, destination, ticket_type)",
+      "note": "Active player moves their token to an adjacent location using a matching ticket. Mr. X's move is hidden; detectives' moves are public."
+    }
+  ],
+  "library": {
+    "reveal_turns": "[3, 8, 13, 18]",
+    "max_rounds": "22"
+  },
+  "rules": {
+    "move_requires_ticket": {
+      "action": "move(token, destination, ticket_type)",
+      "constraint": "player has at least 1 ticket of the chosen transport_type",
+      "effect": "remove 1 ticket from player's supply",
+      "definition": "Every move consumes one matching transport ticket."
+    },
+    "move_adjacency": {
+      "action": "move(token, destination, ticket_type)",
+      "constraint": "destination must be adjacent to current location via the chosen transport type",
+      "definition": "Players can only move to locations connected by the chosen transport."
+    },
+    "transport_taxi": {
+      "definition": "Taxi connects all directly adjacent locations (grid edges)."
+    },
+    "transport_bus": {
+      "definition": "Bus connects locations along express/diagonal edges where both endpoints have has_bus."
+    },
+    "transport_underground": {
+      "definition": "Underground connects distant stations — both endpoints must have has_underground.",
+      "constraint": "source.has_underground AND destination.has_underground"
+    },
+    "detective_no_overlap": {
+      "action": "move(detective, destination)",
+      "constraint": "no other detective occupies destination",
+      "definition": "Two detectives cannot occupy the same location."
+    },
+    "mr_x_ticket_transfer": {
+      "trigger": "detective uses ticket",
+      "effect": "used ticket is added to Mr. X's supply",
+      "definition": "Mr. X receives all tickets spent by detectives."
+    },
+    "mr_x_reveal": {
+      "trigger": "round_number in [3, 8, 13, 18]",
+      "effect": "Mr. X's current position is revealed to all players",
+      "definition": "Mr. X must reveal his position on reveal turns."
+    },
+    "mr_x_travel_log_entry": {
+      "trigger": "mr_x moves",
+      "effect": "ticket type is appended to mr_x_travel_log",
+      "definition": "Each turn, the transport type Mr. X used is publicly logged."
+    }
+  },
+  "end_conditions": [
+    {
+      "result": "win",
+      "player": "mr_x",
+      "condition": "turn_counter >= 22 AND mr_x is not caught",
+      "name": "mr_x_survives"
+    },
+    {
+      "result": "win",
+      "player": "detective_1",
+      "condition": "any detective occupies mr_x position",
+      "name": "mr_x_caught"
+    },
+    {
+      "result": "win",
+      "player": "detective_2",
+      "condition": "any detective occupies mr_x position",
+      "name": "mr_x_caught"
+    },
+    {
+      "result": "loss",
+      "player": "mr_x",
+      "condition": "any detective occupies mr_x position",
+      "name": "mr_x_captured"
+    }
+  ],
+  "authority": {
+    "server_only": [
+      "mr_x_position",
+      "mr_x_movement",
+      "reveal_mr_x(turn_3, turn_8, turn_13, turn_18)"
+    ],
+    "client_verifiable": [
+      "detective_movement",
+      "ticket_spending",
+      "adjacency_validation"
+    ]
+  }
+}
