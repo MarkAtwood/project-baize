@@ -412,13 +412,21 @@ class TestGraphTopology:
         for c in corners:
             assert len(g.neighbors(c)) == 2, f"{c} has {len(g.neighbors(c))} neighbors"
 
-    def test_midpoint_nodes_have_three_neighbors(self) -> None:
-        """Midpoint nodes connecting two rings have 3 neighbors."""
+    def test_outer_midpoint_nodes_have_three_neighbors(self) -> None:
+        """Outer/inner midpoint nodes connecting one ring inward have 3 neighbors."""
         g = MorrisGame()
-        # d1 connects outer bottom center to middle: d1-a1, d1-g1, d1-d2
-        midpoints = ["d1", "d7", "a4", "g4", "d3", "d5", "b4", "f4"]
-        for m in midpoints:
+        # d1: a1, g1, d2 — outer midpoint connecting down to middle
+        three_neighbor_nodes = ["d1", "d7", "a4", "g4", "d3", "d5"]
+        for m in three_neighbor_nodes:
             assert len(g.neighbors(m)) == 3, f"{m} has {len(g.neighbors(m))} neighbors"
+
+    def test_middle_midpoint_nodes_have_four_neighbors(self) -> None:
+        """Middle ring midpoints connect to both outer and inner rings: 4 neighbors."""
+        g = MorrisGame()
+        # b4: a4, c4, b2, b6 — connects outer left, inner left, middle bottom, middle top
+        four_neighbor_nodes = ["b4", "d2", "f4", "d6"]
+        for m in four_neighbor_nodes:
+            assert len(g.neighbors(m)) == 4, f"{m} has {len(g.neighbors(m))} neighbors"
 
     def test_inner_corner_nodes_have_two_neighbors(self) -> None:
         """Inner ring corners: c3, e3, c5, e5 each have 2 neighbors."""
@@ -588,17 +596,22 @@ class TestPlacement:
     def test_no_supply_left_rejected(self) -> None:
         """After exhausting supply, further placement rejected."""
         g = MorrisGame()
+        # Manually exhaust white's supply without placing all black pieces
+        # so the phase does not transition to movement.
         nodes = list(ALL_NODES)
         idx = 0
-        # Place all 9 white pieces
         for i in range(9):
             g.place(nodes[idx], "white")
             idx += 1
             g.switch_turn()
-            g.place(nodes[idx], "black")
-            idx += 1
-            g.switch_turn()
+            if i < 8:  # place only 8 black pieces
+                g.place(nodes[idx], "black")
+                idx += 1
+                g.switch_turn()
         assert g.supply["white"] == 0
+        assert g.supply["black"] == 1  # one black piece left, phase still placement
+        assert g.phase == "placement"
+        g.switch_turn()  # back to white's turn
         with pytest.raises(ValueError, match="no pieces left"):
             g.place(nodes[idx], "white")
 
@@ -869,23 +882,32 @@ class TestWinConditions:
     def test_win_by_no_legal_moves(self) -> None:
         """Opponent with no legal moves loses."""
         g = self._movement_game()
-        # Black's turn (current_player_idx=1), black is hemmed in
+        # Black's turn (current_player_idx=1), black is hemmed in.
+        # Black must have > 3 pieces so flying does not activate.
         g.current_player_idx = 1
+
+        # Black pieces — all surrounded
+        g.board["a1"] = "black"
         g.board["d2"] = "black"
-        g.board["b2"] = "white"
+        g.board["g1"] = "black"
+        g.board["c4"] = "black"
+
+        # White pieces blocking all neighbors:
+        # a1 neighbors: d1, a4
         g.board["d1"] = "white"
+        g.board["a4"] = "white"
+        # d2 neighbors: b2, d1(white), d3, f2
+        g.board["b2"] = "white"
         g.board["d3"] = "white"
         g.board["f2"] = "white"
-        # Also need black to have >= 3 pieces total to not trigger
-        # the reduction rule
-        g.board["a1"] = "black"
-        g.board["g1"] = "black"
-        # a1 neighbors: d1(white), a4(empty) — so a1 has a move
-        # Let's block a1 too
-        g.board["a4"] = "white"
-        # g1 neighbors: d1(white), g4(empty) — block g4
+        # g1 neighbors: d1(white), g4
         g.board["g4"] = "white"
-        # Now black has 3 pieces: d2(blocked), a1(blocked), g1(blocked)
+        # c4 neighbors: b4, c3, c5
+        g.board["b4"] = "white"
+        g.board["c3"] = "white"
+        g.board["c5"] = "white"
+
+        assert g.piece_count("black") == 4  # > 3, no flying
         assert not g.has_legal_moves("black")
         winner = g.check_winner()
         assert winner == "white"
