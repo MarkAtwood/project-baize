@@ -107,7 +107,7 @@ implementation, even before full mental poker support.
 
 ## Status
 
-Core engine complete. 253 of 281 issues closed. Fifty-two games
+Core engine complete. 260 of 288 issues closed. Fifty-two games
 defined, twenty-one fully playable end-to-end. Texas Hold'em poker
 now playable with full betting, hand evaluation, and showdown.
 The engine parses and validates game definitions, manages runtime
@@ -135,7 +135,7 @@ wargame primitives via Felt extensions.
 | Python engine | 3,496 | Feature-parallel with Rust, plus game analysis, Jupyter notebook, terminal CLI, interactive REPL, agent framework (Random/Greedy/MCTS), notation adapter, adversarial input tests, error leak audit, hypothesis fuzzing, cross-engine determinism, poker (hand evaluator, betting FSM, showdown), 52 game definitions with gameplay tests |
 | Server | 130 | Room management, WebSocket protocol, hidden-state vault (ChaCha20Rng), per-player visibility, rate limiting, token auth, spectator isolation, persistence, WASM sandboxing (fuel + memory caps), abuse resistance, protocol hardening, debug redaction, graceful shutdown, Felt host imports |
 | Felt compiler | 123 | Lexer (logos), parser (chumsky), type checker, call graph checker, WASM GC codegen (wasm-encoder), CLI (compile/check), host import API, example extensions (poker, chess, go) |
-| Client (TypeScript) | — | Full type definitions for all schemas; Web Components (`<baize-game>`, `<baize-board>`) |
+| Client (TypeScript) | 86 | Full type definitions for all schemas (game state, actions, events, registry, effects); Web Components (`<baize-game>`, `<baize-board>`, `<baize-hand>`, `<baize-clock>`, `<baize-score>`); WASM engine wrapper; WebSocket connection with auto-reconnect; server message validation with prototype-pollution defense; drag-and-drop board interaction; Go-style intersection rendering; stacking visualization |
 
 ### Tools
 
@@ -263,8 +263,8 @@ cd python && python3 -m pytest tests/ -v
 cd server && cargo build
 cargo run  # listens on 0.0.0.0:8080
 
-# TypeScript client (type-check only)
-cd client && npx tsc --noEmit
+# TypeScript client (86 tests)
+cd client && npm test
 ```
 
 ## Key Documents
