@@ -1,3 +1,5 @@
+use std::fmt::Write as _;
+
 use baize_server::vault::{self, HiddenFact, Vault};
 
 #[test]
@@ -42,7 +44,7 @@ fn draw_cards_basic() {
     let ids: Vec<String> = (0..10).map(|i| format!("card_{}", i)).collect();
     v.register_deck("draw_pile", ids.clone());
 
-    let drawn = vault::draw_cards(&mut v, "draw_pile", 3);
+    let drawn = vault::draw_cards(&mut v, "draw_pile", 3).unwrap();
     assert_eq!(drawn.len(), 3, "should draw exactly 3 cards");
 
     // Top of deck is last element, so drawing 3 from a 10-card deck
@@ -50,17 +52,17 @@ fn draw_cards_basic() {
     assert_eq!(drawn, vec!["card_7", "card_8", "card_9"]);
 
     // Draw 3 more — deck should now have 4 remaining
-    let drawn2 = vault::draw_cards(&mut v, "draw_pile", 3);
+    let drawn2 = vault::draw_cards(&mut v, "draw_pile", 3).unwrap();
     assert_eq!(drawn2.len(), 3);
     assert_eq!(drawn2, vec!["card_4", "card_5", "card_6"]);
 
     // Draw remaining 4
-    let drawn3 = vault::draw_cards(&mut v, "draw_pile", 4);
+    let drawn3 = vault::draw_cards(&mut v, "draw_pile", 4).unwrap();
     assert_eq!(drawn3.len(), 4);
     assert_eq!(drawn3, vec!["card_0", "card_1", "card_2", "card_3"]);
 
-    // Deck is now empty
-    let drawn4 = vault::draw_cards(&mut v, "draw_pile", 1);
+    // Deck is now empty — drawing returns Ok with empty vec
+    let drawn4 = vault::draw_cards(&mut v, "draw_pile", 1).unwrap();
     assert!(drawn4.is_empty(), "empty deck should return empty vec");
 }
 
@@ -70,7 +72,7 @@ fn draw_cards_underflow() {
     let ids: Vec<String> = vec!["a".into(), "b".into(), "c".into()];
     v.register_deck("small_deck", ids);
 
-    let drawn = vault::draw_cards(&mut v, "small_deck", 10);
+    let drawn = vault::draw_cards(&mut v, "small_deck", 10).unwrap();
     assert_eq!(
         drawn.len(),
         3,
@@ -80,12 +82,17 @@ fn draw_cards_underflow() {
 }
 
 #[test]
-fn draw_cards_empty_deck() {
+fn draw_cards_nonexistent_deck_returns_error() {
     let mut v = Vault::with_seed(3);
-    let drawn = vault::draw_cards(&mut v, "nonexistent_zone", 5);
+    let result = vault::draw_cards(&mut v, "nonexistent_zone", 5);
     assert!(
-        drawn.is_empty(),
-        "drawing from nonexistent zone should return empty vec"
+        result.is_err(),
+        "drawing from nonexistent zone should return Err"
+    );
+    let err = result.unwrap_err();
+    assert!(
+        err.contains("nonexistent_zone"),
+        "error message should mention the zone name"
     );
 }
 
@@ -96,8 +103,8 @@ fn shuffle_zone_fisher_yates() {
 
     let mut v1 = Vault::with_seed(7);
     v1.register_deck("deck", ids.clone());
-    vault::shuffle_zone(&mut v1, "deck");
-    let shuffled1 = vault::draw_cards(&mut v1, "deck", 52);
+    vault::shuffle_zone(&mut v1, "deck").unwrap();
+    let shuffled1 = vault::draw_cards(&mut v1, "deck", 52).unwrap();
 
     // Verify the order changed (extremely unlikely to stay the same with 52 cards)
     assert_ne!(
@@ -108,8 +115,8 @@ fn shuffle_zone_fisher_yates() {
     // Determinism: same seed + same initial deck -> same shuffle result
     let mut v2 = Vault::with_seed(7);
     v2.register_deck("deck", ids.clone());
-    vault::shuffle_zone(&mut v2, "deck");
-    let shuffled2 = vault::draw_cards(&mut v2, "deck", 52);
+    vault::shuffle_zone(&mut v2, "deck").unwrap();
+    let shuffled2 = vault::draw_cards(&mut v2, "deck", 52).unwrap();
 
     assert_eq!(
         shuffled1, shuffled2,
@@ -187,4 +194,67 @@ fn hidden_facts_round_trip() {
     // Taking from a player who never had facts should also be empty
     let facts_bob = v.take_hidden_facts("bob");
     assert!(facts_bob.is_empty(), "unknown player should return empty vec");
+}
+
+// ---- Debug redaction tests ----
+
+#[test]
+fn vault_debug_does_not_leak_deck_contents() {
+    let mut v = Vault::with_seed(42);
+    v.register_deck(
+        "draw_pile",
+        vec!["ace_spades".into(), "king_hearts".into(), "queen_diamonds".into()],
+    );
+
+    let mut debug_output = String::new();
+    write!(&mut debug_output, "{:?}", v).expect("Debug formatting should not fail");
+
+    // The custom Debug impl must redact deck contents
+    assert!(
+        !debug_output.contains("ace_spades"),
+        "Vault Debug output must not contain card names, got: {debug_output}"
+    );
+    assert!(
+        !debug_output.contains("king_hearts"),
+        "Vault Debug output must not contain card names, got: {debug_output}"
+    );
+    assert!(
+        !debug_output.contains("queen_diamonds"),
+        "Vault Debug output must not contain card names, got: {debug_output}"
+    );
+
+    // Should show redacted placeholders instead
+    assert!(
+        debug_output.contains("redacted"),
+        "Vault Debug output should mention redaction, got: {debug_output}"
+    );
+}
+
+#[test]
+fn vault_debug_does_not_leak_hidden_facts() {
+    let mut v = Vault::with_seed(42);
+    v.add_hidden_fact(
+        "alice",
+        HiddenFact {
+            zone: "hand".into(),
+            component_id: "secret_card_99".into(),
+            properties: serde_json::json!({"suit": "clubs", "rank": 99}),
+        },
+    );
+
+    let mut debug_output = String::new();
+    write!(&mut debug_output, "{:?}", v).expect("Debug formatting should not fail");
+
+    assert!(
+        !debug_output.contains("secret_card_99"),
+        "Vault Debug output must not contain hidden fact component IDs, got: {debug_output}"
+    );
+    assert!(
+        !debug_output.contains("clubs"),
+        "Vault Debug output must not contain hidden fact properties, got: {debug_output}"
+    );
+    assert!(
+        !debug_output.contains("alice"),
+        "Vault Debug output must not contain player names from hidden facts, got: {debug_output}"
+    );
 }

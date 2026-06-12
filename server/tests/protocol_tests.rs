@@ -1,11 +1,12 @@
 use std::collections::HashMap;
+use std::fmt::Write as _;
 
 use baize_engine::GameDefinition;
 use baize_engine::GameSession;
 use baize_server::config;
 use baize_server::protocol::{handle_client_message, HandleResult};
 use baize_server::room::Room;
-use baize_server::vault::Vault;
+use baize_server::vault::{HiddenFact, Vault};
 
 /// Return the same placeholder definition used by room.rs for auto-created rooms.
 fn default_definition_json() -> String {
@@ -384,4 +385,81 @@ fn moves_rejected_after_max_moves_per_game() {
             panic!("expected Reply(MoveRejected), got Broadcast");
         }
     }
+}
+
+// ---- Debug redaction tests for Room ----
+
+#[test]
+fn room_debug_does_not_leak_hidden_state() {
+    let mut room = make_test_room("redact_test");
+
+    // Populate the vault with secret deck contents
+    room.vault.register_deck(
+        "draw_pile",
+        vec!["ace_spades".into(), "king_hearts".into()],
+    );
+    room.vault.add_hidden_fact(
+        "alice",
+        HiddenFact {
+            zone: "hand".into(),
+            component_id: "secret_card_42".into(),
+            properties: serde_json::json!({"suit": "diamonds", "rank": 42}),
+        },
+    );
+
+    let mut debug_output = String::new();
+    write!(&mut debug_output, "{:?}", room).expect("Debug formatting should not fail");
+
+    // Room Debug must not leak vault deck contents
+    assert!(
+        !debug_output.contains("ace_spades"),
+        "Room Debug must not contain deck card names, got: {debug_output}"
+    );
+    assert!(
+        !debug_output.contains("king_hearts"),
+        "Room Debug must not contain deck card names, got: {debug_output}"
+    );
+
+    // Room Debug must not leak hidden facts
+    assert!(
+        !debug_output.contains("secret_card_42"),
+        "Room Debug must not contain hidden fact IDs, got: {debug_output}"
+    );
+    assert!(
+        !debug_output.contains("diamonds"),
+        "Room Debug must not contain hidden fact properties, got: {debug_output}"
+    );
+
+    // Should show the room ID (non-secret metadata)
+    assert!(
+        debug_output.contains("redact_test"),
+        "Room Debug should include the room ID, got: {debug_output}"
+    );
+
+    // Should show redacted placeholders
+    assert!(
+        debug_output.contains("redacted"),
+        "Room Debug should mention redaction, got: {debug_output}"
+    );
+}
+
+#[test]
+fn room_debug_does_not_leak_player_tokens() {
+    let mut room = make_test_room("token_test");
+
+    // Insert a fake player token
+    room.player_tokens
+        .insert("a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4".into(), "white".into());
+
+    let mut debug_output = String::new();
+    write!(&mut debug_output, "{:?}", room).expect("Debug formatting should not fail");
+
+    assert!(
+        !debug_output.contains("a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4"),
+        "Room Debug must not contain player auth tokens, got: {debug_output}"
+    );
+    assert!(
+        debug_output.contains("tokens redacted"),
+        "Room Debug should indicate tokens are redacted, got: {debug_output}"
+    );
 }
