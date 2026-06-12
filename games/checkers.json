@@ -1,0 +1,62 @@
+{
+  "$schema": "../schema/game-definition.schema.json",
+  "game": {
+    "name": "Checkers",
+    "players": ["red", "black"],
+    "information": "perfect"
+  },
+  "zones": {
+    "board": {
+      "zone_type": "grid",
+      "dimensions": [8, 8],
+      "visibility": "public",
+      "coloring": "alternating"
+    }
+  },
+  "components": {
+    "man": {
+      "owner": "per_player",
+      "count": 12
+    },
+    "king": {
+      "owner": "per_player",
+      "count": 12
+    }
+  },
+  "turn_order": {
+    "type": "alternating",
+    "players": ["red", "black"],
+    "actions_per_turn": 1,
+    "mandatory": true
+  },
+  "library": {
+    "never": "false"
+  },
+  "rules": {
+    "move": {
+      "action": "move_piece(man|king, board/cell)",
+      "constraint": "diagonal forward one square (men), diagonal any direction (kings), target empty"
+    },
+    "capture": {
+      "action": "move_piece(man|king, board/cell)",
+      "constraint": "hop over adjacent opponent diagonally to empty square beyond",
+      "note": "Captures are mandatory. Multi-jump chains must be completed."
+    },
+    "promotion": {
+      "trigger": "man reaches opponent's back rank",
+      "effect": "promote man to king"
+    }
+  },
+  "end_conditions": [
+    {
+      "result": "win",
+      "player": "opponent_of_current",
+      "condition": "no_legal_moves",
+      "name": "no_moves"
+    }
+  ],
+  "authority": {
+    "server_only": [],
+    "client_verifiable": ["move_piece"]
+  }
+}
