@@ -1,0 +1,55 @@
+{
+  "$schema": "../schema/game-definition.schema.json",
+  "game": {
+    "name": "Polyiamond Placement",
+    "players": ["Blue", "Yellow", "Red", "Green"],
+    "information": "perfect"
+  },
+  "zones": {
+    "board": {
+      "zone_type": "grid",
+      "dimensions": [35, 18],
+      "visibility": "public",
+      "adjacency": "orthogonal_4",
+      "note": "Bounding box for hexagonal triangular-tiled board (side 9, 486 cells). Triangles alternate up/down by (col+row)%2 parity. Type A (col+row even): edge neighbors (-1,0),(+1,0),(0,-1). Type B (col+row odd): edge neighbors (-1,0),(+1,0),(0,+1). Valid cells computed by game wrapper as hex mask."
+    }
+  },
+  "components": {
+    "polyiamond": {
+      "owner": "per_player",
+      "count": 22,
+      "note": "22 polyiamond pieces per player (sizes 1-6: 1+1+1+3+4+12 = 22 free shapes, 110 triangles total). D6 symmetry on triangular grid."
+    }
+  },
+  "turn_order": {
+    "type": "round_robin",
+    "players": ["Blue", "Yellow", "Red", "Green"],
+    "actions_per_turn": 1,
+    "mandatory": false
+  },
+  "library": {
+    "never": "false"
+  },
+  "rules": {
+    "place": {
+      "action": "place(polyiamond, board/cells)",
+      "constraint": "First piece must cover player's starting corner. Subsequent pieces must corner-touch (share triangle vertex but not edge) at least one of the player's existing cells. Must NOT edge-touch any of the player's own cells. All cells must be empty, in bounds, and within the hex mask. Pieces may be rotated (6 rotations) and flipped (D6 symmetry, up to 12 orientations)."
+    },
+    "pass": {
+      "action": "pass",
+      "constraint": "Player may pass. Game ends when all players pass consecutively."
+    }
+  },
+  "end_conditions": [
+    {
+      "result": "win",
+      "player": "highest_score",
+      "condition": "all_players_passed",
+      "name": "no_placements"
+    }
+  ],
+  "authority": {
+    "server_only": [],
+    "client_verifiable": ["place(polyiamond, board/cells)"]
+  }
+}
