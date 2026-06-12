@@ -204,129 +204,105 @@ class TestFourInARowHorizontalWin:
         assert not _has_four_in_a_row(session, "Yellow")
 
 
+def _draw_drop_sequence() -> list[int]:
+    """Return a 42-move column sequence that fills the board with no 4-in-a-row.
+
+    Target board (R=Red, Y=Yellow, row 0=top, row 5=bottom):
+      col:  0 1 2 3 4 5 6
+      row0: R R Y Y R R Y
+      row1: Y Y R R Y Y R
+      row2: R R Y Y R R Y
+      row3: Y Y R R Y Y R
+      row4: R R Y Y R R Y
+      row5: Y Y R R Y Y R
+
+    Pattern: cell(c,r) = Red if ((c // 2) + r) % 2 == 0, else Yellow.
+    Max same-player run in any direction is 2, so no 4-in-a-row can form.
+
+    The sequence is built by a greedy scheduler: at each turn it scans columns
+    left-to-right and picks the first column whose lowest-unplaced cell belongs
+    to the current player. This schedule was verified to complete all 42 moves
+    without deadlock.
+    """
+
+    def target_owner(c: int, r: int) -> str:
+        return "Red" if ((c // 2) + r) % 2 == 0 else "Yellow"
+
+    col_queues = [
+        [target_owner(c, r) for r in range(5, -1, -1)] for c in range(7)
+    ]
+
+    players = ["Red", "Yellow"]
+    pointers = [0] * 7
+    sequence: list[int] = []
+
+    for turn in range(42):
+        current = players[turn % 2]
+        chosen: int | None = None
+        for c in range(7):
+            if pointers[c] < 6 and col_queues[c][pointers[c]] == current:
+                chosen = c
+                break
+        assert chosen is not None, (
+            f"draw sequence scheduler stuck at turn {turn} for {current}"
+        )
+        sequence.append(chosen)
+        pointers[chosen] += 1
+
+    return sequence
+
+
 class TestFourInARowDiagonalWin:
-    """Verify that 4 discs on a diagonal constitute a diagonal win."""
+    """Verify that 4 discs on a rising diagonal constitute a diagonal win."""
 
     def test_red_wins_diagonal_rising(self) -> None:
-        """Red wins on a rising diagonal (bottom-left to top-right).
-
-        Target cells (col, row): (0,5), (1,4), (2,3), (3,2).
-        Build the required support stack below each red disc:
-          col0: Red at row5 (no support needed)
-          col1: Yellow at row5, Red at row4
-          col2: Yellow at row5, Yellow at row4, Red at row3
-          col3: Yellow at row5, Yellow at row4, Yellow at row3, Red at row2
-        """
-        defn = _load_game()
-        session = GameSession(defn)
-
-        # col0 row5: Red
-        _drop(session, 0)   # Red
-        # col1 row5: Yellow
-        _drop(session, 1)   # Yellow
-        # col1 row4: Red
-        _drop(session, 1)   # Red
-        # col2 row5: Yellow
-        _drop(session, 2)   # Yellow
-        # col2 row4: Yellow (needs Yellow to move here; Yellow's turn)
-        _drop(session, 2)   # Red  -- wait, need to manage turns carefully
-
-        # Let me restart with careful turn tracking.
-        # Turn sequence: Red, Yellow, Red, Yellow, ...
-        # Need to land:
-        #   col0 row5 = Red  (move 1: Red drops col0)
-        #   col1 row5 = Yellow (move 2: Yellow drops col1)
-        #   col1 row4 = Red  (move 3: Red drops col1)
-        #   col2 row5 = Yellow (move 4: Yellow drops col2)
-        #   col2 row4 = Yellow (move 5: Red must drop elsewhere, then Yellow col2)
-        #
-        # This is getting complex with a fresh session. Use a new session.
-        pass
-
-    def test_red_wins_diagonal_rising_correct(self) -> None:
         """Red wins on a rising diagonal (col,row): (0,5),(1,4),(2,3),(3,2).
 
-        Build the foundation columns before placing the winning diagonal discs.
-        Turn order: Red=even moves (0,2,4,...), Yellow=odd moves.
+        Yellow fillers are spread across cols 4, 5, 6 (3 drops each, rows 5,4,3),
+        so Yellow never gets 4 consecutive in any direction.
 
-        Move plan (0-indexed turns):
-          0  Red   col0  -> (0,5)  Red anchor
-          1  Yellow col4  -> (4,5)  Yellow filler
-          2  Red   col1  -> (1,5)  pad below (1,4)
-          3  Yellow col4  -> (4,4)  Yellow filler
-          4  Red   col1  -> (1,4)  Red at target
-          5  Yellow col2  -> (2,5)  pad below (2,3)
-          6  Red   col5  -> (5,5)  Red filler (out of winning path)
-          7  Yellow col2  -> (2,4)  pad below (2,3)
-          8  Red   col5  -> (5,4)  Red filler
-          9  Yellow col2  -> (2,3)  Yellow... no, we need Red at (2,3)
+        Move plan (0-indexed turns, Red=even):
+          0  Red   col0 -> (0,5)  diagonal cell 1
+          1  Yellow col4 -> (4,5)
+          2  Red   col1 -> (1,5)  filler under (1,4)
+          3  Yellow col4 -> (4,4)
+          4  Red   col1 -> (1,4)  diagonal cell 2
+          5  Yellow col4 -> (4,3)
+          6  Red   col2 -> (2,5)  filler under (2,4)
+          7  Yellow col5 -> (5,5)
+          8  Red   col2 -> (2,4)  filler under (2,3)
+          9  Yellow col5 -> (5,4)
+         10  Red   col2 -> (2,3)  diagonal cell 3
+         11  Yellow col5 -> (5,3)
+         12  Red   col3 -> (3,5)  filler under (3,4)
+         13  Yellow col6 -> (6,5)
+         14  Red   col3 -> (3,4)  filler under (3,3)
+         15  Yellow col6 -> (6,4)
+         16  Red   col3 -> (3,3)  filler under (3,2)
+         17  Yellow col6 -> (6,3)
+         18  Red   col3 -> (3,2)  diagonal cell 4 — winning disc
 
-        Replan: use col5/col6 as filler columns, carefully track whose turn it is.
-
-        Required disc placements (col, row, owner):
-          (0,5)=Red, (1,5)=any, (1,4)=Red, (2,5)=any, (2,4)=any, (2,3)=Red,
-          (3,5)=any, (3,4)=any, (3,3)=any, (3,2)=Red
-
-        Move plan placing fillers in col6 (Yellow) and col5 (extra):
-          Turn 0 Red:    col0 -> (0,5)=Red
-          Turn 1 Yellow: col6 -> (6,5)=Yellow
-          Turn 2 Red:    col1 -> (1,5)=Red   (filler)
-          Turn 3 Yellow: col1 -> (1,4)=Yellow (filler, blocks us — replan)
-
-        Simplest approach: use a single filler column (col6) for all Yellow moves,
-        and use col1,col2,col3 for Red foundation + diagonal.
-        Red turns:  col0, col1(filler), col1(diag), col2(filler×2), col2(diag), ...
-        But Red can't move twice without Yellow moving.
-
-        Final plan — Red uses col5 as extra, Yellow always uses col6:
-          0 Red   col0 -> (0,5)=Red       [diag cell 1]
-          1 Yellow col6 -> (6,5)=Yellow
-          2 Red   col1 -> (1,5)=Red       [filler for col1]
-          3 Yellow col6 -> (6,4)=Yellow
-          4 Red   col1 -> (1,4)=Red       [diag cell 2]
-          5 Yellow col6 -> (6,3)=Yellow
-          6 Red   col2 -> (2,5)=Red       [filler for col2]
-          7 Yellow col6 -> (6,2)=Yellow
-          8 Red   col2 -> (2,4)=Red       [filler for col2]
-          9 Yellow col6 -> (6,1)=Yellow
-         10 Red   col2 -> (2,3)=Red       [diag cell 3]
-         11 Yellow col5 -> (5,5)=Yellow   [col6 full after 6 moves max, use col5]
-         12 Red   col3 -> (3,5)=Red       [filler for col3]
-         13 Yellow col5 -> (5,4)=Yellow
-         14 Red   col3 -> (3,4)=Red       [filler for col3]
-         15 Yellow col5 -> (5,3)=Yellow
-         16 Red   col3 -> (3,3)=Red       [filler for col3]
-         17 Yellow col5 -> (5,2)=Yellow
-         18 Red   col3 -> (3,2)=Red       [diag cell 4 — WINNING MOVE]
+        Yellow ends with 3 discs each in cols 4, 5, 6 at rows 5,4,3.
+        Max Yellow run: 3 in a column or 3 horizontal across cols 4-6 — no 4-in-a-row.
         """
         defn = _load_game()
         session = GameSession(defn)
 
         moves = [
-            0,  # Red   (0,5) diag1
-            4,  # Yellow (4,5)
-            1,  # Red   (1,5) filler
-            5,  # Yellow (5,5)
-            1,  # Red   (1,4) diag2
-            6,  # Yellow (6,5)
-            2,  # Red   (2,5) filler
-            4,  # Yellow (4,4)
-            2,  # Red   (2,4) filler
-            5,  # Yellow (5,4)
-            2,  # Red   (2,3) diag3
-            6,  # Yellow (6,4)
-            3,  # Red   (3,5) filler
-            4,  # Yellow (4,3)
-            3,  # Red   (3,4) filler
-            5,  # Yellow (5,3)
-            3,  # Red   (3,3) filler
-            6,  # Yellow (6,3)
-            3,  # Red   (3,2) diag4 — winning move
+            0, 4,  # Red (0,5) diag1;  Yellow (4,5)
+            1, 4,  # Red (1,5) filler; Yellow (4,4)
+            1, 4,  # Red (1,4) diag2;  Yellow (4,3)
+            2, 5,  # Red (2,5) filler; Yellow (5,5)
+            2, 5,  # Red (2,4) filler; Yellow (5,4)
+            2, 5,  # Red (2,3) diag3;  Yellow (5,3)
+            3, 6,  # Red (3,5) filler; Yellow (6,5)
+            3, 6,  # Red (3,4) filler; Yellow (6,4)
+            3, 6,  # Red (3,3) filler; Yellow (6,3)
+            3,     # Red (3,2) diag4 — winning disc
         ]
         for col in moves:
             _drop(session, col)
 
-        # Verify the four diagonal cells are owned by Red
         assert _owner_at(session, 0, 5) == "Red"
         assert _owner_at(session, 1, 4) == "Red"
         assert _owner_at(session, 2, 3) == "Red"
@@ -337,14 +313,38 @@ class TestFourInARowDiagonalWin:
 
 
 class TestFourInARowDraw:
-    """Verify the draw detection helper works."""
+    """Verify the draw condition: board full with no four-in-a-row.
 
-    def test_no_winner_partial_board(self) -> None:
-        """A partially filled board with no four-in-a-row returns False."""
+    The engine's CEL evaluator handles occupied_count == cell_count correctly,
+    so the draw end-condition fires when the board is full and no win condition
+    has triggered (the four_in_line condition is a no-op in the current engine
+    per baize-935.1, meaning the board fills completely before the game ends).
+    """
+
+    def test_draw_full_board(self) -> None:
+        """Fill all 42 cells with no 4-in-a-row; engine declares a draw.
+
+        Uses _draw_drop_sequence() which produces a board where the max run
+        of any player in any direction is 2.
+        """
         defn = _load_game()
         session = GameSession(defn)
-        # Alternating columns: R0 Y1 R2 Y3 R4 Y5 R6 Y0 R1 Y2
-        for col in [0, 1, 2, 3, 4, 5, 6, 0, 1, 2]:
+
+        sequence = _draw_drop_sequence()
+        assert len(sequence) == 42
+
+        for col in sequence:
             _drop(session, col)
+
         assert not _has_four_in_a_row(session, "Red")
         assert not _has_four_in_a_row(session, "Yellow")
+
+        zone = session.runtime.zones.get("board")
+        assert isinstance(zone, GridZone)
+        assert all(zone.cells[i] is not None for i in range(42))
+
+        assert session.runtime.status == "finished"
+        result = session.runtime.result
+        assert result is not None
+        assert result.outcome == "draw"
+        assert result.condition == "board_full"
