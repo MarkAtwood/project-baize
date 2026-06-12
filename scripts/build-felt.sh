@@ -1,5 +1,8 @@
 #!/usr/bin/env bash
-# build-felt.sh — Launch Claude Code to build the Felt compiler autonomously.
+# build-felt.sh — Launch Claude Code in a git worktree to build autonomously.
+#
+# Uses a git worktree so the build doesn't conflict with other work
+# on the main checkout. Merges results back when done.
 #
 # Usage:
 #   ./scripts/build-felt.sh              # foreground with live output
@@ -17,6 +20,9 @@ set -euo pipefail
 PROJECT_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$PROJECT_ROOT"
 
+BRANCH_NAME="felt-compiler-build"
+WORKTREE_DIR="${PROJECT_ROOT}/../baize-felt-build"
+
 # --- Setup logging ---
 TIMESTAMP=$(date +%Y%m%d-%H%M%S)
 LOG_DIR="$PROJECT_ROOT/logs"
@@ -29,6 +35,7 @@ echo "=== Felt compiler build started at $(date -Iseconds) ===" | tee "$LOGFILE"
 echo "PID: $$" | tee -a "$LOGFILE"
 echo "Log: $LOGFILE" | tee -a "$LOGFILE"
 echo "Project: $PROJECT_ROOT" | tee -a "$LOGFILE"
+echo "Worktree: $WORKTREE_DIR" | tee -a "$LOGFILE"
 echo "" | tee -a "$LOGFILE"
 
 # --- Preflight checks ---
@@ -42,33 +49,35 @@ if ! git rev-parse --is-inside-work-tree &>/dev/null; then
     exit 1
 fi
 
-# Ensure beads is initialized
-if ! bd status &>/dev/null; then
-    echo "ERROR: beads not initialized" | tee -a "$LOGFILE"
-    exit 1
-fi
-
-# Ensure clean working tree (don't start with uncommitted changes)
-if [ -n "$(git status --porcelain)" ]; then
-    echo "WARNING: working tree not clean, proceeding anyway" | tee -a "$LOGFILE"
-    git status --short | tee -a "$LOGFILE"
-    echo "" | tee -a "$LOGFILE"
-fi
-
 PROMPT_FILE="$PROJECT_ROOT/scripts/PROMPT-build-felt.md"
 if [ ! -f "$PROMPT_FILE" ]; then
     echo "ERROR: prompt file not found: $PROMPT_FILE" | tee -a "$LOGFILE"
     exit 1
 fi
 
-echo "Starting Claude Code with prompt: $PROMPT_FILE" | tee -a "$LOGFILE"
+# --- Create worktree ---
+# Clean up any stale worktree from a previous run
+if [ -d "$WORKTREE_DIR" ]; then
+    echo "Removing stale worktree at $WORKTREE_DIR" | tee -a "$LOGFILE"
+    git worktree remove --force "$WORKTREE_DIR" 2>/dev/null || rm -rf "$WORKTREE_DIR"
+fi
+
+# Delete stale branch if it exists
+git branch -D "$BRANCH_NAME" 2>/dev/null || true
+
+echo "Creating worktree: $WORKTREE_DIR (branch: $BRANCH_NAME)" | tee -a "$LOGFILE"
+git worktree add -b "$BRANCH_NAME" "$WORKTREE_DIR" HEAD | tee -a "$LOGFILE"
+
+# Copy beads config so bd works in the worktree
+if [ -d "$PROJECT_ROOT/.beads" ]; then
+    cp -r "$PROJECT_ROOT/.beads" "$WORKTREE_DIR/.beads"
+fi
+
+cd "$WORKTREE_DIR"
+echo "Working directory: $(pwd)" | tee -a "$LOGFILE"
 echo "---" | tee -a "$LOGFILE"
 
-# --- Run Claude Code ---
-# --print: non-interactive, print output
-# --verbose: show tool calls
-# --max-turns 200: generous budget for a compiler build
-# --model: use opus for complex multi-file work
+# --- Run Claude Code in the worktree ---
 claude \
     --print \
     --verbose \
@@ -82,8 +91,34 @@ EXIT_CODE=${PIPESTATUS[0]}
 
 echo "" | tee -a "$LOGFILE"
 echo "---" | tee -a "$LOGFILE"
-echo "=== Felt compiler build finished at $(date -Iseconds) ===" | tee -a "$LOGFILE"
-echo "Exit code: $EXIT_CODE" | tee -a "$LOGFILE"
+echo "=== Build finished at $(date -Iseconds) (exit code: $EXIT_CODE) ===" | tee -a "$LOGFILE"
+
+# --- Merge back to main ---
+cd "$PROJECT_ROOT"
+
+if [ "$EXIT_CODE" -eq 0 ]; then
+    echo "" | tee -a "$LOGFILE"
+    echo "=== Merging $BRANCH_NAME into main ===" | tee -a "$LOGFILE"
+
+    COMMIT_COUNT=$(git log main.."$BRANCH_NAME" --oneline 2>/dev/null | wc -l)
+    echo "Commits to merge: $COMMIT_COUNT" | tee -a "$LOGFILE"
+
+    if [ "$COMMIT_COUNT" -gt 0 ]; then
+        git merge "$BRANCH_NAME" --no-edit 2>&1 | tee -a "$LOGFILE"
+        echo "Merge complete." | tee -a "$LOGFILE"
+    else
+        echo "No new commits to merge." | tee -a "$LOGFILE"
+    fi
+else
+    echo "Build failed (exit $EXIT_CODE). NOT merging." | tee -a "$LOGFILE"
+fi
+
+# --- Cleanup worktree ---
+echo "" | tee -a "$LOGFILE"
+echo "Cleaning up worktree..." | tee -a "$LOGFILE"
+git worktree remove --force "$WORKTREE_DIR" 2>/dev/null || true
+git branch -D "$BRANCH_NAME" 2>/dev/null || true
+echo "Cleanup done." | tee -a "$LOGFILE"
 
 # --- Post-run summary ---
 echo "" | tee -a "$LOGFILE"
