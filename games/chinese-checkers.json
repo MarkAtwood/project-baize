@@ -2,7 +2,7 @@
   "$schema": "../schema/game-definition.schema.json",
   "game": {
     "name": "Chinese Checkers",
-    "players": ["Red", "Blue"],
+    "players": ["Red", "Green", "White", "Blue", "Yellow", "Black"],
     "information": "perfect"
   },
   "zones": {
@@ -56,7 +56,7 @@
         "4,6": {"triangle": "T6"}, "5,6": {"triangle": "T6"},
         "4,7": {"triangle": "T6"}
       },
-      "note": "121-position hexagram. 17x17 bounding box with hex_6 adjacency. T1(top) opposite T4(bottom). 2-player: Red starts T1, goal T4; Blue starts T4, goal T1."
+      "note": "121-position hexagram. 17x17 bounding box with hex_6 adjacency. Seats clockwise: Red(T1), Green(T2), White(T3), Blue(T4), Yellow(T5), Black(T6). Opposite pairs: T1-T4, T2-T5, T3-T6. Supports 2/3/4/6 players; unused seats left empty."
     }
   },
   "components": {
@@ -66,8 +66,8 @@
     }
   },
   "turn_order": {
-    "type": "alternating",
-    "players": ["Red", "Blue"],
+    "type": "round_robin",
+    "players": ["Red", "Green", "White", "Blue", "Yellow", "Black"],
     "actions_per_turn": 1,
     "mandatory": true
   },
