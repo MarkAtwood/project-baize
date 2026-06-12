@@ -1,0 +1,64 @@
+{
+  "$schema": "../schema/game-definition.schema.json",
+  "game": {
+    "name": "Snakes and Ladders",
+    "players": ["P1", "P2"],
+    "information": "perfect"
+  },
+  "zones": {
+    "board": {
+      "zone_type": "track",
+      "length": 100,
+      "visibility": "public",
+      "note": "Positions 0-99 (displayed as 1-100). Players start off-board."
+    }
+  },
+  "components": {
+    "token": {
+      "owner": "per_player",
+      "count": 1
+    }
+  },
+  "turn_order": {
+    "type": "alternating",
+    "players": ["P1", "P2"],
+    "actions_per_turn": 1,
+    "mandatory": true
+  },
+  "library": {
+    "never": "false"
+  },
+  "rules": {
+    "roll_and_move": {
+      "action": "roll_dice(d6)",
+      "effect": "advance token by die value along track",
+      "note": "Server rolls d6 and moves the player's token. If landing on snake head, slide to tail. If landing on ladder bottom, climb to top."
+    },
+    "snakes": {
+      "definition": "landing on a snake head moves the token to the snake's tail",
+      "instances": {
+        "16": 6, "47": 26, "49": 11, "56": 53, "62": 19,
+        "64": 60, "87": 24, "93": 73, "95": 75, "98": 78
+      }
+    },
+    "ladders": {
+      "definition": "landing on a ladder bottom moves the token to the ladder's top",
+      "instances": {
+        "1": 38, "4": 14, "9": 31, "21": 42, "28": 84,
+        "36": 44, "51": 67, "71": 91, "80": 100
+      }
+    }
+  },
+  "end_conditions": [
+    {
+      "result": "win",
+      "player": "current",
+      "condition": "never",
+      "name": "reach_100"
+    }
+  ],
+  "authority": {
+    "server_only": ["roll_dice(d6)"],
+    "client_verifiable": []
+  }
+}
