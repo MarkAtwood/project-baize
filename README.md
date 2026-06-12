@@ -107,7 +107,7 @@ implementation, even before full mental poker support.
 
 ## Status
 
-Core engine complete. 152 of 178 issues closed. Eighteen games are fully
+Core engine complete. 158 of 184 issues closed. Nineteen games are fully
 playable end-to-end. The engine parses and validates game definitions,
 manages runtime state, generates legal moves, evaluates CEL expressions
 for win/constraint conditions, applies state transitions with a structured
@@ -121,7 +121,7 @@ vectors ensure the Rust and Python engines produce identical results.
 |-----------|-------|-----------|
 | Schema (5 JSON Schemas) | — | Game definitions, state, actions, events, component registry |
 | Rust engine | 174 | Parse, validate, state machine, move gen, transitions, CEL end conditions, perturber effects (cycle, remove, flip, promote, counters, invoke), commit-reveal, simultaneous phases, hash-chained events, tamper detection, visibility filtering, valid_cells grid mask |
-| Python engine | 819 | Feature-parallel with Rust, plus game analysis, Jupyter notebook, terminal CLI, interactive REPL, agent framework (Random/Greedy/MCTS) |
+| Python engine | 887 | Feature-parallel with Rust, plus game analysis, Jupyter notebook, terminal CLI, interactive REPL, agent framework (Random/Greedy/MCTS) |
 | Server | 31 | Room management, WebSocket protocol, hidden-state vault (ChaCha20Rng), per-player visibility, rate limiting, token auth, spectator isolation, persistence |
 | Client (TypeScript) | — | Full type definitions for all schemas; Web Components (`<baize-game>`, `<baize-board>`) |
 
@@ -144,7 +144,7 @@ in external tools.
 
 ## Game Catalog
 
-Twenty-two reference games spanning the complexity spectrum (20 defined, 2 planned). Games marked ✓
+Twenty-two reference games spanning the complexity spectrum (20 defined, 2 planned, 1 moved from def-only to playable). Games marked ✓
 are fully playable end-to-end with tests. Games marked `def` have a JSON
 definition that parses and validates. Planned games have beads issues
 tracking their implementation.
@@ -166,6 +166,7 @@ tracking their implementation.
 | Yacht | Perfect + random | 5d6, keep/re-roll, 13 scoring categories, upper bonus |
 | Liar's Dice | Imperfect | Hidden per-player dice, escalating bids, challenge/reveal, elimination |
 | Backgammon | Perfect + random | 24-point track, hitting/bar, re-entry, bearing off, doubles |
+| Chess | Perfect | All pieces, castling, en passant, promotion, check/checkmate/stalemate, repetition, 50-move, insufficient material |
 | Hex | Perfect | Hex grid, 6-neighbor adjacency, BFS edge-to-edge connectivity win |
 | Chinese Checkers | Perfect | 121-position hexagram via valid_cells mask, hex_6 adjacency, step/hop, multi-hop chains |
 | Polyomino Placement | Perfect | 20×20 grid, 21 polyomino shapes, rotation/flip, corner-only adjacency |
@@ -176,7 +177,6 @@ tracking their implementation.
 
 | Game | Information | Notable features |
 |------|------------|-----------------|
-| Chess | Perfect | 6 piece types, step/slide/leap/castle primitives, promotion |
 | Texas Hold'em | Imperfect | Deck/deal/shuffle work; betting/phases/hand ranking in progress |
 
 ### Planned (beads filed)
