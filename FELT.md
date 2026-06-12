@@ -683,144 +683,229 @@ Rust (.rs)    →  no termination guarantee
 
 ---
 
-## WASM GC Memory Model
+## Runtime Architecture
 
-### No Manual Memory Management
+### Two-Layer API: Host Imports + Felt Stdlib
 
-Felt targets WASM GC (WebAssembly 3.0, standardized September 2025).
-All heap allocations — strings, lists, records, game state structs —
-are GC-managed by the WASM runtime (wasmtime or browser engine).
+Felt extensions do NOT parse JSON. The host (Baize server or browser
+engine) provides game state access as WASM imports. Felt code calls
+these imports to walk the game state. The Felt stdlib builds
+higher-level algorithms (flood fill, sorting, grouping) on top.
 
-**No arena allocator.** No bump pointer. No `alloc`/`dealloc` exports.
-No manual memory layout. The runtime handles everything.
+```
+┌─────────────────────────────────────────────────┐
+│  Felt user code                                  │
+│  fn score(state, player) -> ...                  │
+├─────────────────────────────────────────────────┤
+│  Layer 2: Felt stdlib (compiled WASM)            │
+│  flood_fill, flood_groups, sort, combinations,   │
+│  map, filter, fold, group_by, all, any, ...      │
+├─────────────────────────────────────────────────┤
+│  Layer 1: Host imports (native Rust)             │
+│  zone, cell_at, adjacent, components, type_of,   │
+│  rank, suit, owner, players, counters, ...       │
+├─────────────────────────────────────────────────┤
+│  Baize engine (Rust)                             │
+│  GameState, GameSession — native structs          │
+└─────────────────────────────────────────────────┘
+```
 
-This is possible because:
-- Felt is pure — no mutation, no aliasing concerns.
-- Extension calls are short-lived — allocate during the call, GC
-  reclaims afterward.
-- Wasmtime's "null" GC (bump-allocate, no cycle collection) is
-  perfect for this: Felt can't create cycles (immutable data, no
-  mutation), so bump-and-forget is correct.
+**Why this design:**
+- **No JSON parsing.** The host already has the game state as native
+  Rust structs. Serializing to JSON just to deserialize inside WASM
+  is wasteful. Instead, the host provides direct access via imports.
+- **Tiny binaries.** Felt doesn't ship a JSON parser or the game
+  state schema. Just user code + stdlib algorithms.
+- **Fast.** Property lookups (rank, suit, owner) are native function
+  calls, not string-keyed JSON lookups.
+- **Decoupled.** If the state representation changes, only the host
+  import implementations change. Felt code and stdlib are unaffected.
 
-### WASM GC Type Definitions
+### Layer 1: Host Imports (Native Rust)
 
-The Felt compiler emits these GC type definitions in the WASM module:
+These are WASM import functions provided by the Baize engine. They
+read the native `GameState` / `GameSession` structs directly. The
+Felt WASM module declares them as imports; the host links them at
+instantiation.
+
+The host uses opaque `i32` handles to reference game objects. Each
+handle is an index into a host-side table. The host validates all
+handles and returns safe defaults for invalid ones.
 
 ```wasm
-;; Primitives that need boxing (for Option, List elements, etc.)
-(type $BoxedInt (struct (field $val i64)))
-(type $BoxedFloat (struct (field $val f64)))
+;; Module imports — provided by the Baize host
+(import "baize" "zone_count"       (func $zone_count (param $state i32) (result i32)))
+(import "baize" "zone_by_index"    (func $zone_by_index (param $state i32) (param $idx i32) (result i32)))
+(import "baize" "zone_by_name"     (func $zone_by_name (param $state i32) (param $name i32) (param $name_len i32) (result i32)))
+(import "baize" "zone_for_player"  (func $zone_for_player (param $state i32) (param $name i32) (param $name_len i32) (param $player i32) (result i32)))
+(import "baize" "zone_type"        (func $zone_type (param $zone i32) (result i32)))
+(import "baize" "zone_width"       (func $zone_width (param $zone i32) (result i32)))
+(import "baize" "zone_height"      (func $zone_height (param $zone i32) (result i32)))
+(import "baize" "zone_cell_count"  (func $zone_cell_count (param $zone i32) (result i32)))
+(import "baize" "zone_comp_count"  (func $zone_comp_count (param $zone i32) (result i32)))
+(import "baize" "zone_counter_val" (func $zone_counter_val (param $zone i32) (result i64)))
 
-;; Strings
-(type $String (array i8))    ;; UTF-8 bytes, length via array.len
+(import "baize" "cell_by_index"    (func $cell_by_index (param $zone i32) (param $idx i32) (result i32)))
+(import "baize" "cell_at"          (func $cell_at (param $zone i32) (param $col i32) (param $row i32) (result i32)))  ;; -1 if empty
+(import "baize" "cell_col"         (func $cell_col (param $cell i32) (result i32)))
+(import "baize" "cell_row"         (func $cell_row (param $cell i32) (result i32)))
+(import "baize" "cell_occupant"    (func $cell_occupant (param $cell i32) (result i32)))  ;; -1 if empty
 
-;; Generic array (for List/Set)
-(type $Array_i64 (array i64))
-(type $Array_ref (array (ref null any)))  ;; array of any GC ref
+(import "baize" "comp_by_index"    (func $comp_by_index (param $zone i32) (param $idx i32) (result i32)))
+(import "baize" "comp_type"        (func $comp_type (param $comp i32) (param $buf i32) (result i32)))  ;; writes string to buf, returns len
+(import "baize" "comp_owner"       (func $comp_owner (param $comp i32) (result i32)))  ;; player handle or -1
+(import "baize" "comp_rank"        (func $comp_rank (param $comp i32) (result i64)))
+(import "baize" "comp_suit"        (func $comp_suit (param $comp i32) (param $buf i32) (result i32)))
+(import "baize" "comp_id"          (func $comp_id (param $comp i32) (param $buf i32) (result i32)))
+(import "baize" "comp_property"    (func $comp_property (param $comp i32) (param $key i32) (param $key_len i32) (param $buf i32) (result i32)))
 
-;; Game types
-(type $State (struct
-  (field $zones    (ref $Array_ref))     ;; array of Zone refs
-  (field $players  (ref $Array_ref))     ;; array of Player refs
-  (field $counters (ref $Array_ref))     ;; array of (name, value) pairs
-  (field $phase    (ref $String))
-  (field $turn     i32)
-  (field $finished i32)))
+(import "baize" "player_count"     (func $player_count (param $state i32) (result i32)))
+(import "baize" "player_by_index"  (func $player_by_index (param $state i32) (param $idx i32) (result i32)))
+(import "baize" "player_name"      (func $player_name (param $player i32) (param $buf i32) (result i32)))
 
-(type $Zone (struct
-  (field $name       (ref $String))
-  (field $zone_type  i32)              ;; 0=grid, 1=stack, 2=set, etc.
-  (field $width      i32)
-  (field $height     i32)
-  (field $cells      (ref $Array_ref))   ;; array of Cell refs
-  (field $components (ref $Array_ref)))) ;; array of Component refs
+(import "baize" "current_player"   (func $current_player (param $state i32) (result i32)))
+(import "baize" "turn_number"      (func $turn_number (param $state i32) (result i32)))
+(import "baize" "phase_name"       (func $phase_name (param $state i32) (param $buf i32) (result i32)))
+(import "baize" "is_finished"      (func $is_finished (param $state i32) (result i32)))
+(import "baize" "counter_value"    (func $counter_value (param $state i32) (param $name i32) (param $name_len i32) (result i64)))
 
-(type $Cell (struct
-  (field $col       i32)
-  (field $row       i32)
-  (field $occupant  (ref null $Component))))
+;; Grid adjacency (native, fast — avoids recomputing neighbors in WASM)
+(import "baize" "adjacent_count"   (func $adjacent_count (param $zone i32) (param $cell i32) (result i32)))
+(import "baize" "adjacent_at"      (func $adjacent_at (param $zone i32) (param $cell i32) (param $idx i32) (result i32)))
+(import "baize" "diagonal_count"   (func $diagonal_count (param $zone i32) (param $cell i32) (result i32)))
+(import "baize" "diagonal_at"      (func $diagonal_at (param $zone i32) (param $cell i32) (param $idx i32) (result i32)))
+(import "baize" "in_bounds"        (func $in_bounds (param $zone i32) (param $col i32) (param $row i32) (result i32)))
+```
 
-(type $Component (struct
-  (field $type_name  (ref $String))
-  (field $owner      (ref null $Player))
-  (field $rank       i64)
-  (field $suit       (ref $String))
-  (field $id         (ref $String))
-  (field $properties (ref $Array_ref)))) ;; array of (key, value) pairs
+**Handle conventions:**
+- All handles are `i32`. Value `-1` means "not found" / "empty" / "null".
+- String-returning imports write UTF-8 bytes to a caller-provided
+  buffer in linear memory and return the byte length.
+- Invalid handles return safe defaults (0 for int, -1 for handles,
+  0 for string length).
 
-(type $Player (struct
-  (field $name  (ref $String))
-  (field $index i32)))
+**Host implementation:** Each import is a Rust function registered
+with wasmtime's `Linker`. It reads the native `GameState` struct
+by handle index. Example:
 
-;; User-defined records
+```rust
+linker.func_wrap("baize", "comp_rank", |caller: Caller<'_, HostState>, comp: i32| -> i64 {
+    caller.data().components.get(comp as usize)
+        .map(|c| c.rank)
+        .unwrap_or(0)
+});
+```
+
+This is 1-2 lines per import. The full set of ~30 imports is ~100
+lines of Rust in the host.
+
+### Layer 2: Felt Stdlib (Compiled WASM)
+
+These functions are written in Rust, compiled to WASM, and linked
+into every Felt binary. They use the Layer 1 imports for data access
+and implement algorithms purely in WASM.
+
+**Collection operations** (iterate GC arrays, call user lambdas):
+- `map`, `filter`, `fold`, `flat_map`, `sort`, `sort_by`
+- `reverse`, `zip`, `flatten`, `unique`, `enumerate`
+- `all`, `any`, `all_same`, `consecutive`, `contains`
+- `sum`, `max`, `min`, `length`, `head`, `tail`
+- `combinations`, `range`, `concat`
+
+**Set operations** (operate on sorted GC arrays):
+- `union`, `intersect`, `difference`, `size`, `member`
+- `to_list`, `from_list`
+
+**Map operations:**
+- `lookup`, `keys`, `values`, `entries`, `insert`
+
+**Grouping:**
+- `group_by`, `count_groups`, `has_group`, `group_value`
+
+**Board algorithms** (use `adjacent`/`diagonal` imports for BFS):
+- `flood_fill(zone, cell, predicate)` — BFS from cell, returns Set Cell
+- `flood_groups(zone, predicate)` — all connected components
+- `connected(zone, cell_a, cell_b, predicate)` — reachability
+- `border(zone, group)` — cells adjacent to group but not in it
+- `border_owners(zone, group)` — distinct owners on border
+- `liberties(zone, group)` — empty cells adjacent to group
+- `neighbors(zone, cell)` — all 8 neighbors (adjacent + diagonal)
+- `line_cells(zone, cell, dx, dy)` — ray cast in a direction
+
+The stdlib is ~500 lines of Rust compiled to WASM (~8KB). It uses
+the host imports for data access and WASM GC for intermediate
+allocations (arrays of cells, sets of components, etc.).
+
+### No JSON Anywhere
+
+The Felt runtime does **not** parse or produce JSON. Data flow:
+
+```
+Host calls extension:
+  1. Host creates a handle table mapping i32 → native objects
+  2. Host calls WASM export (e.g., "score") with state handle (i32 = 0)
+  3. Felt code calls host imports to walk the state
+  4. Felt code builds result (GC structs/arrays)
+  5. Host reads result from WASM return value
+
+Result marshaling:
+  - Int/Float/Bool: returned directly as WASM scalars
+  - List/Record: returned as i32 pointer to a result buffer in
+    linear memory. The Felt stdlib serializes the GC result into
+    a simple binary format (not JSON). The host deserializes it.
+  - Alternative: use GC externref to pass struct refs directly
+    between host and guest (wasmtime supports this).
+```
+
+JSON is only involved at the outermost boundary: the WasmHost ABI
+(server/src/wasm_host.rs) currently speaks JSON strings. The Felt
+host adapter translates between JSON and host imports. The Felt
+extension never sees JSON.
+
+**Migration path:** When the WASM Component Model matures, the host
+imports can be replaced with a WIT-defined `baize:game/state` world.
+The Felt code and stdlib don't change — only the import linkage.
+
+### WASM GC for Intermediate Data
+
+Felt targets WASM GC (WebAssembly 3.0, standardized September 2025)
+for all intermediate allocations during computation.
+
+Game state access uses host imports (Layer 1). But when Felt code
+creates intermediate values — filtered lists, mapped arrays, flood
+fill result sets, score records — those are allocated as WASM GC
+objects (arrays and structs).
+
+```wasm
+;; GC types for Felt intermediate values
+(type $Array_i32 (array i32))           ;; list of handles
+(type $Array_i64 (array i64))           ;; list of ints
+(type $Set_i32   (array i32))           ;; sorted handles (set)
+
 (type $Score (struct
-  (field $player    (ref $String))
+  (field $player    (ref $FeltString))
   (field $points    i64)
-  (field $breakdown (ref $Array_ref))))   ;; array of Entry refs
+  (field $breakdown (ref $Array_ref))))
 
 (type $Entry (struct
-  (field $category (ref $String))
+  (field $category (ref $FeltString))
   (field $points   i64)))
 
 (type $EndResult (struct
   (field $game_over i32)
-  (field $winner    (ref $String))
-  (field $condition (ref $String))))
+  (field $winner    (ref $FeltString))
+  (field $condition (ref $FeltString))))
 
-;; Tuples
-(type $Pair_i64_i64 (struct (field $fst i64) (field $snd i64)))
-;; (other tuple types generated as needed by the compiler)
+(type $FeltString (array i8))           ;; UTF-8 bytes
+(type $Pair (struct (field $fst i64) (field $snd i64)))
 ```
 
-### Value Representation Summary
-
-| Felt type | WASM GC instruction | Notes |
-|-----------|--------------------|----|
-| `Int` | `i64` on stack | No boxing unless inside a collection |
-| `Float` | `f64` on stack | No boxing unless inside a collection |
-| `Bool` | `i32` on stack | 0 or 1 |
-| `String` | `array.new $String` | Immutable byte array |
-| `List a` | `array.new $Array_*` | Immutable element array |
-| `(a, b)` | `struct.new $Pair` | GC struct |
-| `{ f: T }` | `struct.new $Record` | GC struct |
-| `Some x` | The ref itself | Non-null ref |
-| `None` | `ref.null` | Null ref |
-| Game types | `struct.new $State/$Zone/...` | GC struct |
-
-### JSON Serde Runtime
-
-The compiled WASM binary includes a small runtime that:
-
-1. **Deserializes** JSON game state into GC struct/array instances
-   using `struct.new` and `array.new` instructions.
-2. **Serializes** Felt result values back to JSON by walking GC
-   structs with `struct.get` and arrays with `array.get`.
-
-The runtime is pre-compiled WASM (written in Rust, compiled to
-`wasm32-unknown-unknown` with GC target features). The Felt compiler
-links it into every output binary.
-
-**Deserialization strategy:** The JSON arrives as a byte array in
-linear memory (the one piece of linear memory we still use — for
-the JSON input/output buffer). The runtime parses it and builds
-GC structs:
-
-```
-JSON bytes (linear memory) → parse → struct.new $State
-  → struct.new $Zone (for each zone)
-    → struct.new $Cell (for each cell)
-      → struct.new $Component (for each component)
-```
-
-**Serialization strategy:** Walk the result's GC structs, emit JSON
-bytes into the linear memory output buffer:
-- `List Score` → `[{"player":...,"points":...}, ...]`
-- `Option EndResult` → `{...}` or `null`
-- `Option Bool` → `true`/`false`/`null`
-
-**Linear memory is used ONLY for the JSON I/O buffers** — the
-input string from the host and the output string to the host. All
-game data structures live in the GC heap.
+**Why GC for intermediates:**
+- `filter` returns a new array — GC allocates it, no manual free.
+- `flood_fill` builds a visited set — GC array, grows as needed.
+- `map` creates a new array of results — GC-managed.
+- Pure functions can't create cycles — wasmtime's null GC (bump
+  allocate, no cycle collection) is correct and fast.
 
 ### Why WASM GC?
 
@@ -1326,12 +1411,14 @@ fn no_legal_moves(state: State, board: Zone, player: Player) -> Bool =
 | Type checker | — | Bidirectional checking (~500 lines) |
 | Call graph check | — | Topological sort (~50 lines) |
 | WASM GC codegen | `wasm-encoder` | Expression compiler with GC types (~600 lines) |
-| JSON runtime | Pre-compiled WASM | State deserializer, result serializer (~300 lines Rust) |
+| Host imports | `wasmtime` Linker | ~30 imports, ~100 lines Rust in server |
+| Felt stdlib | Rust → WASM | Board algorithms, collections (~500 lines Rust → ~8KB WASM) |
 | Error reporting | `ariadne` | Diagnostic formatting (~100 lines) |
 | CLI | `clap` | Three subcommands (~50 lines) |
 
-**Total estimated custom code: ~2,200 lines of Rust.** (GC eliminates
-~200 lines of manual memory management from the codegen.)
+**Total estimated custom code: ~2,000 lines of Rust.** Breakdown:
+compiler ~1,400 lines, host imports ~100 lines, stdlib ~500 lines.
+No JSON parser. No allocator.
 
 ---
 
