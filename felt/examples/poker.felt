@@ -1,0 +1,48 @@
+type Score = { player: String, points: Int, breakdown: List Entry }
+type Entry = { category: String, points: Int }
+
+fn score(state: State) -> List Score =
+  players state |> map (\p ->
+    let hand = zone_for state "hand" p |> components in
+    let community = zone state "community" |> components in
+    let all_cards = hand ++ community in
+    let best = best_five all_cards in
+    { player = name p
+    , points = hand_rank best
+    , breakdown = [{ category = hand_name best, points = hand_rank best }]
+    })
+
+fn best_five(cards: List Component) -> List Component =
+  combinations cards 5
+  |> sort_by (\combo -> hand_rank combo)
+  |> reverse
+  |> head
+  |> unwrap_or []
+
+fn hand_rank(cards: List Component) -> Int =
+  let ranks = cards |> map rank |> sort |> reverse in
+  let suits = cards |> map suit in
+  let is_flush = all_same suits in
+  let is_straight = consecutive ranks in
+    if is_flush and is_straight then 800 + max ranks
+    else if has_group ranks 4 then 700 + group_value ranks 4
+    else if has_group ranks 3 and has_group ranks 2 then
+      600 + group_value ranks 3 * 10 + group_value ranks 2
+    else if is_flush then 500 + max ranks
+    else if is_straight then 400 + max ranks
+    else if has_group ranks 3 then 300 + group_value ranks 3
+    else if count_groups ranks 2 >= 2 then 200 + max ranks
+    else if has_group ranks 2 then 100 + group_value ranks 2
+    else max ranks
+
+fn hand_name(cards: List Component) -> String =
+  let r = hand_rank cards in
+  if r >= 800 then "straight flush"
+  else if r >= 700 then "four of a kind"
+  else if r >= 600 then "full house"
+  else if r >= 500 then "flush"
+  else if r >= 400 then "straight"
+  else if r >= 300 then "three of a kind"
+  else if r >= 200 then "two pair"
+  else if r >= 100 then "one pair"
+  else "high card"

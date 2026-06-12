@@ -1,0 +1,42 @@
+type EndResult = { game_over: Bool, winner: String, condition: String }
+
+fn check_end(state: State) -> Option EndResult =
+  let board = zone state "board" in
+  let current = current_player state in
+  let opponent = other_player state current in
+    if in_check board current and no_legal_escape state board current then
+      Some { game_over = true
+           , winner = name opponent
+           , condition = "checkmate"
+           }
+    else if not (in_check board current) and no_legal_moves state board current then
+      Some { game_over = true
+           , winner = ""
+           , condition = "stalemate"
+           }
+    else None
+
+fn in_check(board: Zone, player: Player) -> Bool =
+  let king_pos = find_king board player in
+  opponent_pieces board player
+  |> any (\piece -> attacks board piece king_pos)
+
+fn find_king(board: Zone, player: Player) -> Cell =
+  components board
+  |> filter (\c -> type_of c == "king" and owner c == Some player)
+  |> head
+  |> map_opt position
+  |> flatten
+  |> unwrap_or (cell_at board 0 0 |> unwrap_or_default)
+
+fn opponent_pieces(board: Zone, player: Player) -> List Component =
+  components board
+  |> filter (\c -> owner c != Some player and is_some (owner c))
+
+-- delegates to the declarative engine's legal_moves
+-- then checks each one still results in check
+fn no_legal_escape(state: State, board: Zone, player: Player) -> Bool =
+  legal_moves_for state player |> all (\m -> still_in_check board player m)
+
+fn no_legal_moves(state: State, board: Zone, player: Player) -> Bool =
+  legal_moves_for state player |> length == 0

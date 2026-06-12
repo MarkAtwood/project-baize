@@ -1,0 +1,25 @@
+type Score = { player: String, points: Int, breakdown: List Entry }
+type Entry = { category: String, points: Int }
+
+fn score(state: State) -> List Score =
+  let board = zone state "board" in
+  players state |> map (\p ->
+    let territory = count_territory board p in
+    let captures = counter_value (zone_for state "captures" p) in
+    { player = name p
+    , points = territory + captures
+    , breakdown = [ { category = "territory", points = territory }
+                  , { category = "captures", points = captures }
+                  ]
+    })
+
+fn count_territory(board: Zone, player: Player) -> Int =
+  cells board
+  |> filter (\c -> is_none (cell_at board (col c) (row c)))
+  |> flood_groups board
+  |> filter (\group -> is_controlled_by board group player)
+  |> map size
+  |> sum
+
+fn is_controlled_by(board: Zone, group: Set Cell, player: Player) -> Bool =
+  border_owners board group == from_list [player]
