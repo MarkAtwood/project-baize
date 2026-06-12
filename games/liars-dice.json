@@ -1,0 +1,60 @@
+{
+  "$schema": "../schema/game-definition.schema.json",
+  "game": {
+    "name": "Liar's Dice",
+    "players": ["P1", "P2"],
+    "information": "imperfect"
+  },
+  "zones": {
+    "cup": {
+      "zone_type": "set",
+      "visibility": {"private": "owner"},
+      "per_player": true,
+      "note": "Each player's hidden dice, visible only to them."
+    }
+  },
+  "components": {
+    "die": {
+      "owner": "per_player",
+      "count": 5,
+      "properties": {
+        "faces": "6"
+      }
+    }
+  },
+  "turn_order": {
+    "type": "alternating",
+    "players": ["P1", "P2"],
+    "actions_per_turn": 1,
+    "mandatory": true
+  },
+  "library": {
+    "never": "false"
+  },
+  "rules": {
+    "roll": {
+      "action": "roll_dice",
+      "note": "Server rolls dice for each player at start of each round. Results are private."
+    },
+    "bid": {
+      "action": "declare_action",
+      "definition": "Claim a minimum quantity of a face value across all players' dice. Must raise quantity or face value over previous bid."
+    },
+    "challenge": {
+      "action": "declare_action",
+      "definition": "Challenge the current bid (dudo). All dice revealed. If bid is wrong, bidder loses a die. If bid is correct, challenger loses a die."
+    }
+  },
+  "end_conditions": [
+    {
+      "result": "win",
+      "player": "last_standing",
+      "condition": "never",
+      "name": "last_with_dice"
+    }
+  ],
+  "authority": {
+    "server_only": ["roll_dice"],
+    "client_verifiable": ["declare_action"]
+  }
+}
