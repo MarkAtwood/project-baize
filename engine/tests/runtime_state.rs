@@ -633,3 +633,308 @@ fn from_definition_valid_cells_filters_out_of_bounds() {
         panic!("board should be a Grid");
     }
 }
+
+// --- Graph zone tests ---
+//
+// Test graph: 5 nodes, 5 edges
+//   Nodes: A, B, C, D, E
+//   Edges: A-B, A-C, B-C, B-D, D-E
+
+fn graph_zone_def() -> GameDefinition {
+    serde_json::from_str(
+        r#"{
+        "game": { "name": "Graph Test", "players": ["P1", "P2"], "information": "perfect" },
+        "zones": {
+            "map": {
+                "zone_type": "graph",
+                "visibility": "public",
+                "nodes": ["A", "B", "C", "D", "E"],
+                "edges": [["A", "B"], ["A", "C"], ["B", "C"], ["B", "D"], ["D", "E"]]
+            }
+        },
+        "components": { "token": { "count": 10 } },
+        "turn_order": { "type": "alternating", "players": ["P1", "P2"] },
+        "end_conditions": [{ "result": "draw", "condition": "false" }],
+        "authority": { "server_only": [], "client_verifiable": ["all"] }
+    }"#,
+    )
+    .unwrap()
+}
+
+#[test]
+fn graph_construction_from_definition() {
+    let def = graph_zone_def();
+    let session = GameSession::new(def).unwrap();
+    let zone = session.runtime.zones.get("map").unwrap();
+
+    if let RuntimeZone::Graph { node_names, adjacency, .. } = zone {
+        assert_eq!(node_names.len(), 5);
+        assert_eq!(node_names, &["A", "B", "C", "D", "E"]);
+        // A (0) adjacent to B (1), C (2)
+        let mut a_adj = adjacency[0].clone();
+        a_adj.sort();
+        assert_eq!(a_adj, vec![1, 2]);
+        // B (1) adjacent to A (0), C (2), D (3)
+        let mut b_adj = adjacency[1].clone();
+        b_adj.sort();
+        assert_eq!(b_adj, vec![0, 2, 3]);
+        // E (4) adjacent to D (3) only
+        assert_eq!(adjacency[4], vec![3]);
+    } else {
+        panic!("map should be a Graph zone");
+    }
+}
+
+#[test]
+fn graph_get_empty_returns_none() {
+    let def = graph_zone_def();
+    let session = GameSession::new(def).unwrap();
+    let zone = session.runtime.zones.get("map").unwrap();
+
+    assert!(zone.graph_get("A").is_none());
+    assert!(zone.graph_get("E").is_none());
+}
+
+#[test]
+fn graph_set_and_get() {
+    let def = graph_zone_def();
+    let mut session = GameSession::new(def).unwrap();
+
+    let cid = session.runtime.components.insert(ComponentData {
+        id: ComponentId(0),
+        string_id: "token-0".into(),
+        component_type: "token".into(),
+        owner: None,
+        facing: None,
+        state: None,
+        properties: Default::default(),
+        span_cells: Vec::new(),
+        orientation: None,
+    }).unwrap();
+
+    let zone = session.runtime.zones.get_mut("map").unwrap();
+    zone.graph_set("B", Some(cid));
+    assert_eq!(zone.graph_get("B"), Some(cid));
+}
+
+#[test]
+fn graph_set_returns_previous() {
+    let def = graph_zone_def();
+    let mut session = GameSession::new(def).unwrap();
+
+    let c1 = session.runtime.components.insert(ComponentData {
+        id: ComponentId(0),
+        string_id: "token-0".into(),
+        component_type: "token".into(),
+        owner: None,
+        facing: None,
+        state: None,
+        properties: Default::default(),
+        span_cells: Vec::new(),
+        orientation: None,
+    }).unwrap();
+
+    let c2 = session.runtime.components.insert(ComponentData {
+        id: ComponentId(0),
+        string_id: "token-1".into(),
+        component_type: "token".into(),
+        owner: None,
+        facing: None,
+        state: None,
+        properties: Default::default(),
+        span_cells: Vec::new(),
+        orientation: None,
+    }).unwrap();
+
+    let zone = session.runtime.zones.get_mut("map").unwrap();
+    let prev1 = zone.graph_set("A", Some(c1));
+    assert!(prev1.is_none());
+
+    let prev2 = zone.graph_set("A", Some(c2));
+    assert_eq!(prev2, Some(c1));
+    assert_eq!(zone.graph_get("A"), Some(c2));
+}
+
+#[test]
+fn graph_unknown_node_returns_none() {
+    let def = graph_zone_def();
+    let mut session = GameSession::new(def).unwrap();
+    let zone = session.runtime.zones.get_mut("map").unwrap();
+
+    assert!(zone.graph_get("Z").is_none());
+    assert!(zone.graph_set("Z", Some(ComponentId(99))).is_none());
+}
+
+#[test]
+fn graph_neighbors() {
+    let def = graph_zone_def();
+    let session = GameSession::new(def).unwrap();
+    let zone = session.runtime.zones.get("map").unwrap();
+
+    // A -> [B, C]
+    let mut a_neigh: Vec<&str> = zone.graph_neighbors("A");
+    a_neigh.sort();
+    assert_eq!(a_neigh, vec!["B", "C"]);
+
+    // D -> [B, E]
+    let mut d_neigh: Vec<&str> = zone.graph_neighbors("D");
+    d_neigh.sort();
+    assert_eq!(d_neigh, vec!["B", "E"]);
+
+    // Unknown node -> empty
+    assert!(zone.graph_neighbors("Z").is_empty());
+}
+
+#[test]
+fn graph_count() {
+    let def = graph_zone_def();
+    let mut session = GameSession::new(def).unwrap();
+
+    // Empty graph
+    assert_eq!(session.runtime.zones.get("map").unwrap().count(), 0);
+
+    let c1 = session.runtime.components.insert(ComponentData {
+        id: ComponentId(0),
+        string_id: "token-0".into(),
+        component_type: "token".into(),
+        owner: None,
+        facing: None,
+        state: None,
+        properties: Default::default(),
+        span_cells: Vec::new(),
+        orientation: None,
+    }).unwrap();
+
+    let c2 = session.runtime.components.insert(ComponentData {
+        id: ComponentId(0),
+        string_id: "token-1".into(),
+        component_type: "token".into(),
+        owner: None,
+        facing: None,
+        state: None,
+        properties: Default::default(),
+        span_cells: Vec::new(),
+        orientation: None,
+    }).unwrap();
+
+    let c3 = session.runtime.components.insert(ComponentData {
+        id: ComponentId(0),
+        string_id: "token-2".into(),
+        component_type: "token".into(),
+        owner: None,
+        facing: None,
+        state: None,
+        properties: Default::default(),
+        span_cells: Vec::new(),
+        orientation: None,
+    }).unwrap();
+
+    let zone = session.runtime.zones.get_mut("map").unwrap();
+    zone.graph_set("A", Some(c1));
+    zone.graph_set("C", Some(c2));
+    zone.graph_set("E", Some(c3));
+    assert_eq!(zone.count(), 3);
+}
+
+#[test]
+fn graph_node_properties() {
+    let def: GameDefinition = serde_json::from_str(
+        r#"{
+        "game": { "name": "Graph Props", "players": ["P1", "P2"], "information": "perfect" },
+        "zones": {
+            "map": {
+                "zone_type": "graph",
+                "visibility": "public",
+                "nodes": ["A", "B", "C"],
+                "edges": [["A", "B"]],
+                "node_properties": {
+                    "A": { "color": "red", "value": 10 },
+                    "C": { "color": "blue" }
+                }
+            }
+        },
+        "components": { "token": { "count": 1 } },
+        "turn_order": { "type": "alternating", "players": ["P1", "P2"] },
+        "end_conditions": [{ "result": "draw", "condition": "false" }],
+        "authority": { "server_only": [], "client_verifiable": ["all"] }
+    }"#,
+    )
+    .unwrap();
+
+    let session = GameSession::new(def).unwrap();
+    let zone = session.runtime.zones.get("map").unwrap();
+
+    if let RuntimeZone::Graph { node_properties, name_to_index, .. } = zone {
+        // A (index 0) has color=red, value=10
+        let a_idx = name_to_index.get("A").unwrap();
+        let a_props = node_properties.get(a_idx).unwrap();
+        assert_eq!(a_props.get("color").unwrap(), &serde_json::json!("red"));
+        assert_eq!(a_props.get("value").unwrap(), &serde_json::json!(10));
+
+        // C (index 2) has color=blue
+        let c_idx = name_to_index.get("C").unwrap();
+        let c_props = node_properties.get(c_idx).unwrap();
+        assert_eq!(c_props.get("color").unwrap(), &serde_json::json!("blue"));
+
+        // B has no properties
+        let b_idx = name_to_index.get("B").unwrap();
+        assert!(node_properties.get(b_idx).is_none());
+    } else {
+        panic!("map should be a Graph zone");
+    }
+}
+
+#[test]
+fn graph_missing_nodes_errors() {
+    let result: std::result::Result<GameDefinition, _> = serde_json::from_str(
+        r#"{
+        "game": { "name": "No Nodes", "players": ["P1", "P2"], "information": "perfect" },
+        "zones": {
+            "map": {
+                "zone_type": "graph",
+                "visibility": "public"
+            }
+        },
+        "components": { "token": { "count": 1 } },
+        "turn_order": { "type": "alternating", "players": ["P1", "P2"] },
+        "end_conditions": [{ "result": "draw", "condition": "false" }],
+        "authority": { "server_only": [], "client_verifiable": ["all"] }
+    }"#,
+    );
+
+    // This may fail at deserialization or at session creation
+    match result {
+        Ok(def) => {
+            let session_result = GameSession::new(def);
+            assert!(session_result.is_err(), "should fail: graph zone requires nodes");
+        }
+        Err(_) => {
+            // Also acceptable: deserialization itself failed
+        }
+    }
+}
+
+#[test]
+fn graph_unknown_node_in_edge_errors() {
+    let def: GameDefinition = serde_json::from_str(
+        r#"{
+        "game": { "name": "Bad Edge", "players": ["P1", "P2"], "information": "perfect" },
+        "zones": {
+            "map": {
+                "zone_type": "graph",
+                "visibility": "public",
+                "nodes": ["A", "B"],
+                "edges": [["A", "Z"]]
+            }
+        },
+        "components": { "token": { "count": 1 } },
+        "turn_order": { "type": "alternating", "players": ["P1", "P2"] },
+        "end_conditions": [{ "result": "draw", "condition": "false" }],
+        "authority": { "server_only": [], "client_verifiable": ["all"] }
+    }"#,
+    )
+    .unwrap();
+
+    let result = GameSession::new(def);
+    assert!(result.is_err(), "should fail: unknown node Z in edge");
+}

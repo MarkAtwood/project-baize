@@ -2,7 +2,7 @@
 
 Ports the Rust structs from engine/src/runtime.rs:
   - ComponentId, ComponentData, ComponentTable
-  - RuntimeZone (Grid, OrderedStack, Set, SingleSlot, Counter, Track)
+  - RuntimeZone (Grid, OrderedStack, Set, SingleSlot, Counter, Track, Graph)
   - RuntimePlayer, RuntimeState
   - GameSession
 """
@@ -406,7 +406,46 @@ class TrackZone:
         return self.count() >= capacity
 
 
-RuntimeZone = GridZone | StackZone | SetZone | SlotZone | CounterZone | TrackZone
+@dataclass
+class GraphZone:
+    """Graph-based zone with named nodes and explicit edges."""
+
+    node_names: list[str]
+    name_to_index: dict[str, int]
+    adjacency: dict[int, list[int]]
+    occupants: list[ComponentId | None]
+    node_properties: dict[int, dict[str, str | int | bool]] = field(default_factory=dict)
+
+    def graph_get(self, node: str) -> ComponentId | None:
+        idx = self.name_to_index.get(node)
+        if idx is None:
+            return None
+        return self.occupants[idx]
+
+    def graph_set(self, node: str, component: ComponentId | None) -> ComponentId | None:
+        idx = self.name_to_index.get(node)
+        if idx is None:
+            return None
+        prev = self.occupants[idx]
+        self.occupants[idx] = component
+        return prev
+
+    def graph_neighbors(self, node: str) -> list[str]:
+        idx = self.name_to_index.get(node)
+        if idx is None:
+            return []
+        return [self.node_names[i] for i in self.adjacency.get(idx, [])]
+
+    def count(self) -> int:
+        return sum(1 for o in self.occupants if o is not None)
+
+    def is_full(self, capacity: Capacity | None) -> bool:
+        if capacity is None or capacity == "unlimited":
+            return False
+        return self.count() >= capacity
+
+
+RuntimeZone = GridZone | StackZone | SetZone | SlotZone | CounterZone | TrackZone | GraphZone
 
 
 def runtime_zone_from_definition(zone_def: Zone) -> RuntimeZone:
@@ -465,7 +504,34 @@ def runtime_zone_from_definition(zone_def: Zone) -> RuntimeZone:
             )
         return TrackZone(positions=[[] for _ in range(length)])
     if zt == "graph":
-        return SetZone()
+        nodes = zone_def.nodes
+        if nodes is None:
+            raise ValidationError("graph zone requires nodes")
+        name_to_index = {name: i for i, name in enumerate(nodes)}
+        adjacency: dict[int, list[int]] = {i: [] for i in range(len(nodes))}
+        if zone_def.edges is not None:
+            for edge in zone_def.edges:
+                a = name_to_index.get(edge[0])
+                b = name_to_index.get(edge[1])
+                if a is None:
+                    raise ValidationError(f"unknown node in edge: {edge[0]}")
+                if b is None:
+                    raise ValidationError(f"unknown node in edge: {edge[1]}")
+                adjacency[a].append(b)
+                adjacency[b].append(a)
+        node_props: dict[int, dict[str, str | int | bool]] = {}
+        if zone_def.node_properties is not None:
+            for name, props in zone_def.node_properties.items():
+                idx = name_to_index.get(name)
+                if idx is not None:
+                    node_props[idx] = dict(props)
+        return GraphZone(
+            node_names=list(nodes),
+            name_to_index=name_to_index,
+            adjacency=adjacency,
+            occupants=[None] * len(nodes),
+            node_properties=node_props,
+        )
     raise ValidationError(f"unknown zone type: {zt}")
 
 
@@ -718,5 +784,14 @@ class GameSession:
                             instances.append(comp.to_wire_instance())
                     positions[str(i)] = instances
             return TrackState(positions=positions)
+
+        if isinstance(zone, GraphZone):
+            components = []
+            for cid in zone.occupants:
+                if cid is not None:
+                    comp = self.runtime.components.get(cid)
+                    if comp is not None:
+                        components.append(comp.to_wire_instance())
+            return SetState(components=components)
 
         raise ValidationError(f"unknown zone type: {type(zone)}")

@@ -97,6 +97,18 @@ pub enum RuntimeZone {
     Track {
         positions: Vec<Vec<ComponentId>>,
     },
+    Graph {
+        /// Node names in order (index = node ID)
+        node_names: Vec<String>,
+        /// Map from node name to index
+        name_to_index: IndexMap<String, usize>,
+        /// Adjacency list: for each node index, the set of neighbor indices
+        adjacency: Vec<Vec<usize>>,
+        /// Per-node occupant (like grid cells)
+        occupants: Vec<Option<ComponentId>>,
+        /// Per-node properties (sparse)
+        node_properties: IndexMap<usize, IndexMap<String, serde_json::Value>>,
+    },
 }
 
 /// Per-player runtime state.
@@ -229,9 +241,43 @@ impl RuntimeZone {
                     positions: vec![Vec::new(); len],
                 })
             }
-            ZoneType::Graph => Ok(RuntimeZone::Set {
-                components: Vec::new(),
-            }),
+            ZoneType::Graph => {
+                let nodes = zone_def.nodes.as_ref().ok_or_else(|| {
+                    BaizeError::Validation("graph zone requires nodes".into())
+                })?;
+                let mut name_to_index = IndexMap::new();
+                for (i, name) in nodes.iter().enumerate() {
+                    name_to_index.insert(name.clone(), i);
+                }
+                let mut adjacency = vec![Vec::new(); nodes.len()];
+                if let Some(ref edges) = zone_def.edges {
+                    for edge in edges {
+                        let a = *name_to_index.get(&edge[0]).ok_or_else(|| {
+                            BaizeError::Validation(format!("unknown node in edge: {}", edge[0]))
+                        })?;
+                        let b = *name_to_index.get(&edge[1]).ok_or_else(|| {
+                            BaizeError::Validation(format!("unknown node in edge: {}", edge[1]))
+                        })?;
+                        adjacency[a].push(b);
+                        adjacency[b].push(a); // undirected
+                    }
+                }
+                let mut node_props = IndexMap::new();
+                if let Some(ref np) = zone_def.node_properties {
+                    for (name, props) in np {
+                        if let Some(&idx) = name_to_index.get(name) {
+                            node_props.insert(idx, props.clone());
+                        }
+                    }
+                }
+                Ok(RuntimeZone::Graph {
+                    node_names: nodes.clone(),
+                    name_to_index,
+                    adjacency,
+                    occupants: vec![None; nodes.len()],
+                    node_properties: node_props,
+                })
+            }
         }
     }
 
@@ -245,6 +291,7 @@ impl RuntimeZone {
             RuntimeZone::SingleSlot { component } => usize::from(component.is_some()),
             RuntimeZone::Counter { .. } => 0,
             RuntimeZone::Track { positions } => positions.iter().map(|p| p.len()).sum(),
+            RuntimeZone::Graph { occupants, .. } => occupants.iter().filter(|o| o.is_some()).count(),
         }
     }
 
@@ -506,6 +553,52 @@ impl RuntimeZone {
         }
         false
     }
+
+    // --- Graph helpers ---
+
+    /// Get occupant at a named graph node.
+    pub fn graph_get(&self, node: &str) -> Option<ComponentId> {
+        match self {
+            RuntimeZone::Graph { name_to_index, occupants, .. } => {
+                let idx = *name_to_index.get(node)?;
+                occupants.get(idx).copied().flatten()
+            }
+            _ => None,
+        }
+    }
+
+    /// Set occupant at a named graph node. Returns previous occupant.
+    pub fn graph_set(
+        &mut self,
+        node: &str,
+        component: Option<ComponentId>,
+    ) -> Option<ComponentId> {
+        match self {
+            RuntimeZone::Graph { name_to_index, occupants, .. } => {
+                let idx = *name_to_index.get(node)?;
+                let prev = occupants.get(idx).copied().flatten();
+                if let Some(slot) = occupants.get_mut(idx) {
+                    *slot = component;
+                }
+                prev
+            }
+            _ => None,
+        }
+    }
+
+    /// Get neighbor node names for a graph node.
+    pub fn graph_neighbors(&self, node: &str) -> Vec<&str> {
+        match self {
+            RuntimeZone::Graph { name_to_index, adjacency, node_names, .. } => {
+                if let Some(&idx) = name_to_index.get(node) {
+                    adjacency[idx].iter().map(|&i| node_names[i].as_str()).collect()
+                } else {
+                    Vec::new()
+                }
+            }
+            _ => Vec::new(),
+        }
+    }
 }
 
 // --- GameSession ---
@@ -752,6 +845,18 @@ impl GameSession {
                 ZoneState::Track {
                     positions: wire_positions,
                 }
+            }
+            RuntimeZone::Graph { node_names, occupants, .. } => {
+                let mut wire_cells = IndexMap::new();
+                for (i, name) in node_names.iter().enumerate() {
+                    if let Some(Some(cid)) = occupants.get(i) {
+                        if let Some(data) = self.runtime.components.get(*cid) {
+                            wire_cells
+                                .insert(name.clone(), CellContents::Single(data.to_wire_instance()));
+                        }
+                    }
+                }
+                ZoneState::Grid { cells: wire_cells, cell_properties: None }
             }
         }
     }
