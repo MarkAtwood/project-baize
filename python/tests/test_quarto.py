@@ -581,43 +581,22 @@ class TestQuartoDraw:
         """Fill all 16 cells with no quarto line; game is a draw.
 
         Strategy: arrange pieces so every row, column, and diagonal has
-        mixed values for all 4 properties. We use a known draw arrangement.
+        mixed values for all 4 properties. Layout found by random search
+        with seed=42, verified exhaustively below.
 
         Board layout (indices into ALL_PIECES):
-          Row 0: 0,  9,  6, 15
-          Row 1: 5, 12,  3, 10
-          Row 2: 10, 3, 12,  5
-          Row 3: 15, 6,  9,  0
-
-        Wait, we can't reuse indices. Let me construct a valid draw board.
-
-        Each piece is unique, so we need a 4x4 Latin-square-like arrangement
-        where no row, column, or diagonal has all 4 sharing any property.
-
-        Using the encoding: piece index = 8*h + 4*c + 2*s + t where
-        h=height(0=tall,1=short), c=color(0=dark,1=light),
-        s=shape(0=round,1=square), t=top(0=hollow,1=solid).
-
-        Board arrangement (piece indices):
-          Row 0:  0,  5, 10, 15   (TDRH, TLSH, SLRS, SSLS) -- wait, verify
+          Row 0:  2,  9,  6,  5
+          Row 1: 13,  7,  8, 11
+          Row 2:  4, 14,  1, 15
+          Row 3: 10,  3,  0, 12
         """
         game = QuartoGame()
 
-        # Construct a draw board. Use a Graeco-Latin square approach.
-        # Piece index encodes: bit3=height, bit2=color, bit1=shape, bit0=top
-        # We want each row/col/diag to have mixed values for all properties.
-
-        # This arrangement works (verified below):
-        #   Row 0: pieces  0,  5, 11, 14
-        #   Row 1: pieces  7,  2, 12,  9
-        #   Row 2: pieces 13,  8,  6,  3
-        #   Row 3: pieces 10, 15,  1,  4
-
         board_layout = [
-            [0,  5, 11, 14],
-            [7,  2, 12,  9],
-            [13, 8,  6,  3],
-            [10, 15, 1,  4],
+            [2,  9,  6,  5],
+            [13, 7,  8, 11],
+            [4, 14,  1, 15],
+            [10, 3,  0, 12],
         ]
 
         # Verify: each row, column, and diagonal has no unanimous property
@@ -750,58 +729,49 @@ class TestQuartoEdgeCases:
     def test_win_on_last_piece(self) -> None:
         """Quarto detected when the 16th piece completes a line.
 
-        Use a layout where the first 15 pieces create no quarto,
-        and the 16th completes a quarto line.
+        Layout found by constrained search: rows 0-2 are safe (mixed properties
+        in all lines), row 3 contains 4 tall pieces. Columns and diagonals are
+        also safe when all 16 are placed. The 16th piece (index 3 at (3,3))
+        completes row 3's quarto on height=tall.
+
+        Board layout:
+          Row 0: 11,  9,  6, 12
+          Row 1: 13, 10, 15,  7
+          Row 2:  8,  4,  5, 14
+          Row 3:  0,  1,  2,  3   (all tall)
         """
         game = QuartoGame()
 
-        # Place 12 pieces in rows 0-2 with no quarto (mixed properties per row).
-        # Then place 3 pieces in row 3 with no quarto yet, then the 4th makes a quarto.
-
-        # Rows 0-2: same layout as the draw test
-        safe_rows = [
-            [0,  5, 11, 14],
-            [7,  2, 12,  9],
-            [13, 8,  6,  3],
+        board_layout = [
+            [11, 9,  6, 12],
+            [13, 10, 15, 7],
+            [8,  4,  5, 14],
+            [0,  1,  2,  3],
         ]
 
-        # Verify rows 0-2 are safe
-        for row_pieces in safe_rows:
-            for key in PROPERTIES:
-                vals = {ALL_PIECES[i][key] for i in row_pieces}
-                assert len(vals) == 2
+        # Verify row 3 shares height=tall
+        for idx in board_layout[3]:
+            assert ALL_PIECES[idx]["height"] == "tall"
 
-        for row_idx, row_pieces in enumerate(safe_rows):
-            for col_idx, piece_idx in enumerate(row_pieces):
-                game.select(piece_idx)
-                game.place(col_idx, row_idx)
+        # Play rows 0-2 plus first 3 of row 3 (15 pieces total)
+        flat = []
+        for r in range(4):
+            for c in range(4):
+                flat.append((c, r, board_layout[r][c]))
 
+        for i, (c, r, piece_idx) in enumerate(flat[:15]):
+            game.select(piece_idx)
+            game.place(c, r)
+
+        # After 15 pieces, no quarto yet
+        assert not game.finished
         assert not has_quarto(game)
 
-        # Remaining pieces: {10, 15, 1, 4}
-        remaining = sorted(game.available)
-        assert remaining == [1, 4, 10, 15]
+        # Place the 16th piece — completes row 3 quarto
+        c16, r16, p16 = flat[15]
+        game.select(p16)
+        game.place(c16, r16)
 
-        # Row 3 will get pieces: 10, 15, 1, 4
-        # Check if this row produces a quarto:
-        row3_pieces = [10, 15, 1, 4]
-        for key in PROPERTIES:
-            vals = {ALL_PIECES[i][key] for i in row3_pieces}
-            if len(vals) == 1:
-                # This row shares a property -> quarto on 4th piece
-                break
-
-        # Place first 3 pieces of row 3
-        for i in range(3):
-            game.select(row3_pieces[i])
-            game.place(i, 3)
-
-        # Check columns and diagonals after 15 pieces
-        quarto_before = has_quarto(game)
-
-        # Place the 16th piece
-        game.select(row3_pieces[3])
-        game.place(3, 3)
-
-        # The game should be finished (either win or draw)
         assert game.finished
+        assert has_quarto(game)
+        assert game.winner_name is not None
