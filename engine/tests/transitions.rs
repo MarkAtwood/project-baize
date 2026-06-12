@@ -4,6 +4,7 @@ use baize_engine::state::GameStatus;
 use baize_engine::transition::{apply_action, EventType};
 use baize_engine::GameDefinition;
 use indexmap::IndexMap;
+use sha2::{Digest, Sha256};
 
 fn tic_tac_toe_session() -> GameSession {
     let def: GameDefinition = serde_json::from_str(
@@ -551,4 +552,163 @@ fn fire_duplicate_rejected() {
     session.runtime.turn_index = 0;
     let result = apply_action(&mut session, &fire_action(0, 0));
     assert!(result.is_err());
+}
+
+// ---------------------------------------------------------------------------
+// Commit-reveal protocol (constant-time hash comparison)
+// ---------------------------------------------------------------------------
+
+fn make_commitment(choice: &str, nonce: &str) -> String {
+    format!("{:x}", Sha256::digest(format!("{choice}|{nonce}").as_bytes()))
+}
+
+fn commit_action(hash: &str) -> Action {
+    Action {
+        action_type: ActionType::Commit,
+        authority: None,
+        component_id: None,
+        component_type: None,
+        from: None,
+        to: None,
+        zone: None,
+        count: None,
+        promote_to: None,
+        orientation: None,
+        rotation: None,
+        amount: None,
+        side: None,
+        dice_count: None,
+        dice_type: None,
+        swap_with: None,
+        declaration: Some(hash.to_string()),
+        commitment: None,
+        custom_data: None,
+    }
+}
+
+fn reveal_action(choice: &str, nonce: &str) -> Action {
+    Action {
+        action_type: ActionType::Reveal,
+        authority: None,
+        component_id: None,
+        component_type: None,
+        from: None,
+        to: None,
+        zone: None,
+        count: None,
+        promote_to: None,
+        orientation: None,
+        rotation: None,
+        amount: None,
+        side: None,
+        dice_count: None,
+        dice_type: None,
+        swap_with: None,
+        declaration: Some(choice.to_string()),
+        commitment: Some(nonce.to_string()),
+        custom_data: None,
+    }
+}
+
+#[test]
+fn commit_reveal_correct_hash_accepted() {
+    let mut session = tic_tac_toe_session();
+    session.runtime.status = GameStatus::InProgress;
+
+    let nonce = "test_nonce_42";
+    let hash = make_commitment("rock", nonce);
+
+    // Commit (player X, turn_index=0)
+    let events = apply_action(&mut session, &commit_action(&hash)).unwrap();
+    assert!(events.iter().any(|e| e.event_type == EventType::Commit));
+    assert_eq!(session.runtime.pending_commits.get("X").unwrap(), &hash);
+
+    // Reset turn to X so the reveal is for the same player who committed
+    session.runtime.turn_index = 0;
+
+    // Reveal with correct value and nonce
+    let events = apply_action(&mut session, &reveal_action("rock", nonce)).unwrap();
+    assert!(events.iter().any(|e| e.event_type == EventType::Reveal));
+    assert!(!session.runtime.pending_commits.contains_key("X"));
+}
+
+#[test]
+fn commit_reveal_wrong_value_rejected() {
+    let mut session = tic_tac_toe_session();
+    session.runtime.status = GameStatus::InProgress;
+
+    let nonce = "nonce_abc";
+    let hash = make_commitment("rock", nonce);
+    apply_action(&mut session, &commit_action(&hash)).unwrap();
+
+    // Reset turn to X
+    session.runtime.turn_index = 0;
+
+    // Wrong choice — must be rejected
+    let result = apply_action(&mut session, &reveal_action("paper", nonce));
+    assert!(result.is_err());
+    assert!(result
+        .unwrap_err()
+        .to_string()
+        .contains("commitment verification failed"));
+}
+
+#[test]
+fn commit_reveal_wrong_nonce_rejected() {
+    let mut session = tic_tac_toe_session();
+    session.runtime.status = GameStatus::InProgress;
+
+    let hash = make_commitment("scissors", "correct_nonce");
+    apply_action(&mut session, &commit_action(&hash)).unwrap();
+
+    // Reset turn to X
+    session.runtime.turn_index = 0;
+
+    let result = apply_action(&mut session, &reveal_action("scissors", "wrong_nonce"));
+    assert!(result.is_err());
+    assert!(result
+        .unwrap_err()
+        .to_string()
+        .contains("commitment verification failed"));
+}
+
+#[test]
+fn commit_reveal_near_miss_hash_rejected() {
+    // Verify that a hash differing by a single character is rejected.
+    // This exercises the constant-time comparison path: the near-miss
+    // hash matches in all but one position.
+    let mut session = tic_tac_toe_session();
+    session.runtime.status = GameStatus::InProgress;
+
+    let nonce = "near_miss_nonce";
+    let correct_hash = make_commitment("rock", nonce);
+
+    // Tamper: flip the last hex digit
+    let mut tampered = correct_hash.clone();
+    let last = tampered.pop().unwrap();
+    let flipped = if last == '0' { '1' } else { '0' };
+    tampered.push(flipped);
+    assert_ne!(correct_hash, tampered);
+    // Only 1 character differs
+    assert_eq!(
+        correct_hash
+            .chars()
+            .zip(tampered.chars())
+            .filter(|(a, b)| a != b)
+            .count(),
+        1
+    );
+
+    // Commit with the tampered hash, reveal with correct preimage
+    apply_action(&mut session, &commit_action(&tampered)).unwrap();
+
+    // Reset turn to X
+    session.runtime.turn_index = 0;
+
+    let result = apply_action(&mut session, &reveal_action("rock", nonce));
+    assert!(result.is_err());
+    assert!(result
+        .unwrap_err()
+        .to_string()
+        .contains("commitment verification failed"));
 }

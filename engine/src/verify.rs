@@ -5,6 +5,8 @@
 
 use std::io::BufRead;
 
+use subtle::ConstantTimeEq;
+
 use crate::error::BaizeError;
 
 /// The genesis hash: 64 hex zero characters.
@@ -118,9 +120,9 @@ pub fn verify_event_log(reader: impl BufRead) -> Result<VerifyResult, BaizeError
             .and_then(|v| v.as_str())
             .unwrap_or("");
 
-        // Check genesis prev_hash
+        // Check genesis prev_hash (constant-time to prevent timing side-channels)
         if i == 0 {
-            if prev_hash != GENESIS_HASH {
+            if prev_hash.as_bytes().ct_eq(GENESIS_HASH.as_bytes()).unwrap_u8() != 1 {
                 return Ok(VerifyResult {
                     valid: false,
                     events_checked: 0,
@@ -134,7 +136,7 @@ pub fn verify_event_log(reader: impl BufRead) -> Result<VerifyResult, BaizeError
                 .get("event_hash")
                 .and_then(|v| v.as_str())
                 .unwrap_or("");
-            if prev_hash != expected_prev {
+            if prev_hash.as_bytes().ct_eq(expected_prev.as_bytes()).unwrap_u8() != 1 {
                 return Ok(VerifyResult {
                     valid: false,
                     events_checked: i,
@@ -152,7 +154,7 @@ pub fn verify_event_log(reader: impl BufRead) -> Result<VerifyResult, BaizeError
             .get("event_hash")
             .and_then(|v| v.as_str())
             .unwrap_or("");
-        if actual_hash != expected_hash {
+        if actual_hash.as_bytes().ct_eq(expected_hash.as_bytes()).unwrap_u8() != 1 {
             return Ok(VerifyResult {
                 valid: false,
                 events_checked: i,

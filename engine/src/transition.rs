@@ -762,6 +762,7 @@ fn execute_action(
         }
         ActionType::Reveal => {
             use sha2::{Digest, Sha256};
+            use subtle::ConstantTimeEq;
 
             let stored = session
                 .runtime
@@ -781,7 +782,8 @@ fn execute_action(
             })?;
             let preimage = format!("{value}|{nonce}");
             let actual = format!("{:x}", Sha256::digest(preimage.as_bytes()));
-            if actual != stored {
+            // Constant-time comparison to prevent timing side-channel attacks
+            if actual.as_bytes().ct_eq(stored.as_bytes()).unwrap_u8() != 1 {
                 return Err(BaizeError::IllegalAction(format!(
                     "commitment verification failed: SHA-256({value}|<nonce>) != stored hash"
                 )));
