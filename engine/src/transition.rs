@@ -4,8 +4,8 @@ use crate::action::{Action, ActionType, Position};
 use crate::end_conditions::check_end_conditions;
 use crate::error::{BaizeError, Result};
 use crate::runtime::{
-    ComponentData, ComponentId, GameSession, MAX_EVENTS_PER_GAME, MAX_STATE_SIZE_BYTES,
-    STATE_SIZE_CHECK_INTERVAL,
+    ComponentData, ComponentId, GameSession, RuntimeZone, MAX_EVENTS_PER_GAME,
+    MAX_STATE_SIZE_BYTES, STATE_SIZE_CHECK_INTERVAL,
 };
 use crate::state::GameStatus;
 
@@ -515,7 +515,11 @@ fn execute_action(
             // Add to the player's first per-player zone (hand)
             if let Some(player_state) = session.runtime.players.get_mut(player) {
                 if let Some(hand) = player_state.zones.values_mut().next() {
-                    hand.stack_push(cid);
+                    match hand {
+                        RuntimeZone::OrderedStack { .. } => hand.stack_push(cid),
+                        RuntimeZone::Set { .. } => hand.set_add(cid),
+                        _ => {}
+                    }
                 }
             }
 

@@ -820,29 +820,27 @@ class TestIntegration:
         g.build_settlement("red", "v0", setup=True)
 
         # Red has lots of wood but needs sheep
-        g.give_resource("red", "wood", 5)
-        g.give_resource("red", "brick", 2)
+        g.give_resource("red", "wood", 8)
+        g.give_resource("red", "brick", 3)
         g.give_resource("red", "wheat", 1)
         assert g.count_resource("red", "sheep") == 0
 
         # Trade 4 wood for 1 sheep
         g.bank_trade("red", "wood", "sheep")
         assert g.count_resource("red", "sheep") == 1
-        assert g.count_resource("red", "wood") == 1
+        assert g.count_resource("red", "wood") == 4
 
-        # Now has: 1 wood, 2 brick, 1 sheep, 1 wheat
-        # Build road v0->v6 (1 wood + 1 brick)
+        # Now has: 4 wood, 3 brick, 1 sheep, 1 wheat
+        # Build road v0->v6 (1 wood + 1 brick) => 3 wood, 2 brick, 1 sheep, 1 wheat
         g.build_road("red", "v0", "v6")
-        # Build road v6->v12 (need more resources)
-        g.give_resource("red", "wood", 1)
-        g.give_resource("red", "brick", 1)
+        # Build road v6->v12 (1 wood + 1 brick) => 2 wood, 1 brick, 1 sheep, 1 wheat
         g.build_road("red", "v6", "v12")
 
-        # Now settle at v12
-        g.give_resource("red", "wood", 1)
-        g.give_resource("red", "sheep", 1)
+        # Settle at v12 (1 wood + 1 brick + 1 sheep + 1 wheat) => 1 wood, 0 brick, 0 sheep, 0 wheat
         g.build_settlement("red", "v12")
         assert g.vp("red") == 2
+        assert g.count_resource("red", "wood") == 1
+        assert g.count_resource("red", "brick") == 0
 
     def test_both_players_independent_hands(self) -> None:
         """Each player's hand is tracked independently."""
