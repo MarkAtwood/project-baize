@@ -16,5 +16,9 @@ path = "src/lib.rs"
 
 [dependencies]
 logos = "0.16"
+wasm-encoder = "0.225"
 ariadne = "0.5"
 clap = { version = "4", features = ["derive"] }
+
+[dev-dependencies]
+wasmtime = "29"
