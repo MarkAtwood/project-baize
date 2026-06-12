@@ -491,6 +491,7 @@ class RuntimeState:
     players: dict[str, RuntimePlayer] = field(default_factory=dict)
     counters: dict[str, int] = field(default_factory=dict)
     pending_commits: dict[str, str] = field(default_factory=dict)
+    simultaneous_actions: dict[str, dict[str, Any]] = field(default_factory=dict)
     history_hashes: list[str] = field(default_factory=list)
     result: GameResult | None = None
 
@@ -629,6 +630,11 @@ class GameSession:
             pending_commits=(
                 dict(self.runtime.pending_commits)
                 if self.runtime.pending_commits
+                else None
+            ),
+            simultaneous_actions=(
+                dict(self.runtime.simultaneous_actions)
+                if self.runtime.simultaneous_actions
                 else None
             ),
             history_hash=(

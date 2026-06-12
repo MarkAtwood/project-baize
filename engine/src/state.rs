@@ -27,6 +27,8 @@ pub struct GameState {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub pending_commits: Option<IndexMap<String, String>>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub simultaneous_actions: Option<IndexMap<String, serde_json::Value>>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub history_hash: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub timestamp: Option<String>,

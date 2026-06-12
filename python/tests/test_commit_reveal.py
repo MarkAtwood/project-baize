@@ -26,8 +26,6 @@ from baize.runtime import ComponentData, ComponentId, GameSession, GridZone
 # Helpers
 # ---------------------------------------------------------------------------
 
-_GAME_PATH = Path(__file__).parent.parent.parent / "games" / "rock-paper-scissors.json"
-
 GestureType = Literal["rock", "paper", "scissors"]
 
 BEATS: dict[GestureType, GestureType] = {
@@ -38,7 +36,13 @@ BEATS: dict[GestureType, GestureType] = {
 
 
 def _load_rps() -> GameDefinition:
-    return GameDefinition.from_json(_GAME_PATH.read_text())
+    """Load RPS without the simultaneous phase (commit-reveal replaces it)."""
+    import json
+
+    path = Path(__file__).parent.parent.parent / "games" / "rock-paper-scissors.json"
+    data = json.loads(path.read_text())
+    data.pop("phases", None)  # remove simultaneous phase for commit-reveal tests
+    return GameDefinition.from_json(json.dumps(data))
 
 
 def _make_commitment(choice: str, nonce: str) -> str:
