@@ -795,14 +795,15 @@ exactly what trust services the game requires.
 
 ## Implementation Status
 
-Three reference implementations share the same schema and cross-validate
-via test vectors in `tests/vectors/`:
+Five components share the same schema and cross-validate via test vectors
+in `tests/vectors/`:
 
 | Component | Language | Tests | Key capabilities |
 |-----------|----------|-------|-----------------|
-| `engine/` | Rust (serde, blake3, indexmap) | 153 | Parse/validate definitions, runtime state machine, legal move generation (step/slide/leap/hop), state transitions, CEL end conditions, perturber effects (cycle, remove, flip, promote, counters), BLAKE3 hash-chained event logs, tamper detection, visibility filtering |
-| `python/` | Python 3.12 (dataclasses, strict mypy) | 259 | Feature-parallel with Rust engine, plus terminal CLI client, game analysis (branching factor, complexity profile, shortest game search), Jupyter notebook integration (SVG board rendering, interactive `GameWidget`), agent framework (Random/Greedy/MCTS) |
-| `server/` | Rust (Axum, tokio, WebSocket) | 31 | Room management, WebSocket protocol dispatch, hidden-state vault (ChaCha20Rng), token auth with reconnection, rate limiting, per-IP connection limits, spectator isolation, persistence (FileStore) |
+| `engine/` | Rust (serde, blake3, indexmap) | 329 | Parse/validate definitions, runtime state machine, legal move generation (step/slide/leap/hop), state transitions, CEL end conditions, perturber effects (cycle, remove, flip, promote, counters), BLAKE3 hash-chained event logs, tamper detection, visibility filtering |
+| `python/` | Python 3.12 (dataclasses, strict mypy) | 3635 | Feature-parallel with Rust engine, plus terminal CLI client, game analysis (branching factor, complexity profile, shortest game search), Jupyter notebook integration (SVG board rendering, interactive `GameWidget`), agent framework (Random/Greedy/MCTS) |
+| `server/` | Rust (Axum, tokio, WebSocket) | 130 | Room management, WebSocket protocol dispatch, hidden-state vault (ChaCha20Rng), token auth with reconnection, rate limiting, per-IP connection limits, spectator isolation, persistence (FileStore) |
+| `felt/` | Rust (game compiler) | 127 | Felt-to-JSON compiler for game definitions |
 | `client/` | TypeScript | Types only | Full type definitions for all five JSON schemas; Web Components (`<baize-game>`, `<baize-board>`) |
 
 Five JSON Schema definitions (draft 2020-12) in `schema/`:
@@ -813,8 +814,9 @@ Five JSON Schema definitions (draft 2020-12) in `schema/`:
 - `event-log.schema.json` — BLAKE3 hash-chained event log format
 - `component-registry.schema.json` — Reusable component definitions
 
-Seven reference game definitions in `games/`: Tic-Tac-Toe, Chess, Go,
-Backgammon, Naval Battle, Texas Hold'em, Tile Kingdoms. 49 reusable component
+Fifty-eight reference game definitions in `games/`, ranging from Tic-Tac-Toe
+and Checkers through Chess, Go, Mahjong, poker variants, hex wargames, and
+more. 49 reusable component
 definitions in `registry/` (card decks, dice, piece sets, boards, tiles,
 tokens).
 

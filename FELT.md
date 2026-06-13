@@ -482,6 +482,7 @@ types without any declaration.
 | `components : Zone -> List Component` | All components in zone |
 | `cells : Zone -> List Cell` | All cells in zone |
 | `cell_at : Zone -> Int -> Int -> Option Component` | Component at (col, row) |
+| `cell_property : Zone -> Int -> Int -> String -> String` | Cell property value (empty string if not set) |
 | `count : Zone -> Int` | Component count |
 | `counter_value : Zone -> Int` | Counter zone value |
 
@@ -594,6 +595,7 @@ types without any declaration.
 | `phase : State -> String` | Current phase name |
 | `counters : State -> Map String Int` | Global counters |
 | `is_finished : State -> Bool` | Game over? |
+| `word_valid : State -> String -> String -> Bool` | Check word in named word list resource |
 
 ### Tuple Operations
 
@@ -1398,6 +1400,11 @@ fn no_legal_escape(state: State, board: Zone, player: Player) -> Bool =
 fn no_legal_moves(state: State, board: Zone, player: Player) -> Bool =
   legal_moves_for state player |> length == 0
 ```
+
+Additional examples in the repository: `wargame.felt` (combat
+resolution with terrain queries via `cell_property`), `crt.felt`
+(combat results table lookup), and `zoc.felt` (zone of control
+calculations using `flood_fill` and adjacency).
 
 ---
 
