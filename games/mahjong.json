@@ -249,6 +249,18 @@
       "point_transfer"
     ]
   },
+  "triggers": {
+    "on_discard": {
+      "on_action": "discard",
+      "claim_window": {
+        "eligible": "all_except_current",
+        "actions": ["chi", "pon", "kan", "ron"],
+        "priority": ["ron", "kan", "pon", "chi"],
+        "timeout": 10,
+        "default": "pass"
+      }
+    }
+  },
   "wasm_module": "mahjong_scoring.wasm",
   "notation": {
     "piece_symbols": {

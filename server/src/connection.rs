@@ -9,6 +9,7 @@ use rand::Rng;
 use tokio::sync::Mutex;
 
 use baize_engine::action::{Hello, PROTOCOL_VERSION};
+use baize_engine::transition::apply_claim;
 use baize_engine::visibility::filter_for_viewer_with_fog;
 
 use crate::config;
@@ -241,14 +242,40 @@ async fn handle_socket(
 
     let (seat, mut outbound_rx) = join_result;
 
+    // Local mirror of the room's claim deadline so we can drive
+    // the select! branch without locking the room every iteration.
+    let mut local_claim_deadline: Option<tokio::time::Instant> = None;
+
     // Main select loop with idle timeout
     loop {
+        // Build a future that fires at the claim deadline (or never).
+        let claim_sleep = async {
+            match local_claim_deadline {
+                Some(deadline) => tokio::time::sleep_until(deadline).await,
+                None => std::future::pending().await,
+            }
+        };
+
         tokio::select! {
             // Outbound: forward queued messages to the WebSocket
             Some(msg) = outbound_rx.recv() => {
                 if socket.send(Message::Text(msg.into())).await.is_err() {
                     break;
                 }
+            }
+
+            // Claim window timeout: auto-submit defaults for non-respondents
+            () = claim_sleep => {
+                local_claim_deadline = None;
+                let mut room_guard = room.lock().await;
+
+                // Another connection may have already resolved the window
+                if room_guard.claim_deadline.is_some()
+                    && room_guard.session.runtime.claim_window.is_some()
+                {
+                    handle_claim_timeout(&mut room_guard);
+                }
+                room_guard.claim_deadline = None;
             }
 
             // Inbound: read from the WebSocket with idle timeout
@@ -330,6 +357,25 @@ async fn handle_socket(
                             HandleResult::Error(err_json) => {
                                 room::send_to_player(&room_guard, &seat, &err_json);
                             }
+                        }
+
+                        // After processing, check if a claim window was opened
+                        // and set deadline if not already set
+                        if room_guard.session.runtime.claim_window.is_some()
+                            && room_guard.claim_deadline.is_none()
+                        {
+                            let timeout_secs = claim_timeout_secs(&room_guard);
+                            let deadline = tokio::time::Instant::now()
+                                + Duration::from_secs(timeout_secs);
+                            room_guard.claim_deadline = Some(deadline);
+                            local_claim_deadline = Some(deadline);
+                        } else if room_guard.session.runtime.claim_window.is_none() {
+                            // Window was resolved (possibly by this claim)
+                            room_guard.claim_deadline = None;
+                            local_claim_deadline = None;
+                        } else {
+                            // Sync local deadline with room (another conn may have set it)
+                            local_claim_deadline = room_guard.claim_deadline;
                         }
                     }
 
@@ -473,6 +519,95 @@ pub async fn list_rooms_handler(
     }
 
     Json(rooms)
+}
+
+/// Compute the claim timeout for a room, checking the game definition's
+/// trigger-specific timeout first, then falling back to the server default.
+fn claim_timeout_secs(room: &Room) -> u64 {
+    if let Some(ref window) = room.session.runtime.claim_window {
+        if let Some(trigger_def) = room.session.definition.triggers.get(&window.trigger_name) {
+            if let Some(timeout) = trigger_def.claim_window.timeout {
+                return timeout as u64;
+            }
+        }
+    }
+    config::DEFAULT_CLAIM_TIMEOUT_SECS
+}
+
+/// Handle claim window timeout: submit default claims for all non-respondent
+/// eligible players, then broadcast the resolved state.
+///
+/// Precondition: caller must hold the room lock and verify that
+/// `claim_window` is `Some` before calling.
+fn handle_claim_timeout(room: &mut Room) {
+    let game_id = room.id.clone();
+
+    // Collect non-respondent players and the default claim
+    let (pending_players, default_claim) = {
+        // claim_window verified present by caller
+        let window = room.session.runtime.claim_window.as_ref()
+            .expect("handle_claim_timeout called without active claim window");
+        let pending: Vec<String> = window
+            .eligible_players
+            .iter()
+            .filter(|p| !window.submitted_claims.contains_key(p.as_str()))
+            .cloned()
+            .collect();
+        (pending, window.default_claim.clone())
+    };
+
+    if pending_players.is_empty() {
+        return;
+    }
+
+    eprintln!(
+        "claim window timeout in room '{game_id}': auto-submitting '{default_claim}' \
+         for {} non-respondent player(s)",
+        pending_players.len()
+    );
+
+    // Submit default claims for each non-respondent
+    for player in &pending_players {
+        match apply_claim(&mut room.session, player, &default_claim) {
+            Ok(_events) => {}
+            Err(e) => {
+                // Should not happen: default claim is always valid
+                eprintln!(
+                    "[error] failed to auto-submit default claim for \
+                     player '{player}' in room '{game_id}': {e}"
+                );
+                break;
+            }
+        }
+    }
+
+    // Broadcast resolved state to all connected players
+    if room.session.runtime.claim_window.is_none() {
+        let wire_state = room.session.to_wire_state();
+        let definition = &room.session.definition;
+
+        for (seat_name, conn) in &room.players {
+            let filtered = filter_for_viewer_with_fog(
+                &wire_state,
+                seat_name,
+                definition,
+                Some(&room.session.runtime.zones),
+            );
+            let sync_msg = serde_json::json!({
+                "message_type": "state_sync",
+                "game_id": game_id,
+                "sequence": wire_state.sequence,
+                "full_state": serde_json::to_value(&filtered)
+                    .expect("filtered state should serialize to JSON"),
+            });
+            if conn.tx.try_send(sync_msg.to_string()).is_err() {
+                eprintln!(
+                    "[warning] outbound queue full for player '{seat_name}' \
+                     during claim timeout broadcast"
+                );
+            }
+        }
+    }
 }
 
 /// Pick the next available seat for a connecting player.

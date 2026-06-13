@@ -1,11 +1,11 @@
 use indexmap::IndexMap;
 
 use crate::action::{Action, ActionType, Position};
-use crate::definition::{Visibility, VisibilityTier};
+use crate::definition::{TriggerDef, Visibility, VisibilityTier};
 use crate::end_conditions::check_end_conditions;
 use crate::error::{BaizeError, Result};
 use crate::runtime::{
-    ComponentData, ComponentId, GameSession, RuntimeZone, MAX_EVENTS_PER_GAME,
+    ClaimWindow, ComponentData, ComponentId, GameSession, RuntimeZone, MAX_EVENTS_PER_GAME,
     MAX_STATE_SIZE_BYTES, STATE_SIZE_CHECK_INTERVAL,
 };
 use crate::state::GameStatus;
@@ -56,6 +56,9 @@ pub enum EventType {
     TurnAdvance,
     GameEnd,
     VisibilityChange,
+    TriggerActivated,
+    ClaimSubmitted,
+    ClaimResolved,
 }
 
 /// Return the current Phase definition, or None if no phases are defined.
@@ -90,6 +93,13 @@ pub fn apply_action_for_player(
         return Err(BaizeError::IllegalAction("game is finished".into()));
     }
 
+    // If a claim window is active, only claims are accepted
+    if session.runtime.claim_window.is_some() {
+        return Err(BaizeError::IllegalAction(
+            "claim window is active — use apply_claim instead".into(),
+        ));
+    }
+
     if session.runtime.status == GameStatus::Setup {
         session.runtime.status = GameStatus::InProgress;
     }
@@ -116,7 +126,7 @@ pub fn apply_action_for_player(
 
     let prev_hash = session.runtime.history_hashes.last().cloned();
     let events = execute_action(session, &player, action, &prev_hash)?;
-    finalize_turn(session, events, prev_hash)
+    finalize_turn(session, events, prev_hash, Some(action))
 }
 
 /// Buffer an action for a simultaneous phase; resolve when all players submit.
@@ -190,7 +200,7 @@ fn apply_simultaneous(
         }
 
         // Check end conditions after all actions resolved
-        events = finalize_turn(session, events, prev_hash)?;
+        events = finalize_turn(session, events, prev_hash, None)?;
     }
 
     Ok(events)
@@ -969,6 +979,7 @@ fn finalize_turn(
     session: &mut GameSession,
     mut events: Vec<GameEvent>,
     prev_hash: Option<String>,
+    action: Option<&Action>,
 ) -> Result<Vec<GameEvent>> {
     // Enforce event budget (+1 for the turn_advance or game_end event added below)
     let projected = session
@@ -1024,6 +1035,59 @@ fn finalize_turn(
 
             session.runtime.event_count += events.len() as u64;
             return Ok(events);
+        }
+    }
+
+    // Check if any trigger matches the action that was just applied
+    if let Some(action) = action {
+        if session.runtime.claim_window.is_none() {
+            if let Some((trigger_name, trigger_def)) =
+                find_matching_trigger(session, action)
+            {
+                let eligible = compute_eligible_players(
+                    session,
+                    &trigger_def.claim_window.eligible,
+                )?;
+
+                if !eligible.is_empty() {
+                    let triggering_player = session
+                        .current_player()
+                        .unwrap_or("")
+                        .to_string();
+
+                    session.runtime.claim_window = Some(ClaimWindow {
+                        trigger_name: trigger_name.clone(),
+                        triggering_action: action.clone(),
+                        triggering_player: triggering_player.clone(),
+                        eligible_players: eligible.clone(),
+                        submitted_claims: IndexMap::new(),
+                        priority: trigger_def.claim_window.priority.clone(),
+                        default_claim: trigger_def.claim_window.default.clone(),
+                    });
+
+                    events.push(GameEvent {
+                        sequence: session.runtime.sequence,
+                        event_type: EventType::TriggerActivated,
+                        player: triggering_player,
+                        component_id: None,
+                        from: None,
+                        to: None,
+                        captured: None,
+                        detail: Some(trigger_name),
+                        state_hash: String::new(),
+                        prev_hash: prev_hash.clone(),
+                    });
+
+                    // Compute hash but do NOT advance turn
+                    let new_hash = session.compute_state_hash();
+                    session.runtime.history_hashes.push(new_hash.clone());
+                    for event in &mut events {
+                        event.state_hash = new_hash.clone();
+                    }
+                    session.runtime.event_count += events.len() as u64;
+                    return Ok(events);
+                }
+            }
         }
     }
 
@@ -1231,4 +1295,254 @@ fn recompute_player_fog(session: &mut GameSession, player: &str) {
             zone.recompute_fog(player, &unit_positions, vision_range);
         }
     }
+}
+
+// --- Trigger / claim window ---
+
+/// Find a trigger whose `on_action` matches the action just performed.
+///
+/// Returns the trigger name and definition if found. The trigger's `on_action`
+/// is matched against the action_type's snake_case serialization.
+fn find_matching_trigger<'a>(
+    session: &'a GameSession,
+    action: &Action,
+) -> Option<(String, &'a TriggerDef)> {
+    if session.definition.triggers.is_empty() {
+        return None;
+    }
+
+    // Serialize the action_type to its snake_case form for matching
+    let action_type_str = serde_json::to_value(&action.action_type)
+        .ok()
+        .and_then(|v| v.as_str().map(String::from))?;
+
+    for (name, trigger) in &session.definition.triggers {
+        if trigger.on_action == action_type_str {
+            // TODO: evaluate CEL condition when condition support is added
+            return Some((name.clone(), trigger));
+        }
+    }
+    None
+}
+
+/// Compute which players are eligible for a claim window.
+fn compute_eligible_players(
+    session: &GameSession,
+    eligible_rule: &str,
+) -> Result<Vec<String>> {
+    let current = session.current_player().unwrap_or("").to_string();
+    let all_players: Vec<String> = session.runtime.players.keys().cloned().collect();
+
+    match eligible_rule {
+        "all_except_current" => {
+            Ok(all_players.into_iter().filter(|p| p != &current).collect())
+        }
+        "next_in_order" => {
+            let player_count = all_players.len();
+            if player_count == 0 {
+                return Ok(vec![]);
+            }
+            let next_index = (session.runtime.turn_index + 1) % player_count;
+            Ok(vec![all_players[next_index].clone()])
+        }
+        other => Err(BaizeError::IllegalAction(
+            format!("unknown eligible rule: {other:?}"),
+        )),
+    }
+}
+
+/// Submit a claim during an active claim window.
+///
+/// When all eligible players have responded, resolves the window:
+/// the highest-priority claim wins, that player becomes active,
+/// and normal turn flow resumes.
+pub fn apply_claim(
+    session: &mut GameSession,
+    player: &str,
+    claim: &str,
+) -> Result<Vec<GameEvent>> {
+    let window = session
+        .runtime
+        .claim_window
+        .as_mut()
+        .ok_or_else(|| BaizeError::IllegalAction("no active claim window".into()))?;
+
+    // Defensive: player must be eligible
+    if !window.eligible_players.contains(&player.to_string()) {
+        return Err(BaizeError::IllegalAction(format!(
+            "player {player} is not eligible for this claim window"
+        )));
+    }
+
+    // Defensive: no double-submission
+    if window.submitted_claims.contains_key(player) {
+        return Err(BaizeError::IllegalAction(format!(
+            "player {player} has already submitted a claim"
+        )));
+    }
+
+    // Defensive: claim must be valid (in actions list or the default)
+    let trigger_def = session
+        .definition
+        .triggers
+        .get(&window.trigger_name)
+        .ok_or_else(|| {
+            BaizeError::IllegalAction("trigger definition not found".into())
+        })?;
+    let valid_claims: Vec<&str> = trigger_def
+        .claim_window
+        .actions
+        .iter()
+        .map(|s| s.as_str())
+        .chain(std::iter::once(trigger_def.claim_window.default.as_str()))
+        .collect();
+    if !valid_claims.contains(&claim) {
+        return Err(BaizeError::IllegalAction(format!(
+            "invalid claim {claim:?} — valid: {valid_claims:?}"
+        )));
+    }
+
+    // Re-borrow mutably after the immutable borrow of definition
+    let window = session
+        .runtime
+        .claim_window
+        .as_mut()
+        .expect("claim_window verified present above");
+    window
+        .submitted_claims
+        .insert(player.to_string(), claim.to_string());
+
+    let prev_hash = session.runtime.history_hashes.last().cloned();
+    let mut events = vec![GameEvent {
+        sequence: session.runtime.sequence,
+        event_type: EventType::ClaimSubmitted,
+        player: player.to_string(),
+        component_id: None,
+        from: None,
+        to: None,
+        captured: None,
+        detail: Some(claim.to_string()),
+        state_hash: String::new(),
+        prev_hash: prev_hash.clone(),
+    }];
+
+    // Check if all eligible players have submitted
+    let all_submitted = {
+        let window = session
+            .runtime
+            .claim_window
+            .as_ref()
+            .expect("claim_window verified present above");
+        window
+            .eligible_players
+            .iter()
+            .all(|p| window.submitted_claims.contains_key(p))
+    };
+
+    if all_submitted {
+        events.extend(resolve_claim_window(session, prev_hash.clone())?);
+    } else {
+        // Just hash and return
+        let new_hash = session.compute_state_hash();
+        session.runtime.history_hashes.push(new_hash.clone());
+        for event in &mut events {
+            event.state_hash = new_hash.clone();
+        }
+        session.runtime.event_count += events.len() as u64;
+    }
+
+    Ok(events)
+}
+
+/// Resolve a completed claim window: pick the winning claim and advance the game.
+fn resolve_claim_window(
+    session: &mut GameSession,
+    prev_hash: Option<String>,
+) -> Result<Vec<GameEvent>> {
+    let window = session
+        .runtime
+        .claim_window
+        .take()
+        .expect("resolve_claim_window called without active window");
+
+    // Find the highest-priority claim that isn't the default (pass)
+    let mut winning_claim: Option<(String, String)> = None; // (player, claim)
+    for priority_action in &window.priority {
+        for (player, claim) in &window.submitted_claims {
+            if claim == priority_action && claim != &window.default_claim {
+                winning_claim = Some((player.clone(), claim.clone()));
+                break; // first player at this priority level wins
+            }
+        }
+        if winning_claim.is_some() {
+            break;
+        }
+    }
+
+    let mut events = Vec::new();
+
+    if let Some((ref winner, ref claim)) = winning_claim {
+        // Winner becomes the active player
+        let player_names: Vec<String> = session.runtime.players.keys().cloned().collect();
+        let winner_index = player_names
+            .iter()
+            .position(|p| p == winner)
+            .ok_or_else(|| {
+                BaizeError::IllegalAction(format!(
+                    "winning claimant {winner} not in player list"
+                ))
+            })?;
+        session.runtime.turn_index = winner_index;
+
+        events.push(GameEvent {
+            sequence: session.runtime.sequence,
+            event_type: EventType::ClaimResolved,
+            player: winner.clone(),
+            component_id: None,
+            from: None,
+            to: None,
+            captured: None,
+            detail: Some(claim.clone()),
+            state_hash: String::new(),
+            prev_hash: prev_hash.clone(),
+        });
+    } else {
+        // All passed — advance turn normally
+        session.advance_turn();
+        events.push(GameEvent {
+            sequence: session.runtime.sequence,
+            event_type: EventType::ClaimResolved,
+            player: String::new(),
+            component_id: None,
+            from: None,
+            to: None,
+            captured: None,
+            detail: Some("all_passed".to_string()),
+            state_hash: String::new(),
+            prev_hash: prev_hash.clone(),
+        });
+    }
+
+    let new_hash = session.compute_state_hash();
+    session.runtime.history_hashes.push(new_hash.clone());
+    for event in &mut events {
+        event.state_hash = new_hash.clone();
+    }
+
+    // Add turn_advance event
+    events.push(GameEvent {
+        sequence: session.runtime.sequence,
+        event_type: EventType::TurnAdvance,
+        player: session.current_player().unwrap_or("").to_string(),
+        component_id: None,
+        from: None,
+        to: None,
+        captured: None,
+        detail: None,
+        state_hash: new_hash,
+        prev_hash,
+    });
+
+    session.runtime.event_count += events.len() as u64;
+    Ok(events)
 }

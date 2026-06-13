@@ -39,6 +39,19 @@ pub struct GameState {
     /// Per-zone visibility overrides currently in effect.
     #[serde(default, skip_serializing_if = "IndexMap::is_empty")]
     pub visibility_overrides: IndexMap<String, Visibility>,
+    /// Active claim window, if a trigger has fired and claims are being collected.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub claim_window: Option<ClaimWindowState>,
+}
+
+/// Serializable snapshot of an active claim window.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ClaimWindowState {
+    pub trigger_name: String,
+    pub triggering_player: String,
+    pub eligible_players: Vec<String>,
+    pub submitted: Vec<String>,
+    pub awaiting: Vec<String>,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]

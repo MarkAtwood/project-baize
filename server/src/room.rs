@@ -29,6 +29,10 @@ pub struct Room {
     pub max_players: usize,
     /// Map of auth token to seat name for reconnection.
     pub player_tokens: HashMap<String, String>,
+    /// Deadline for the current claim window (if active).
+    /// When this instant passes, the connection loop auto-submits
+    /// default claims for non-respondent players.
+    pub claim_deadline: Option<tokio::time::Instant>,
 }
 
 impl fmt::Debug for Room {
@@ -45,6 +49,7 @@ impl fmt::Debug for Room {
                 "player_tokens",
                 &format_args!("<{} tokens redacted>", self.player_tokens.len()),
             )
+            .field("claim_deadline", &self.claim_deadline)
             .finish()
     }
 }
@@ -212,6 +217,7 @@ impl RoomRegistry {
             players: HashMap::new(),
             max_players,
             player_tokens: HashMap::new(),
+            claim_deadline: None,
         };
 
         // Persist to store if available

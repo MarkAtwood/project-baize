@@ -15,10 +15,11 @@ from typing import Any, Literal
 
 from baize.action import Action, Position
 from baize.betting import BettingRoundState
-from baize.definition import GameDefinition
+from baize.definition import GameDefinition, TriggerDef
 from baize.end_conditions import check_end_conditions
 from baize.error import IllegalActionError, InvalidCoordinateError, ResourceBudgetError, UnknownZoneError
 from baize.runtime import (
+    ClaimWindow,
     ComponentData,
     ComponentId,
     CounterZone,
@@ -102,6 +103,9 @@ EventTypeLiteral = Literal[
     "raise",
     "all_in",
     "action_submitted",
+    "trigger_activated",
+    "claim_submitted",
+    "claim_resolved",
     "turn_advance",
     "game_end",
 ]
@@ -187,6 +191,12 @@ def apply_action(
     if session.runtime.status == "setup":
         session.runtime.status = "in_progress"
 
+    # If a claim window is active, reject normal actions
+    if session.runtime.claim_window is not None:
+        raise IllegalActionError(
+            "claim window is active — use apply_claim instead"
+        )
+
     # Check if we're in a simultaneous phase
     phase = _current_phase(session)
     if phase and phase.simultaneous:
@@ -203,6 +213,41 @@ def apply_action(
     )
 
     events = _execute_action(session, player, action, prev_hash)
+
+    # Check if any trigger matches the action just applied
+    trigger_match = _find_matching_trigger(session, action)
+    if trigger_match is not None:
+        trigger_name, trigger_def = trigger_match
+        eligible = _compute_eligible_players(session, trigger_def.claim_window.eligible)
+
+        if eligible:
+            session.runtime.claim_window = ClaimWindow(
+                trigger_name=trigger_name,
+                triggering_action=action,
+                triggering_player=player,
+                eligible_players=eligible,
+                submitted_claims={},
+                priority=list(trigger_def.claim_window.priority),
+                default_claim=trigger_def.claim_window.default,
+            )
+
+            events.append(GameEvent(
+                sequence=session.runtime.sequence,
+                event_type="trigger_activated",
+                player=player,
+                detail=trigger_name,
+                state_hash="",
+                prev_hash=prev_hash,
+            ))
+
+            # Hash state but do NOT advance turn
+            _enforce_event_budget(session, len(events))
+            new_hash = session.compute_state_hash()
+            session.runtime.history_hashes.append(new_hash)
+            for event in events:
+                event.state_hash = new_hash
+            session.runtime.event_count += len(events)
+            return events
 
     # Enforce resource budgets
     _enforce_event_budget(session, len(events) + 1)  # +1 for turn_advance/game_end
@@ -1420,3 +1465,187 @@ def execute_server_phase(session: GameSession, phase_name: str) -> list[GameEven
     for action_str in actions:
         all_events.extend(execute_server_action(session, action_str))
     return all_events
+
+
+# ---------------------------------------------------------------------------
+# Trigger / claim window
+# ---------------------------------------------------------------------------
+
+
+def _find_matching_trigger(
+    session: GameSession,
+    action: Action,
+) -> tuple[str, TriggerDef] | None:
+    """Find a trigger whose on_action matches the given action type."""
+    action_type = action.action_type
+    for name, trigger in session.definition.triggers.items():
+        if trigger.on_action == action_type:
+            return (name, trigger)
+    return None
+
+
+def _compute_eligible_players(
+    session: GameSession,
+    eligible_rule: str,
+) -> list[str]:
+    """Compute which players are eligible for a claim window."""
+    current = session.current_player() or ""
+    all_players = list(session.runtime.players.keys())
+
+    if eligible_rule == "all_except_current":
+        return [p for p in all_players if p != current]
+    elif eligible_rule == "next_in_order":
+        player_count = len(all_players)
+        if player_count == 0:
+            return []
+        next_index = (session.runtime.turn_index + 1) % player_count
+        return [all_players[next_index]]
+    else:
+        raise IllegalActionError(f"unknown eligible rule: {eligible_rule!r}")
+
+
+def apply_claim(
+    session: GameSession,
+    player: str,
+    claim: str,
+) -> list[GameEvent]:
+    """Submit a claim during an active claim window.
+
+    When all eligible players have responded, resolves the window:
+    highest-priority claim wins, that player becomes active.
+    """
+    assert isinstance(session, GameSession), (
+        f"session must be GameSession, got {type(session).__name__}"
+    )
+
+    window = session.runtime.claim_window
+    if window is None:
+        raise IllegalActionError("no active claim window")
+
+    # Defensive: player must be eligible
+    if player not in window.eligible_players:
+        raise IllegalActionError(
+            f"player {player!r} is not eligible for this claim window"
+        )
+
+    # Defensive: no double-submission
+    if player in window.submitted_claims:
+        raise IllegalActionError(
+            f"player {player!r} has already submitted a claim"
+        )
+
+    # Defensive: claim must be valid
+    trigger_def = session.definition.triggers.get(window.trigger_name)
+    if trigger_def is None:
+        raise IllegalActionError("trigger definition not found")
+
+    valid_claims = set(trigger_def.claim_window.actions) | {trigger_def.claim_window.default}
+    if claim not in valid_claims:
+        raise IllegalActionError(
+            f"invalid claim {claim!r} — valid: {sorted(valid_claims)}"
+        )
+
+    window.submitted_claims[player] = claim
+
+    prev_hash = (
+        session.runtime.history_hashes[-1]
+        if session.runtime.history_hashes
+        else None
+    )
+
+    events: list[GameEvent] = [
+        GameEvent(
+            sequence=session.runtime.sequence,
+            event_type="claim_submitted",
+            player=player,
+            detail=claim,
+            state_hash="",
+            prev_hash=prev_hash,
+        )
+    ]
+
+    # Check if all eligible players have submitted
+    all_submitted = all(
+        p in window.submitted_claims for p in window.eligible_players
+    )
+
+    if all_submitted:
+        events.extend(_resolve_claim_window(session, prev_hash))
+    else:
+        new_hash = session.compute_state_hash()
+        session.runtime.history_hashes.append(new_hash)
+        for event in events:
+            event.state_hash = new_hash
+        session.runtime.event_count += len(events)
+
+    return events
+
+
+def _resolve_claim_window(
+    session: GameSession,
+    prev_hash: str | None,
+) -> list[GameEvent]:
+    """Resolve an active claim window after all claims are submitted."""
+    window = session.runtime.claim_window
+    assert window is not None, "resolve_claim_window called without active window"
+
+    # Take ownership — clear the window
+    session.runtime.claim_window = None
+
+    # Find highest-priority non-default claim
+    winning_claim: tuple[str, str] | None = None  # (player, claim)
+    for priority_action in window.priority:
+        for player, claim in window.submitted_claims.items():
+            if claim == priority_action and claim != window.default_claim:
+                winning_claim = (player, claim)
+                break
+        if winning_claim is not None:
+            break
+
+    events: list[GameEvent] = []
+
+    if winning_claim is not None:
+        winner, claim = winning_claim
+        # Winner becomes the active player
+        player_names = list(session.runtime.players.keys())
+        assert winner in player_names, f"winner {winner!r} not in player list"
+        winner_index = player_names.index(winner)
+        session.runtime.turn_index = winner_index
+
+        events.append(GameEvent(
+            sequence=session.runtime.sequence,
+            event_type="claim_resolved",
+            player=winner,
+            detail=claim,
+            state_hash="",
+            prev_hash=prev_hash,
+        ))
+    else:
+        # All passed — advance turn normally
+        session.advance_turn()
+        events.append(GameEvent(
+            sequence=session.runtime.sequence,
+            event_type="claim_resolved",
+            player="",
+            detail="all_passed",
+            state_hash="",
+            prev_hash=prev_hash,
+        ))
+
+    new_hash = session.compute_state_hash()
+    session.runtime.history_hashes.append(new_hash)
+    for event in events:
+        event.state_hash = new_hash
+
+    # Add turn_advance event
+    next_player = session.current_player() or ""
+    events.append(GameEvent(
+        sequence=session.runtime.sequence,
+        event_type="turn_advance",
+        player=next_player,
+        state_hash=new_hash,
+        prev_hash=prev_hash,
+    ))
+
+    session.runtime.event_count += len(events)
+    return events

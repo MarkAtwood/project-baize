@@ -46,6 +46,13 @@ pub const MAX_TOTAL_CONNECTIONS: usize = 500;
 /// Maximum events per game before rejecting further moves (DoS prevention).
 pub const MAX_EVENTS_PER_GAME: u64 = 100_000;
 
+/// Default claim window timeout in seconds.
+/// If the game definition specifies a timeout, that takes precedence.
+pub const DEFAULT_CLAIM_TIMEOUT_SECS: u64 = 30;
+
+/// Maximum claim string length.
+pub const MAX_CLAIM_LENGTH: usize = 128;
+
 /// Maximum serialized state size in bytes (10 MB).
 /// Engine checks this periodically; server reserves the constant for future use.
 #[allow(dead_code)]

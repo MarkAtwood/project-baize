@@ -31,6 +31,7 @@ ActionTypeLiteral = Literal[
     "castle", "en_passant",
     "declare_action",
     "commit", "reveal",
+    "claim_action",
     "custom",
 ]
 

@@ -1,0 +1,189 @@
+{
+  "$schema": "https://baize.dev/schema/v1/test-vectors.schema.json",
+  "description": "Cross-implementation trigger/claim-window test vectors. Both Rust and Python engines must produce identical results for each scenario.",
+  "game_definition": {
+    "game": { "name": "Trigger Test Game", "players": ["Alice", "Bob", "Carol"], "information": "perfect" },
+    "zones": {
+      "board": { "zone_type": "grid", "dimensions": [3, 3], "visibility": "public" }
+    },
+    "components": {
+      "mark": { "owner": "per_player", "count": "unlimited" }
+    },
+    "turn_order": { "type": "round_robin", "players": ["Alice", "Bob", "Carol"], "actions_per_turn": 1 },
+    "end_conditions": [
+      { "result": "draw", "condition": "board_is_full" }
+    ],
+    "triggers": {
+      "on_place": {
+        "on_action": "place",
+        "claim_window": {
+          "eligible": "all_except_current",
+          "actions": ["claim", "challenge"],
+          "priority": ["challenge", "claim"],
+          "timeout": 10,
+          "default": "pass"
+        }
+      }
+    },
+    "authority": { "server_only": [], "client_verifiable": ["place"] }
+  },
+  "test_cases": [
+    {
+      "name": "trigger_fires_on_place",
+      "description": "Alice places a mark, trigger fires, claim window opens for Bob and Carol.",
+      "steps": [
+        {
+          "type": "action",
+          "player": "Alice",
+          "action": {
+            "action_type": "place",
+            "component_type": "mark",
+            "to": { "zone": "board", "cell": "1,1" }
+          },
+          "expected": {
+            "acting_player": "Alice",
+            "status": "in_progress",
+            "events_contain": [
+              { "event_type": "place", "player": "Alice" },
+              { "event_type": "trigger_activated", "player": "Alice", "detail": "on_place" }
+            ],
+            "events_must_not_contain": ["turn_advance"],
+            "claim_window_active": true,
+            "claim_window": {
+              "trigger_name": "on_place",
+              "triggering_player": "Alice",
+              "eligible_players": ["Bob", "Carol"],
+              "submitted": [],
+              "awaiting": ["Bob", "Carol"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "all_pass_advances_turn",
+      "description": "Alice places, both Bob and Carol pass. Turn advances normally to Bob.",
+      "steps": [
+        {
+          "type": "action",
+          "player": "Alice",
+          "action": {
+            "action_type": "place",
+            "component_type": "mark",
+            "to": { "zone": "board", "cell": "1,1" }
+          },
+          "expected": {
+            "claim_window_active": true
+          }
+        },
+        {
+          "type": "claim",
+          "player": "Bob",
+          "claim": "pass",
+          "expected": {
+            "events_contain": [
+              { "event_type": "claim_submitted", "player": "Bob", "detail": "pass" }
+            ],
+            "claim_window_active": true
+          }
+        },
+        {
+          "type": "claim",
+          "player": "Carol",
+          "claim": "pass",
+          "expected": {
+            "events_contain": [
+              { "event_type": "claim_submitted", "player": "Carol", "detail": "pass" },
+              { "event_type": "claim_resolved", "detail": "all_passed" },
+              { "event_type": "turn_advance", "player": "Bob" }
+            ],
+            "claim_window_active": false,
+            "current_player": "Bob"
+          }
+        }
+      ]
+    },
+    {
+      "name": "challenge_wins_over_claim",
+      "description": "Alice places, Bob claims, Carol challenges. Challenge wins (higher priority). Carol becomes active.",
+      "steps": [
+        {
+          "type": "action",
+          "player": "Alice",
+          "action": {
+            "action_type": "place",
+            "component_type": "mark",
+            "to": { "zone": "board", "cell": "0,0" }
+          },
+          "expected": {
+            "claim_window_active": true
+          }
+        },
+        {
+          "type": "claim",
+          "player": "Bob",
+          "claim": "claim",
+          "expected": {
+            "events_contain": [
+              { "event_type": "claim_submitted", "player": "Bob", "detail": "claim" }
+            ],
+            "claim_window_active": true
+          }
+        },
+        {
+          "type": "claim",
+          "player": "Carol",
+          "claim": "challenge",
+          "expected": {
+            "events_contain": [
+              { "event_type": "claim_submitted", "player": "Carol", "detail": "challenge" },
+              { "event_type": "claim_resolved", "player": "Carol", "detail": "challenge" },
+              { "event_type": "turn_advance", "player": "Carol" }
+            ],
+            "claim_window_active": false,
+            "current_player": "Carol"
+          }
+        }
+      ]
+    },
+    {
+      "name": "first_claimant_at_same_priority_wins",
+      "description": "Alice places, Bob and Carol both challenge. Bob wins (first in eligible order at same priority).",
+      "steps": [
+        {
+          "type": "action",
+          "player": "Alice",
+          "action": {
+            "action_type": "place",
+            "component_type": "mark",
+            "to": { "zone": "board", "cell": "2,2" }
+          },
+          "expected": {
+            "claim_window_active": true
+          }
+        },
+        {
+          "type": "claim",
+          "player": "Bob",
+          "claim": "challenge",
+          "expected": {
+            "claim_window_active": true
+          }
+        },
+        {
+          "type": "claim",
+          "player": "Carol",
+          "claim": "challenge",
+          "expected": {
+            "events_contain": [
+              { "event_type": "claim_resolved", "player": "Bob", "detail": "challenge" },
+              { "event_type": "turn_advance", "player": "Bob" }
+            ],
+            "claim_window_active": false,
+            "current_player": "Bob"
+          }
+        }
+      ]
+    }
+  ]
+}
