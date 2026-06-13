@@ -3,7 +3,7 @@ use std::collections::HashMap;
 use baize_engine::action::{ClientMessage, RandomRequest, RandomType, ServerMessage};
 use baize_engine::state::GameStatus;
 use baize_engine::transition::apply_action;
-use baize_engine::visibility::filter_for_viewer;
+use baize_engine::visibility::filter_for_viewer_with_fog;
 
 use crate::config;
 use crate::room::Room;
@@ -475,7 +475,7 @@ fn handle_submit_move(
 
             let mut per_player = HashMap::new();
             for seat_name in room.players.keys() {
-                let filtered = filter_for_viewer(&wire_state, seat_name, definition);
+                let filtered = filter_for_viewer_with_fog(&wire_state, seat_name, definition, Some(&room.session.runtime.zones));
                 let result_state = Some(
                     serde_json::to_value(&filtered)
                         .expect("filtered state should serialize to JSON"),
@@ -630,7 +630,7 @@ fn handle_acknowledge_state(
         );
         let wire_state = room.session.to_wire_state();
         let sequence = wire_state.sequence;
-        let filtered = filter_for_viewer(&wire_state, seat, &room.session.definition);
+        let filtered = filter_for_viewer_with_fog(&wire_state, seat, &room.session.definition, Some(&room.session.runtime.zones));
         let full_state = serde_json::to_value(&filtered)
             .expect("filtered state should serialize to JSON");
 

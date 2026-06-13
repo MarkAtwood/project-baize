@@ -388,6 +388,8 @@ fn grid_3x3_no_mask() -> RuntimeZone {
         stacking_limit: 1,
         cell_properties: Default::default(),
         valid_cells: None,
+        cell_fog: None,
+        fog_config: None,
     }
 }
 
@@ -400,6 +402,8 @@ fn grid_3x3_diagonal_mask() -> RuntimeZone {
         stacking_limit: 1,
         cell_properties: Default::default(),
         valid_cells: Some(HashSet::from([(0, 0), (1, 1), (2, 2)])),
+        cell_fog: None,
+        fog_config: None,
     }
 }
 
@@ -516,6 +520,8 @@ fn grid_push_pop_valid_cell() {
         stacking_limit: 0,
         cell_properties: Default::default(),
         valid_cells: Some(HashSet::from([(0, 0), (1, 1), (2, 2)])),
+        cell_fog: None,
+        fog_config: None,
     };
     let c1 = ComponentId(0);
     let c2 = ComponentId(1);

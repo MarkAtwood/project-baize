@@ -124,6 +124,36 @@ pub struct Zone {
     /// Storage backend hint: "dense" or "sparse". Auto-selected if omitted.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub storage: Option<String>,
+    /// Fog of war configuration for per-cell per-player visibility.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub fog_of_war: Option<FogOfWarConfig>,
+}
+
+/// Configuration for fog of war on a grid zone.
+///
+/// When present, each cell has per-player visibility state:
+/// - **Unexplored**: player has never seen this cell
+/// - **Visible**: player has a unit within vision_range
+/// - **Fogged**: previously seen but no longer in range
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct FogOfWarConfig {
+    /// Manhattan distance for unit vision. 0 = no automatic fog updates (manual only).
+    #[serde(default)]
+    pub vision_range: u32,
+    /// Initial fog state for all cells: "unexplored", "visible", or "fogged".
+    #[serde(default = "default_fog_state")]
+    pub default_state: String,
+    /// Whether terrain (cell_properties) remains visible in fogged cells.
+    #[serde(default = "default_true")]
+    pub remember_terrain: bool,
+}
+
+fn default_fog_state() -> String {
+    "unexplored".to_string()
+}
+
+fn default_true() -> bool {
+    true
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]

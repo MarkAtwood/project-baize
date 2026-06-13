@@ -148,6 +148,48 @@ ZoneTypeName = Literal[
     "set", "queue", "single_slot", "track", "counter",
 ]
 
+FogStateLiteral = Literal["unexplored", "visible", "fogged"]
+
+_VALID_FOG_STATES: frozenset[str] = frozenset({"unexplored", "visible", "fogged"})
+
+
+@dataclass
+class FogOfWarConfig:
+    """Per-cell per-player fog-of-war configuration for grid zones."""
+
+    vision_range: int = 0
+    default_state: FogStateLiteral = "unexplored"
+    remember_terrain: bool = True
+
+    def __post_init__(self) -> None:
+        if self.vision_range < 0:
+            raise ValueError(
+                f"vision_range must be >= 0, got {self.vision_range}"
+            )
+        if self.default_state not in _VALID_FOG_STATES:
+            raise ValueError(
+                f"default_state must be one of {_VALID_FOG_STATES}, "
+                f"got {self.default_state!r}"
+            )
+
+    @staticmethod
+    def from_dict(d: dict[str, Any]) -> FogOfWarConfig:
+        return FogOfWarConfig(
+            vision_range=d.get("vision_range", 0),
+            default_state=d.get("default_state", "unexplored"),
+            remember_terrain=d.get("remember_terrain", True),
+        )
+
+    def to_dict(self) -> dict[str, Any]:
+        out: dict[str, Any] = {}
+        if self.vision_range != 0:
+            out["vision_range"] = self.vision_range
+        if self.default_state != "unexplored":
+            out["default_state"] = self.default_state
+        if not self.remember_terrain:
+            out["remember_terrain"] = self.remember_terrain
+        return out
+
 PrimitiveTypeName = Literal[
     "step", "slide", "hop", "leap", "place", "draw",
     "move_to", "swap", "remove", "promote", "flip", "castle",
@@ -320,6 +362,7 @@ class Zone:
     cell_properties: dict[str, dict[str, str | int | bool]] | None = None
     storage: str | None = None  # "dense" or "sparse"
     stacking_limit: int | None = None
+    fog_of_war: FogOfWarConfig | None = None
 
     @staticmethod
     def from_dict(d: dict[str, Any]) -> Zone:
@@ -343,6 +386,8 @@ class Zone:
                     f"stacking_limit must be a non-negative integer, got {stacking_raw}"
                 )
             stacking_limit = stacking_raw
+        fog_raw = d.get("fog_of_war")
+        fog_of_war = FogOfWarConfig.from_dict(fog_raw) if fog_raw is not None else None
         return Zone(
             zone_type=d["zone_type"],
             visibility=_visibility_from_raw(d["visibility"]),
@@ -371,6 +416,7 @@ class Zone:
             cell_properties=d.get("cell_properties"),
             storage=d.get("storage"),
             stacking_limit=stacking_limit,
+            fog_of_war=fog_of_war,
         )
 
     def to_dict(self) -> dict[str, Any]:
@@ -428,6 +474,8 @@ class Zone:
             out["storage"] = self.storage
         if self.stacking_limit is not None:
             out["stacking_limit"] = self.stacking_limit
+        if self.fog_of_war is not None:
+            out["fog_of_war"] = self.fog_of_war.to_dict()
         return out
 
 

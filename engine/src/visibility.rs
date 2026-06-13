@@ -1,6 +1,7 @@
 use indexmap::IndexMap;
 
 use crate::definition::{GameDefinition, Visibility, VisibilityTier};
+use crate::runtime::{FogState, RuntimeZone};
 use crate::state::{GameState, ZoneState};
 
 /// Resolve effective visibility for a zone, checking runtime overrides first.
@@ -34,6 +35,21 @@ pub fn filter_for_viewer(
     viewer: &str,
     definition: &GameDefinition,
 ) -> GameState {
+    filter_for_viewer_with_fog(full_state, viewer, definition, None)
+}
+
+/// Like `filter_for_viewer`, but with optional runtime zone data for fog of war.
+///
+/// When `runtime_zones` is provided, fog-enabled zones have cell-level filtering:
+/// - Unexplored cells: components hidden, cell_properties hidden
+/// - Visible cells: full visibility
+/// - Fogged cells: components hidden, cell_properties visible if remember_terrain
+pub fn filter_for_viewer_with_fog(
+    full_state: &GameState,
+    viewer: &str,
+    definition: &GameDefinition,
+    runtime_zones: Option<&IndexMap<String, RuntimeZone>>,
+) -> GameState {
     if viewer == "__server__" {
         return full_state.clone();
     }
@@ -49,7 +65,17 @@ pub fn filter_for_viewer(
             &full_state.visibility_overrides,
         );
         match vis {
-            Some(Visibility::Tier(VisibilityTier::Public)) | None => {}
+            Some(Visibility::Tier(VisibilityTier::Public)) | None => {
+                // Apply fog-of-war cell-level filtering if configured
+                if let Some(rt_zones) = runtime_zones {
+                    if let Some(rt_zone) = rt_zones.get(zone_name) {
+                        if rt_zone.fog_config().is_some() {
+                            let fog_filtered = apply_fog_filter(zone_state, rt_zone, viewer);
+                            filtered.zones.insert(zone_name.clone(), fog_filtered);
+                        }
+                    }
+                }
+            }
             Some(Visibility::Tier(VisibilityTier::Hidden)) => {
                 let count = zone_component_count(zone_state);
                 filtered
@@ -104,6 +130,129 @@ pub fn filter_for_viewer(
     filtered
 }
 
+/// Apply fog-of-war filtering to a grid zone for a specific viewer.
+///
+/// Returns a new ZoneState::Grid with:
+/// - Unexplored cells: components removed, cell_properties removed
+/// - Visible cells: everything kept
+/// - Fogged cells: components removed, cell_properties kept if remember_terrain
+/// - cell_fog populated with the viewer's fog data
+fn apply_fog_filter(
+    zone_state: &ZoneState,
+    rt_zone: &RuntimeZone,
+    viewer: &str,
+) -> ZoneState {
+    let ZoneState::Grid { cells, cell_properties, .. } = zone_state else {
+        return zone_state.clone();
+    };
+
+    let remember_terrain = rt_zone
+        .fog_config()
+        .map(|c| c.remember_terrain)
+        .unwrap_or(true);
+
+    let mut filtered_cells = IndexMap::new();
+    let mut filtered_props: Option<IndexMap<String, IndexMap<String, serde_json::Value>>> = None;
+    let mut wire_fog = IndexMap::new();
+
+    // Process each cell in the wire format
+    // Collect all cell coordinates from both cells and cell_properties
+    let mut all_coords: IndexMap<String, (i32, i32)> = IndexMap::new();
+    for coord_str in cells.keys() {
+        if let Some(parsed) = parse_coord(coord_str) {
+            all_coords.insert(coord_str.clone(), parsed);
+        }
+    }
+    if let Some(props) = cell_properties {
+        for coord_str in props.keys() {
+            if let Some(parsed) = parse_coord(coord_str) {
+                all_coords.entry(coord_str.clone()).or_insert(parsed);
+            }
+        }
+    }
+
+    // Also include all fog entries for this viewer to populate wire_fog
+    if let Some(fog_map) = rt_zone.cell_fog() {
+        for (&(col, row), player_fog) in fog_map {
+            if let Some(state) = player_fog.get(viewer) {
+                let coord_str = format!("{},{}", col, row);
+                let state_str = match state {
+                    FogState::Unexplored => "unexplored",
+                    FogState::Visible => "visible",
+                    FogState::Fogged => "fogged",
+                };
+                wire_fog.insert(coord_str.clone(), state_str.to_string());
+                all_coords.entry(coord_str).or_insert((col, row));
+            }
+        }
+    }
+
+    for (coord_str, (col, row)) in &all_coords {
+        let fog_state = rt_zone.cell_fog_state(*col, *row, viewer);
+
+        match fog_state {
+            FogState::Visible => {
+                // Keep everything
+                if let Some(cell) = cells.get(coord_str) {
+                    filtered_cells.insert(coord_str.clone(), cell.clone());
+                }
+                if let Some(props) = cell_properties {
+                    if let Some(prop) = props.get(coord_str) {
+                        filtered_props
+                            .get_or_insert_with(IndexMap::new)
+                            .insert(coord_str.clone(), prop.clone());
+                    }
+                }
+            }
+            FogState::Fogged => {
+                // Remove components, keep terrain if remember_terrain
+                if remember_terrain {
+                    if let Some(props) = cell_properties {
+                        if let Some(prop) = props.get(coord_str) {
+                            filtered_props
+                                .get_or_insert_with(IndexMap::new)
+                                .insert(coord_str.clone(), prop.clone());
+                        }
+                    }
+                }
+                // Components are not included (hidden in fog)
+            }
+            FogState::Unexplored => {
+                // Remove everything — components and cell_properties hidden
+            }
+        }
+
+        // Add fog state to wire format
+        let state_str = match fog_state {
+            FogState::Unexplored => "unexplored",
+            FogState::Visible => "visible",
+            FogState::Fogged => "fogged",
+        };
+        wire_fog.insert(coord_str.clone(), state_str.to_string());
+    }
+
+    // Also include fog entries for cells that weren't in cells/cell_properties
+    // (already handled above via the fog_map loop)
+
+    ZoneState::Grid {
+        cells: filtered_cells,
+        cell_properties: filtered_props,
+        cell_fog: if wire_fog.is_empty() { None } else { Some(wire_fog) },
+    }
+}
+
+/// Parse "col,row" coordinate string into (col, row) integers.
+fn parse_coord(s: &str) -> Option<(i32, i32)> {
+    let parts: Vec<&str> = s.split(',').collect();
+    if parts.len() == 2 {
+        let col = parts[0].trim().parse::<i32>().ok()?;
+        let row = parts[1].trim().parse::<i32>().ok()?;
+        Some((col, row))
+    } else {
+        None
+    }
+}
+
 /// Count the number of components in a wire zone state.
 fn zone_component_count(zone: &ZoneState) -> u32 {
     match zone {
@@ -130,6 +279,7 @@ fn redacted_zone(zone: &ZoneState, count: u32) -> ZoneState {
         ZoneState::Grid { .. } => ZoneState::Grid {
             cells: IndexMap::new(),
             cell_properties: None,
+            cell_fog: None,
         },
         ZoneState::SingleSlot { .. } => ZoneState::SingleSlot { component: None },
         ZoneState::Counter { value } => ZoneState::Counter {

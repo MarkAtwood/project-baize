@@ -43,6 +43,8 @@ export type {
   EventPayload,
   EventType,
   Fact,
+  FogOfWarConfig,
+  FogState,
   ForEachSpec,
   GameDefinition,
   GameEvent,
