@@ -1,0 +1,506 @@
+{
+  "$schema": "../schema/game-definition.schema.json",
+  "game": {
+    "name": "Fury of Dracula",
+    "players": ["dracula", "van_helsing", "dr_seward", "lord_godalming", "mina_harker"],
+    "information": "imperfect"
+  },
+  "partnerships": [
+    ["van_helsing", "dr_seward", "lord_godalming", "mina_harker"]
+  ],
+  "zones": {
+    "map": {
+      "zone_type": "graph",
+      "visibility": "public",
+      "nodes": [
+        "london", "manchester", "edinburgh", "dublin", "le_havre",
+        "paris", "bordeaux", "madrid", "lisbon", "barcelona",
+        "marseilles", "geneva", "strasbourg", "brussels", "amsterdam",
+        "hamburg", "berlin", "prague", "vienna", "munich",
+        "venice", "rome", "naples", "bari", "athens",
+        "valona", "sarajevo", "budapest", "bucharest", "constanta",
+        "galatz", "klausenburg", "szeged", "zagreb", "st_joseph_and_st_mary",
+        "belgrade", "sofia", "varna", "salonica", "castle_dracula"
+      ],
+      "edges": [
+        ["london", "manchester"],
+        ["london", "le_havre"],
+        ["london", "amsterdam"],
+        ["manchester", "edinburgh"],
+        ["edinburgh", "dublin"],
+        ["dublin", "manchester"],
+        ["le_havre", "paris"],
+        ["le_havre", "brussels"],
+        ["paris", "bordeaux"],
+        ["paris", "marseilles"],
+        ["paris", "strasbourg"],
+        ["paris", "brussels"],
+        ["paris", "geneva"],
+        ["bordeaux", "madrid"],
+        ["madrid", "lisbon"],
+        ["madrid", "barcelona"],
+        ["barcelona", "marseilles"],
+        ["marseilles", "geneva"],
+        ["geneva", "strasbourg"],
+        ["geneva", "munich"],
+        ["strasbourg", "brussels"],
+        ["strasbourg", "munich"],
+        ["brussels", "amsterdam"],
+        ["amsterdam", "hamburg"],
+        ["hamburg", "berlin"],
+        ["berlin", "prague"],
+        ["berlin", "hamburg"],
+        ["prague", "vienna"],
+        ["prague", "munich"],
+        ["vienna", "munich"],
+        ["vienna", "budapest"],
+        ["vienna", "zagreb"],
+        ["munich", "venice"],
+        ["venice", "rome"],
+        ["venice", "geneva"],
+        ["rome", "naples"],
+        ["rome", "bari"],
+        ["naples", "bari"],
+        ["bari", "valona"],
+        ["athens", "valona"],
+        ["athens", "salonica"],
+        ["valona", "sarajevo"],
+        ["sarajevo", "zagreb"],
+        ["sarajevo", "belgrade"],
+        ["budapest", "szeged"],
+        ["budapest", "klausenburg"],
+        ["budapest", "zagreb"],
+        ["bucharest", "constanta"],
+        ["bucharest", "galatz"],
+        ["bucharest", "klausenburg"],
+        ["bucharest", "sofia"],
+        ["constanta", "varna"],
+        ["galatz", "klausenburg"],
+        ["galatz", "castle_dracula"],
+        ["klausenburg", "szeged"],
+        ["klausenburg", "castle_dracula"],
+        ["szeged", "belgrade"],
+        ["szeged", "zagreb"],
+        ["belgrade", "sofia"],
+        ["belgrade", "st_joseph_and_st_mary"],
+        ["sofia", "salonica"],
+        ["sofia", "varna"],
+        ["st_joseph_and_st_mary", "sarajevo"],
+        ["constanta", "galatz"]
+      ],
+      "node_properties": {
+        "london":         {"label": "London",         "type": "large_city",  "has_port": true},
+        "manchester":     {"label": "Manchester",     "type": "city",        "has_port": false},
+        "edinburgh":      {"label": "Edinburgh",      "type": "city",        "has_port": true},
+        "dublin":         {"label": "Dublin",         "type": "city",        "has_port": true},
+        "le_havre":       {"label": "Le Havre",       "type": "city",        "has_port": true},
+        "paris":          {"label": "Paris",          "type": "large_city",  "has_port": false},
+        "bordeaux":       {"label": "Bordeaux",       "type": "city",        "has_port": true},
+        "madrid":         {"label": "Madrid",         "type": "large_city",  "has_port": false},
+        "lisbon":         {"label": "Lisbon",         "type": "city",        "has_port": true},
+        "barcelona":      {"label": "Barcelona",      "type": "city",        "has_port": true},
+        "marseilles":     {"label": "Marseilles",     "type": "city",        "has_port": true},
+        "geneva":         {"label": "Geneva",         "type": "city",        "has_port": false},
+        "strasbourg":     {"label": "Strasbourg",     "type": "city",        "has_port": false},
+        "brussels":       {"label": "Brussels",       "type": "city",        "has_port": false},
+        "amsterdam":      {"label": "Amsterdam",      "type": "city",        "has_port": true},
+        "hamburg":        {"label": "Hamburg",        "type": "city",        "has_port": true},
+        "berlin":         {"label": "Berlin",         "type": "large_city",  "has_port": false},
+        "prague":         {"label": "Prague",         "type": "city",        "has_port": false},
+        "vienna":         {"label": "Vienna",         "type": "large_city",  "has_port": false},
+        "munich":         {"label": "Munich",         "type": "city",        "has_port": false},
+        "venice":         {"label": "Venice",         "type": "city",        "has_port": true},
+        "rome":           {"label": "Rome",           "type": "large_city",  "has_port": true},
+        "naples":         {"label": "Naples",         "type": "city",        "has_port": true},
+        "bari":           {"label": "Bari",           "type": "city",        "has_port": true},
+        "athens":         {"label": "Athens",         "type": "city",        "has_port": true},
+        "valona":         {"label": "Valona",         "type": "city",        "has_port": true},
+        "sarajevo":       {"label": "Sarajevo",       "type": "city",        "has_port": false},
+        "budapest":       {"label": "Budapest",       "type": "city",        "has_port": false},
+        "bucharest":      {"label": "Bucharest",      "type": "city",        "has_port": false},
+        "constanta":      {"label": "Constanta",      "type": "city",        "has_port": true},
+        "galatz":         {"label": "Galatz",         "type": "city",        "has_port": false},
+        "klausenburg":    {"label": "Klausenburg",    "type": "city",        "has_port": false},
+        "szeged":         {"label": "Szeged",         "type": "city",        "has_port": false},
+        "zagreb":         {"label": "Zagreb",         "type": "city",        "has_port": false},
+        "st_joseph_and_st_mary": {"label": "St. Joseph and St. Mary", "type": "city", "has_port": false},
+        "belgrade":       {"label": "Belgrade",       "type": "city",        "has_port": false},
+        "sofia":          {"label": "Sofia",          "type": "city",        "has_port": false},
+        "varna":          {"label": "Varna",          "type": "city",        "has_port": true},
+        "salonica":       {"label": "Salonica",       "type": "city",        "has_port": true},
+        "castle_dracula": {"label": "Castle Dracula", "type": "castle",      "has_port": false}
+      },
+      "note": "Simplified European map with 40 cities. Road edges connect adjacent cities. Port cities allow sea travel. Rail connections abstracted into road edges."
+    },
+    "dracula_position": {
+      "zone_type": "single_slot",
+      "visibility": "hidden",
+      "note": "Dracula's current true location. Hidden from all hunters."
+    },
+    "dracula_trail": {
+      "zone_type": "ordered_stack",
+      "visibility": "hidden",
+      "capacity": 6,
+      "note": "Dracula's trail of up to 6 most recent locations. Each entry is a location card possibly with an encounter card. Oldest entry drops off and is resolved. Hidden from hunters except when revealed."
+    },
+    "dracula_trail_revealed": {
+      "zone_type": "ordered_stack",
+      "visibility": "public",
+      "note": "Trail locations that have been revealed through maturation (falling off trail) or hunter abilities."
+    },
+    "encounter_deck": {
+      "zone_type": "ordered_stack",
+      "visibility": "hidden",
+      "note": "Deck of encounter cards Dracula draws from when moving. Contains traps and vampires."
+    },
+    "encounter_discard": {
+      "zone_type": "ordered_stack",
+      "visibility": "public",
+      "note": "Discarded encounter cards."
+    },
+    "event_deck": {
+      "zone_type": "ordered_stack",
+      "visibility": "hidden",
+      "note": "Shared event deck. Contains both Dracula and hunter events."
+    },
+    "event_discard": {
+      "zone_type": "ordered_stack",
+      "visibility": "public",
+      "note": "Discarded event cards."
+    },
+    "hunter_hand": {
+      "zone_type": "set",
+      "per_player": true,
+      "visibility": {"private": "owner"},
+      "note": "Hunter event cards and item cards. Only visible to the owning hunter."
+    },
+    "dracula_hand": {
+      "zone_type": "set",
+      "visibility": {"private": "dracula"},
+      "note": "Dracula's event cards. Hidden from hunters."
+    },
+    "influence_track": {
+      "zone_type": "counter",
+      "visibility": "public",
+      "note": "Dracula's influence score (0-13). Dracula wins when this reaches 13."
+    },
+    "dracula_blood": {
+      "zone_type": "counter",
+      "visibility": "public",
+      "note": "Dracula's blood points (health). Starts at 15. Dracula is destroyed at 0."
+    },
+    "hunter_health": {
+      "zone_type": "counter",
+      "per_player": true,
+      "visibility": "public",
+      "note": "Each hunter's health points. Hunters start at their maximum (varies by hunter). At 0, the hunter is hospitalized."
+    },
+    "time_track": {
+      "zone_type": "counter",
+      "visibility": "public",
+      "note": "Tracks day/night cycle. Even values = day, odd values = night. Advances each round."
+    },
+    "combat_zone": {
+      "zone_type": "set",
+      "visibility": "public",
+      "note": "Temporary zone for combat resolution when a hunter encounters Dracula."
+    }
+  },
+  "components": {
+    "hunter_token": {
+      "owner": "per_player",
+      "count": 1,
+      "movement": [
+        {"primitive": "move_to", "target_zone": "map"}
+      ],
+      "note": "Hunter tokens placed publicly on the map."
+    },
+    "dracula_token": {
+      "owner": "dracula",
+      "count": 1,
+      "note": "Dracula's token. True position stored in hidden dracula_position zone; not placed on the public map."
+    },
+    "encounter_card": {
+      "owner": "neutral",
+      "count": 18,
+      "types": {
+        "ambush":          {},
+        "assassin":        {},
+        "bats":            {},
+        "desecrated_soil": {},
+        "fog":             {},
+        "minion_with_knife":  {},
+        "minion_with_knife_and_pistol": {},
+        "hoax":            {},
+        "lightning":       {},
+        "peasants":        {},
+        "plague":          {},
+        "rats":            {},
+        "saboteur":        {},
+        "spy":             {},
+        "new_vampire":     {},
+        "wolves":          {},
+        "deep_fog":        {},
+        "wild_horses":     {}
+      },
+      "one_of_each": true,
+      "note": "Encounter cards Dracula places at locations on his trail. Resolved when a hunter enters or when they mature off the trail."
+    },
+    "event_card": {
+      "owner": "shared",
+      "count": 32,
+      "properties": {
+        "card_types": ["hunter_event", "dracula_event"]
+      },
+      "note": "Event cards drawn during play. Some are hunter-only, some are Dracula-only. Provide special abilities and modifiers."
+    },
+    "item_card": {
+      "owner": "shared",
+      "count": 24,
+      "types": {
+        "crucifix":        {},
+        "garlic":          {},
+        "heavenly_host":   {},
+        "holy_water":      {},
+        "knife":           {},
+        "pistol":          {},
+        "rifle":           {},
+        "sacred_bullets":  {},
+        "stake":           {}
+      },
+      "note": "Item cards hunters can acquire. Used in combat against Dracula or for protection."
+    },
+    "combat_card": {
+      "owner": "per_player",
+      "count": 6,
+      "properties": {
+        "combat_types": ["punch", "dodge", "escape", "item_attack", "bite", "claws"]
+      },
+      "note": "Combat action cards played simultaneously during combat rounds. Hunters and Dracula each have their own set."
+    },
+    "influence_marker": {
+      "owner": "dracula",
+      "count": 1,
+      "note": "Marker on the influence track."
+    },
+    "trail_marker": {
+      "owner": "dracula",
+      "count": 6,
+      "note": "Numbered markers (1-6) placed face-down on the trail to represent Dracula's recent locations."
+    }
+  },
+  "turn_order": {
+    "type": "round_robin",
+    "players": ["dracula", "van_helsing", "dr_seward", "lord_godalming", "mina_harker"],
+    "actions_per_turn": 1,
+    "mandatory": true
+  },
+  "phases": [
+    {
+      "name": "setup",
+      "server_action": [
+        "shuffle(encounter_deck)",
+        "shuffle(event_deck)",
+        "place(hunter_tokens, map)",
+        "place_hidden(dracula_token, dracula_position)"
+      ],
+      "note": "Server shuffles encounter and event decks. Hunters choose starting cities (publicly). Dracula secretly chooses a starting city (not a sea zone)."
+    },
+    {
+      "name": "hunter_move",
+      "action": "move(hunter_token, destination)",
+      "trigger": "active_player is hunter",
+      "note": "Hunter moves to an adjacent city by road or rail, or to a port city by sea. Movement is public."
+    },
+    {
+      "name": "hunter_action",
+      "action": "take_action",
+      "trigger": "after hunter_move",
+      "note": "After moving, hunter may: search current city (reveal trail if Dracula is/was here), trade items with co-located hunter, use item, play event card, or rest to recover health."
+    },
+    {
+      "name": "dracula_move",
+      "action": "move_hidden(dracula_token, destination)",
+      "trigger": "active_player is dracula",
+      "note": "Dracula moves secretly to an adjacent city. Cannot revisit cities on his current trail. Places a trail card face-down. May optionally place an encounter card."
+    },
+    {
+      "name": "dracula_encounter_placement",
+      "action": "place(encounter_card, dracula_trail)",
+      "trigger": "after dracula_move",
+      "note": "Dracula may place one encounter card from his hand at his new location (attached to trail). Drawn from encounter deck if hand is empty."
+    },
+    {
+      "name": "trail_maturation",
+      "trigger": "dracula_trail.count > 6",
+      "resolve": "resolve_oldest_trail_entry",
+      "note": "When trail exceeds 6 entries, the oldest drops off. Its location is revealed. If it has a new_vampire encounter, Dracula scores influence. Other encounters are discarded."
+    },
+    {
+      "name": "combat",
+      "trigger": "hunter at same location as dracula",
+      "simultaneous": true,
+      "action": "play(combat_card)",
+      "note": "Hunter and Dracula simultaneously choose combat cards. Resolved by comparing choices. Multiple rounds until one escapes or is defeated. Day/night affects Dracula's combat options."
+    },
+    {
+      "name": "day_night_cycle",
+      "server_action": "advance(time_track)",
+      "trigger": "end of round",
+      "note": "Time track advances. Day phases give hunters advantage (more actions, items effective). Night phases strengthen Dracula (more combat options, powers available)."
+    }
+  ],
+  "library": {
+    "dracula_wins": "influence_track.value >= 13",
+    "dracula_destroyed": "dracula_blood.value <= 0",
+    "is_night": "time_track.value % 2 == 1",
+    "is_day": "time_track.value % 2 == 0",
+    "trail_full": "dracula_trail.count >= 6",
+    "vampire_matures": "encounter_type == 'new_vampire' AND trail_position >= 6"
+  },
+  "rules": {
+    "dracula_movement": {
+      "action": "move_hidden(dracula_token, destination)",
+      "constraints": [
+        "destination must be adjacent to dracula_position on map",
+        "destination must not appear in dracula_trail",
+        "destination must not be a sea zone on consecutive turns"
+      ],
+      "definition": "Dracula moves secretly to an adjacent city. He cannot revisit any city currently on his trail."
+    },
+    "hunter_movement": {
+      "action": "move(hunter_token, destination)",
+      "constraint": "destination must be adjacent to current position on map",
+      "definition": "Hunters move openly along road or rail connections."
+    },
+    "sea_travel_damage": {
+      "trigger": "dracula moves to a port via sea route",
+      "effect": "dracula_blood -= 1",
+      "definition": "Dracula loses 1 blood point when traveling by sea."
+    },
+    "encounter_resolution": {
+      "trigger": "hunter enters location with encounter card on trail",
+      "effect": "resolve encounter card effect against hunter",
+      "definition": "When a hunter enters a city that is on Dracula's trail and has an encounter card, the encounter is revealed and resolved."
+    },
+    "new_vampire_maturation": {
+      "trigger": "new_vampire encounter falls off trail",
+      "effect": "influence_track += 2",
+      "definition": "If a new vampire encounter matures (drops off trail without being defeated), Dracula gains 2 influence."
+    },
+    "dracula_reveal_at_castle": {
+      "trigger": "dracula is at castle_dracula",
+      "effect": "dracula may heal: dracula_blood += 1 per turn at castle",
+      "definition": "Dracula heals when resting at Castle Dracula."
+    },
+    "hunter_hospitalization": {
+      "trigger": "hunter_health.value <= 0",
+      "effect": "hunter is moved to nearest large_city, health restored to maximum, lose all items",
+      "definition": "When a hunter's health drops to 0, they are hospitalized: moved to a large city, healed, but lose all items."
+    },
+    "combat_day_night": {
+      "definition": "During day combat, Dracula cannot use Bite. During night combat, Dracula has access to all combat cards including Bite which heals him.",
+      "constraint": "dracula.bite only available when is_night"
+    },
+    "dracula_influence_gain": {
+      "trigger": "end of each time_track cycle (every 6 rounds)",
+      "effect": "influence_track += 1",
+      "definition": "Dracula gains 1 influence each time the time track completes a full day/night cycle."
+    },
+    "trail_card_placement": {
+      "trigger": "dracula moves",
+      "effect": "push current location onto dracula_trail as face-down card",
+      "definition": "Each Dracula move adds his new location to the trail. Trail holds at most 6 entries."
+    },
+    "hunter_search": {
+      "action": "search(current_city)",
+      "effect": "if current_city is in dracula_trail, reveal that trail entry and resolve encounter",
+      "definition": "A hunter may search their current city to check if Dracula has been there recently."
+    }
+  },
+  "end_conditions": [
+    {
+      "result": "win",
+      "player": "dracula",
+      "condition": "influence_track.value >= 13",
+      "name": "dracula_dominion"
+    },
+    {
+      "result": "loss",
+      "player": "dracula",
+      "condition": "dracula_blood.value <= 0",
+      "name": "dracula_destroyed"
+    },
+    {
+      "result": "win",
+      "player": "van_helsing",
+      "condition": "dracula_blood.value <= 0",
+      "name": "hunters_triumph"
+    },
+    {
+      "result": "win",
+      "player": "dr_seward",
+      "condition": "dracula_blood.value <= 0",
+      "name": "hunters_triumph"
+    },
+    {
+      "result": "win",
+      "player": "lord_godalming",
+      "condition": "dracula_blood.value <= 0",
+      "name": "hunters_triumph"
+    },
+    {
+      "result": "win",
+      "player": "mina_harker",
+      "condition": "dracula_blood.value <= 0",
+      "name": "hunters_triumph"
+    },
+    {
+      "result": "loss",
+      "player": "van_helsing",
+      "condition": "influence_track.value >= 13",
+      "name": "dracula_dominion"
+    },
+    {
+      "result": "loss",
+      "player": "dr_seward",
+      "condition": "influence_track.value >= 13",
+      "name": "dracula_dominion"
+    },
+    {
+      "result": "loss",
+      "player": "lord_godalming",
+      "condition": "influence_track.value >= 13",
+      "name": "dracula_dominion"
+    },
+    {
+      "result": "loss",
+      "player": "mina_harker",
+      "condition": "influence_track.value >= 13",
+      "name": "dracula_dominion"
+    }
+  ],
+  "authority": {
+    "server_only": [
+      "dracula_position",
+      "dracula_trail",
+      "dracula_movement",
+      "encounter_deck_shuffle",
+      "event_deck_shuffle",
+      "combat_resolution",
+      "trail_maturation",
+      "influence_track_updates"
+    ],
+    "client_verifiable": [
+      "hunter_movement",
+      "hunter_item_usage",
+      "hunter_search",
+      "day_night_cycle",
+      "adjacency_validation"
+    ],
+    "wasm_required": [
+      "combat_card_resolution",
+      "encounter_effect_resolution"
+    ]
+  }
+}

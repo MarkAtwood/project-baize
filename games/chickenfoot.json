@@ -1,0 +1,133 @@
+{
+  "$schema": "../schema/game-definition.schema.json",
+  "game": {
+    "name": "Chickenfoot Dominoes",
+    "players": {"min": 2, "max": 8},
+    "information": "imperfect"
+  },
+  "zones": {
+    "layout": {
+      "zone_type": "graph",
+      "visibility": "public",
+      "nodes": [],
+      "edges": [],
+      "dynamic": true,
+      "note": "Dynamically growing tree. Each played tile becomes a node. Edges connect matching ends. Doubles create chickenfoot branch points (3 arms)."
+    },
+    "boneyard": {
+      "zone_type": "ordered_stack",
+      "visibility": "hidden",
+      "note": "Shuffled pool of undrawn tiles."
+    },
+    "hand": {
+      "zone_type": "set",
+      "visibility": {"private": "owner"},
+      "per_player": true,
+      "note": "Each player's private hand."
+    },
+    "score": {
+      "zone_type": "counter",
+      "visibility": "public",
+      "per_player": true,
+      "note": "Running pip-count penalty score across rounds. Lowest wins."
+    }
+  },
+  "components": {
+    "tile": {
+      "registry": "standard:dominoes-double-nine",
+      "owner": "neutral",
+      "count": 55,
+      "properties": {
+        "half_a": [0, 1, 2, 3, 4, 5, 6, 7, 8, 9],
+        "half_b": [0, 1, 2, 3, 4, 5, 6, 7, 8, 9],
+        "is_double": [true, false]
+      },
+      "note": "Double-nine domino set: 55 unique tiles from [0,0] to [9,9]."
+    }
+  },
+  "turn_order": {
+    "type": "round_robin",
+    "actions_per_turn": 1,
+    "mandatory": true
+  },
+  "phases": [
+    {
+      "name": "deal",
+      "server_action": "shuffle_and_deal",
+      "note": "Server shuffles boneyard and deals tiles (count depends on player count: 2p=21, 3p=14, 4p=11, 5-6p=9, 7-8p=7)."
+    },
+    {
+      "name": "open",
+      "action": "play_center_double",
+      "note": "Player with the round's target double (9-9 first round, then 8-8, etc.) plays it as the center node. If nobody has it, draw until found."
+    },
+    {
+      "name": "fill_arms",
+      "action": "play_on_center",
+      "note": "Players must play on the 4 arms of the center double before playing elsewhere. Each arm requires a tile matching the center double's value."
+    },
+    {
+      "name": "play",
+      "action": "play_tile_or_draw",
+      "note": "Normal play: place a tile matching any open end. If a double is played, it creates a chickenfoot — 3 tiles must be played on it before any other end."
+    }
+  ],
+  "rules": {
+    "center_double": {
+      "definition": "Each round begins with a specific double placed in the center. Round 1: double-9, round 2: double-8, etc. The center has 4 open arms.",
+      "trigger": "start_of_round"
+    },
+    "chickenfoot": {
+      "definition": "When a double is played (other than the center), it creates a chickenfoot: 3 new arms branch from it. All 3 arms must be filled before any player may play on other open ends.",
+      "constraint": "If a chickenfoot is open (fewer than 3 tiles played on it), all plays must target that chickenfoot.",
+      "note": "The branching shape resembles a chicken's foot — hence the name."
+    },
+    "play_tile": {
+      "action": "play_tile",
+      "definition": "Place a tile from hand onto an open end of the layout. One half must match the open end value.",
+      "constraints": [
+        "tile is in current player hand",
+        "matching half connects to open end",
+        "chickenfoot constraint satisfied"
+      ]
+    },
+    "draw": {
+      "action": "draw",
+      "definition": "If no tile in hand matches any playable end, draw one tile from the boneyard. If the drawn tile is playable, it may be played immediately. If boneyard is empty, pass.",
+      "requires": ["no_playable_tile"]
+    },
+    "scoring": {
+      "definition": "When a round ends, each player's remaining pip count is added to their running score. The center double player scores 0 for that round if they went out.",
+      "note": "Lowest cumulative score after all 10 rounds wins."
+    }
+  },
+  "end_conditions": [
+    {
+      "result": "win",
+      "player": "current",
+      "condition": "hand_empty",
+      "name": "domino_out"
+    },
+    {
+      "result": "win",
+      "player": "lower_score",
+      "condition": "all_blocked_and_boneyard_empty",
+      "name": "blocked_round"
+    },
+    {
+      "result": "win",
+      "player": "lowest_cumulative_score",
+      "condition": "all_rounds_complete",
+      "name": "game_over"
+    }
+  ],
+  "authority": {
+    "server_only": ["shuffle_and_deal", "scoring"],
+    "client_verifiable": ["play_tile", "draw", "pass"],
+    "wasm_required": ["chickenfoot_enforcement", "open_end_enumeration", "pip_counting"]
+  },
+  "notation": {
+    "move_separator": "-",
+    "note": "Tiles written as 'a-b' (e.g., '5-3'). Doubles written as 'a=a' (e.g., '7=7')."
+  }
+}

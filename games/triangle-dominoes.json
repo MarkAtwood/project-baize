@@ -1,0 +1,159 @@
+{
+  "$schema": "../schema/game-definition.schema.json",
+  "game": {
+    "name": "Triangle Dominoes",
+    "players": { "min": 2, "max": 4 },
+    "information": "imperfect"
+  },
+  "zones": {
+    "board": {
+      "zone_type": "hex_grid",
+      "visibility": "public",
+      "dynamic": true,
+      "storage": "sparse",
+      "adjacency": "hex_6",
+      "cell_type": "tile_slot",
+      "stacking_limit": 1,
+      "note": "Triangular tiling on a hex grid. Each hex cell holds one triangular tile in either up or down orientation. Adjacent cells share one edge; matching numbers must touch at shared edges. Board grows as tiles are placed."
+    },
+    "hand": {
+      "zone_type": "set",
+      "visibility": { "private": "owner" },
+      "per_player": true,
+      "note": "Each player's private hand of triangular tiles."
+    },
+    "pool": {
+      "zone_type": "ordered_stack",
+      "visibility": "hidden",
+      "note": "Face-down draw pool. Server shuffles at game start and deals initial hands. Players draw from here when they have no legal play."
+    },
+    "score": {
+      "zone_type": "counter",
+      "per_player": true,
+      "visibility": "public",
+      "note": "Running score for each player. Points equal the sum of edge values on each placed tile, plus bonuses for completing enclosed regions."
+    }
+  },
+  "components": {
+    "tile": {
+      "owner": "neutral",
+      "count": 56,
+      "properties": {
+        "edge_a": [0, 1, 2, 3, 4, 5],
+        "edge_b": [0, 1, 2, 3, 4, 5],
+        "edge_c": [0, 1, 2, 3, 4, 5],
+        "orientation": ["up", "down"]
+      },
+      "note": "Triangular tile with three numbered edges (0-5). 56 unique tiles: all sorted combinations (edge_a <= edge_b <= edge_c). Orientation (up/down) is set when placed to fit the triangular tiling pattern."
+    }
+  },
+  "turn_order": {
+    "type": "round_robin",
+    "actions_per_turn": 1,
+    "mandatory": true
+  },
+  "phases": [
+    {
+      "name": "deal",
+      "server_action": ["shuffle(pool)", "deal(pool, hand, count:7)"],
+      "note": "Server shuffles the pool and deals 7 tiles to each player's hand."
+    },
+    {
+      "name": "play",
+      "action": "place_tile_or_draw_or_pass",
+      "note": "On each turn: place a tile from hand onto the board (matching edges), or draw from the pool if no legal play exists, or pass if pool is empty and no legal play."
+    },
+    {
+      "name": "score_placement",
+      "server_action": "wasm:score_placed_tile(board, score)",
+      "resolve": "wasm:score_placement_and_regions",
+      "note": "After placement, score the sum of the placed tile's edge values. Then check if any enclosed regions were completed for bonus points."
+    }
+  ],
+  "library": {
+    "hand_empty": "hand.count == 0",
+    "no_legal_play": "hand.all(tile, !board.any_valid_placement(tile))",
+    "pool_empty": "pool.count == 0",
+    "all_blocked": "all_players(p, hand[p].count == 0 || (no_legal_play[p] && pool_empty))"
+  },
+  "rules": {
+    "tile_placement": {
+      "action": "place(tile, board/cell)",
+      "constraints": [
+        "tile is in current player hand",
+        "cell must be empty",
+        "tile orientation (up/down) must match cell position in triangular tiling",
+        "all edges touching adjacent placed tiles must have matching numbers"
+      ]
+    },
+    "edge_matching": {
+      "definition": "When a tile is placed adjacent to existing tiles, each shared edge must have the same number on both sides.",
+      "constraint": "for each neighbor: placed_tile.shared_edge == neighbor.shared_edge"
+    },
+    "first_play": {
+      "action": "place(tile, board/cell)",
+      "definition": "First tile may be placed freely at origin with no matching constraint.",
+      "trigger": "board is empty"
+    },
+    "draw_from_pool": {
+      "action": "draw(pool, hand, count:1)",
+      "definition": "If no legal placement exists, draw one tile from the pool. Turn ends after drawing.",
+      "requires": ["no_legal_play", "!pool_empty"]
+    },
+    "pass": {
+      "action": "pass",
+      "definition": "Pass the turn. Only legal when no tile in hand can be legally placed and the pool is empty.",
+      "requires": ["no_legal_play", "pool_empty"]
+    },
+    "placement_scoring": {
+      "trigger": "after tile placement",
+      "effect": "add tile.edge_a + tile.edge_b + tile.edge_c to current player score"
+    },
+    "region_bonus": {
+      "trigger": "after tile placement completes an enclosed region",
+      "effect": "bonus points equal to sum of all edge values on tiles bordering the enclosed region",
+      "note": "An enclosed region is a group of empty cells completely surrounded by placed tiles. Detecting this requires WASM flood-fill."
+    },
+    "tile_rotation": {
+      "definition": "Triangular tiles may be rotated 120 or 240 degrees before placement. This permutes which edge faces which direction but does not change the set of edge values."
+    }
+  },
+  "end_conditions": [
+    {
+      "result": "win",
+      "player": "current",
+      "condition": "hand_empty",
+      "name": "domino_out"
+    },
+    {
+      "result": "win",
+      "player": "highest_score",
+      "condition": "all_blocked",
+      "name": "blocked_highest_score"
+    },
+    {
+      "result": "draw",
+      "condition": "all_blocked AND scores_tied",
+      "name": "blocked_tie"
+    }
+  ],
+  "authority": {
+    "server_only": [
+      "shuffle(pool)",
+      "deal(pool, hand)",
+      "draw(pool, hand)"
+    ],
+    "client_verifiable": [
+      "place_tile(position, orientation, rotation)",
+      "edge_matching",
+      "pass"
+    ],
+    "wasm_required": [
+      "edge_matching_validation",
+      "valid_placement_enumeration",
+      "region_completion_detection",
+      "region_bonus_scoring"
+    ]
+  },
+  "wasm_module": "triangle-dominoes.wasm"
+}
