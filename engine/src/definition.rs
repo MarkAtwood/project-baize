@@ -114,6 +114,9 @@ pub struct Zone {
     pub note: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub cell_properties: Option<IndexMap<String, IndexMap<String, serde_json::Value>>>,
+    /// Storage backend hint: "dense" or "sparse". Auto-selected if omitted.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub storage: Option<String>,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]

@@ -96,9 +96,7 @@ fn component_table_insert_returns_sequential_ids() {
 #[test]
 fn grid_get_out_of_bounds_returns_none() {
     let zone = RuntimeZone::Grid {
-        width: 3,
-        height: 3,
-        cells: vec![None; 9],
+        storage: GridStorage::new_dense(3, 3),
         stacks: Default::default(),
         stacking_limit: 1,
         cell_properties: Default::default(),
@@ -114,9 +112,7 @@ fn grid_get_out_of_bounds_returns_none() {
 #[test]
 fn grid_set_out_of_bounds_is_noop() {
     let mut zone = RuntimeZone::Grid {
-        width: 3,
-        height: 3,
-        cells: vec![None; 9],
+        storage: GridStorage::new_dense(3, 3),
         stacks: Default::default(),
         stacking_limit: 1,
         cell_properties: Default::default(),
@@ -133,9 +129,7 @@ fn grid_set_out_of_bounds_is_noop() {
 #[test]
 fn grid_push_out_of_bounds_is_noop() {
     let mut zone = RuntimeZone::Grid {
-        width: 2,
-        height: 2,
-        cells: vec![None; 4],
+        storage: GridStorage::new_dense(2, 2),
         stacks: Default::default(),
         stacking_limit: 1,
         cell_properties: Default::default(),
@@ -149,9 +143,7 @@ fn grid_push_out_of_bounds_is_noop() {
 #[test]
 fn grid_pop_out_of_bounds_returns_none() {
     let mut zone = RuntimeZone::Grid {
-        width: 2,
-        height: 2,
-        cells: vec![None; 4],
+        storage: GridStorage::new_dense(2, 2),
         stacks: Default::default(),
         stacking_limit: 1,
         cell_properties: Default::default(),
@@ -164,9 +156,7 @@ fn grid_pop_out_of_bounds_returns_none() {
 #[test]
 fn grid_stack_out_of_bounds_returns_empty() {
     let zone = RuntimeZone::Grid {
-        width: 2,
-        height: 2,
-        cells: vec![None; 4],
+        storage: GridStorage::new_dense(2, 2),
         stacks: Default::default(),
         stacking_limit: 1,
         cell_properties: Default::default(),
@@ -179,9 +169,7 @@ fn grid_stack_out_of_bounds_returns_empty() {
 #[test]
 fn grid_cell_valid_rejects_u32_max() {
     let zone = RuntimeZone::Grid {
-        width: 3,
-        height: 3,
-        cells: vec![None; 9],
+        storage: GridStorage::new_dense(3, 3),
         stacks: Default::default(),
         stacking_limit: 1,
         cell_properties: Default::default(),
@@ -252,9 +240,7 @@ fn track_zone_zero_length_errors() {
 #[test]
 fn grid_place_span_zero_span_succeeds_with_empty_result() {
     let mut zone = RuntimeZone::Grid {
-        width: 5,
-        height: 5,
-        cells: vec![None; 25],
+        storage: GridStorage::new_dense(5, 5),
         stacks: Default::default(),
         stacking_limit: 1,
         cell_properties: Default::default(),
@@ -270,9 +256,7 @@ fn grid_place_span_zero_span_succeeds_with_empty_result() {
 #[test]
 fn grid_place_span_exceeds_grid_boundary() {
     let mut zone = RuntimeZone::Grid {
-        width: 3,
-        height: 3,
-        cells: vec![None; 9],
+        storage: GridStorage::new_dense(3, 3),
         stacks: Default::default(),
         stacking_limit: 1,
         cell_properties: Default::default(),
@@ -369,9 +353,7 @@ fn current_player_valid_for_all_indices() {
 fn grid_with_empty_valid_cells_mask() {
     // A grid where NO cells are valid
     let zone = RuntimeZone::Grid {
-        width: 3,
-        height: 3,
-        cells: vec![None; 9],
+        storage: GridStorage::new_dense(3, 3),
         stacks: Default::default(),
         stacking_limit: 1,
         cell_properties: Default::default(),
@@ -420,8 +402,9 @@ fn dynamic_grid_zero_dimensions() {
     let session = GameSession::new(def).unwrap();
     let board = session.runtime.zones.get("board").unwrap();
 
-    // 0x0 grid: all operations should gracefully return None/empty
-    assert!(!board.grid_cell_valid(0, 0));
-    assert!(board.grid_get(0, 0).is_none());
+    // Dynamic grid with no dimensions: sparse unbounded.
+    // All coordinates are valid, but the grid starts empty.
+    assert!(board.grid_cell_valid(0, 0)); // unbounded sparse: any coord is valid
+    assert!(board.grid_get(0, 0).is_none()); // but nothing placed yet
     assert_eq!(board.count(), 0);
 }

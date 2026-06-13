@@ -200,8 +200,10 @@ class BaizeRepl(cmd.Cmd):
             return
         for name, zone in session.runtime.zones.items():
             if isinstance(zone, GridZone):
-                occupied = sum(1 for c in zone.cells if c is not None)
-                print(f"  {name}: grid {zone.width}x{zone.height} ({occupied}/{zone.width*zone.height} occupied)")
+                occupied = zone.count()
+                total = zone.width * zone.height
+                mode = "sparse" if zone._sparse else "dense"
+                print(f"  {name}: grid {zone.width}x{zone.height} ({occupied}/{total} occupied, {mode})")
             elif isinstance(zone, StackZone):
                 print(f"  {name}: stack ({len(zone.components)} items)")
             elif isinstance(zone, SetZone):
@@ -211,8 +213,10 @@ class BaizeRepl(cmd.Cmd):
         for pname, player in session.runtime.players.items():
             for zname, zone in player.zones.items():
                 if isinstance(zone, GridZone):
-                    occupied = sum(1 for c in zone.cells if c is not None)
-                    print(f"  {pname}/{zname}: grid {zone.width}x{zone.height} ({occupied}/{zone.width*zone.height} occupied)")
+                    occupied = zone.count()
+                    total = zone.width * zone.height
+                    mode = "sparse" if zone._sparse else "dense"
+                    print(f"  {pname}/{zname}: grid {zone.width}x{zone.height} ({occupied}/{total} occupied, {mode})")
 
     def do_zone(self, arg: str) -> None:
         """Show contents of a specific zone: zone <name>"""

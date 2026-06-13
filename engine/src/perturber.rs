@@ -319,15 +319,14 @@ fn execute_effect_inner(session: &mut GameSession, effect: &Effect, depth: u32) 
                     crate::error::BaizeError::UnknownZone(set_cell_property.zone.clone())
                 })?;
             if let RuntimeZone::Grid {
-                width, height, cell_properties, ..
+                storage, cell_properties, ..
             } = zone
             {
                 let col = set_cell_property.col;
                 let row = set_cell_property.row;
-                if col < *width && row < *height {
-                    let idx = (row as usize) * (*width as usize) + (col as usize);
+                if storage.cell_valid(col as i32, row as i32) {
                     cell_properties
-                        .entry(idx)
+                        .entry((col as i32, row as i32))
                         .or_default()
                         .insert(
                             set_cell_property.key.clone(),

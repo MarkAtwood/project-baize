@@ -84,6 +84,7 @@ export interface Zone {
   readonly direction?: string;
   readonly valid_cells?: ReadonlyArray<readonly [number, number]>;
   readonly stacking_limit?: number;
+  readonly storage?: "dense" | "sparse";
   readonly nodes?: readonly string[];
   readonly edges?: ReadonlyArray<readonly [string, string]>;
   readonly node_properties?: Record<string, Record<string, unknown>>;

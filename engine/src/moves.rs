@@ -33,45 +33,37 @@ pub fn legal_moves(session: &GameSession) -> Vec<LegalMove> {
         };
 
         match zone {
-            RuntimeZone::Grid { width, height, cells, .. } => {
+            RuntimeZone::Grid { storage, .. } => {
                 // Track seen components to avoid duplicate processing of multi-cell spans
                 let mut seen = std::collections::HashSet::new();
-                'outer: for row in 0..*height {
-                    for col in 0..*width {
-                        if moves.len() >= MAX_LEGAL_MOVES {
-                            break 'outer;
+                let occupied = storage.occupied_cells();
+                for (col, row, cid) in occupied {
+                    if moves.len() >= MAX_LEGAL_MOVES {
+                        break;
+                    }
+                    if col < 0 || row < 0 {
+                        continue; // skip negative coords for move generation
+                    }
+                    if !seen.insert(cid) {
+                        continue; // Already processed this spanning component
+                    }
+                    if let Some(comp_data) = session.runtime.components.get(cid) {
+                        if comp_data.owner.as_deref() != Some(&player) {
+                            continue;
                         }
-                        let idx = match (row as usize)
-                            .checked_mul(*width as usize)
-                            .and_then(|v| v.checked_add(col as usize))
+                        if let Some(comp_def) =
+                            session.definition.components.get(&comp_data.component_type)
                         {
-                            Some(i) => i,
-                            None => continue,
-                        };
-                        if let Some(Some(cid)) = cells.get(idx) {
-                            let cid = *cid;
-                            if !seen.insert(cid) {
-                                continue; // Already processed this spanning component
-                            }
-                            if let Some(comp_data) = session.runtime.components.get(cid) {
-                                if comp_data.owner.as_deref() != Some(&player) {
-                                    continue;
-                                }
-                                if let Some(comp_def) =
-                                    session.definition.components.get(&comp_data.component_type)
-                                {
-                                    generate_grid_moves(
-                                        session,
-                                        zone_name,
-                                        cid,
-                                        comp_def,
-                                        col,
-                                        row,
-                                        zone_def.adjacency,
-                                        &mut moves,
-                                    );
-                                }
-                            }
+                            generate_grid_moves(
+                                session,
+                                zone_name,
+                                cid,
+                                comp_def,
+                                col as u32,
+                                row as u32,
+                                zone_def.adjacency,
+                                &mut moves,
+                            );
                         }
                     }
                 }

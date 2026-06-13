@@ -1008,23 +1008,13 @@ fn find_component_on_grid(
         })?;
 
     for (zone_name, zone) in &session.runtime.zones {
-        if let crate::runtime::RuntimeZone::Grid { width, height, cells, .. } = zone
-        {
-            debug_assert_eq!(
-                cells.len(),
-                (*width as usize) * (*height as usize),
-                "grid cells length {} != width*height {}x{} in zone {}",
-                cells.len(),
-                width,
-                height,
-                zone_name
-            );
-            for row in 0..*height {
-                for col in 0..*width {
-                    let idx = row as usize * *width as usize + col as usize;
-                    if cells.get(idx).copied().flatten() == Some(cid) {
-                        return Ok((cid, zone_name.clone(), col, row));
+        if let crate::runtime::RuntimeZone::Grid { storage, .. } = zone {
+            for (col, row, cell_cid) in storage.occupied_cells() {
+                if cell_cid == cid {
+                    if col < 0 || row < 0 {
+                        continue;
                     }
+                    return Ok((cid, zone_name.clone(), col as u32, row as u32));
                 }
             }
         }

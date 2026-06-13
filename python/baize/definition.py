@@ -278,6 +278,7 @@ class Zone:
     node_properties: dict[str, dict[str, str | int | bool]] | None = None
     note: str | None = None
     cell_properties: dict[str, dict[str, str | int | bool]] | None = None
+    storage: str | None = None  # "dense" or "sparse"
 
     @staticmethod
     def from_dict(d: dict[str, Any]) -> Zone:
@@ -315,6 +316,7 @@ class Zone:
             node_properties=d.get("node_properties"),
             note=d.get("note"),
             cell_properties=d.get("cell_properties"),
+            storage=d.get("storage"),
         )
 
     def to_dict(self) -> dict[str, Any]:
@@ -368,6 +370,8 @@ class Zone:
             out["note"] = self.note
         if self.cell_properties is not None:
             out["cell_properties"] = self.cell_properties
+        if self.storage is not None:
+            out["storage"] = self.storage
         return out
 
 
@@ -891,9 +895,11 @@ class GameDefinition:
                     f"max players {self.game.players.max} exceeds maximum (100)"
                 )
 
-        # Grid dimension limits (max 1000 per axis)
+        # Grid dimension limits (max 1000 per axis for dense grids)
         for name, zone in self.zones.items():
             if zone.zone_type in ("grid", "hex_grid") and zone.dimensions is not None:
+                if zone.storage == "sparse":
+                    continue  # sparse grids allow large dimensions
                 if isinstance(zone.dimensions, list):
                     dims = zone.dimensions
                 elif isinstance(zone.dimensions, int):

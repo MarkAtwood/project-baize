@@ -383,9 +383,7 @@ fn grid_remove_span() {
 /// Helper: create a 3x3 grid with no valid_cells mask (all cells valid).
 fn grid_3x3_no_mask() -> RuntimeZone {
     RuntimeZone::Grid {
-        width: 3,
-        height: 3,
-        cells: vec![None; 9],
+        storage: GridStorage::new_dense(3, 3),
         stacks: Default::default(),
         stacking_limit: 1,
         cell_properties: Default::default(),
@@ -395,15 +393,13 @@ fn grid_3x3_no_mask() -> RuntimeZone {
 
 /// Helper: create a 3x3 grid where only the diagonal cells (0,0), (1,1), (2,2) are valid.
 fn grid_3x3_diagonal_mask() -> RuntimeZone {
-    // flat indices: (0,0)=0, (1,1)=4, (2,2)=8
+    // coordinate tuples: (0,0), (1,1), (2,2)
     RuntimeZone::Grid {
-        width: 3,
-        height: 3,
-        cells: vec![None; 9],
+        storage: GridStorage::new_dense(3, 3),
         stacks: Default::default(),
         stacking_limit: 1,
         cell_properties: Default::default(),
-        valid_cells: Some(HashSet::from([0, 4, 8])),
+        valid_cells: Some(HashSet::from([(0, 0), (1, 1), (2, 2)])),
     }
 }
 
@@ -465,10 +461,9 @@ fn grid_get_set_masked_out_cell() {
     // Get on that masked-out cell returns None
     assert!(grid.grid_get(1, 0).is_none());
 
-    // The underlying cell array should still be None (set was truly a no-op)
-    if let RuntimeZone::Grid { cells, .. } = &grid {
-        // flat index for (1,0) = 0*3 + 1 = 1
-        assert!(cells[1].is_none());
+    // The underlying storage should still have None (set was truly a no-op)
+    if let RuntimeZone::Grid { storage, .. } = &grid {
+        assert!(storage.get(1, 0).is_none());
     }
 }
 
@@ -577,16 +572,13 @@ fn from_definition_valid_cells_populated() {
     let board = session.runtime.zones.get("board").unwrap();
 
     // Check that valid_cells is correctly populated
-    if let RuntimeZone::Grid { valid_cells, width, .. } = board {
+    if let RuntimeZone::Grid { valid_cells, storage, .. } = board {
         let vc = valid_cells.as_ref().expect("valid_cells should be Some");
-        // (0,0) -> 0*3+0 = 0
-        // (1,1) -> 1*3+1 = 4
-        // (2,2) -> 2*3+2 = 8
-        assert_eq!(*width, 3);
+        assert_eq!(storage.dimensions(), Some((3, 3)));
         assert_eq!(vc.len(), 3);
-        assert!(vc.contains(&0));
-        assert!(vc.contains(&4));
-        assert!(vc.contains(&8));
+        assert!(vc.contains(&(0, 0)));
+        assert!(vc.contains(&(1, 1)));
+        assert!(vc.contains(&(2, 2)));
     } else {
         panic!("board should be a Grid");
     }
@@ -627,8 +619,8 @@ fn from_definition_valid_cells_filters_out_of_bounds() {
         let vc = valid_cells.as_ref().expect("valid_cells should be Some");
         // Only (0,0) and (1,1) should survive; (99,99), (3,0), (0,3) are out of bounds
         assert_eq!(vc.len(), 2);
-        assert!(vc.contains(&0)); // (0,0)
-        assert!(vc.contains(&4)); // (1,1)
+        assert!(vc.contains(&(0, 0)));
+        assert!(vc.contains(&(1, 1)));
     } else {
         panic!("board should be a Grid");
     }

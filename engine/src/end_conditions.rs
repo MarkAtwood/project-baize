@@ -1,5 +1,5 @@
 use crate::definition::EndResult;
-use crate::runtime::{ComponentId, GameSession, RuntimeZone};
+use crate::runtime::{GameSession, RuntimeZone};
 use crate::state::{GameOutcome, GameResult};
 
 /// Check all end conditions against the current game state.
@@ -77,10 +77,11 @@ fn eval_condition(session: &GameSession, condition: &str, current_player: &str) 
 /// on any grid zone.
 pub(crate) fn check_line_win(session: &GameSession, player: &str) -> bool {
     for zone in session.runtime.zones.values() {
-        if let RuntimeZone::Grid { width, height, cells, .. } = zone
-        {
-            if has_complete_line(session, cells, *width, *height, player) {
-                return true;
+        if let RuntimeZone::Grid { storage, .. } = zone {
+            if let Some((w, h)) = storage.dimensions() {
+                if has_complete_line(session, storage, w, h, player) {
+                    return true;
+                }
             }
         }
     }
@@ -89,7 +90,7 @@ pub(crate) fn check_line_win(session: &GameSession, player: &str) -> bool {
 
 fn has_complete_line(
     session: &GameSession,
-    cells: &[Option<ComponentId>],
+    storage: &crate::runtime::GridStorage,
     width: u32,
     height: u32,
     player: &str,
@@ -99,24 +100,34 @@ fn has_complete_line(
 
     // Check rows
     for row in 0..h {
-        if w > 0 && (0..w).all(|col| cell_owned_by(session, cells, row * w + col, player)) {
+        if w > 0
+            && (0..w).all(|col| {
+                grid_cell_owned_by(session, storage, col as i32, row as i32, player)
+            })
+        {
             return true;
         }
     }
 
     // Check columns
     for col in 0..w {
-        if h > 0 && (0..h).all(|row| cell_owned_by(session, cells, row * w + col, player)) {
+        if h > 0
+            && (0..h).all(|row| {
+                grid_cell_owned_by(session, storage, col as i32, row as i32, player)
+            })
+        {
             return true;
         }
     }
 
     // Check diagonals (square grids only)
     if w == h && w > 0 {
-        if (0..w).all(|i| cell_owned_by(session, cells, i * w + i, player)) {
+        if (0..w).all(|i| grid_cell_owned_by(session, storage, i as i32, i as i32, player)) {
             return true;
         }
-        if (0..w).all(|i| cell_owned_by(session, cells, i * w + (w - 1 - i), player)) {
+        if (0..w).all(|i| {
+            grid_cell_owned_by(session, storage, (w - 1 - i) as i32, i as i32, player)
+        }) {
             return true;
         }
     }
@@ -124,15 +135,15 @@ fn has_complete_line(
     false
 }
 
-fn cell_owned_by(
+fn grid_cell_owned_by(
     session: &GameSession,
-    cells: &[Option<ComponentId>],
-    idx: usize,
+    storage: &crate::runtime::GridStorage,
+    col: i32,
+    row: i32,
     player: &str,
 ) -> bool {
-    cells
-        .get(idx)
-        .and_then(|c| *c)
+    storage
+        .get(col, row)
         .and_then(|cid| session.runtime.components.get(cid))
         .is_some_and(|comp| comp.owner.as_deref() == Some(player))
 }
@@ -140,8 +151,12 @@ fn cell_owned_by(
 /// Check if all cells in the target grid zone are occupied.
 fn check_all_cells_occupied(session: &GameSession, condition: &str) -> bool {
     let zone_name = extract_paren_arg(condition).unwrap_or("board");
-    if let Some(RuntimeZone::Grid { cells, .. }) = session.runtime.zones.get(zone_name) {
-        return !cells.is_empty() && cells.iter().all(|c| c.is_some());
+    if let Some(RuntimeZone::Grid { storage, .. }) = session.runtime.zones.get(zone_name) {
+        if let Some((w, h)) = storage.dimensions() {
+            let total = (w as usize).checked_mul(h as usize).unwrap_or(0);
+            return total > 0 && storage.occupied_count() == total;
+        }
+        return false;
     }
     false
 }
