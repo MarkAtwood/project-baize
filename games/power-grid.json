@@ -1,0 +1,341 @@
+{
+  "$schema": "../schema/game-definition.schema.json",
+  "game": {
+    "name": "Power Grid",
+    "players": { "min": 2, "max": 6 },
+    "information": "imperfect"
+  },
+  "zones": {
+    "city_network": {
+      "zone_type": "graph",
+      "visibility": "public",
+      "nodes": [
+        "flensburg", "kiel", "hamburg", "cuxhaven", "hannover",
+        "bremen", "schwerin", "rostock", "torgelow", "berlin",
+        "magdeburg", "dresden", "leipzig", "erfurt", "kassel",
+        "dortmund", "essen", "duisburg", "muenster", "frankfurt"
+      ],
+      "edges": [
+        ["flensburg", "kiel"],
+        ["kiel", "hamburg"],
+        ["hamburg", "cuxhaven"],
+        ["hamburg", "hannover"],
+        ["hamburg", "schwerin"],
+        ["cuxhaven", "bremen"],
+        ["bremen", "hannover"],
+        ["schwerin", "rostock"],
+        ["schwerin", "torgelow"],
+        ["schwerin", "magdeburg"],
+        ["rostock", "torgelow"],
+        ["torgelow", "berlin"],
+        ["berlin", "magdeburg"],
+        ["berlin", "dresden"],
+        ["magdeburg", "hannover"],
+        ["magdeburg", "leipzig"],
+        ["dresden", "leipzig"],
+        ["leipzig", "erfurt"],
+        ["erfurt", "kassel"],
+        ["kassel", "hannover"],
+        ["kassel", "dortmund"],
+        ["kassel", "frankfurt"],
+        ["hannover", "muenster"],
+        ["muenster", "dortmund"],
+        ["muenster", "essen"],
+        ["dortmund", "essen"],
+        ["dortmund", "frankfurt"],
+        ["essen", "duisburg"],
+        ["duisburg", "muenster"]
+      ],
+      "node_properties": {
+        "flensburg":  { "region": "north", "label": "Flensburg" },
+        "kiel":       { "region": "north", "label": "Kiel" },
+        "hamburg":    { "region": "north", "label": "Hamburg" },
+        "cuxhaven":   { "region": "north", "label": "Cuxhaven" },
+        "hannover":   { "region": "north", "label": "Hannover" },
+        "bremen":     { "region": "north", "label": "Bremen" },
+        "schwerin":   { "region": "east", "label": "Schwerin" },
+        "rostock":    { "region": "east", "label": "Rostock" },
+        "torgelow":   { "region": "east", "label": "Torgelow" },
+        "berlin":     { "region": "east", "label": "Berlin" },
+        "magdeburg":  { "region": "east", "label": "Magdeburg" },
+        "dresden":    { "region": "south", "label": "Dresden" },
+        "leipzig":    { "region": "south", "label": "Leipzig" },
+        "erfurt":     { "region": "south", "label": "Erfurt" },
+        "kassel":     { "region": "central", "label": "Kassel" },
+        "dortmund":   { "region": "west", "label": "Dortmund" },
+        "essen":      { "region": "west", "label": "Essen" },
+        "duisburg":   { "region": "west", "label": "Duisburg" },
+        "muenster":   { "region": "west", "label": "Muenster" },
+        "frankfurt":  { "region": "central", "label": "Frankfurt" }
+      },
+      "note": "Simplified Germany map with 20 cities in 5 regions (north, east, south, central, west). Connection costs between cities are in the library section."
+    },
+    "power_plant_deck": {
+      "zone_type": "ordered_stack",
+      "visibility": "hidden",
+      "note": "Shuffled deck of power plants not yet in the market. Server draws from top."
+    },
+    "current_market": {
+      "zone_type": "set",
+      "capacity": 4,
+      "visibility": "public",
+      "note": "The 4 lowest-cost power plants available for auction this round."
+    },
+    "future_market": {
+      "zone_type": "set",
+      "capacity": 4,
+      "visibility": "public",
+      "note": "The 4 next-lowest power plants visible but not yet available for auction."
+    },
+    "player_plants": {
+      "zone_type": "set",
+      "per_player": true,
+      "capacity": 3,
+      "visibility": "public",
+      "note": "Each player owns up to 3 power plants."
+    },
+    "removed_plants": {
+      "zone_type": "set",
+      "visibility": "public",
+      "note": "Power plants removed from the game."
+    },
+    "money": {
+      "zone_type": "counter",
+      "per_player": true,
+      "visibility": { "private": "owner" },
+      "note": "Each player's Elektro (currency). Starting money: 50. Hidden from opponents."
+    },
+    "coal_supply": {
+      "zone_type": "counter",
+      "visibility": "public",
+      "note": "Shared resource market: coal available for purchase. 24 total capacity."
+    },
+    "oil_supply": {
+      "zone_type": "counter",
+      "visibility": "public",
+      "note": "Shared resource market: oil available for purchase. 24 total capacity."
+    },
+    "garbage_supply": {
+      "zone_type": "counter",
+      "visibility": "public",
+      "note": "Shared resource market: garbage available for purchase. 24 total capacity."
+    },
+    "uranium_supply": {
+      "zone_type": "counter",
+      "visibility": "public",
+      "note": "Shared resource market: uranium available for purchase. 12 total capacity."
+    },
+    "player_coal": {
+      "zone_type": "counter",
+      "per_player": true,
+      "visibility": "public",
+      "note": "Coal stored on a player's power plants."
+    },
+    "player_oil": {
+      "zone_type": "counter",
+      "per_player": true,
+      "visibility": "public",
+      "note": "Oil stored on a player's power plants."
+    },
+    "player_garbage": {
+      "zone_type": "counter",
+      "per_player": true,
+      "visibility": "public",
+      "note": "Garbage stored on a player's power plants."
+    },
+    "player_uranium": {
+      "zone_type": "counter",
+      "per_player": true,
+      "visibility": "public",
+      "note": "Uranium stored on a player's power plants."
+    },
+    "cities_powered": {
+      "zone_type": "counter",
+      "per_player": true,
+      "visibility": "public",
+      "note": "Number of cities each player powered this round (for income calculation)."
+    },
+    "cities_connected": {
+      "zone_type": "counter",
+      "per_player": true,
+      "visibility": "public",
+      "note": "Number of cities each player has connected (built into)."
+    },
+    "step_tracker": {
+      "zone_type": "counter",
+      "visibility": "public",
+      "note": "Current game step (1, 2, or 3). Affects city building costs and market rules."
+    }
+  },
+  "components": {
+    "power_plant": {
+      "owner": "neutral",
+      "count": 42,
+      "properties": {
+        "min_bid": [3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 42, 44, 46, 50],
+        "fuel_type": ["coal", "oil", "hybrid", "garbage", "uranium", "wind"],
+        "fuel_cost": [1, 2, 3],
+        "capacity": [1, 2, 3, 4, 5, 6, 7]
+      },
+      "note": "Power plants numbered 3-50. Each has a minimum bid price, fuel type, fuel consumption rate, and number of cities it can power. Hybrid plants accept coal or oil."
+    },
+    "city_token": {
+      "owner": "per_player",
+      "count": 22,
+      "note": "Tokens placed on cities to mark player connections. Up to 22 cities per player."
+    }
+  },
+  "turn_order": {
+    "type": "round_robin",
+    "mandatory": true
+  },
+  "phases": [
+    {
+      "name": "determine_player_order",
+      "server_action": "reorder_players(cities_connected DESC, highest_plant DESC)",
+      "note": "Player with the most cities goes first. Ties broken by highest-numbered power plant. In Phase 2 (auction), first player picks first; in Phases 3-4, last player (fewest cities) acts first."
+    },
+    {
+      "name": "auction_power_plants",
+      "action": "bid(plant, amount) OR pass",
+      "note": "Starting with the first player in order, each player may start an auction on a current_market plant with a bid >= min_bid. Other players bid in order. Passing eliminates you from this auction. Winner pays bid, takes plant (discards one if already at 3). A player who won an auction does not start another. Phase ends when all players have either won or passed.",
+      "ends_when": "all players have won an auction or passed for the round"
+    },
+    {
+      "name": "buy_resources",
+      "action": "buy(resource_type, quantity)",
+      "starts_with": "last_in_player_order",
+      "note": "In reverse player order: buy coal, oil, garbage, or uranium from the supply. Price depends on quantity remaining in supply (tiered pricing). Resources are stored on power plants up to their storage capacity (2x fuel_cost)."
+    },
+    {
+      "name": "build_cities",
+      "action": "connect(city)",
+      "starts_with": "last_in_player_order",
+      "note": "In reverse player order: pay connection cost to add cities to your network. Cost = city slot cost + cheapest pipeline cost to reach your existing network. Step 1: only slot 1 (10 Elektro). Step 2: slots 1-2 (10 or 15). Step 3: slots 1-3 (10, 15, or 20). First city has no pipeline cost."
+    },
+    {
+      "name": "bureaucracy",
+      "server_action": [
+        "power_cities(player_plants, player_resources)",
+        "earn_income(cities_powered)",
+        "restock_resources(step_tracker)"
+      ],
+      "note": "Each player chooses which plants to activate, spending stored fuel. Income earned by number of cities powered (see payment table). Then the resource market is restocked based on current step and player count. The highest plant in current_market is removed; a new plant is drawn from the deck."
+    }
+  ],
+  "library": {
+    "connection_costs": "flensburg-kiel:4, kiel-hamburg:8, hamburg-cuxhaven:11, hamburg-hannover:17, hamburg-schwerin:5, cuxhaven-bremen:8, bremen-hannover:10, schwerin-rostock:6, schwerin-torgelow:19, schwerin-magdeburg:16, rostock-torgelow:19, torgelow-berlin:15, berlin-magdeburg:10, berlin-dresden:19, magdeburg-hannover:15, magdeburg-leipzig:10, dresden-leipzig:13, leipzig-erfurt:8, erfurt-kassel:15, kassel-hannover:15, kassel-dortmund:18, kassel-frankfurt:13, hannover-muenster:16, muenster-dortmund:2, muenster-essen:6, dortmund-essen:4, dortmund-frankfurt:20, essen-duisburg:0, duisburg-muenster:5",
+    "payment_table": "[10, 22, 33, 44, 54, 64, 73, 82, 90, 98, 105, 112, 118, 124, 129, 134, 138, 142, 145, 148, 150]",
+    "city_slot_costs": "step1: [10], step2: [10, 15], step3: [10, 15, 20]",
+    "resource_pricing": "8 slots of 3 resources each at costs [1,1,1, 2,2,2, 3,3,3, 4,4,4, 5,5,5, 6,6,6, 7,7,7, 8,8,8]. Uranium: [1, 2, 3, 4, 5, 6, 7, 8, 10, 12, 14, 16].",
+    "starting_money": "50",
+    "win_threshold": "2p: 21, 3p: 17, 4p: 17, 5p: 15, 6p: 14",
+    "step2_trigger": "any player connects N cities (2p: 10, 3p: 7, 4p: 7, 5p: 7, 6p: 6)",
+    "step3_trigger": "step_3 card drawn from power_plant_deck"
+  },
+  "rules": {
+    "auction_bidding": {
+      "action": "bid(plant, amount)",
+      "constraints": [
+        "plant is in current_market",
+        "amount >= plant.min_bid",
+        "amount > current_highest_bid",
+        "player.money >= amount"
+      ],
+      "effect": "set current_highest_bid = amount",
+      "definition": "Players bid on power plants. Minimum bid is the plant's printed number. Each subsequent bid must exceed the current high bid."
+    },
+    "auction_win": {
+      "trigger": "all other players pass on current auction",
+      "effect": "winner pays bid amount, plant moves to player_plants; if player has > 3 plants, must discard one to removed_plants; refill current_market from future_market, draw new plant to future_market from deck",
+      "definition": "Last remaining bidder wins the auction and pays their bid."
+    },
+    "buy_resources": {
+      "action": "buy(resource_type, quantity)",
+      "constraints": [
+        "resource_type supply has >= quantity available",
+        "player has plant(s) that use resource_type",
+        "player's plant storage has room for quantity",
+        "player.money >= sum of unit prices for quantity units"
+      ],
+      "effect": "deduct cost from player.money; move resources from supply to player storage",
+      "definition": "Buy resources at market price. Price per unit depends on how many remain in the supply: fewer resources means higher prices."
+    },
+    "resource_storage": {
+      "definition": "Each power plant can store up to 2x its fuel_cost in resources of its fuel type. Hybrid plants can mix coal and oil up to their storage limit.",
+      "constraint": "total stored resources on a plant <= 2 * plant.fuel_cost"
+    },
+    "connect_city": {
+      "action": "connect(city)",
+      "constraints": [
+        "city has an open slot for current step",
+        "player does not already occupy this city",
+        "player.money >= city_slot_cost + pipeline_cost_to_network"
+      ],
+      "effect": "deduct total cost from player.money; place city_token on city; increment cities_connected",
+      "definition": "Build into a city by paying the slot cost plus cheapest connection cost from the city to any city in the player's existing network. First city has no connection cost."
+    },
+    "pipeline_cost": {
+      "definition": "Connection cost between two adjacent cities is the pipeline cost on their edge. To reach a non-adjacent city in your network, sum the cheapest path of edges. Dijkstra shortest path determines cheapest connection."
+    },
+    "power_cities": {
+      "action": "power(plant_set)",
+      "constraints": [
+        "each plant in plant_set has sufficient stored fuel",
+        "total capacity of plant_set = cities player wants to power"
+      ],
+      "effect": "spend fuel from powered plants; set cities_powered = min(total_capacity, cities_connected); earn income per payment_table[cities_powered]",
+      "definition": "During Bureaucracy, each player chooses which plants to run. Spent fuel is returned to the general supply. Income is earned based on how many cities are powered."
+    },
+    "restock_market": {
+      "trigger": "end of bureaucracy phase",
+      "effect": "add resources to supply based on step and player count; remove highest current_market plant during step 3",
+      "definition": "Resource supply is restocked at the end of each round. Restock rates vary by resource type, step, and player count."
+    },
+    "step_advancement": {
+      "trigger": "step2_trigger OR step3_trigger",
+      "effect": "increment step_tracker; adjust city slot availability and market rules",
+      "definition": "Game advances from Step 1 to Step 2 when a player connects enough cities. Step 3 begins when the Step 3 card is drawn from the power plant deck."
+    },
+    "plant_market_ordering": {
+      "definition": "Both current_market and future_market are always sorted by min_bid ascending. When a plant is bought, the lowest future_market plant moves to current_market and a new plant is drawn from the deck to future_market."
+    },
+    "reverse_action_order": {
+      "definition": "In Buy Resources and Build Cities phases, players act in reverse player order (fewest cities first). This gives trailing players first access to cheap resources and open cities."
+    }
+  },
+  "end_conditions": [
+    {
+      "result": "win",
+      "player": "current",
+      "condition": "any player cities_connected >= win_threshold AND player powers most cities among tied players",
+      "name": "most_cities_powered"
+    },
+    {
+      "result": "draw",
+      "condition": "any player cities_connected >= win_threshold AND multiple players tie on cities_powered AND tied on remaining money",
+      "name": "tie"
+    }
+  ],
+  "authority": {
+    "server_only": [
+      "shuffle(power_plant_deck)",
+      "determine_player_order(cities_connected, highest_plant)",
+      "auction_resolution(bids)",
+      "resource_market_pricing(supply_levels)",
+      "restock_resources(step, player_count)",
+      "step_advancement"
+    ],
+    "client_verifiable": [
+      "bid(plant, amount)",
+      "buy(resource_type, quantity)",
+      "connect(city)",
+      "power(plant_set)",
+      "pipeline_cost_validation(city, network)"
+    ],
+    "wasm_required": [
+      "dijkstra_shortest_path(city_network, source, target)",
+      "resource_market_price_calculation(supply_levels, quantity)"
+    ]
+  }
+}
