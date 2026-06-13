@@ -96,3 +96,91 @@ fn score(state: State) -> List Score =
                   , { category = "objectives", points = objectives }
                   ]
     })
+
+-- ============================================================
+-- Supply Line Tracing
+-- ============================================================
+--
+-- A unit is "in supply" if a contiguous path of passable hexes
+-- connects it to a supply source: a friendly HQ or the friendly
+-- map edge (col 0 for Blue, col 19 for Red).
+--
+-- The path must not pass through:
+--   - Enemy-occupied hexes
+--   - Unoccupied hexes in enemy ZOC (friendly-occupied ZOC hexes OK)
+--   - Impassable terrain (mountain, river)
+--
+-- Uses flood_fill for efficient reachability without recursion.
+
+-- Check if a cell is in enemy ZOC (any adjacent cell has an enemy unit).
+-- Inlined here because Felt has no imports; mirrors zoc.felt logic.
+fn in_enemy_zoc_supply(board: Zone, target: Cell, player: Player) -> Bool =
+  adjacent board target
+  |> any (\adj ->
+    cell_at board (col adj) (row adj)
+    |> map_opt (\comp -> owner comp != Some player and is_some (owner comp))
+    |> unwrap_or false)
+
+-- Check if a cell is on the friendly map edge.
+-- Blue supplies from col 0, Red supplies from col 19.
+fn is_friendly_edge(c: Cell, player: Player) -> Bool =
+  let player_name = name player in
+  if player_name == "Blue" then col c == 0
+  else col c == 19
+
+-- Check if a cell has a friendly HQ unit.
+fn has_friendly_hq(board: Zone, c: Cell, player: Player) -> Bool =
+  cell_at board (col c) (row c)
+  |> map_opt (\comp -> type_of comp == "headquarters" and owner comp == Some player)
+  |> unwrap_or false
+
+-- Check if a cell is a supply source (friendly HQ or friendly map edge).
+fn is_supply_source(board: Zone, c: Cell, player: Player) -> Bool =
+  is_friendly_edge c player or has_friendly_hq board c player
+
+-- Check if a cell is passable for supply line tracing.
+-- Impassable: mountain, river.
+-- Enemy-occupied: blocked.
+-- Empty + enemy ZOC (without friendly presence): blocked.
+-- Friendly-occupied or empty without enemy ZOC: passable.
+fn is_supply_passable(board: Zone, c: Cell, player: Player) -> Bool =
+  let terrain = cell_property board (col c) (row c) "terrain" in
+  if terrain == "mountain" then false
+  else if terrain == "river" then false
+  else
+    cell_at board (col c) (row c)
+    |> map_opt (\comp -> owner comp == Some player)
+    |> unwrap_or (not (in_enemy_zoc_supply board c player))
+
+-- Find all cells reachable from a starting cell through supply-passable hexes.
+-- Uses flood_fill (BFS) — no recursion needed.
+fn supply_reachable(board: Zone, start: Cell, player: Player) -> Set Cell =
+  flood_fill board start (\c -> is_supply_passable board c player)
+
+-- Check if a unit is in supply.
+-- A unit is in supply if any cell reachable through passable hexes
+-- is a supply source (friendly HQ or friendly map edge).
+fn is_in_supply(state: State, board: Zone, unit: Component, player: Player) -> Bool =
+  position unit
+  |> map_opt (\cell ->
+    is_supply_source board cell player
+    or (supply_reachable board cell player
+        |> to_list
+        |> any (\c -> is_supply_source board c player)))
+  |> unwrap_or false
+
+-- Count units out of supply for a player.
+fn count_out_of_supply(state: State, board: Zone, player: Player) -> Int =
+  components board
+  |> filter (\c -> owner c == Some player)
+  |> filter (\c -> not (is_in_supply state board c player))
+  |> length
+
+-- ============================================================
+-- Exploitation Phase
+-- ============================================================
+
+-- Exploitation eligibility: only armor and recon may exploit
+fn can_exploit(comp: Component) -> Bool =
+  let t = type_of comp in
+  t == "armor" or t == "recon"
