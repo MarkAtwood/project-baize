@@ -107,3 +107,86 @@ fn adjusted_odds(total_attack: Int, total_defense: Int, terrain_bonus: Int) -> I
 -- Combined defense: base strength + terrain modifier
 fn effective_defense(comp: Component, board: Zone, c: Cell) -> Int =
   defense_strength comp + terrain_defense_modifier board c
+
+-- ============================================================
+-- Combat aftermath: step losses, retreat, mandatory attack,
+-- advance after combat
+-- ============================================================
+
+-- A unit's current attack strength after step losses
+fn current_attack(comp: Component) -> Int =
+  let base = attack_strength comp in
+  let step_loss_str = property comp "step_losses" in
+  if step_loss_str == "1" then (base + 1) / 2
+  else base
+
+-- A unit's current defense strength after step losses
+fn current_defense(comp: Component) -> Int =
+  let base = defense_strength comp in
+  let step_loss_str = property comp "step_losses" in
+  if step_loss_str == "1" then (base + 1) / 2
+  else base
+
+-- Is a unit eliminated (all steps lost)?
+fn is_eliminated(comp: Component) -> Bool =
+  let steps_str = property comp "steps" in
+  let step_loss_str = property comp "step_losses" in
+  if steps_str == "1" then step_loss_str == "1"
+  else if steps_str == "2" then step_loss_str == "2"
+  else false
+
+-- Helper: check if a cell is in enemy ZOC (inlined from zoc.felt)
+fn crt_in_enemy_zoc(board: Zone, target: Cell, player: Player) -> Bool =
+  adjacent board target
+  |> any (\adj ->
+    cell_at board (col adj) (row adj)
+    |> map_opt (\comp -> owner comp != Some player and is_some (owner comp))
+    |> unwrap_or false)
+
+-- Helper: count enemy units adjacent to a cell (inlined from zoc.felt)
+fn crt_adjacent_enemy_count(board: Zone, target: Cell, player: Player) -> Int =
+  adjacent board target
+  |> filter (\adj ->
+    cell_at board (col adj) (row adj)
+    |> map_opt (\comp -> owner comp != Some player and is_some (owner comp))
+    |> unwrap_or false)
+  |> length
+
+-- Check if a retreat hex is valid for a defender
+fn is_valid_retreat(board: Zone, from: Cell, to: Cell, retreater: Player) -> Bool =
+  let to_terrain = cell_property board (col to) (row to) "terrain" in
+  if to_terrain == "river" then false
+  else if to_terrain == "mountain" then false
+  else
+    match cell_at board (col to) (row to) with
+    | Some comp -> owner comp == Some retreater
+    | None -> true
+
+-- Retreat through enemy ZOC causes extra step loss
+fn retreat_zoc_penalty(board: Zone, retreat_cell: Cell, retreater: Player) -> Int =
+  if crt_in_enemy_zoc board retreat_cell retreater then 1
+  else 0
+
+-- Check if a player has units adjacent to enemies (must attack)
+fn must_attack(board: Zone, player: Player) -> Bool =
+  components board
+  |> filter (\comp -> owner comp == Some player)
+  |> any (\comp ->
+    match position comp with
+    | Some cell -> crt_adjacent_enemy_count board cell player > 0
+    | None -> false)
+
+-- List units that must attack (adjacent to enemies)
+fn units_that_must_attack(board: Zone, player: Player) -> List Component =
+  components board
+  |> filter (\comp -> owner comp == Some player)
+  |> filter (\comp ->
+    match position comp with
+    | Some cell -> crt_adjacent_enemy_count board cell player > 0
+    | None -> false)
+
+-- Check if attacker can advance into a vacated hex
+fn can_advance_into(board: Zone, target: Cell) -> Bool =
+  match cell_at board (col target) (row target) with
+  | Some x -> false
+  | None -> true
