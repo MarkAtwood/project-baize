@@ -28,6 +28,8 @@ pub struct GameDefinition {
     pub visibility_transitions: Vec<VisibilityTransitionRule>,
     #[serde(default, skip_serializing_if = "IndexMap::is_empty")]
     pub triggers: IndexMap<String, TriggerDef>,
+    #[serde(default, skip_serializing_if = "IndexMap::is_empty")]
+    pub resources: IndexMap<String, ResourceDef>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -489,6 +491,21 @@ pub struct ClaimWindowDef {
     pub timeout: Option<u32>,
     /// Action auto-submitted for non-respondents (typically "pass").
     pub default: String,
+}
+
+// --- Resources ---
+
+/// An external data resource referenced by game logic.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ResourceDef {
+    /// Resource type: "word_list", "lookup_table".
+    #[serde(rename = "type")]
+    pub resource_type: String,
+    /// Identifier for the specific resource (e.g. "twl06", "sowpods").
+    pub name: String,
+    /// Human-readable note.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub note: Option<String>,
 }
 
 // --- Library entries ---

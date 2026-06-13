@@ -874,6 +874,29 @@ class TriggerDef:
 
 
 @dataclass
+class ResourceDef:
+    """An external data resource referenced by game logic."""
+
+    resource_type: str  # "word_list", "lookup_table"
+    name: str  # identifier (e.g. "twl06", "sowpods")
+    note: str | None = None
+
+    @staticmethod
+    def from_dict(d: dict[str, Any]) -> ResourceDef:
+        return ResourceDef(
+            resource_type=d["type"],
+            name=d["name"],
+            note=d.get("note"),
+        )
+
+    def to_dict(self) -> dict[str, Any]:
+        result: dict[str, Any] = {"type": self.resource_type, "name": self.name}
+        if self.note is not None:
+            result["note"] = self.note
+        return result
+
+
+@dataclass
 class BettingRound:
     actions: list[str] = field(default_factory=list)
     ends_when: str | None = None
@@ -993,6 +1016,7 @@ class GameDefinition:
     partnerships: list[list[str]] = field(default_factory=list)
     visibility_transitions: list[VisibilityTransitionRule] = field(default_factory=list)
     triggers: dict[str, TriggerDef] = field(default_factory=dict)
+    resources: dict[str, ResourceDef] = field(default_factory=dict)
 
     @classmethod
     def from_json(cls, json_str: str, *, validate_schema: bool = True) -> GameDefinition:
@@ -1042,6 +1066,11 @@ class GameDefinition:
                 for k, v in d.get("triggers", {}).items()
             }
 
+            resources = {
+                k: ResourceDef.from_dict(v)
+                for k, v in d.get("resources", {}).items()
+            }
+
             defn = cls(
                 game=GameMetadata.from_dict(d["game"]),
                 zones=zones,
@@ -1059,6 +1088,7 @@ class GameDefinition:
                 partnerships=d.get("partnerships", []),
                 visibility_transitions=vis_transitions,
                 triggers=triggers,
+                resources=resources,
             )
             defn.validate()
             return defn
@@ -1193,4 +1223,6 @@ class GameDefinition:
             ]
         if self.triggers:
             out["triggers"] = {k: v.to_dict() for k, v in self.triggers.items()}
+        if self.resources:
+            out["resources"] = {k: v.to_dict() for k, v in self.resources.items()}
         return out
