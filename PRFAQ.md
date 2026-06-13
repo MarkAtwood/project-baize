@@ -92,11 +92,12 @@ TypeScript client are all included.
 
 ### What games can Baize describe?
 
-Any turn-based card or board game with discrete state. The six reference
-games — Tic-Tac-Toe, Chess, Go, Backgammon, Texas Hold'em, and Tile Kingdoms
-— span the spectrum from trivial perfect-information placement games to
-complex imperfect-information games with randomness, hidden state, dynamic
-boards, and custom scoring. Games with real-time physics (foosball) or
+Any turn-based card or board game with discrete state. The fifty-eight
+reference games — spanning classics (Chess, Go, Backgammon), card games
+(Texas Hold'em, Cribbage), abstract strategy (Hex, Reversi), and original
+designs — cover the spectrum from trivial perfect-information placement
+games to complex imperfect-information games with randomness, hidden state,
+dynamic boards, and custom scoring. Games with real-time physics (foosball) or
 continuous state (flight simulators) are out of scope.
 
 ### How is this different from Board Game Arena?
@@ -229,8 +230,8 @@ implement the spec, which makes Baize the natural format for new games.
 
 1. **Schema expressiveness ceiling.** Some game mechanics may resist
    declarative description, requiring WASM for games we expected to be
-   Tier 1. Mitigation: the six reference games exercise a wide range of
-   mechanics, and the WASM escape hatch is always available.
+   Tier 1. Mitigation: the fifty-eight reference games exercise a wide
+   range of mechanics, and the WASM escape hatch is always available.
 
 2. **Cross-implementation consistency.** Two implementations must produce
    identical state hashes for the same inputs. Mitigation: cross-
@@ -252,6 +253,9 @@ hash operations and RNG calls per move). A single commodity server can host
 thousands of concurrent games.
 
 ### What's the path to 1.0?
+
+> **Status (June 2026):** Items 1, 2, and 5 are complete. Items 3, 4, and
+> 6 are in progress.
 
 1. Stabilize the JSON Schema definitions (game-definition, game-state,
    move-action, event-log, component-registry).

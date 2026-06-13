@@ -53,13 +53,13 @@ bd close <id>         # Complete work
 ## Build & Test
 
 ```bash
-# Rust engine (84 tests)
+# Rust engine (329 tests)
 cd engine && cargo test
 
-# Rust server (19 tests)
+# Rust server (130 tests)
 cd server && cargo test
 
-# Python (128 tests)
+# Python (3635 tests)
 cd python && python3 -m pytest tests/ -v
 
 # TypeScript client (type-check only, no runtime tests)
