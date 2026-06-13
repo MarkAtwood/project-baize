@@ -178,6 +178,7 @@ the games whose rules are implemented.
 
 | Game | Information | Notable features |
 |------|------------|-----------------|
+| Tic-Tac-Toe | Perfect | Simplest definition; library CEL expressions; zero server authority |
 | Abalone™ | Perfect | 61-cell hex, push chains of marbles off the edge |
 | Azul™ | Imperfect | Factory tile drafting, pattern building, adjacency scoring |
 | Backgammon | Perfect + random | 24-point track, hitting/bar, re-entry, bearing off, doubles |
@@ -200,7 +201,6 @@ the games whose rules are implemented.
 | Dots and Boxes | Perfect | Dot grid, edges as playable positions, box completion, chain reactions |
 | Fury of Dracula™ | Imperfect | Hidden movement on European map, asymmetric teams, trail mechanic, day/night cycle |
 | Gin Rummy | Imperfect | Deadwood optimization, knocking, undercut, layoff |
-| Global Thermonuclear War | Imperfect | 40 cities (20/side), ICBM/SLBM/bomber allocation, ABM defense, simultaneous sealed orders, commit-reveal launch, mutual destruction. A strange game. |
 | Go | Perfect | 9×9/19×19, flood-fill captures, ko rule, suicide, territory scoring |
 | Hanabi™ | Imperfect | Cooperative, reverse hidden info (see others not yourself), constrained clues |
 | Hearts | Imperfect | 4-player trick avoidance, shoot-the-moon gambit, card passing |
@@ -235,13 +235,13 @@ the games whose rules are implemented.
 | Snakes & Ladders | Perfect + random | TrackZone, d6 dice, snake/ladder triggered effects, bounce-back |
 | Stratego™ | Imperfect | 10×10, hidden piece ranks, simultaneous placement, combat reveal |
 | Texas Hold'em | Imperfect | Betting FSM, hand evaluator (7-card best-of-21), server deal/burn/reveal phases, showdown with pot distribution |
-| Tic-Tac-Toe | Perfect | Simplest definition; library CEL expressions; zero server authority |
 | Ticket to Ride™ | Imperfect | 10-city route network, train card deck, route claiming/scoring |
 | Tile Kingdoms | Imperfect | Tile placement with edge matching, meeple followers, field scoring via WASM extension |
 | Triangle Dominoes | Imperfect | Triangular tiles on sparse hex grid, edge matching, region scoring |
 | Uno™ | Imperfect | 108-card color-matching, Skip/Reverse/Draw Two/Wild effects, direction reversal, 2-10 players |
 | Xiangqi | Perfect | 9×10, river/palace constraints, cannon jump-capture, flying general |
 | Yahtzee™ | Perfect + random | 5d6, keep/re-roll, 13 scoring categories, upper bonus |
+| Global Thermonuclear War | Imperfect | 40 cities (20/side), ICBM/SLBM/bomber allocation, ABM defense, simultaneous sealed orders, commit-reveal launch, mutual destruction. A strange game. |
 
 ™ marks identify trademarks of their respective owners. Used here
 descriptively to identify the game rules implemented, not to imply
