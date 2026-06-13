@@ -3,6 +3,21 @@ use indexmap::IndexMap;
 use crate::definition::{GameDefinition, Visibility, VisibilityTier};
 use crate::state::{GameState, ZoneState};
 
+/// Resolve effective visibility for a zone, checking runtime overrides first.
+fn effective_visibility<'a>(
+    zone_name: &str,
+    override_key: &str,
+    definition: &'a GameDefinition,
+    overrides: &'a IndexMap<String, Visibility>,
+) -> Option<&'a Visibility> {
+    // Runtime override takes precedence
+    if let Some(vis) = overrides.get(override_key) {
+        return Some(vis);
+    }
+    // Fall back to definition
+    definition.zones.get(zone_name).map(|z| &z.visibility)
+}
+
 /// Produce a filtered view of the game state for a specific viewer.
 ///
 /// Visibility rules:
@@ -10,6 +25,10 @@ use crate::state::{GameState, ZoneState};
 /// - hidden zones: components stripped, only count retained
 /// - private zones: owner sees contents, others see only count
 /// - server (`"__server__"`) sees everything
+///
+/// Runtime overrides in `full_state.visibility_overrides` take precedence
+/// over the definition's static visibility. For per-player zones, the
+/// override key format is `"zone_name[player_name]"`.
 pub fn filter_for_viewer(
     full_state: &GameState,
     viewer: &str,
@@ -23,7 +42,12 @@ pub fn filter_for_viewer(
 
     // Filter shared zones
     for (zone_name, zone_state) in &full_state.zones {
-        let vis = definition.zones.get(zone_name).map(|z| &z.visibility);
+        let vis = effective_visibility(
+            zone_name,
+            zone_name,
+            definition,
+            &full_state.visibility_overrides,
+        );
         match vis {
             Some(Visibility::Tier(VisibilityTier::Public)) | None => {}
             Some(Visibility::Tier(VisibilityTier::Hidden)) => {
@@ -49,7 +73,13 @@ pub fn filter_for_viewer(
         };
 
         for (zone_name, zone_state) in &player_state.zones {
-            let vis = definition.zones.get(zone_name).map(|z| &z.visibility);
+            let override_key = format!("{zone_name}[{player_name}]");
+            let vis = effective_visibility(
+                zone_name,
+                &override_key,
+                definition,
+                &full_state.visibility_overrides,
+            );
             match vis {
                 Some(Visibility::Tier(VisibilityTier::Public)) | None => {}
                 Some(Visibility::Tier(VisibilityTier::Hidden)) => {

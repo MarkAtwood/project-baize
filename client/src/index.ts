@@ -77,6 +77,7 @@ export type {
   TurnOrder,
   Variant,
   Visibility,
+  VisibilityTransition,
   Zone,
   ZoneState,
   ZoneType,

@@ -3,7 +3,7 @@ use std::collections::{HashMap, HashSet};
 use indexmap::IndexMap;
 
 use crate::definition::{
-    Capacity, Dimensions, GameDefinition, InformationType, Players, Zone, ZoneType,
+    Capacity, Dimensions, GameDefinition, InformationType, Players, Visibility, Zone, ZoneType,
 };
 use crate::error::{BaizeError, Result};
 use crate::state::{
@@ -56,6 +56,22 @@ pub struct RuntimeState {
     pub simultaneous_actions: IndexMap<String, serde_json::Value>,
     pub history_hashes: Vec<String>,
     pub result: Option<GameResult>,
+    pub partnerships: Vec<Vec<String>>,
+    /// Per-zone visibility overrides. Key: zone_name or "zone_name[player]" for per-player zones.
+    /// If a zone has an override, it takes precedence over the definition's visibility.
+    pub visibility_overrides: IndexMap<String, Visibility>,
+}
+
+impl RuntimeState {
+    /// Change a zone's runtime visibility. Returns the previous visibility if it was overridden.
+    pub fn change_visibility(
+        &mut self,
+        zone_key: &str,
+        new_visibility: Visibility,
+    ) -> Option<Visibility> {
+        self.visibility_overrides
+            .insert(zone_key.to_string(), new_visibility)
+    }
 }
 
 /// Arena of all component instances in the game.
@@ -422,7 +438,7 @@ impl RuntimeZone {
                 Ok(RuntimeZone::Grid {
                     storage,
                     stacks: IndexMap::new(),
-                    stacking_limit: 1,
+                    stacking_limit: zone_def.stacking_limit.unwrap_or(1),
                     cell_properties: cell_props,
                     valid_cells: vc,
                 })
@@ -516,6 +532,15 @@ impl RuntimeZone {
 // --- Grid helpers ---
 
 impl RuntimeZone {
+    /// Returns the stacking limit for a grid zone. 1 = no stacking, 0 = unlimited.
+    /// Non-grid zones return 1.
+    pub fn grid_stacking_limit(&self) -> u32 {
+        match self {
+            RuntimeZone::Grid { stacking_limit, .. } => *stacking_limit,
+            _ => 1,
+        }
+    }
+
     /// Check if a grid cell is valid (in bounds and in the valid_cells mask if present).
     pub fn grid_cell_valid(&self, col: u32, row: u32) -> bool {
         match self {
@@ -574,18 +599,38 @@ impl RuntimeZone {
         }
     }
 
-    /// Push a component onto a cell's stack (below existing top).
-    pub fn grid_push(&mut self, col: u32, row: u32, component: ComponentId) {
-        if let RuntimeZone::Grid { storage, stacks, valid_cells, .. } = self {
+    /// Push a component onto a cell's stack (new component becomes top).
+    ///
+    /// Returns `Err` if the push would exceed the zone's `stacking_limit`.
+    /// A `stacking_limit` of 0 means unlimited stacking.
+    pub fn grid_push(&mut self, col: u32, row: u32, component: ComponentId) -> Result<()> {
+        if let RuntimeZone::Grid { storage, stacks, stacking_limit, valid_cells, .. } = self {
             let c = col as i32;
             let r = row as i32;
             if !storage.cell_valid(c, r) {
-                return;
+                return Err(BaizeError::IllegalAction(format!(
+                    "cell ({col},{row}) is out of bounds"
+                )));
             }
             if let Some(vc) = valid_cells {
                 if !vc.contains(&(c, r)) {
-                    return;
+                    return Err(BaizeError::IllegalAction(format!(
+                        "cell ({col},{row}) is not a valid cell"
+                    )));
                 }
+            }
+            // Compute current stack depth (stack below + top occupant)
+            let current_depth = stacks
+                .get(&(c, r))
+                .map(|s| s.len())
+                .unwrap_or(0)
+                + if storage.get(c, r).is_some() { 1 } else { 0 };
+            // Enforce stacking limit (0 = unlimited)
+            if *stacking_limit > 0 && current_depth + 1 > *stacking_limit as usize {
+                return Err(BaizeError::IllegalAction(format!(
+                    "stacking limit ({}) exceeded at ({col},{row})",
+                    stacking_limit
+                )));
             }
             if let Some(existing) = storage.get(c, r) {
                 // Move current top to stack, put new component on top
@@ -594,6 +639,11 @@ impl RuntimeZone {
             } else {
                 storage.set(c, r, Some(component));
             }
+            Ok(())
+        } else {
+            Err(BaizeError::IllegalAction(
+                "grid_push called on non-grid zone".into(),
+            ))
         }
     }
 
@@ -832,6 +882,8 @@ impl GameSession {
             );
         }
 
+        let partnerships = definition.partnerships.clone();
+
         Ok(GameSession {
             runtime: RuntimeState {
                 status: GameStatus::Setup,
@@ -849,6 +901,8 @@ impl GameSession {
                 simultaneous_actions: IndexMap::new(),
                 history_hashes: Vec::new(),
                 result: None,
+                partnerships,
+                visibility_overrides: IndexMap::new(),
             },
             definition,
         })
@@ -876,6 +930,51 @@ impl GameSession {
     /// Whether this is a perfect-information game.
     pub fn is_perfect_information(&self) -> bool {
         self.definition.game.information == Some(InformationType::Perfect)
+    }
+
+    /// Find which team a player belongs to. Returns None if player has no team.
+    pub fn team_of(&self, player: &str) -> Option<&[String]> {
+        self.runtime
+            .partnerships
+            .iter()
+            .find(|team| team.iter().any(|p| p == player))
+            .map(|v| v.as_slice())
+    }
+
+    /// Check if two players are on the same team.
+    pub fn is_partner(&self, player_a: &str, player_b: &str) -> bool {
+        self.runtime
+            .partnerships
+            .iter()
+            .any(|team| {
+                team.iter().any(|p| p == player_a) && team.iter().any(|p| p == player_b)
+            })
+    }
+
+    /// Get all players on the same team as the given player (including self).
+    pub fn teammates<'a>(&'a self, player: &'a str) -> Vec<&'a str> {
+        match self.team_of(player) {
+            Some(team) => team.iter().map(|s| s.as_str()).collect(),
+            None => vec![player],
+        }
+    }
+
+    /// Get the team name for a player: "A/B" if partnered, or the player name if solo.
+    pub fn team_name(&self, player: &str) -> String {
+        match self.team_of(player) {
+            Some(team) => team.join("/"),
+            None => player.to_string(),
+        }
+    }
+
+    /// Sum the scores of all teammates of a given player.
+    pub fn team_score(&self, player: &str) -> i64 {
+        let members = self.teammates(player);
+        members
+            .iter()
+            .filter_map(|p| self.runtime.players.get(*p))
+            .map(|rp| rp.score)
+            .sum()
     }
 
     /// Advance the turn to the next player.
@@ -972,6 +1071,8 @@ impl GameSession {
             },
             history_hash: self.runtime.history_hashes.last().cloned(),
             timestamp: None,
+            partnerships: self.runtime.partnerships.clone(),
+            visibility_overrides: self.runtime.visibility_overrides.clone(),
         }
     }
 

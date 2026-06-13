@@ -1,6 +1,8 @@
 use indexmap::IndexMap;
 use serde::{Deserialize, Serialize};
 
+use crate::definition::Visibility;
+
 /// Runtime game state snapshot.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct GameState {
@@ -32,6 +34,11 @@ pub struct GameState {
     pub history_hash: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub timestamp: Option<String>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub partnerships: Vec<Vec<String>>,
+    /// Per-zone visibility overrides currently in effect.
+    #[serde(default, skip_serializing_if = "IndexMap::is_empty")]
+    pub visibility_overrides: IndexMap<String, Visibility>,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]

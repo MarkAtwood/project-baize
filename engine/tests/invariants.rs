@@ -136,7 +136,7 @@ fn grid_push_out_of_bounds_is_noop() {
         valid_cells: None,
     };
 
-    zone.grid_push(5, 5, ComponentId(0));
+    assert!(zone.grid_push(5, 5, ComponentId(0)).is_err());
     assert_eq!(zone.count(), 0);
 }
 

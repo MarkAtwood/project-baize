@@ -105,7 +105,61 @@ fn build_end_condition_context(session: &GameSession, current_player: &str) -> C
     ctx.add_variable_from_value("all_cells_occupied", check_any_grid_full(session));
     ctx.add_variable_from_value("board_is_full", check_any_grid_full(session));
 
+    // Partnership variables
+    populate_partnership_context(&mut ctx, session, current_player);
+
     ctx
+}
+
+/// Populate partnership-related variables in the CEL context.
+///
+/// - `team_of_current`: team name for the current player (or player name if solo)
+/// - `team_score_current`: sum of scores for current player's team
+/// - `has_partnerships`: whether the game has any partnerships defined
+/// - `team_of_<player>`: team name for each player
+/// - `is_partner_<a>_<b>`: true if players a and b are partners
+/// - `team_score_<player>`: team score for each player
+fn populate_partnership_context(ctx: &mut Context<'_>, session: &GameSession, current_player: &str) {
+    let has_partnerships = !session.runtime.partnerships.is_empty();
+    ctx.add_variable_from_value("has_partnerships", has_partnerships);
+
+    // Current player's team info
+    ctx.add_variable_from_value(
+        "team_of_current",
+        session.team_name(current_player),
+    );
+    ctx.add_variable_from_value(
+        "team_score_current",
+        session.team_score(current_player),
+    );
+
+    // Per-player team info
+    let player_names: Vec<String> = session.runtime.players.keys().cloned().collect();
+    for player in &player_names {
+        ctx.add_variable_from_value(
+            format!("team_of_{player}"),
+            session.team_name(player),
+        );
+        ctx.add_variable_from_value(
+            format!("team_score_{player}"),
+            session.team_score(player),
+        );
+    }
+
+    // Pairwise partnership booleans
+    for (i, a) in player_names.iter().enumerate() {
+        for b in player_names.iter().skip(i + 1) {
+            let partnered = session.is_partner(a, b);
+            ctx.add_variable_from_value(
+                format!("is_partner_{a}_{b}"),
+                partnered,
+            );
+            ctx.add_variable_from_value(
+                format!("is_partner_{b}_{a}"),
+                partnered,
+            );
+        }
+    }
 }
 
 /// Serialize grid zones into CEL structures for composable queries.

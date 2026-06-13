@@ -382,25 +382,32 @@ def _execute_action(
         if cid is None:
             raise IllegalActionError("no piece at source")
 
-        # Check for capture
+        # Check for capture or stacking
         captured = zone.grid_get(to_col, to_row)
         if captured is not None:
-            cap_data = session.runtime.components.get(captured)
-            cap_name = cap_data.string_id if cap_data is not None else ""
-            events.append(
-                _make_event(
-                    session.runtime.sequence,
-                    "capture",
-                    player,
-                    component_id=cap_name,
-                    to_pos=f"{to_col},{to_row}",
-                    prev_hash=prev_hash,
+            if zone.stacking_limit == 1:
+                # Capture: replace occupant
+                cap_data = session.runtime.components.get(captured)
+                cap_name = cap_data.string_id if cap_data is not None else ""
+                events.append(
+                    _make_event(
+                        session.runtime.sequence,
+                        "capture",
+                        player,
+                        component_id=cap_name,
+                        to_pos=f"{to_col},{to_row}",
+                        prev_hash=prev_hash,
+                    )
                 )
-            )
-
-        # Move the piece
-        zone.grid_set(from_col, from_row, None)
-        zone.grid_set(to_col, to_row, cid)
+                zone.grid_set(from_col, from_row, None)
+                zone.grid_set(to_col, to_row, cid)
+            else:
+                # Stacking: push onto destination
+                zone.grid_set(from_col, from_row, None)
+                zone.grid_push(to_col, to_row, cid)
+        else:
+            zone.grid_set(from_col, from_row, None)
+            zone.grid_set(to_col, to_row, cid)
 
         comp_data = session.runtime.components.get(cid)
         comp_name = comp_data.string_id if comp_data is not None else ""
@@ -447,7 +454,17 @@ def _execute_action(
         if zone is None:
             raise UnknownZoneError(zone_name)
         _validate_grid_coords(zone, to_col, to_row, zone_name)
-        zone.grid_set(to_col, to_row, cid)
+
+        existing = zone.grid_get(to_col, to_row)
+        if existing is not None:
+            if zone.stacking_limit == 1:
+                raise IllegalActionError(
+                    f"cell ({to_col},{to_row}) is already occupied"
+                )
+            # stacking_limit > 1 or 0 (unlimited): push onto stack
+            zone.grid_push(to_col, to_row, cid)
+        else:
+            zone.grid_set(to_col, to_row, cid)
 
         events.append(
             _make_event(

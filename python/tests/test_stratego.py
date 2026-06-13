@@ -1013,19 +1013,13 @@ class TestIntegration:
         # Verify scout can slide to attack position
         assert g.is_legal_scout_slide(0, 0, 0, 8)
 
-        # Scout (2) vs Sergeant (4): scout loses
-        g.move_piece(0, 0, 0, 8)
-        # Both at same cell -- resolve manually using pre-move position
-        # Actually we need to handle this differently: in real play,
-        # the scout stops adjacent and combat resolves.
-        # For this test, place them adjacent.
-        g2 = StrategoGame()
-        g2.place(0, 7, "scout", "red")
-        g2.place(0, 8, "sergeant", "blue")
-        result = g2.resolve_combat(0, 7, 0, 8)
+        # Scout (2) vs Sergeant (4): scout loses.
+        # In Stratego, the scout stops adjacent and combat resolves.
+        g.move_piece(0, 0, 0, 7)
+        result = g.resolve_combat(0, 7, 0, 8)
         assert result == "defender_wins"
-        assert g2.piece_at(0, 7) is None
-        assert g2.piece_at(0, 8)[0] == "sergeant"
+        assert g.piece_at(0, 7) is None
+        assert g.piece_at(0, 8)[0] == "sergeant"
 
     def test_mutual_destruction_equal_ranks(self) -> None:
         """Two colonels meet in combat -- both destroyed."""

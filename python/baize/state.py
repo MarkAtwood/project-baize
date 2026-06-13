@@ -402,6 +402,7 @@ class GameState:
     simultaneous_actions: dict[str, dict[str, Any]] | None = None
     history_hash: str | None = None
     timestamp: str | None = None
+    visibility_overrides: dict[str, str] | None = None
 
     @classmethod
     def from_json(cls, json_str: str) -> GameState:
@@ -448,6 +449,7 @@ class GameState:
                 simultaneous_actions=d.get("simultaneous_actions"),
                 history_hash=d.get("history_hash"),
                 timestamp=d.get("timestamp"),
+                visibility_overrides=d.get("visibility_overrides"),
             )
         except (KeyError, TypeError, ValueError, AttributeError) as exc:
             raise ParseError(str(exc)) from exc
@@ -489,4 +491,6 @@ class GameState:
             out["history_hash"] = self.history_hash
         if self.timestamp is not None:
             out["timestamp"] = self.timestamp
+        if self.visibility_overrides:
+            out["visibility_overrides"] = self.visibility_overrides
         return out

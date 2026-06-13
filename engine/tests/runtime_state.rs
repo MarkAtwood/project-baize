@@ -491,8 +491,8 @@ fn grid_push_masked_cell_is_noop() {
     let mut grid = grid_3x3_diagonal_mask();
     let c1 = ComponentId(0);
 
-    // Push to a masked-out cell (0,1) — should be a no-op
-    grid.grid_push(0, 1, c1);
+    // Push to a masked-out cell (0,1) — should return an error
+    assert!(grid.grid_push(0, 1, c1).is_err());
 
     // Cell should still be empty
     assert!(grid.grid_get(0, 1).is_none());
@@ -509,16 +509,23 @@ fn grid_pop_masked_cell_returns_none() {
 
 #[test]
 fn grid_push_pop_valid_cell() {
-    let mut grid = grid_3x3_diagonal_mask();
+    // Use unlimited stacking (0) so push/pop stacking behavior can be tested
+    let mut grid = RuntimeZone::Grid {
+        storage: GridStorage::new_dense(3, 3),
+        stacks: Default::default(),
+        stacking_limit: 0,
+        cell_properties: Default::default(),
+        valid_cells: Some(HashSet::from([(0, 0), (1, 1), (2, 2)])),
+    };
     let c1 = ComponentId(0);
     let c2 = ComponentId(1);
 
     // Push to a valid cell (0,0) works normally
-    grid.grid_push(0, 0, c1);
+    grid.grid_push(0, 0, c1).unwrap();
     assert_eq!(grid.grid_get(0, 0), Some(c1));
 
     // Push again onto (0,0) — c2 becomes new top, c1 goes to stack
-    grid.grid_push(0, 0, c2);
+    grid.grid_push(0, 0, c2).unwrap();
     assert_eq!(grid.grid_get(0, 0), Some(c2));
 
     // Pop returns c2 (top), then c1

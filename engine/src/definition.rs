@@ -22,6 +22,10 @@ pub struct GameDefinition {
     pub hand_rankings: Vec<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub betting_round: Option<BettingRound>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub partnerships: Vec<Vec<String>>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub visibility_transitions: Vec<VisibilityTransitionRule>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -114,6 +118,9 @@ pub struct Zone {
     pub note: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub cell_properties: Option<IndexMap<String, IndexMap<String, serde_json::Value>>>,
+    /// Maximum components per cell: 1 = no stacking (default), 0 = unlimited.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub stacking_limit: Option<u32>,
     /// Storage backend hint: "dense" or "sparse". Auto-selected if omitted.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub storage: Option<String>,
@@ -470,6 +477,21 @@ pub struct BettingRound {
     pub ends_when: Option<String>,
 }
 
+// --- Visibility transitions ---
+
+/// A rule that changes a zone's visibility at runtime (e.g., on phase change).
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct VisibilityTransitionRule {
+    pub zone: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub player: Option<String>,
+    pub new_visibility: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub trigger: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub phase: Option<String>,
+}
+
 // --- Parsing ---
 
 impl GameDefinition {
@@ -663,6 +685,49 @@ impl GameDefinition {
                             "turn_order references unknown player {tp:?}"
                         )));
                     }
+                }
+            }
+        }
+
+        // Partnership validation
+        if !self.partnerships.is_empty() && !player_names.is_empty() {
+            let mut seen_players = std::collections::HashSet::new();
+            for team in &self.partnerships {
+                for member in team {
+                    if !player_names.contains(&member.as_str()) {
+                        return Err(BaizeError::Validation(format!(
+                            "partnership references unknown player {member:?}"
+                        )));
+                    }
+                    if !seen_players.insert(member.as_str()) {
+                        return Err(BaizeError::Validation(format!(
+                            "player {member:?} appears in multiple partnerships"
+                        )));
+                    }
+                }
+            }
+        }
+
+        // Visibility transition validation
+        for (i, vt) in self.visibility_transitions.iter().enumerate() {
+            if !self.zones.contains_key(&vt.zone) {
+                return Err(BaizeError::Validation(format!(
+                    "visibility_transitions[{i}] references unknown zone {:?}",
+                    vt.zone
+                )));
+            }
+            if vt.new_visibility != "public" && vt.new_visibility != "hidden" {
+                return Err(BaizeError::Validation(format!(
+                    "visibility_transitions[{i}] has invalid new_visibility {:?} (must be \"public\" or \"hidden\")",
+                    vt.new_visibility
+                )));
+            }
+            if let Some(ref phase_name) = vt.phase {
+                if !self.phases.iter().any(|p| p.name == *phase_name) {
+                    return Err(BaizeError::Validation(format!(
+                        "visibility_transitions[{i}] references unknown phase {:?}",
+                        phase_name
+                    )));
                 }
             }
         }

@@ -341,19 +341,17 @@ class TestReplayAttacks:
     """Replaying an earlier action should not corrupt state."""
 
     def test_replay_place_same_cell(self) -> None:
-        """Place at (1,1), then later replay (1,1) -- cell is occupied."""
+        """Place at (1,1), then later replay (1,1) -- cell is occupied, rejected."""
         session = _ttt_session()
         action = _place(1, 1)
         apply_action(session, action)
         # O places elsewhere
         apply_action(session, _place(0, 0))
-        # X replays (1,1) -- the cell is already occupied, but
-        # the place action creates a new component each time.
-        # Verify at minimum the operation does not crash and
-        # the sequence number has advanced.
-        seq_before = session.runtime.sequence
-        apply_action(session, _place(1, 1))
-        assert session.runtime.sequence > seq_before
+        # X replays (1,1) -- the cell is already occupied.
+        # With stacking_limit=1 (default), placing on an occupied cell
+        # is rejected as an illegal action.
+        with pytest.raises(IllegalActionError, match="already occupied"):
+            apply_action(session, _place(1, 1))
 
     def test_sequence_always_advances(self) -> None:
         """Each apply_action must increment sequence, preventing reuse."""

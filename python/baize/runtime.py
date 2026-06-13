@@ -314,9 +314,19 @@ class GridZone:
         return prev
 
     def grid_push(self, col: int, row: int, component: ComponentId) -> None:
-        """Push a component onto a cell (new component becomes top)."""
+        """Push a component onto a cell (new component becomes top).
+
+        Raises ``IllegalActionError`` if the stacking limit would be exceeded.
+        """
         if not self._cell_valid(col, row):
             return
+        # Enforce stacking limit before pushing
+        if self.stacking_limit > 0:
+            depth = len(self.grid_stack(col, row))
+            if depth >= self.stacking_limit:
+                raise IllegalActionError(
+                    f"stacking limit ({self.stacking_limit}) reached at ({col},{row})"
+                )
         if self._sparse:
             existing = self._sparse_cells.get((col, row))
             if existing is not None:
@@ -699,6 +709,8 @@ def runtime_zone_from_definition(zone_def: Zone) -> RuntimeZone:
         if zone_def.storage == "dense":
             use_sparse = False
 
+        sl = zone_def.stacking_limit if zone_def.stacking_limit is not None else 1
+
         if use_sparse:
             vc: set[int] | None = None
             if zone_def.valid_cells is not None and w > 0:
@@ -708,7 +720,8 @@ def runtime_zone_from_definition(zone_def: Zone) -> RuntimeZone:
                     if 0 <= c < w and 0 <= r < h:
                         vc.add(r * w + c)
             grid = GridZone(
-                width=w, height=h, cells=[], _sparse=True, valid_cells=vc
+                width=w, height=h, cells=[], _sparse=True,
+                stacking_limit=sl, valid_cells=vc,
             )
             if zone_def.cell_properties:
                 for coord, props in zone_def.cell_properties.items():
@@ -731,7 +744,8 @@ def runtime_zone_from_definition(zone_def: Zone) -> RuntimeZone:
                 if 0 <= c < w and 0 <= r < h:
                     vc_dense.add(r * w + c)
         grid = GridZone(
-            width=w, height=h, cells=[None] * (w * h), valid_cells=vc_dense
+            width=w, height=h, cells=[None] * (w * h),
+            stacking_limit=sl, valid_cells=vc_dense,
         )
         if zone_def.cell_properties:
             for coord, props in zone_def.cell_properties.items():
@@ -832,6 +846,8 @@ class RuntimeState:
     history_hashes: list[str] = field(default_factory=list)
     result: GameResult | None = None
     betting_state: BettingRoundState | None = None
+    visibility_overrides: dict[str, str] = field(default_factory=dict)
+    partnerships: list[list[str]] = field(default_factory=list)
 
 
 # ---------------------------------------------------------------------------
@@ -881,6 +897,7 @@ class GameSession:
             status="setup",
             zones=zones,
             players=players,
+            partnerships=list(definition.partnerships),
         )
 
     def current_player(self) -> str | None:
@@ -900,6 +917,27 @@ class GameSession:
             return player_keys[self.runtime.turn_index]
         return None
 
+    def team_of(self, player: str) -> list[str] | None:
+        """Find which team a player belongs to."""
+        for team in self.runtime.partnerships:
+            if player in team:
+                return team
+        return None
+
+    def is_partner(self, player_a: str, player_b: str) -> bool:
+        """Check if two players are on the same team."""
+        if not self.runtime.partnerships:
+            return False
+        team = self.team_of(player_a)
+        return team is not None and player_b in team
+
+    def teammates(self, player: str) -> list[str]:
+        """Get all players on the same team (including self)."""
+        team = self.team_of(player)
+        if team is None:
+            return [player]
+        return list(team)
+
     def is_perfect_information(self) -> bool:
         """Whether this is a perfect-information game."""
         return self.definition.game.information == "perfect"
@@ -915,6 +953,83 @@ class GameSession:
             )
         self.runtime.sequence += 1
         self.runtime.move_count += 1
+
+    def change_visibility(self, zone_key: str, new_visibility: str) -> str | None:
+        """Change a zone's runtime visibility. Returns previous override if any.
+
+        Args:
+            zone_key: Zone name, or "zone_name[player]" for per-player zones.
+            new_visibility: "public" or "hidden".
+
+        Raises:
+            ValidationError: If new_visibility is not a valid value.
+            UnknownZoneError: If the base zone name is not in the definition.
+        """
+        if new_visibility not in ("public", "hidden"):
+            raise ValidationError(
+                f"new_visibility must be 'public' or 'hidden', got {new_visibility!r}"
+            )
+        # Extract base zone name (strip [player] suffix if present)
+        base_zone = zone_key.split("[")[0]
+        if base_zone not in self.definition.zones:
+            raise UnknownZoneError(base_zone)
+        prev = self.runtime.visibility_overrides.get(zone_key)
+        self.runtime.visibility_overrides[zone_key] = new_visibility
+        return prev
+
+    def get_zone_visibility(self, zone_name: str, player: str | None = None) -> str:
+        """Get the effective visibility for a zone, checking overrides first.
+
+        Args:
+            zone_name: The zone name from the definition.
+            player: Optional player name for per-player zone keys.
+
+        Returns:
+            The effective visibility: "public", "hidden", or the definition default.
+        """
+        # Check player-specific override first
+        if player is not None:
+            player_key = f"{zone_name}[{player}]"
+            override = self.runtime.visibility_overrides.get(player_key)
+            if override is not None:
+                return override
+        # Check zone-level override
+        override = self.runtime.visibility_overrides.get(zone_name)
+        if override is not None:
+            return override
+        # Fall back to definition
+        zone_def = self.definition.zones.get(zone_name)
+        if zone_def is None:
+            raise UnknownZoneError(zone_name)
+        vis = zone_def.visibility
+        if isinstance(vis, str):
+            return vis
+        # PrivateVisibility maps to "hidden" for external callers
+        return "hidden"
+
+    def advance_phase(self) -> str | None:
+        """Advance to the next phase and apply any visibility transitions.
+
+        Returns the new phase name, or None if no phases are defined.
+        """
+        if not self.definition.phases:
+            return None
+        self.runtime.phase_index = (
+            (self.runtime.phase_index + 1) % len(self.definition.phases)
+        )
+        new_phase = self.definition.phases[self.runtime.phase_index].name
+        self._apply_visibility_transitions(new_phase)
+        return new_phase
+
+    def _apply_visibility_transitions(self, new_phase: str) -> None:
+        """Apply visibility transitions that match the given phase."""
+        for vt in self.definition.visibility_transitions:
+            if vt.phase == new_phase:
+                if vt.player is not None:
+                    zone_key = f"{vt.zone}[{vt.player}]"
+                else:
+                    zone_key = vt.zone
+                self.change_visibility(zone_key, vt.new_visibility)
 
     def compute_state_hash(self) -> str:
         """Compute a BLAKE3 hash of the current state for repetition detection.
@@ -986,6 +1101,11 @@ class GameSession:
             history_hash=(
                 self.runtime.history_hashes[-1]
                 if self.runtime.history_hashes
+                else None
+            ),
+            visibility_overrides=(
+                dict(self.runtime.visibility_overrides)
+                if self.runtime.visibility_overrides
                 else None
             ),
         )
