@@ -107,7 +107,7 @@ implementation, even before full mental poker support.
 
 ## Status
 
-Core engine complete. 326 of 338 issues closed. Fifty-eight games
+Core engine complete. 330 of 338 issues closed. Fifty-eight games
 defined, twenty-one fully playable end-to-end. Texas Hold'em poker
 now playable with full betting, hand evaluation, and showdown.
 The engine parses and validates game definitions, manages runtime
