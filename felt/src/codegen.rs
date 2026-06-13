@@ -105,6 +105,8 @@ fn builtin_imports() -> Vec<BuiltinImport> {
         BuiltinImport { felt_name: "diagonal_at", wasm_name: "diagonal_at", felt_args: &[Handle(I32), Handle(I32), Handle(I32)], result: I32 },
         // Counter by name (state-level)
         BuiltinImport { felt_name: "counter_by_name", wasm_name: "counter_value", felt_args: &[Handle(I32), StringIn], result: I64 },
+        // Resource queries
+        BuiltinImport { felt_name: "word_valid", wasm_name: "word_valid", felt_args: &[Handle(I32), StringIn, StringIn], result: I32 },
     ]
 }
 

@@ -7,6 +7,7 @@ pub mod extension;
 pub mod moves;
 pub mod perturber;
 pub mod registry;
+pub mod resource_store;
 pub mod runtime;
 pub mod state;
 pub mod transition;

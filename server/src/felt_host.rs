@@ -1,3 +1,5 @@
+use std::collections::{HashMap, HashSet};
+
 use wasmtime::{Caller, Linker};
 
 use baize_engine::extension::ExtensionError;
@@ -13,6 +15,7 @@ pub struct HostState {
     pub phase_name: String,
     pub is_finished: bool,
     pub counters: Vec<(String, i64)>,
+    pub word_lists: HashMap<String, HashSet<String>>,
 }
 
 pub struct ZoneHandle {
@@ -53,6 +56,7 @@ impl HostState {
             phase_name: state.phase.clone(),
             is_finished: state.status == GameStatus::Finished,
             counters: Vec::new(),
+            word_lists: HashMap::new(),
         };
 
         // Build player handles
@@ -915,6 +919,37 @@ pub fn register_felt_imports(linker: &mut Linker<HostState>) -> Result<(), Exten
                     })
                     .unwrap_or_default();
                 write_string_to_memory(&mut caller, buf, &value)
+            },
+        )
+        .map_err(wrap_err)?;
+
+    // Resource queries
+    linker
+        .func_wrap(
+            "baize",
+            "word_valid",
+            |mut caller: Caller<'_, HostState>,
+             _state: i32,
+             name_ptr: i32,
+             name_len: i32,
+             word_ptr: i32,
+             word_len: i32|
+             -> i32 {
+                let resource_name = match read_string_from_memory(&mut caller, name_ptr, name_len) {
+                    Some(n) => n,
+                    None => return 0,
+                };
+                let word = match read_string_from_memory(&mut caller, word_ptr, word_len) {
+                    Some(w) => w,
+                    None => return 0,
+                };
+                let valid = caller
+                    .data()
+                    .word_lists
+                    .get(&resource_name)
+                    .map(|list| list.contains(&word.to_uppercase()))
+                    .unwrap_or(false);
+                if valid { 1 } else { 0 }
             },
         )
         .map_err(wrap_err)?;

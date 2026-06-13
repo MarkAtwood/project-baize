@@ -99,6 +99,13 @@
         "$ref": "#/$defs/trigger_def"
       },
       "description": "Named triggers that insert claim windows after specific action types. After a matching action, the engine pauses normal turn advancement and opens a mini-simultaneous collection phase for eligible players to submit claims. Resolved by priority order."
+    },
+    "resources": {
+      "type": "object",
+      "additionalProperties": {
+        "$ref": "#/$defs/resource_def"
+      },
+      "description": "Named external data resources referenced by game logic. Loaded by the engine at game start and exposed to WASM extensions via host imports."
     }
   },
   "$defs": {
@@ -900,6 +907,26 @@
         "default": {
           "type": "string",
           "description": "Action auto-submitted for players who do not respond within the timeout (typically \"pass\")."
+        }
+      }
+    },
+
+    "resource_def": {
+      "type": "object",
+      "required": ["type", "name"],
+      "additionalProperties": false,
+      "properties": {
+        "type": {
+          "type": "string",
+          "description": "Resource type. \"word_list\" = newline-delimited word file for dictionary validation. \"lookup_table\" = key-value data file."
+        },
+        "name": {
+          "type": "string",
+          "description": "Identifier for the specific resource (e.g. \"twl06\", \"sowpods\"). Resolved to a file in the registry/dictionaries/ directory."
+        },
+        "note": {
+          "type": "string",
+          "description": "Human-readable description of this resource."
         }
       }
     }

@@ -87,6 +87,10 @@ impl TypeChecker {
         self.env.insert("phase".into(), Fn(Box::new(State), Box::new(String)));
         self.env.insert("counters".into(), Fn(Box::new(State), Box::new(Map(Box::new(String), Box::new(Int)))));
         self.env.insert("is_finished".into(), Fn(Box::new(State), Box::new(Bool)));
+
+        // Resource queries
+        self.env.insert("word_valid".into(), Fn(Box::new(State), Box::new(Fn(Box::new(String), Box::new(Fn(Box::new(String), Box::new(Bool)))))));
+
         self.env.insert("name".into(), Fn(Box::new(Player), Box::new(String)));
 
         // Tuple operations

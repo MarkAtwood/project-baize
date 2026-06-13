@@ -247,5 +247,12 @@
       "scoring_calculation"
     ]
   },
+  "resources": {
+    "dictionary": {
+      "type": "word_list",
+      "name": "test-wordlist",
+      "note": "Test word list for development. Production would use TWL06 or SOWPODS."
+    }
+  },
   "wasm_module": "scrabble.wasm"
 }
