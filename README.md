@@ -107,7 +107,7 @@ implementation, even before full mental poker support.
 
 ## Status
 
-Core engine complete. 282 of 301 issues closed. Fifty-three games
+Core engine complete. 286 of 302 issues closed. Fifty-seven games
 defined, twenty-one fully playable end-to-end. Texas Hold'em poker
 now playable with full betting, hand evaluation, and showdown.
 The engine parses and validates game definitions, manages runtime
@@ -137,7 +137,7 @@ windows (reactive turns), resource system for external data
 |-----------|-------|-----------|
 | Schema (5 JSON Schemas) | — | Game definitions, state, actions, events, component registry |
 | Rust engine | 304 | Parse, validate, state machine, move gen, transitions, CEL end conditions, perturber effects (cycle, remove, flip, promote, counters, invoke), commit-reveal, simultaneous phases, hash-chained events, tamper detection, visibility filtering, dynamic visibility transitions, fog of war (per-cell per-player), valid_cells grid mask, graph zone, sparse/dense grid storage, cell stacking with limits, partnerships with team win propagation, hostile input rejection, invariant guards, fuel limits, resource budgets, serialization round-trips, cross-engine determinism |
-| Python engine | 3,496 | Feature-parallel with Rust, plus game analysis, Jupyter notebook, terminal CLI, interactive REPL, agent framework (Random/Greedy/MCTS), notation adapter, adversarial input tests, error leak audit, hypothesis fuzzing, cross-engine determinism, poker (hand evaluator, betting FSM, showdown), sparse/dense grid storage, cell stacking, partnerships, dynamic visibility, fog of war, 53 game definitions with gameplay tests |
+| Python engine | 3,496 | Feature-parallel with Rust, plus game analysis, Jupyter notebook, terminal CLI, interactive REPL, agent framework (Random/Greedy/MCTS), notation adapter, adversarial input tests, error leak audit, hypothesis fuzzing, cross-engine determinism, poker (hand evaluator, betting FSM, showdown), sparse/dense grid storage, cell stacking, partnerships, dynamic visibility, fog of war, 57 game definitions with gameplay tests |
 | Server | 130 | Room management, WebSocket protocol, hidden-state vault (ChaCha20Rng), per-player visibility, rate limiting, token auth, spectator isolation, persistence, WASM sandboxing (fuel + memory caps), abuse resistance, protocol hardening, debug redaction, graceful shutdown, Felt host imports |
 | Felt compiler | 127 | Lexer (logos), parser (chumsky), type checker, call graph checker, WASM GC codegen (wasm-encoder), 35 builtins wired as host imports, CLI (compile/check), host import API, example extensions (poker, chess, go) |
 | Client (TypeScript) | 86 | Full type definitions for all schemas (game state, actions, events, registry, effects); Web Components (`<baize-game>`, `<baize-board>`, `<baize-hand>`, `<baize-clock>`, `<baize-score>`); WASM engine wrapper; WebSocket connection with auto-reconnect; server message validation with prototype-pollution defense; drag-and-drop board interaction; Go-style intersection rendering; stacking visualization |
@@ -161,7 +161,7 @@ in external tools.
 
 ## Game Catalog
 
-Fifty-three reference game definitions spanning the complexity spectrum.
+Fifty-seven reference game definitions spanning the complexity spectrum.
 Game rules are not subject to intellectual property protection. All
 trademarked names are used here in their descriptive sense to identify
 the games whose rules are implemented. Games marked ✓ are fully
@@ -230,15 +230,16 @@ tracking their implementation.
 | Gin Rummy | Imperfect | Deadwood optimization, knocking, undercut, layoff |
 | Nim | Perfect | Multiple heaps, Sprague-Grundy theory, mathematically solved |
 | Infinite Go | Perfect | Unbounded sparse board, superko rule, capture-only scoring |
+| Power Grid™ | Imperfect | City network graph, auction economy, resource market, Dijkstra path costs |
+| Fury of Dracula™ | Imperfect | Hidden movement on European map, asymmetric teams, trail mechanic, day/night cycle |
+| Triangle Dominoes | Imperfect | Triangular tiles on sparse hex grid, edge matching, region scoring |
+| Chickenfoot Dominoes | Imperfect | Dynamic graph branching layout, double-nine set, chickenfoot fork rule |
 
 ### Planned (beads filed)
 
 | Game | What it proves |
 |------|---------------|
 | Generic Hex Wargame | Full CRT/TEC/ZOC/supply, NATO-symbol counters, fog of war |
-| Power Grid™ | City network with auction economy |
-| Fury of Dracula™ | Hidden movement on European map |
-| Triangle Dominoes | Triangular grid tile matching |
 
 ™ marks identify trademarks of their respective owners. Used here
 descriptively to identify the game rules implemented, not to imply
