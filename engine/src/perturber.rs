@@ -412,6 +412,7 @@ fn empty_action() -> Action {
         declaration: None,
         commitment: None,
         custom_data: None,
+        mental_poker_data: None,
     }
 }
 

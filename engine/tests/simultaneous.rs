@@ -49,6 +49,7 @@ fn place_gesture(gesture: &str) -> Action {
         declaration: None,
         commitment: None,
         custom_data: None,
+        mental_poker_data: None,
     }
 }
 
@@ -99,6 +100,7 @@ fn ttt_place(col: u32, row: u32) -> Action {
         declaration: None,
         commitment: None,
         custom_data: None,
+        mental_poker_data: None,
     }
 }
 

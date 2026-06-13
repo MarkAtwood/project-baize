@@ -67,6 +67,7 @@ fn place_action(col: u32, row: u32) -> Action {
         declaration: None,
         commitment: None,
         custom_data: None,
+        mental_poker_data: None,
     }
 }
 
@@ -99,6 +100,7 @@ fn move_action(from_col: u32, from_row: u32, to_col: u32, to_row: u32) -> Action
         declaration: None,
         commitment: None,
         custom_data: None,
+        mental_poker_data: None,
     }
 }
 
@@ -123,6 +125,7 @@ fn resign_action() -> Action {
         declaration: None,
         commitment: None,
         custom_data: None,
+        mental_poker_data: None,
     }
 }
 
@@ -151,6 +154,7 @@ fn commit_action(hash: &str) -> Action {
         declaration: Some(hash.to_string()),
         commitment: None,
         custom_data: None,
+        mental_poker_data: None,
     }
 }
 
@@ -175,6 +179,7 @@ fn reveal_action(choice: &str, nonce: &str) -> Action {
         declaration: Some(choice.to_string()),
         commitment: Some(nonce.to_string()),
         custom_data: None,
+        mental_poker_data: None,
     }
 }
 
@@ -544,6 +549,7 @@ fn move_from_nonexistent_zone() {
         declaration: None,
         commitment: None,
         custom_data: None,
+        mental_poker_data: None,
     };
 
     let result = apply_action(&mut session, &action);
@@ -587,6 +593,7 @@ fn place_without_component_type() {
         declaration: None,
         commitment: None,
         custom_data: None,
+        mental_poker_data: None,
     };
 
     let result = apply_action(&mut session, &action);
@@ -629,6 +636,7 @@ fn move_without_from_position() {
         declaration: None,
         commitment: None,
         custom_data: None,
+        mental_poker_data: None,
     };
 
     let result = apply_action(&mut session, &action);
@@ -663,6 +671,7 @@ fn move_without_to_position() {
         declaration: None,
         commitment: None,
         custom_data: None,
+        mental_poker_data: None,
     };
 
     let result = apply_action(&mut session, &action);

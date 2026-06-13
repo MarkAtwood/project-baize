@@ -108,6 +108,10 @@ EventTypeLiteral = Literal[
     "claim_resolved",
     "turn_advance",
     "game_end",
+    "shuffle_complete",
+    "card_dealt",
+    "key_revealed",
+    "verification_complete",
 ]
 
 

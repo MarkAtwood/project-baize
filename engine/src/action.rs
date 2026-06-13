@@ -148,6 +148,9 @@ pub struct Action {
     pub commitment: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub custom_data: Option<serde_json::Value>,
+    /// Serialized mental poker data (shuffle deck, decryption share, or key reveal).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub mental_poker_data: Option<serde_json::Value>,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -182,6 +185,12 @@ pub enum ActionType {
     DeclareAction,
     Custom,
     ClaimAction,
+    /// Submit encrypted+shuffled deck during mental poker shuffle phase.
+    ShuffleDeck,
+    /// Submit decryption share for dealing a card to another player.
+    DecryptionShare,
+    /// Reveal encryption key at showdown for verification.
+    KeyReveal,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]

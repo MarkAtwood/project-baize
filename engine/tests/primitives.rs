@@ -79,6 +79,7 @@ fn action_with_defaults(action_type: ActionType) -> Action {
         declaration: None,
         commitment: None,
         custom_data: None,
+        mental_poker_data: None,
     }
 }
 

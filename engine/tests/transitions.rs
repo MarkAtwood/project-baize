@@ -53,6 +53,7 @@ fn place_action(col: u32, row: u32) -> Action {
         declaration: None,
         commitment: None,
         custom_data: None,
+        mental_poker_data: None,
     }
 }
 
@@ -85,6 +86,7 @@ fn move_action(from_col: u32, from_row: u32, to_col: u32, to_row: u32) -> Action
         declaration: None,
         commitment: None,
         custom_data: None,
+        mental_poker_data: None,
     }
 }
 
@@ -260,6 +262,7 @@ fn resign_ends_game() {
         declaration: None,
         commitment: None,
         custom_data: None,
+        mental_poker_data: None,
     };
 
     let events = apply_action(&mut session, &resign).unwrap();
@@ -347,6 +350,7 @@ fn place_ship_action(comp_type: &str, col: u32, row: u32, orient: Orientation) -
         declaration: None,
         commitment: None,
         custom_data: None,
+        mental_poker_data: None,
     }
 }
 
@@ -375,6 +379,7 @@ fn fire_action(col: u32, row: u32) -> Action {
         declaration: None,
         commitment: None,
         custom_data: None,
+        mental_poker_data: None,
     }
 }
 
@@ -583,6 +588,7 @@ fn commit_action(hash: &str) -> Action {
         declaration: Some(hash.to_string()),
         commitment: None,
         custom_data: None,
+        mental_poker_data: None,
     }
 }
 
@@ -607,6 +613,7 @@ fn reveal_action(choice: &str, nonce: &str) -> Action {
         declaration: Some(choice.to_string()),
         commitment: Some(nonce.to_string()),
         custom_data: None,
+        mental_poker_data: None,
     }
 }
 

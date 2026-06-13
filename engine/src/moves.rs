@@ -456,6 +456,7 @@ fn default_action() -> Action {
         declaration: None,
         commitment: None,
         custom_data: None,
+        mental_poker_data: None,
     }
 }
 
@@ -488,5 +489,6 @@ fn make_move_action(zone: &str, from_col: u32, from_row: u32, to_col: u32, to_ro
         declaration: None,
         commitment: None,
         custom_data: None,
+        mental_poker_data: None,
     }
 }

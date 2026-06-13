@@ -17,6 +17,10 @@ sha2 = "0.10"
 subtle = "2"
 bitflags = "2"
 indexmap = { version = "2", features = ["serde"] }
+num-bigint = "0.4"
+num-integer = "0.1"
+num-traits = "0.2"
+rand = "0.9"
 thiserror = "2"
 cel-interpreter = "0.10"
 wasm-bindgen = { version = "0.2", optional = true }

@@ -659,6 +659,7 @@ fn handle_submit_claim(
                             declaration: Some(claim.to_string()),
                             commitment: None,
                             custom_data: None,
+                            mental_poker_data: None,
                         },
                         result_state,
                     },

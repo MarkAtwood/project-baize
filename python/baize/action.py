@@ -33,6 +33,9 @@ ActionTypeLiteral = Literal[
     "commit", "reveal",
     "claim_action",
     "custom",
+    "shuffle_deck",
+    "decryption_share",
+    "key_reveal",
 ]
 
 AuthorityLiteral = Literal["client_verifiable", "server_only"]
@@ -79,6 +82,7 @@ class Action:
     declaration: str | None = None
     commitment: str | None = None
     custom_data: dict[str, Any] | None = None
+    mental_poker_data: dict[str, Any] | None = None
 
     @staticmethod
     def from_dict(d: dict[str, Any]) -> Action:
@@ -104,6 +108,7 @@ class Action:
             declaration=d.get("declaration"),
             commitment=d.get("commitment"),
             custom_data=d.get("custom_data"),
+            mental_poker_data=d.get("mental_poker_data"),
         )
 
     def to_dict(self) -> dict[str, Any]:
@@ -144,6 +149,8 @@ class Action:
             out["commitment"] = self.commitment
         if self.custom_data is not None:
             out["custom_data"] = self.custom_data
+        if self.mental_poker_data is not None:
+            out["mental_poker_data"] = self.mental_poker_data
         return out
 
 
