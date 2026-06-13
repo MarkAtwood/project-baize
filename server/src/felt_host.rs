@@ -25,6 +25,7 @@ pub struct ZoneHandle {
     pub counter_val: i64,
     pub cells: Vec<i32>,       // flat grid cells: component handle or -1
     pub comp_indices: Vec<i32>, // indices into components array
+    pub cell_properties: Vec<((i32, i32), Vec<(String, String)>)>,
 }
 
 pub struct CompHandle {
@@ -106,7 +107,7 @@ impl HostState {
         players: &[PlayerHandle],
     ) -> ZoneHandle {
         match zone_state {
-            ZoneState::Grid { cells, .. } => {
+            ZoneState::Grid { cells, cell_properties, .. } => {
                 let mut zone_cells = Vec::new();
                 let mut zone_comps = Vec::new();
                 let mut max_col = 0i32;
@@ -140,6 +141,29 @@ impl HostState {
                     }
                 }
 
+                // Extract cell properties
+                let mut cell_props = Vec::new();
+                if let Some(cp) = cell_properties {
+                    for (coord_key, props) in cp {
+                        let parts: Vec<&str> = coord_key.split(',').collect();
+                        if parts.len() == 2 {
+                            if let (Ok(c), Ok(r)) = (parts[0].parse::<i32>(), parts[1].parse::<i32>()) {
+                                let kvs: Vec<(String, String)> = props
+                                    .iter()
+                                    .map(|(k, v)| {
+                                        let s = match v {
+                                            serde_json::Value::String(s) => s.clone(),
+                                            other => other.to_string(),
+                                        };
+                                        (k.clone(), s)
+                                    })
+                                    .collect();
+                                cell_props.push(((c, r), kvs));
+                            }
+                        }
+                    }
+                }
+
                 ZoneHandle {
                     name: name.to_string(),
                     zone_type: 0,
@@ -150,6 +174,7 @@ impl HostState {
                     counter_val: 0,
                     cells: zone_cells,
                     comp_indices: zone_comps,
+                    cell_properties: cell_props,
                 }
             }
             ZoneState::OrderedStack { components: comps, .. }
@@ -172,6 +197,7 @@ impl HostState {
                     counter_val: 0,
                     cells: Vec::new(),
                     comp_indices: zone_comps,
+                    cell_properties: Vec::new(),
                 }
             }
             ZoneState::Counter { value, .. } => {
@@ -188,6 +214,7 @@ impl HostState {
                     counter_val: v,
                     cells: Vec::new(),
                     comp_indices: Vec::new(),
+                    cell_properties: Vec::new(),
                 }
             }
             _ => ZoneHandle {
@@ -200,6 +227,7 @@ impl HostState {
                 counter_val: 0,
                 cells: Vec::new(),
                 comp_indices: Vec::new(),
+                cell_properties: Vec::new(),
             },
         }
     }
@@ -852,6 +880,41 @@ pub fn register_felt_imports(linker: &mut Linker<HostState>) -> Result<(), Exten
                     }
                     _ => 0,
                 }
+            },
+        )
+        .map_err(wrap_err)?;
+
+    // Cell properties
+    linker
+        .func_wrap(
+            "baize",
+            "cell_property",
+            |mut caller: Caller<'_, HostState>,
+             zone: i32,
+             col: i32,
+             row: i32,
+             key_ptr: i32,
+             key_len: i32,
+             buf: i32|
+             -> i32 {
+                let key = match read_string_from_memory(&mut caller, key_ptr, key_len) {
+                    Some(k) => k,
+                    None => return 0,
+                };
+                let value = caller
+                    .data()
+                    .zones
+                    .get(zone as usize)
+                    .and_then(|z| {
+                        z.cell_properties
+                            .iter()
+                            .find(|((c, r), _)| *c == col && *r == row)
+                            .and_then(|(_, props)| {
+                                props.iter().find(|(k, _)| k == &key).map(|(_, v)| v.clone())
+                            })
+                    })
+                    .unwrap_or_default();
+                write_string_to_memory(&mut caller, buf, &value)
             },
         )
         .map_err(wrap_err)?;

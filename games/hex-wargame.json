@@ -1,0 +1,153 @@
+{
+  "$schema": "../schema/game-definition.schema.json",
+  "game": {
+    "name": "Hex Wargame",
+    "players": ["Blue", "Red"],
+    "information": "perfect"
+  },
+  "zones": {
+    "board": {
+      "zone_type": "hex_grid",
+      "dimensions": 15,
+      "adjacency": "hex_6",
+      "visibility": "public",
+      "stacking_limit": 3,
+      "cell_properties": {
+        "0,0": { "terrain": "town", "objective": "true" },
+        "1,0": { "terrain": "clear" },
+        "2,0": { "terrain": "forest" },
+        "3,0": { "terrain": "hills" },
+        "4,0": { "terrain": "mountain" },
+        "5,0": { "terrain": "road" },
+        "6,0": { "terrain": "clear" },
+        "7,0": { "terrain": "town", "objective": "true" },
+        "0,1": { "terrain": "clear" },
+        "1,1": { "terrain": "forest" },
+        "2,1": { "terrain": "clear" },
+        "3,1": { "terrain": "road" },
+        "4,1": { "terrain": "hills" },
+        "5,1": { "terrain": "clear" },
+        "6,1": { "terrain": "forest" },
+        "7,1": { "terrain": "clear" },
+        "0,2": { "terrain": "road" },
+        "1,2": { "terrain": "clear" },
+        "2,2": { "terrain": "hills" },
+        "3,2": { "terrain": "clear" },
+        "4,2": { "terrain": "forest" },
+        "5,2": { "terrain": "mountain" },
+        "6,2": { "terrain": "clear" },
+        "7,2": { "terrain": "town", "objective": "true" },
+        "0,3": { "terrain": "clear" },
+        "1,3": { "terrain": "hills" },
+        "2,3": { "terrain": "forest" },
+        "3,3": { "terrain": "town", "objective": "true" },
+        "4,3": { "terrain": "clear" },
+        "5,3": { "terrain": "clear" },
+        "6,3": { "terrain": "hills" },
+        "7,3": { "terrain": "clear" },
+        "0,4": { "terrain": "forest" },
+        "1,4": { "terrain": "clear" },
+        "2,4": { "terrain": "road" },
+        "3,4": { "terrain": "clear" },
+        "4,4": { "terrain": "hills" },
+        "5,4": { "terrain": "forest" },
+        "6,4": { "terrain": "clear" },
+        "7,4": { "terrain": "town", "objective": "true" }
+      },
+      "note": "15-hex-side grid with mixed terrain. Objective hexes (towns) worth 5 VP each."
+    },
+    "casualties": {
+      "zone_type": "set",
+      "per_player": true,
+      "capacity": "unlimited",
+      "visibility": "public",
+      "note": "Eliminated units."
+    }
+  },
+  "components": {
+    "unit": {
+      "owner": "per_player",
+      "count": 10,
+      "types": {
+        "infantry": { "count": 4, "properties": { "attack": 2, "defense": 3, "movement_points": 4 } },
+        "armor": { "count": 2, "properties": { "attack": 6, "defense": 4, "movement_points": 8 } },
+        "mechanized": { "count": 2, "properties": { "attack": 4, "defense": 3, "movement_points": 6 } },
+        "artillery": { "count": 1, "properties": { "attack": 3, "defense": 1, "movement_points": 3 } },
+        "headquarters": { "count": 1, "properties": { "attack": 0, "defense": 1, "movement_points": 4 } }
+      },
+      "note": "NATO-style counters with attack/defense/movement values."
+    }
+  },
+  "turn_order": {
+    "type": "alternating",
+    "players": ["Blue", "Red"]
+  },
+  "phases": [
+    { "name": "movement", "action": "move_piece", "note": "Move units within movement point budget, respecting terrain costs and ZOC." },
+    { "name": "combat", "action": "declare_action", "note": "Declare attacks against adjacent enemy units. Resolve via CRT." },
+    { "name": "exploitation", "action": "move_piece", "note": "Armor units may move again after combat (breakthrough)." }
+  ],
+  "rules": {
+    "terrain_movement": {
+      "definition": "Each terrain type costs different movement points to enter",
+      "constraints": [
+        "clear costs 1 MP",
+        "forest costs 2 MP",
+        "hills costs 2 MP",
+        "mountain costs 3 MP",
+        "road costs 1 MP",
+        "town costs 1 MP"
+      ]
+    },
+    "zone_of_control": {
+      "definition": "Hexes adjacent to enemy units exert ZOC",
+      "constraints": [
+        "entering enemy ZOC costs all remaining MP",
+        "ZOC-to-ZOC movement is prohibited",
+        "retreating through enemy ZOC causes additional step loss"
+      ]
+    },
+    "combat_resolution": {
+      "definition": "Compare attack vs defense strengths, apply terrain modifier, roll d6 on CRT",
+      "trigger": "combat phase",
+      "effect": "DE (eliminated), DR (retreat), EX (exchange), AR (attacker retreat), NE (no effect)"
+    },
+    "stacking": {
+      "definition": "Maximum 3 units per hex",
+      "constraint": "stacking_limit enforced by engine"
+    },
+    "exploitation_movement": {
+      "definition": "Only armor units may move in exploitation phase",
+      "constraint": "unit type_of must be armor"
+    }
+  },
+  "library": {
+    "terrain_cost": "cell_property(board, col, row, 'terrain') based lookup",
+    "attack_odds": "sum(attacker_strengths) / sum(defender_strengths + terrain_bonus)",
+    "crt_columns": "1:3, 1:2, 1:1, 2:1, 3:1, 4:1, 5:1, 6:1"
+  },
+  "end_conditions": [
+    {
+      "result": "win",
+      "player": "current",
+      "condition": "opponent has no units remaining",
+      "name": "elimination"
+    },
+    {
+      "result": "win",
+      "condition": "after turn 10, player controlling more objective hexes wins",
+      "name": "objective_control"
+    },
+    {
+      "result": "draw",
+      "condition": "after turn 10, equal objective control",
+      "name": "draw"
+    }
+  ],
+  "authority": {
+    "server_only": ["roll_dice", "resolve_combat"],
+    "client_verifiable": ["movement_cost", "stacking_limit", "zoc_check"],
+    "wasm_required": ["crt_lookup", "terrain_cost_calculation", "zoc_computation", "victory_point_scoring"]
+  },
+  "wasm_module": "wargame.wasm"
+}

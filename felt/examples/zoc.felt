@@ -1,0 +1,77 @@
+-- Zone of Control (ZOC) logic for hex/grid wargames
+--
+-- A unit's ZOC is the set of cells adjacent to that unit.
+-- Entering or moving through enemy ZOC restricts movement.
+
+-- Check if a cell is in an enemy's zone of control.
+-- A cell is in enemy ZOC if any adjacent cell contains an enemy unit.
+fn in_enemy_zoc(board: Zone, target: Cell, player: Player) -> Bool =
+  adjacent board target
+  |> any (\adj ->
+    cell_at board (col adj) (row adj)
+    |> map_opt (\comp -> owner comp != Some player and is_some (owner comp))
+    |> unwrap_or false)
+
+-- Count enemy units adjacent to a cell.
+fn adjacent_enemy_count(board: Zone, target: Cell, player: Player) -> Int =
+  adjacent board target
+  |> filter (\adj ->
+    cell_at board (col adj) (row adj)
+    |> map_opt (\comp -> owner comp != Some player and is_some (owner comp))
+    |> unwrap_or false)
+  |> length
+
+-- Check if a cell has a friendly unit.
+fn has_friendly(board: Zone, target: Cell, player: Player) -> Bool =
+  cell_at board (col target) (row target)
+  |> map_opt (\comp -> owner comp == Some player)
+  |> unwrap_or false
+
+-- Check ZOC-to-ZOC movement (illegal in most wargames).
+-- Moving directly from one enemy ZOC hex to another is typically prohibited.
+fn is_zoc_to_zoc(board: Zone, from_cell: Cell, to_cell: Cell, player: Player) -> Bool =
+  in_enemy_zoc board from_cell player and in_enemy_zoc board to_cell player
+
+-- Extra movement cost for entering ZOC.
+-- Entering an enemy ZOC typically costs all remaining movement points.
+-- Returns 99 (effectively infinite) if target is in enemy ZOC, 0 otherwise.
+fn zoc_entry_cost(board: Zone, target: Cell, player: Player) -> Int =
+  if in_enemy_zoc board target player then 99
+  else 0
+
+-- All units belonging to a player.
+fn units_of(board: Zone, player: Player) -> List Component =
+  components board
+  |> filter (\comp -> owner comp == Some player)
+
+-- All cells in a player's zone of control.
+-- Collects adjacent cells of every friendly unit, deduplicates via Set.
+fn player_zoc_cells(board: Zone, player: Player) -> Set Cell =
+  units_of board player
+  |> flat_map (\comp ->
+    match position comp with
+    | Some cell -> adjacent board cell
+    | None -> [])
+  |> from_list
+
+-- Check if a friendly unit is adjacent to target (friendly ZOC support).
+fn has_friendly_support(board: Zone, target: Cell, player: Player) -> Bool =
+  adjacent board target
+  |> any (\adj ->
+    cell_at board (col adj) (row adj)
+    |> map_opt (\comp -> owner comp == Some player)
+    |> unwrap_or false)
+
+-- Count friendly units adjacent to a cell.
+fn adjacent_friendly_count(board: Zone, target: Cell, player: Player) -> Int =
+  adjacent board target
+  |> filter (\adj ->
+    cell_at board (col adj) (row adj)
+    |> map_opt (\comp -> owner comp == Some player)
+    |> unwrap_or false)
+  |> length
+
+-- Check if a cell is contested (in both players' ZOC).
+-- Requires the opponent as an explicit argument (no 2-player assumption).
+fn is_contested(board: Zone, target: Cell, player: Player, opponent: Player) -> Bool =
+  in_enemy_zoc board target player and in_enemy_zoc board target opponent

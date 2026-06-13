@@ -77,6 +77,9 @@ pub enum Type {
     Tuple(Vec<Type>),
     Record(Vec<(String, Type)>),
     Fn(Box<Type>, Box<Type>),
+    /// Type variable used internally by the checker for polymorphic builtins.
+    /// Not parsed from user source — only created in register_builtins.
+    Var(u8),
 }
 
 #[derive(Debug, Clone, PartialEq)]

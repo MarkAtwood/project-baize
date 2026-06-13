@@ -85,6 +85,8 @@ fn builtin_imports() -> Vec<BuiltinImport> {
         BuiltinImport { felt_name: "zone_height", wasm_name: "zone_height", felt_args: &[Handle(I32)], result: I32 },
         BuiltinImport { felt_name: "zone_cell_count", wasm_name: "zone_cell_count", felt_args: &[Handle(I32)], result: I32 },
         BuiltinImport { felt_name: "zone_comp_count", wasm_name: "zone_comp_count", felt_args: &[Handle(I32)], result: I32 },
+        // Cell properties
+        BuiltinImport { felt_name: "cell_property", wasm_name: "cell_property", felt_args: &[Handle(I32), Handle(I32), Handle(I32), StringIn, StringOut], result: I32 },
         // Grid adjacency
         BuiltinImport { felt_name: "adjacent_count", wasm_name: "adjacent_count", felt_args: &[Handle(I32), Handle(I32)], result: I32 },
         BuiltinImport { felt_name: "adjacent_at", wasm_name: "adjacent_at", felt_args: &[Handle(I32), Handle(I32), Handle(I32)], result: I32 },
