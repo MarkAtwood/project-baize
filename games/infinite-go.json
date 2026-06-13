@@ -1,0 +1,96 @@
+{
+  "$schema": "../schema/game-definition.schema.json",
+  "game": {
+    "name": "Infinite Go",
+    "players": ["black", "white"],
+    "information": "perfect"
+  },
+  "zones": {
+    "board": {
+      "zone_type": "grid",
+      "visibility": "public",
+      "intersections": true,
+      "adjacency": "orthogonal_4",
+      "storage": "sparse",
+      "dynamic": true,
+      "note": "Unbounded sparse board — no fixed dimensions. Stones may be placed at any integer coordinate. The board grows as needed."
+    },
+    "captured_black": {
+      "zone_type": "counter",
+      "visibility": "public",
+      "note": "Count of black stones captured by white"
+    },
+    "captured_white": {
+      "zone_type": "counter",
+      "visibility": "public",
+      "note": "Count of white stones captured by black"
+    }
+  },
+  "components": {
+    "stone": {
+      "owner": "per_player",
+      "count": "unlimited",
+      "movement": [
+        {
+          "primitive": "place",
+          "target_zone": "board",
+          "condition": "intersection is empty"
+        }
+      ]
+    }
+  },
+  "turn_order": {
+    "type": "alternating",
+    "players": ["black", "white"],
+    "actions_per_turn": 1,
+    "mandatory": false
+  },
+  "rules": {
+    "placement": {
+      "action": "place(stone, board/intersection)",
+      "constraint": "intersection is empty"
+    },
+    "capture": {
+      "trigger": "after stone placement",
+      "definition": "a group of connected same-color stones with no empty adjacent intersections (liberties) is captured",
+      "effect": "remove captured group from board; increment captor prisoner count"
+    },
+    "suicide": {
+      "definition": "placing a stone that would leave own group with zero liberties after resolving opponent captures",
+      "constraint": "forbidden unless placement captures at least one opponent group"
+    },
+    "superko": {
+      "definition": "no board position may repeat at any point in the game (positional superko)",
+      "constraint": "placement that recreates any previous board position is forbidden",
+      "note": "Stronger than simple ko — ensures termination on an infinite board"
+    },
+    "pass": {
+      "definition": "a player may pass instead of placing a stone",
+      "effect": "turn passes to opponent with no board change"
+    },
+    "scoring": {
+      "definition": "capture-only scoring: the player who captures more stones wins. Territory scoring requires players to agree on a bounding box at game end.",
+      "note": "Chinese area scoring within an agreed bounding box is the recommended variant for competitive play"
+    }
+  },
+  "end_conditions": [
+    {
+      "result": "win",
+      "player": "higher_score",
+      "condition": "both_players_pass_consecutively",
+      "name": "double_pass"
+    },
+    {
+      "result": "win",
+      "player": "opponent_of_current",
+      "condition": "current_player_resigns",
+      "name": "resignation"
+    }
+  ],
+  "authority": {
+    "server_only": ["scoring", "bounding_box_agreement"],
+    "client_verifiable": ["place(stone, board/intersection)", "pass"],
+    "wasm_required": ["capture_detection", "liberty_counting", "superko_detection"]
+  },
+  "wasm_module": "go.wasm"
+}
