@@ -107,7 +107,7 @@ implementation, even before full mental poker support.
 
 ## Status
 
-Core engine complete. 297 of 312 issues closed. Fifty-seven games
+Core engine complete. 304 of 318 issues closed. Fifty-eight games
 defined, twenty-one fully playable end-to-end. Texas Hold'em poker
 now playable with full betting, hand evaluation, and showdown.
 The engine parses and validates game definitions, manages runtime
@@ -131,16 +131,21 @@ computation, and cell-level state filtering. Action triggers with
 claim windows for reactive turns (Mahjong chi/pon/ron, Uno jump-in,
 auction raise-or-pass).
 
+Wargame primitives implemented: terrain movement costs, combat
+resolution tables, and zones of control as Felt extensions with a
+new `cell_property` builtin. Polymorphic type variables in the Felt
+type checker.
+
 Design decisions made for next phase: resource system for external
-data (dictionaries), and wargame primitives via Felt extensions.
+data (dictionaries).
 
 | Component | Tests | What works |
 |-----------|-------|-----------|
 | Schema (5 JSON Schemas) | — | Game definitions, state, actions, events, component registry |
 | Rust engine | 317 | Parse, validate, state machine, move gen, transitions, CEL end conditions, perturber effects (cycle, remove, flip, promote, counters, invoke), commit-reveal, simultaneous phases, action triggers with claim windows, hash-chained events, tamper detection, visibility filtering, dynamic visibility transitions, fog of war (per-cell per-player), valid_cells grid mask, graph zone, sparse/dense grid storage, cell stacking with limits, partnerships with team win propagation, hostile input rejection, invariant guards, fuel limits, resource budgets, serialization round-trips, cross-engine determinism |
-| Python engine | 3,522 | Feature-parallel with Rust, plus game analysis, Jupyter notebook, terminal CLI, interactive REPL, agent framework (Random/Greedy/MCTS), notation adapter, adversarial input tests, error leak audit, hypothesis fuzzing, cross-engine determinism, poker (hand evaluator, betting FSM, showdown), sparse/dense grid storage, cell stacking, partnerships, dynamic visibility, fog of war, action triggers with claim windows, 57 game definitions with gameplay tests |
-| Server | 130 | Room management, WebSocket protocol, hidden-state vault (ChaCha20Rng), per-player visibility, rate limiting, token auth, spectator isolation, persistence, WASM sandboxing (fuel + memory caps), abuse resistance, protocol hardening, claim window timeouts, debug redaction, graceful shutdown, Felt host imports |
-| Felt compiler | 127 | Lexer (logos), parser (chumsky), type checker, call graph checker, WASM GC codegen (wasm-encoder), 35 builtins wired as host imports, CLI (compile/check), host import API, example extensions (poker, chess, go) |
+| Python engine | 3,525 | Feature-parallel with Rust, plus game analysis, Jupyter notebook, terminal CLI, interactive REPL, agent framework (Random/Greedy/MCTS), notation adapter, adversarial input tests, error leak audit, hypothesis fuzzing, cross-engine determinism, poker (hand evaluator, betting FSM, showdown), sparse/dense grid storage, cell stacking, partnerships, dynamic visibility, fog of war, action triggers with claim windows, 58 game definitions with gameplay tests |
+| Server | 130 | Room management, WebSocket protocol, hidden-state vault (ChaCha20Rng), per-player visibility, rate limiting, token auth, spectator isolation, persistence, WASM sandboxing (fuel + memory caps), abuse resistance, protocol hardening, claim window timeouts, cell_property host import, debug redaction, graceful shutdown, Felt host imports |
+| Felt compiler | 127 | Lexer (logos), parser (chumsky), type checker with polymorphic type variables, call graph checker, WASM GC codegen (wasm-encoder), 36 builtins wired as host imports, CLI (compile/check), host import API, example extensions (poker, chess, go, wargame terrain/CRT/ZOC) |
 | Client (TypeScript) | 86 | Full type definitions for all schemas (game state, actions, events, registry, effects); Web Components (`<baize-game>`, `<baize-board>`, `<baize-hand>`, `<baize-clock>`, `<baize-score>`); WASM engine wrapper; WebSocket connection with auto-reconnect; server message validation with prototype-pollution defense; drag-and-drop board interaction; Go-style intersection rendering; stacking visualization |
 
 ### Tools
@@ -162,7 +167,7 @@ in external tools.
 
 ## Game Catalog
 
-Fifty-seven reference game definitions spanning the complexity spectrum.
+Fifty-eight reference game definitions spanning the complexity spectrum.
 Game rules are not subject to intellectual property protection. All
 trademarked names are used here in their descriptive sense to identify
 the games whose rules are implemented. Games marked ✓ are fully
@@ -235,12 +240,7 @@ tracking their implementation.
 | Fury of Dracula™ | Imperfect | Hidden movement on European map, asymmetric teams, trail mechanic, day/night cycle |
 | Triangle Dominoes | Imperfect | Triangular tiles on sparse hex grid, edge matching, region scoring |
 | Chickenfoot Dominoes | Imperfect | Dynamic graph branching layout, double-nine set, chickenfoot fork rule |
-
-### Planned (beads filed)
-
-| Game | What it proves |
-|------|---------------|
-| Generic Hex Wargame | Full CRT/TEC/ZOC/supply, NATO-symbol counters, fog of war |
+| Hex Wargame | Perfect | 15-hex grid, mixed terrain (cell_properties), CRT combat, ZOC, IGOUGO phases, Felt wargame extensions |
 
 ™ marks identify trademarks of their respective owners. Used here
 descriptively to identify the game rules implemented, not to imply
