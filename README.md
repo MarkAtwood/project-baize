@@ -107,7 +107,7 @@ implementation, even before full mental poker support.
 
 ## Status
 
-Core engine complete. 333 of 358 issues closed. Sixty-one games
+Core engine complete. 336 of 361 issues closed. Sixty-four games
 defined, twenty-one fully playable end-to-end. Texas Hold'em poker
 now playable with full betting, hand evaluation, and showdown.
 The engine parses and validates game definitions, manages runtime
@@ -170,7 +170,7 @@ in external tools.
 
 ## Game Catalog
 
-Sixty-one reference game definitions spanning the complexity spectrum.
+Sixty-four reference game definitions spanning the complexity spectrum.
 Game rules are not subject to intellectual property protection. All
 trademarked names are used here in their descriptive sense to identify
 the games whose rules are implemented. Games marked ✓ are fully
@@ -221,6 +221,9 @@ tracking their implementation.
 | Shogi | Perfect | 9×9, piece drops (captured pieces return to play), directional movement, promotion |
 | Xiangqi | Perfect | 9×10, river/palace constraints, cannon jump-capture, flying general |
 | Mancala | Perfect | 14 pits, seed-sowing distribution, captures, extra turns |
+| Oware | Perfect | 2×6 board, 48 seeds, counter-clockwise sowing, chain capture (2 or 3), grand slam protection — international tournament variant |
+| Bao la Kiswahili | Perfect | 4×8 board (32 pits), 64 seeds, namua/mtaji phases, relay sowing, kula capture — most complex mancala variant |
+| Senet | Perfect + random | 30-square S-track, casting sticks, 5 special squares, swap capture, bearing off — ancient Egypt (~3100 BCE) |
 | Mahjong™ | Imperfect | 4-player, 136 tiles, interrupt claiming (chi/pon/ron), yaku scoring |
 | Dominoes | Imperfect | 28 tiles (double-six), chain topology, end matching |
 | Bridge | Imperfect | 4-player partnership, auction bidding, dummy hand exposure, trick-taking |
