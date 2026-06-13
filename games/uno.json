@@ -1,0 +1,163 @@
+{
+  "$schema": "../schema/game-definition.schema.json",
+  "game": {
+    "name": "Uno",
+    "players": { "min": 2, "max": 10 },
+    "information": "imperfect"
+  },
+  "zones": {
+    "draw_pile": {
+      "zone_type": "ordered_stack",
+      "capacity": 108,
+      "visibility": "hidden",
+      "note": "Shuffled draw pile. Server reshuffles discard pile into draw pile when exhausted."
+    },
+    "discard_pile": {
+      "zone_type": "ordered_stack",
+      "visibility": "public",
+      "note": "Discard pile. Top card determines what can be played next."
+    },
+    "hand": {
+      "zone_type": "set",
+      "per_player": true,
+      "capacity": 108,
+      "visibility": { "private": "owner" },
+      "note": "Player hand. Starts with 7 cards. Theoretical max is entire deck."
+    }
+  },
+  "components": {
+    "card": {
+      "owner": "neutral",
+      "count": 108,
+      "facing": "face_down",
+      "properties": {
+        "color": ["red", "yellow", "green", "blue", "wild"],
+        "value": ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "skip", "reverse", "draw_two", "wild", "wild_draw_four"]
+      },
+      "note": "108 cards: 4 colors x (one 0 + two each of 1-9, Skip, Reverse, Draw Two) = 100 colored cards + 4 Wild + 4 Wild Draw Four = 108."
+    }
+  },
+  "turn_order": {
+    "type": "round_robin",
+    "actions_per_turn": 1,
+    "mandatory": true
+  },
+  "phases": [
+    {
+      "name": "deal",
+      "server_action": [
+        "shuffle(draw_pile)",
+        "deal(draw_pile, hand, count:7, to:each_player)",
+        "reveal(draw_pile, discard_pile, count:1)"
+      ],
+      "note": "Shuffle deck, deal 7 cards to each player, flip top card to start discard pile. If flipped card is Wild Draw Four, reshuffle and reflip."
+    },
+    {
+      "name": "play",
+      "action": "play_or_draw",
+      "note": "Active player plays a matching card from hand to discard pile, or draws one card from draw pile. If drawn card is playable, player may play it immediately."
+    }
+  ],
+  "rules": {
+    "match_play": {
+      "definition": "A card may be played if it matches the top discard by color, value, or is a Wild card",
+      "action": "play_card",
+      "constraints": [
+        "played card color matches top discard color",
+        "OR played card value matches top discard value",
+        "OR played card color is wild"
+      ]
+    },
+    "draw_if_unable": {
+      "definition": "If no playable card in hand, draw one card from draw pile",
+      "action": "draw",
+      "constraint": "no card in hand matches top discard by color or value and no wild cards in hand"
+    },
+    "play_after_draw": {
+      "definition": "After drawing, the drawn card may be played immediately if it is a legal play",
+      "action": "play_card",
+      "constraint": "drawn card matches top discard by color or value, or drawn card is wild"
+    },
+    "skip": {
+      "definition": "Playing a Skip card causes the next player in turn order to lose their turn",
+      "trigger": "play_card where value == skip",
+      "effect": "next_player_in_order.skip_turn"
+    },
+    "reverse": {
+      "definition": "Playing a Reverse card reverses the direction of play",
+      "trigger": "play_card where value == reverse",
+      "effect": "turn_order.reverse_direction"
+    },
+    "reverse_two_players": {
+      "definition": "In a two-player game, Reverse acts as a Skip",
+      "trigger": "play_card where value == reverse and player_count == 2",
+      "effect": "next_player_in_order.skip_turn"
+    },
+    "draw_two": {
+      "definition": "Playing a Draw Two card forces the next player to draw 2 cards and lose their turn",
+      "trigger": "play_card where value == draw_two",
+      "effect": "next_player_in_order.draw(draw_pile, hand, count:2) and next_player_in_order.skip_turn"
+    },
+    "wild": {
+      "definition": "Playing a Wild card allows the player to choose the active color",
+      "action": "play_card",
+      "constraint": "wild cards may be played on any turn regardless of top discard",
+      "effect": "player declares new active color (red, yellow, green, or blue)"
+    },
+    "wild_draw_four": {
+      "definition": "Playing a Wild Draw Four allows the player to choose the active color and forces the next player to draw 4 cards and lose their turn",
+      "action": "play_card",
+      "constraint": "may only be played if the player has no cards matching the current active color",
+      "effect": "player declares new active color; next_player_in_order.draw(draw_pile, hand, count:4) and next_player_in_order.skip_turn"
+    },
+    "wild_draw_four_challenge": {
+      "definition": "The targeted player may challenge a Wild Draw Four by asking the server to verify the player had no matching color",
+      "trigger": "play_card where value == wild_draw_four",
+      "effect": "if challenge succeeds (player had matching color), player draws 4 instead; if challenge fails, challenger draws 6 total"
+    },
+    "reshuffle": {
+      "definition": "When the draw pile is empty, the discard pile (except top card) is reshuffled to form a new draw pile",
+      "trigger": "draw_pile.count == 0",
+      "effect": "server reshuffles discard_pile (minus top card) into draw_pile"
+    },
+    "call_uno": {
+      "definition": "A player must call Uno when playing their second-to-last card (going to 1 card). If caught not calling, draw 2 penalty cards.",
+      "action": "declare",
+      "constraint": "hand.count == 2 before playing"
+    }
+  },
+  "library": {
+    "active_color": "color of top discard, or declared color if top card is wild",
+    "playable": "card.color == active_color OR card.value == top_discard.value OR card.color == wild",
+    "card_points": "0-9 face value; skip/reverse/draw_two = 20 each; wild/wild_draw_four = 50 each"
+  },
+  "end_conditions": [
+    {
+      "result": "win",
+      "condition": "hand.count == 0",
+      "player": "current",
+      "name": "empty_hand"
+    },
+    {
+      "result": "win",
+      "condition": "draw_pile.count == 0 and no player can play and this player has fewest cards",
+      "name": "fewest_cards"
+    }
+  ],
+  "authority": {
+    "server_only": [
+      "shuffle(draw_pile)",
+      "deal(draw_pile, hand)",
+      "reveal(draw_pile, discard_pile)",
+      "reshuffle(discard_pile, draw_pile)",
+      "draw(draw_pile, hand)",
+      "wild_draw_four_challenge_verification"
+    ],
+    "client_verifiable": [
+      "play_card(hand, discard_pile)",
+      "match_check(card, top_discard)",
+      "wild_draw_four_eligibility",
+      "call_uno"
+    ]
+  }
+}

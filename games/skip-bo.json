@@ -1,0 +1,194 @@
+{
+  "$schema": "../schema/game-definition.schema.json",
+  "game": {
+    "name": "Skip-Bo",
+    "players": { "min": 2, "max": 6 },
+    "information": "imperfect"
+  },
+  "zones": {
+    "draw_pile": {
+      "zone_type": "ordered_stack",
+      "capacity": 162,
+      "visibility": "hidden",
+      "note": "Main draw pile. Server shuffles. Replenished from completed building piles."
+    },
+    "building_1": {
+      "zone_type": "ordered_stack",
+      "visibility": "public",
+      "note": "Shared building pile 1. Cards played in ascending order 1-12."
+    },
+    "building_2": {
+      "zone_type": "ordered_stack",
+      "visibility": "public",
+      "note": "Shared building pile 2. Cards played in ascending order 1-12."
+    },
+    "building_3": {
+      "zone_type": "ordered_stack",
+      "visibility": "public",
+      "note": "Shared building pile 3. Cards played in ascending order 1-12."
+    },
+    "building_4": {
+      "zone_type": "ordered_stack",
+      "visibility": "public",
+      "note": "Shared building pile 4. Cards played in ascending order 1-12."
+    },
+    "stockpile": {
+      "zone_type": "ordered_stack",
+      "per_player": true,
+      "capacity": 30,
+      "visibility": "hidden",
+      "draw_visibility": "public",
+      "note": "Player stockpile. Only top card is visible. 30 cards for 2-4 players, 20 for 5-6 (configurable). First to empty wins."
+    },
+    "hand": {
+      "zone_type": "set",
+      "per_player": true,
+      "capacity": 5,
+      "visibility": { "private": "owner" },
+      "note": "Player hand. Draw up to 5 cards at start of turn."
+    },
+    "discard_1": {
+      "zone_type": "ordered_stack",
+      "per_player": true,
+      "visibility": "public",
+      "note": "Personal discard pile 1. Top card visible and playable."
+    },
+    "discard_2": {
+      "zone_type": "ordered_stack",
+      "per_player": true,
+      "visibility": "public",
+      "note": "Personal discard pile 2. Top card visible and playable."
+    },
+    "discard_3": {
+      "zone_type": "ordered_stack",
+      "per_player": true,
+      "visibility": "public",
+      "note": "Personal discard pile 3. Top card visible and playable."
+    },
+    "discard_4": {
+      "zone_type": "ordered_stack",
+      "per_player": true,
+      "visibility": "public",
+      "note": "Personal discard pile 4. Top card visible and playable."
+    }
+  },
+  "components": {
+    "card": {
+      "owner": "neutral",
+      "count": 162,
+      "facing": "face_down",
+      "properties": {
+        "value": ["1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "skip-bo"],
+        "points": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 0]
+      },
+      "note": "162 cards: 12 each of values 1-12 (144 numbered) plus 18 Skip-Bo wild cards. Wild cards can substitute for any value."
+    }
+  },
+  "turn_order": {
+    "type": "round_robin",
+    "mandatory": true
+  },
+  "phases": [
+    {
+      "name": "deal",
+      "server_action": [
+        "shuffle(draw_pile)",
+        "deal(draw_pile, stockpile, count:30, to:each_player)",
+        "flip_top(stockpile, to:each_player)"
+      ],
+      "note": "Shuffle deck, deal 30 cards to each player's stockpile (20 for 5-6 players variant), flip top card of each stockpile face-up."
+    },
+    {
+      "name": "draw",
+      "action": "draw_to_five(draw_pile, hand)",
+      "note": "Active player draws cards from draw pile until hand has 5 cards. If hand is empty (all cards played previous turn), draw 5."
+    },
+    {
+      "name": "play",
+      "action": "play_to_building(source, building_pile)",
+      "ends_when": "player cannot or chooses not to play",
+      "note": "Active player plays cards to building piles from hand, top of stockpile, or top of any personal discard pile. May play multiple cards. Skip-Bo wilds match any value."
+    },
+    {
+      "name": "discard",
+      "action": "discard(hand, discard_pile, count:1)",
+      "note": "Active player must discard exactly one card from hand to one of their 4 personal discard piles. This ends the turn."
+    }
+  ],
+  "rules": {
+    "building_sequence": {
+      "definition": "Building piles accept cards in ascending order 1 through 12",
+      "action": "play_to_building",
+      "constraints": [
+        "card.value == building_pile.top + 1 OR building_pile is empty AND card.value == 1",
+        "skip-bo wild card matches any required value"
+      ]
+    },
+    "completed_pile": {
+      "definition": "When a building pile reaches 12, it is cleared and reshuffled into the draw pile",
+      "trigger": "building_pile.top.value == 12",
+      "effect": "clear(building_pile) and shuffle_into(draw_pile)"
+    },
+    "play_sources": {
+      "definition": "Cards may be played to building piles from hand, top of stockpile, or top of any personal discard pile",
+      "action": "play_to_building",
+      "constraints": [
+        "source in [hand, stockpile.top, discard_1.top, discard_2.top, discard_3.top, discard_4.top]"
+      ]
+    },
+    "draw_to_five": {
+      "definition": "At start of turn, draw cards until hand contains 5",
+      "action": "draw",
+      "constraint": "draw count = 5 - hand.count"
+    },
+    "mandatory_discard": {
+      "definition": "Turn must end by discarding exactly one card from hand to a personal discard pile",
+      "action": "discard",
+      "constraint": "must discard exactly 1 card from hand to one of [discard_1, discard_2, discard_3, discard_4]"
+    },
+    "stockpile_win": {
+      "definition": "First player to empty their stockpile wins, even mid-turn",
+      "trigger": "stockpile.count == 0",
+      "effect": "player wins immediately"
+    },
+    "skip_discard_on_empty_hand": {
+      "definition": "If a player plays all 5 hand cards during the play phase, skip discard and draw 5 new cards to continue playing",
+      "trigger": "hand.count == 0 during play phase",
+      "effect": "draw(draw_pile, hand, count:5) and continue play phase"
+    }
+  },
+  "library": {
+    "building_pile_next": "if building_pile.count == 0 then 1 else building_pile.top.value + 1",
+    "is_wild": "card.value == 'skip-bo'",
+    "card_matches_building": "card.value == building_pile_next OR is_wild",
+    "stockpile_size_variant": "if player_count <= 4 then 30 else 20"
+  },
+  "end_conditions": [
+    {
+      "result": "win",
+      "condition": "stockpile.count == 0",
+      "player": "current",
+      "name": "stockpile_empty"
+    },
+    {
+      "result": "draw",
+      "condition": "draw_pile.count == 0 and no building pile can accept a play from any player",
+      "name": "deadlock"
+    }
+  ],
+  "authority": {
+    "server_only": [
+      "shuffle(draw_pile)",
+      "deal(draw_pile, stockpile)",
+      "reshuffle_completed_pile(building_pile, draw_pile)",
+      "hidden_stockpile_state"
+    ],
+    "client_verifiable": [
+      "building_sequence_check",
+      "play_source_validation",
+      "draw_count_validation",
+      "mandatory_discard_check",
+      "stockpile_empty_win_check"
+    ]
+  }
+}

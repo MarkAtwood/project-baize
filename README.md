@@ -107,7 +107,7 @@ implementation, even before full mental poker support.
 
 ## Status
 
-Core engine complete. 333 of 358 issues closed. Fifty-nine games
+Core engine complete. 333 of 358 issues closed. Sixty-one games
 defined, twenty-one fully playable end-to-end. Texas Hold'em poker
 now playable with full betting, hand evaluation, and showdown.
 The engine parses and validates game definitions, manages runtime
@@ -170,7 +170,7 @@ in external tools.
 
 ## Game Catalog
 
-Fifty-nine reference game definitions spanning the complexity spectrum.
+Sixty-one reference game definitions spanning the complexity spectrum.
 Game rules are not subject to intellectual property protection. All
 trademarked names are used here in their descriptive sense to identify
 the games whose rules are implemented. Games marked ✓ are fully
@@ -237,6 +237,8 @@ tracking their implementation.
 | Cribbage | Imperfect | Pegging phase (running total to 31), combinatorial hand scoring, pegboard |
 | Hearts | Imperfect | 4-player trick avoidance, shoot-the-moon gambit, card passing |
 | Gin Rummy | Imperfect | Deadwood optimization, knocking, undercut, layoff |
+| Uno™ | Imperfect | 108-card color-matching, Skip/Reverse/Draw Two/Wild effects, direction reversal, 2-10 players |
+| Skip-Bo™ | Imperfect | 162-card sequential building piles, stockpile race, wild cards, 4 personal discard stacks, 2-6 players |
 | Nim | Perfect | Multiple heaps, Sprague-Grundy theory, mathematically solved |
 | Infinite Go | Perfect | Unbounded sparse board, superko rule, capture-only scoring |
 | Power Grid™ | Imperfect | City network graph, auction economy, resource market, Dijkstra path costs |
