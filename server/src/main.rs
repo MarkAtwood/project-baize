@@ -70,6 +70,7 @@ async fn main() {
         .route("/rooms", get(connection::list_rooms_handler))
         .route("/ws/{room_id}", get(connection::ws_handler))
         .route("/health", get(health))
+        .route("/games", get(connection::list_games_handler))
         .layer(cors)
         .with_state(registry);
 

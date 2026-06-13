@@ -6,7 +6,7 @@ use baize_engine::transition::{apply_action, apply_claim};
 use baize_engine::visibility::filter_for_viewer_with_fog;
 
 use crate::config;
-use crate::room::Room;
+use crate::room::{self, Room};
 use crate::vault;
 
 /// Structured error sent to the client for protocol violations.
@@ -103,6 +103,9 @@ pub fn handle_client_message(
             sequence,
             ..
         } => (player.as_str(), game_id.as_str(), *sequence),
+        ClientMessage::Ready {
+            game_id, player, ..
+        } => (player.as_str(), game_id.as_str(), None),
     };
 
     // Validate player name matches seat
@@ -283,6 +286,19 @@ pub fn handle_client_message(
                 ));
             }
             handle_submit_claim(room, seat, &player, &claim)
+        }
+
+        ClientMessage::Ready {
+            ready, player, ..
+        } => {
+            if is_spectator {
+                return HandleResult::Error(error_response(
+                    &game_id,
+                    "spectator_not_allowed",
+                    "spectators cannot signal ready",
+                ));
+            }
+            handle_ready(room, seat, &player, ready)
         }
     }
 }
@@ -815,4 +831,79 @@ fn handle_acknowledge_state(
             full_state,
         }]
     }
+}
+
+/// Process a ready message:
+/// 1. Toggle the player's ready status
+/// 2. Build a ready_state snapshot for all defined seats
+/// 3. If all seated players are ready, set AllReady; otherwise Waiting
+/// 4. Broadcast the ready_state to all connected players
+fn handle_ready(
+    room: &mut Room,
+    _seat: &str,
+    player: &str,
+    ready: bool,
+) -> HandleResult {
+    let game_id = room.id.clone();
+
+    // Only toggle ready in Waiting or AllReady phases
+    if room.room_phase == room::RoomPhase::InProgress {
+        return HandleResult::Error(error_response(
+            &game_id,
+            "game_in_progress",
+            "cannot change ready status after game has started",
+        ));
+    }
+
+    if ready {
+        room.ready_players.insert(player.to_string());
+    } else {
+        room.ready_players.remove(player);
+    }
+
+    // Build seats map for the broadcast
+    let defined_players: Vec<String> = room
+        .session
+        .runtime
+        .players
+        .keys()
+        .cloned()
+        .collect();
+
+    let mut seats = serde_json::Map::new();
+    for p in &defined_players {
+        let connected = room.players.contains_key(p);
+        let is_ready = room.ready_players.contains(p);
+        seats.insert(
+            p.clone(),
+            serde_json::json!({
+                "connected": connected,
+                "ready": is_ready,
+            }),
+        );
+    }
+
+    // Check if all defined (non-spectator) players are connected and ready
+    let all_ready = defined_players.iter().all(|p| {
+        room.players.contains_key(p) && room.ready_players.contains(p)
+    });
+
+    if all_ready {
+        room.room_phase = room::RoomPhase::AllReady;
+    } else {
+        room.room_phase = room::RoomPhase::Waiting;
+    }
+
+    let ready_msg = serde_json::json!({
+        "message_type": "ready_state",
+        "game_id": game_id,
+        "seats": seats,
+    })
+    .to_string();
+
+    // Broadcast to all connected players via room channels
+    room::broadcast(room, &ready_msg);
+
+    // Return empty broadcast (we already sent via room channels)
+    HandleResult::Broadcast(Vec::new())
 }

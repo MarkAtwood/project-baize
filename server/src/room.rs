@@ -1,6 +1,6 @@
 #![allow(dead_code)]
 
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::fmt;
 use std::net::IpAddr;
 use std::sync::Arc;
@@ -14,6 +14,17 @@ use baize_engine::GameSession;
 use crate::config;
 use crate::store::Store;
 use crate::vault::Vault;
+
+/// Room phase: waiting for players, ready to start, or in progress.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum RoomPhase {
+    /// Players are joining and readying up.
+    Waiting,
+    /// All seats filled and all players ready; game can start.
+    AllReady,
+    /// Game is in progress (first action has been applied).
+    InProgress,
+}
 
 /// A single game room: one game session with connected players.
 ///
@@ -33,6 +44,10 @@ pub struct Room {
     /// When this instant passes, the connection loop auto-submits
     /// default claims for non-respondent players.
     pub claim_deadline: Option<tokio::time::Instant>,
+    /// Players who have signaled ready. Cleared when a player disconnects.
+    pub ready_players: HashSet<String>,
+    /// Room phase: waiting for players, ready to start, or in progress.
+    pub room_phase: RoomPhase,
 }
 
 impl fmt::Debug for Room {
@@ -50,6 +65,8 @@ impl fmt::Debug for Room {
                 &format_args!("<{} tokens redacted>", self.player_tokens.len()),
             )
             .field("claim_deadline", &self.claim_deadline)
+            .field("ready_players", &self.ready_players)
+            .field("room_phase", &self.room_phase)
             .finish()
     }
 }
@@ -218,6 +235,8 @@ impl RoomRegistry {
             max_players,
             player_tokens: HashMap::new(),
             claim_deadline: None,
+            ready_players: HashSet::new(),
+            room_phase: RoomPhase::Waiting,
         };
 
         // Persist to store if available

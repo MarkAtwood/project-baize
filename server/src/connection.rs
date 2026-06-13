@@ -183,7 +183,10 @@ async fn handle_socket(
                     let _ = socket.send(Message::Text(err.into())).await;
                     return;
                 }
-                let seat = pick_seat(&room_guard);
+                let seat = match pick_seat_with_preference(&room_guard, &hello.preferred_seat, &mut socket).await {
+                    Some(s) => s,
+                    None => return,
+                };
                 let token = room::register_token(&mut room_guard, &seat);
                 (seat, token)
             }
@@ -198,7 +201,10 @@ async fn handle_socket(
                 let _ = socket.send(Message::Text(err.into())).await;
                 return;
             }
-            let seat = pick_seat(&room_guard);
+            let seat = match pick_seat_with_preference(&room_guard, &hello.preferred_seat, &mut socket).await {
+                Some(s) => s,
+                None => return,
+            };
             let token = room::register_token(&mut room_guard, &seat);
             (seat, token)
         };
@@ -394,7 +400,7 @@ async fn handle_socket(
         }
     }
 
-    // Clean up: remove player from room
+    // Clean up: remove player from room and ready set
     {
         let mut room_guard = room.lock().await;
         let had_player = room_guard.players.remove(&seat).is_some();
@@ -402,6 +408,13 @@ async fn handle_socket(
             had_player,
             "connection: player '{seat}' was not in room '{room_id}' at disconnect"
         );
+        // Remove from ready set on disconnect
+        if room_guard.ready_players.remove(&seat) {
+            // If a ready player disconnects and we were AllReady, revert to Waiting
+            if room_guard.room_phase == room::RoomPhase::AllReady {
+                room_guard.room_phase = room::RoomPhase::Waiting;
+            }
+        }
         // Postcondition: player count must not exceed max_players after removal
         debug_assert!(
             room_guard.players.len() <= room_guard.max_players + config::MAX_CONNECTIONS_PER_IP,
@@ -411,6 +424,61 @@ async fn handle_socket(
         eprintln!("player '{seat}' left room '{room_id}'");
     }
     // _ip_guard drops here, releasing the per-IP connection slot
+}
+
+/// Axum handler: list available game definitions from the `games/` directory.
+pub async fn list_games_handler() -> impl IntoResponse {
+    let games_dir = std::path::Path::new("games");
+    let mut catalog = Vec::new();
+
+    if let Ok(entries) = std::fs::read_dir(games_dir) {
+        for entry in entries.flatten() {
+            let path = entry.path();
+            if path.extension().and_then(|e| e.to_str()) != Some("json") {
+                continue;
+            }
+            match std::fs::read_to_string(&path) {
+                Ok(content) => {
+                    match serde_json::from_str::<serde_json::Value>(&content) {
+                        Ok(val) => {
+                            let name = val.get("game")
+                                .and_then(|g| g.get("name"))
+                                .and_then(|n| n.as_str())
+                                .unwrap_or("unknown")
+                                .to_string();
+                            let players = val.get("game")
+                                .and_then(|g| g.get("players"))
+                                .cloned();
+                            let file = path.file_name()
+                                .and_then(|f| f.to_str())
+                                .unwrap_or("")
+                                .to_string();
+                            catalog.push(serde_json::json!({
+                                "name": name,
+                                "file": file,
+                                "players": players,
+                            }));
+                        }
+                        Err(e) => {
+                            eprintln!("[warning] skipping invalid game file {:?}: {e}", path);
+                        }
+                    }
+                }
+                Err(e) => {
+                    eprintln!("[warning] cannot read game file {:?}: {e}", path);
+                }
+            }
+        }
+    }
+
+    // Sort by name for deterministic output
+    catalog.sort_by(|a, b| {
+        let na = a.get("name").and_then(|n| n.as_str()).unwrap_or("");
+        let nb = b.get("name").and_then(|n| n.as_str()).unwrap_or("");
+        na.cmp(nb)
+    });
+
+    Json(catalog)
 }
 
 /// Request body for POST /rooms.
@@ -607,6 +675,49 @@ fn handle_claim_timeout(room: &mut Room) {
                 );
             }
         }
+    }
+}
+
+/// Resolve seat assignment, honoring an optional preferred seat.
+///
+/// Returns `Some(seat)` on success, or `None` if the preferred seat is
+/// invalid/taken (after sending an error to the client).
+async fn pick_seat_with_preference(
+    room: &Room,
+    preferred: &Option<String>,
+    socket: &mut WebSocket,
+) -> Option<String> {
+    if let Some(preferred) = preferred {
+        let defined_players: Vec<String> = room
+            .session
+            .runtime
+            .players
+            .keys()
+            .cloned()
+            .collect();
+        if !defined_players.contains(preferred) {
+            let err = ws_error_json(
+                "invalid_seat",
+                &format!("seat {preferred:?} does not exist; available: {defined_players:?}"),
+            );
+            let _ = socket.send(Message::Text(err.into())).await;
+            return None;
+        }
+        if room.players.contains_key(preferred) {
+            let available: Vec<&String> = defined_players
+                .iter()
+                .filter(|p| !room.players.contains_key(*p))
+                .collect();
+            let err = ws_error_json(
+                "seat_taken",
+                &format!("seat {preferred:?} is taken; available: {available:?}"),
+            );
+            let _ = socket.send(Message::Text(err.into())).await;
+            return None;
+        }
+        Some(preferred.clone())
+    } else {
+        Some(pick_seat(room))
     }
 }
 
