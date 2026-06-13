@@ -12,9 +12,9 @@ is optional — the game schema is transport-independent.
 | Zone (board) | SceneRegion.bounds | Grid mapped to spatial coordinates |
 | Zone (hand, deck) | SceneObject with children | Container objects |
 | Component (piece, card) | SceneObject | Position = board coordinates |
-| Component properties | SceneObject.customProperties | owner, state, facing |
+| Component properties | SceneObject.worldState | owner, state, facing |
 | Player avatar | SceneAvatar | Seated at the table |
-| Game state (turn, phase) | SceneRegion.customProperties | Shared game metadata |
+| Game state (turn, phase) | SceneRegion.worldState | Shared game metadata |
 | Player action | SceneInteractionEvent | Via JMAP Scene WSS |
 | WASM module | SceneRegion.simulationUri (or new field) | Rules engine endpoint |
 
@@ -27,7 +27,7 @@ is optional — the game schema is transport-independent.
   "bounds": { "min": [0, 0, 0], "max": [8, 1, 8] },
   "viewHint": "2d-topdown",
   "accessPolicy": "invite",
-  "customProperties": {
+  "worldState": {
     "gameSchema": "urn:game:chess:standard",
     "gameSchemaVersion": "1.0",
     "wasmModule": null,
@@ -52,7 +52,7 @@ is optional — the game schema is transport-independent.
   "position": [3, 0, 0],
   "visualRef": "blob-chess-queen-white",
   "visualType": "model/gltf-binary",
-  "customProperties": {
+  "worldState": {
     "gameComponent": "queen",
     "owner": "white",
     "zone": "board",
@@ -83,7 +83,7 @@ is optional — the game schema is transport-independent.
 JMAP Scene's `visible` property on SceneObject handles the display layer:
 
 - Face-down cards: `visible: true` (object exists) but `visualRef` shows
-  card back. The `customProperties.rank` and `customProperties.suit` are
+  card back. The `worldState.rank` and `worldState.suit` are
   omitted from /get responses for non-owners (server filters).
 - Opponent's grid in Naval Battle: objects exist but are not included in
   query results for the opponent (access control).
@@ -115,7 +115,7 @@ server (or WASM module) is the **controller**.
 ## Discovery
 
 A client discovering a Scene region can detect it's a game table by checking
-for `customProperties.gameSchema`. If present, the client:
+for `worldState.gameSchema`. If present, the client:
 
 1. Fetches/caches the game schema definition (by URI)
 2. Optionally fetches the WASM module if specified
