@@ -68,6 +68,9 @@ impl TypeChecker {
         self.env.insert("col_cells".into(), Fn(Box::new(Zone), Box::new(Fn(Box::new(Int), Box::new(List(Box::new(Cell)))))));
         self.env.insert("line_cells".into(), Fn(Box::new(Zone), Box::new(Fn(Box::new(Cell), Box::new(Fn(Box::new(Int), Box::new(Fn(Box::new(Int), Box::new(List(Box::new(Cell)))))))))));
 
+        // Cell properties
+        self.env.insert("cell_property".into(), Fn(Box::new(Zone), Box::new(Fn(Box::new(Int), Box::new(Fn(Box::new(Int), Box::new(Fn(Box::new(String), Box::new(String)))))))));
+
         // Graph operations
         self.env.insert("flood_fill".into(), Fn(Box::new(Zone), Box::new(Fn(Box::new(Cell), Box::new(Fn(Box::new(Fn(Box::new(Cell), Box::new(Bool))), Box::new(Set(Box::new(Cell)))))))));
         self.env.insert("flood_groups".into(), Fn(Box::new(Zone), Box::new(Fn(Box::new(Fn(Box::new(Cell), Box::new(Bool))), Box::new(List(Box::new(Set(Box::new(Cell)))))))));
@@ -90,31 +93,96 @@ impl TypeChecker {
         self.env.insert("fst".into(), Fn(Box::new(Tuple(vec![Int, Int])), Box::new(Int)));
         self.env.insert("snd".into(), Fn(Box::new(Tuple(vec![Int, Int])), Box::new(Int)));
 
-        // Option operations
-        self.env.insert("is_some".into(), Fn(Box::new(Option(Box::new(Int))), Box::new(Bool)));
-        self.env.insert("is_none".into(), Fn(Box::new(Option(Box::new(Int))), Box::new(Bool)));
-
         // Arithmetic
         self.env.insert("abs".into(), Fn(Box::new(Int), Box::new(Int)));
         self.env.insert("max_of".into(), Fn(Box::new(Int), Box::new(Fn(Box::new(Int), Box::new(Int)))));
         self.env.insert("min_of".into(), Fn(Box::new(Int), Box::new(Fn(Box::new(Int), Box::new(Int)))));
 
-        // List operations (monomorphic approximations — will be refined at call sites)
-        self.env.insert("sum".into(), Fn(Box::new(List(Box::new(Int))), Box::new(Int)));
-        self.env.insert("max".into(), Fn(Box::new(List(Box::new(Int))), Box::new(Int)));
-        self.env.insert("min".into(), Fn(Box::new(List(Box::new(Int))), Box::new(Int)));
-        self.env.insert("sort".into(), Fn(Box::new(List(Box::new(Int))), Box::new(List(Box::new(Int)))));
-        self.env.insert("length".into(), Fn(Box::new(List(Box::new(Int))), Box::new(Int)));
-        self.env.insert("all_same".into(), Fn(Box::new(List(Box::new(Int))), Box::new(Bool)));
-        self.env.insert("consecutive".into(), Fn(Box::new(List(Box::new(Int))), Box::new(Bool)));
+        // Polymorphic list operations using Var(0)=a, Var(1)=b as type variables
+        let a = || Box::new(Var(0));
+        let b = || Box::new(Var(1));
+        let la = || Box::new(List(a()));
+        let lb = || Box::new(List(b()));
+        let sa = || Box::new(Set(a()));
+        let oa = || Box::new(Option(a()));
+        let ob = || Box::new(Option(b()));
+        let int = || Box::new(Int);
+        let bool_ = || Box::new(Bool);
+
+        // map : (a -> b) -> List a -> List b
+        self.env.insert("map".into(), Fn(Box::new(Fn(a(), b())), Box::new(Fn(la(), lb()))));
+        // filter : (a -> Bool) -> List a -> List a
+        self.env.insert("filter".into(), Fn(Box::new(Fn(a(), bool_())), Box::new(Fn(la(), la()))));
+        // fold : (b -> a -> b) -> b -> List a -> b
+        self.env.insert("fold".into(), Fn(Box::new(Fn(b(), Box::new(Fn(a(), b())))), Box::new(Fn(b(), Box::new(Fn(la(), b()))))));
+        // flat_map : (a -> List b) -> List a -> List b
+        self.env.insert("flat_map".into(), Fn(Box::new(Fn(a(), lb())), Box::new(Fn(la(), lb()))));
+        // any : (a -> Bool) -> List a -> Bool
+        self.env.insert("any".into(), Fn(Box::new(Fn(a(), bool_())), Box::new(Fn(la(), bool_()))));
+        // all : (a -> Bool) -> List a -> Bool
+        self.env.insert("all".into(), Fn(Box::new(Fn(a(), bool_())), Box::new(Fn(la(), bool_()))));
+        // sum/max/min : List Int -> Int (concrete, not polymorphic)
+        self.env.insert("sum".into(), Fn(Box::new(List(int())), int()));
+        self.env.insert("max".into(), Fn(Box::new(List(int())), int()));
+        self.env.insert("min".into(), Fn(Box::new(List(int())), int()));
+        // sort : List Int -> List Int (concrete)
+        self.env.insert("sort".into(), Fn(Box::new(List(int())), Box::new(List(int()))));
+        // sort_by : (a -> Int) -> List a -> List a
+        self.env.insert("sort_by".into(), Fn(Box::new(Fn(a(), int())), Box::new(Fn(la(), la()))));
+        // reverse : List a -> List a
+        self.env.insert("reverse".into(), Fn(la(), la()));
+        // length : List a -> Int
+        self.env.insert("length".into(), Fn(la(), int()));
+        // head : List a -> Option a
+        self.env.insert("head".into(), Fn(la(), oa()));
+        // tail : List a -> List a
+        self.env.insert("tail".into(), Fn(la(), la()));
+        // flatten : List (List a) -> List a
+        self.env.insert("flatten".into(), Fn(Box::new(List(la())), la()));
+        // unique : List a -> Set a
+        self.env.insert("unique".into(), Fn(la(), sa()));
+        // contains : List a -> a -> Bool
+        self.env.insert("contains".into(), Fn(la(), Box::new(Fn(a(), bool_()))));
+        // all_same : List a -> Bool
+        self.env.insert("all_same".into(), Fn(la(), bool_()));
+        // consecutive : List Int -> Bool (concrete)
+        self.env.insert("consecutive".into(), Fn(Box::new(List(int())), bool_()));
+        // combinations : List a -> Int -> List (List a)
+        self.env.insert("combinations".into(), Fn(la(), Box::new(Fn(int(), Box::new(List(la()))))));
         self.env.insert("concat".into(), Fn(Box::new(String), Box::new(Fn(Box::new(String), Box::new(String)))));
-        self.env.insert("range".into(), Fn(Box::new(Int), Box::new(Fn(Box::new(Int), Box::new(List(Box::new(Int)))))));
-        self.env.insert("size".into(), Fn(Box::new(Set(Box::new(Cell))), Box::new(Int)));
+        self.env.insert("range".into(), Fn(int(), Box::new(Fn(int(), Box::new(List(int()))))));
+        // enumerate : List a -> List (Int, a)
+        self.env.insert("enumerate".into(), Fn(la(), Box::new(List(Box::new(Tuple(vec![Int, *a()]))))));
+        // zip : List a -> List b -> List (a, b)
+        self.env.insert("zip".into(), Fn(la(), Box::new(Fn(lb(), Box::new(List(Box::new(Tuple(vec![*a(), *b()]))))))));
+        // size : Set a -> Int
+        self.env.insert("size".into(), Fn(sa(), int()));
 
         // Set operations
-        self.env.insert("from_list".into(), Fn(Box::new(List(Box::new(Player))), Box::new(Set(Box::new(Player)))));
-        self.env.insert("to_list".into(), Fn(Box::new(Set(Box::new(Int))), Box::new(List(Box::new(Int)))));
-        self.env.insert("member".into(), Fn(Box::new(Set(Box::new(Int))), Box::new(Fn(Box::new(Int), Box::new(Bool)))));
+        // from_list : List a -> Set a
+        self.env.insert("from_list".into(), Fn(la(), sa()));
+        // union : Set a -> Set a -> Set a
+        self.env.insert("union".into(), Fn(sa(), Box::new(Fn(sa(), sa()))));
+        // intersect : Set a -> Set a -> Set a
+        self.env.insert("intersect".into(), Fn(sa(), Box::new(Fn(sa(), sa()))));
+        // difference : Set a -> Set a -> Set a
+        self.env.insert("difference".into(), Fn(sa(), Box::new(Fn(sa(), sa()))));
+        // to_list : Set a -> List a
+        self.env.insert("to_list".into(), Fn(sa(), la()));
+        // member : Set a -> a -> Bool
+        self.env.insert("member".into(), Fn(sa(), Box::new(Fn(a(), bool_()))));
+
+        // Option operations
+        // is_some : Option a -> Bool
+        self.env.insert("is_some".into(), Fn(oa(), bool_()));
+        // is_none : Option a -> Bool
+        self.env.insert("is_none".into(), Fn(oa(), bool_()));
+        // unwrap_or : a -> Option a -> a
+        self.env.insert("unwrap_or".into(), Fn(a(), Box::new(Fn(oa(), a()))));
+        // unwrap_or_default : Option a -> a
+        self.env.insert("unwrap_or_default".into(), Fn(oa(), a()));
+        // map_opt : (a -> b) -> Option a -> Option b
+        self.env.insert("map_opt".into(), Fn(Box::new(Fn(a(), b())), Box::new(Fn(oa(), ob()))));
 
         // Grouping
         self.env.insert("count_groups".into(), Fn(Box::new(List(Box::new(Int))), Box::new(Fn(Box::new(Int), Box::new(Int)))));
@@ -145,7 +213,10 @@ impl TypeChecker {
 
             match self.check_expr(&f.body, &f.return_type, &local_env) {
                 Ok(()) => {}
-                Err(e) => errors.push(e),
+                Err(mut e) => {
+                    e.message = format!("in '{}': {}", f.name, e.message);
+                    errors.push(e);
+                }
             }
         }
 
@@ -294,28 +365,27 @@ impl TypeChecker {
             }
 
             Expr::Lambda(param, body) => {
-                // Without context we can't infer the param type, so we
-                // return a placeholder. In practice, lambdas appear inside
-                // Apply where the expected type provides context.
-                // For now, assign a generic type.
+                // Use a type variable as the param placeholder so it
+                // propagates through polymorphic builtin refinement.
+                // Var(99) is reserved for lambda param placeholders.
                 let mut local_env = env.clone();
-                local_env.insert(param.clone(), Type::Int); // placeholder
+                local_env.insert(param.clone(), Type::Var(99));
                 let body_type = self.infer_expr(body, &local_env)?;
-                Ok(Type::Fn(Box::new(Type::Int), Box::new(body_type)))
+                Ok(Type::Fn(Box::new(Type::Var(99)), Box::new(body_type)))
             }
 
             Expr::Apply(func, arg) => {
                 let ft = self.infer_expr(func, env)?;
                 match ft {
-                    Type::Fn(_param_type, ret_type) => {
-                        // Check arg type is compatible (lenient for polymorphic builtins)
-                        let _at = self.infer_expr(arg, env)?;
-                        // For now, we trust the arg type and return the declared return type.
-                        // Full unification would refine polymorphic returns.
-                        Ok(*ret_type)
+                    Type::Fn(param_type, ret_type) => {
+                        let at = self.infer_expr(arg, env)?;
+                        // Refine polymorphic return types by unifying the
+                        // declared param type with the actual arg type.
+                        // Int serves as a type variable placeholder in
+                        // monomorphic builtin signatures.
+                        Ok(self.refine_return(&param_type, &at, &ret_type))
                     }
                     _ => {
-                        // Could be partial application or an identifier that resolves later
                         let _at = self.infer_expr(arg, env)?;
                         Err(TypeError {
                             message: format!("'{ft:?}' is not a function"),
@@ -478,6 +548,68 @@ impl TypeChecker {
         }
     }
 
+    /// Refine a polymorphic return type by unifying declared param type
+    /// with actual arg type, collecting substitutions for type variables
+    /// (Var(n)), then applying those substitutions to the return type.
+    fn refine_return(&self, declared_param: &Type, actual_arg: &Type, ret: &Type) -> Type {
+        let mut subst: HashMap<u8, Type> = HashMap::new();
+        self.collect_subst(declared_param, actual_arg, &mut subst);
+        if subst.is_empty() {
+            ret.clone()
+        } else {
+            self.apply_subst(ret, &subst)
+        }
+    }
+
+    /// Walk declared and actual types in parallel. When declared has Var(n)
+    /// and actual has a concrete type, record the mapping.
+    fn collect_subst(&self, declared: &Type, actual: &Type, subst: &mut HashMap<u8, Type>) {
+        match (declared, actual) {
+            (Type::Var(n), concrete) => {
+                subst.entry(*n).or_insert_with(|| concrete.clone());
+            }
+            (Type::List(d), Type::List(a)) => self.collect_subst(d, a, subst),
+            (Type::Set(d), Type::Set(a)) => self.collect_subst(d, a, subst),
+            (Type::Option(d), Type::Option(a)) => self.collect_subst(d, a, subst),
+            (Type::Fn(dp, dr), Type::Fn(ap, ar)) => {
+                self.collect_subst(dp, ap, subst);
+                self.collect_subst(dr, ar, subst);
+            }
+            (Type::Map(dk, dv), Type::Map(ak, av)) => {
+                self.collect_subst(dk, ak, subst);
+                self.collect_subst(dv, av, subst);
+            }
+            (Type::Tuple(ds), Type::Tuple(acts)) if ds.len() == acts.len() => {
+                for (d, a) in ds.iter().zip(acts.iter()) {
+                    self.collect_subst(d, a, subst);
+                }
+            }
+            _ => {}
+        }
+    }
+
+    /// Replace all Var(n) with their concrete types from the substitution map.
+    fn apply_subst(&self, ty: &Type, subst: &HashMap<u8, Type>) -> Type {
+        match ty {
+            Type::Var(n) => subst.get(n).cloned().unwrap_or_else(|| ty.clone()),
+            Type::List(inner) => Type::List(Box::new(self.apply_subst(inner, subst))),
+            Type::Set(inner) => Type::Set(Box::new(self.apply_subst(inner, subst))),
+            Type::Option(inner) => Type::Option(Box::new(self.apply_subst(inner, subst))),
+            Type::Fn(p, r) => Type::Fn(
+                Box::new(self.apply_subst(p, subst)),
+                Box::new(self.apply_subst(r, subst)),
+            ),
+            Type::Map(k, v) => Type::Map(
+                Box::new(self.apply_subst(k, subst)),
+                Box::new(self.apply_subst(v, subst)),
+            ),
+            Type::Tuple(items) => Type::Tuple(
+                items.iter().map(|t| self.apply_subst(t, subst)).collect(),
+            ),
+            other => other.clone(),
+        }
+    }
+
     fn types_compatible(&self, a: &Type, b: &Type) -> bool {
         match (a, b) {
             (Type::Int, Type::Int)
@@ -509,8 +641,8 @@ impl TypeChecker {
             (Type::Fn(a1, a2), Type::Fn(b1, b2)) => {
                 self.types_compatible(a1, b1) && self.types_compatible(a2, b2)
             }
-            // Polymorphic compatibility: any concrete type is compatible with
-            // a builtin's placeholder type for polymorphic positions
+            // Type variables are compatible with any type
+            (Type::Var(_), _) | (_, Type::Var(_)) => true,
             _ => false,
         }
     }

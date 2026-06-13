@@ -1,0 +1,98 @@
+-- Wargame extension: terrain-aware movement costs and VP scoring
+--
+-- Cell property "terrain" on the board zone controls movement costs
+-- and defense bonuses. Unit type_of controls movement point budgets.
+-- Cell property "objective" marks VP-scoring hexes.
+
+type Score = { player: String, points: Int, breakdown: List Entry }
+type Entry = { category: String, points: Int }
+
+-- Terrain movement cost lookup
+fn terrain_cost(board: Zone, c: Cell) -> Int =
+  let terrain = cell_property board (col c) (row c) "terrain" in
+  if terrain == "mountain" then 3
+  else if terrain == "forest" then 2
+  else if terrain == "hills" then 2
+  else if terrain == "swamp" then 3
+  else if terrain == "road" then 1
+  else if terrain == "town" then 1
+  else if terrain == "river" then 4
+  else 1
+
+-- Terrain defense modifier
+fn defense_bonus(board: Zone, c: Cell) -> Int =
+  let terrain = cell_property board (col c) (row c) "terrain" in
+  if terrain == "mountain" then 3
+  else if terrain == "forest" then 1
+  else if terrain == "hills" then 2
+  else if terrain == "town" then 2
+  else if terrain == "swamp" then -1
+  else 0
+
+-- Movement point budget by unit type
+fn movement_points_for(comp: Component) -> Int =
+  let unit_type = type_of comp in
+  if unit_type == "infantry" then 4
+  else if unit_type == "armor" then 8
+  else if unit_type == "mechanized" then 6
+  else if unit_type == "cavalry" then 6
+  else if unit_type == "artillery" then 3
+  else if unit_type == "headquarters" then 4
+  else if unit_type == "recon" then 10
+  else 4
+
+-- Sum terrain costs along a path
+fn path_cost(board: Zone, path: List Cell) -> Int =
+  path |> map (\c -> terrain_cost board c) |> sum
+
+-- Check if a unit can afford to enter a destination cell
+fn can_enter(board: Zone, unit: Component, dest: Cell) -> Bool =
+  terrain_cost board dest <= movement_points_for unit
+
+-- Count how many adjacent cells a unit could enter from its position
+fn reachable_neighbors(board: Zone, unit: Component, from: Cell) -> Int =
+  adjacent board from
+  |> filter (\c -> terrain_cost board c <= movement_points_for unit)
+  |> length
+
+-- Attack strength modifier: attacker gets no terrain bonus, defender does
+fn effective_defense(board: Zone, defender: Component) -> Int =
+  let base_strength = rank defender in
+  match position defender with
+  | Some cell -> base_strength + defense_bonus board cell
+  | None -> base_strength
+
+-- Check if a cell is an objective hex
+fn is_objective(board: Zone, c: Cell) -> Bool =
+  cell_property board (col c) (row c) "objective" == "true"
+
+-- Count objectives controlled by a player
+fn count_objectives(board: Zone, p: Player) -> Int =
+  components board
+  |> filter (\c -> owner c == Some p)
+  |> filter (\c -> unit_on_objective board c)
+  |> length
+
+fn unit_on_objective(board: Zone, comp: Component) -> Bool =
+  match position comp with
+  | Some cell -> is_objective board cell
+  | None -> false
+
+-- Count surviving units for a player
+fn count_units(board: Zone, p: Player) -> Int =
+  components board
+  |> filter (\c -> owner c == Some p)
+  |> length
+
+-- VP scoring: units alive + objectives held
+fn score(state: State) -> List Score =
+  let board = zone state "board" in
+  players state |> map (\p ->
+    let units = count_units board p in
+    let objectives = count_objectives board p * 5 in
+    { player = name p
+    , points = units + objectives
+    , breakdown = [ { category = "units", points = units }
+                  , { category = "objectives", points = objectives }
+                  ]
+    })
