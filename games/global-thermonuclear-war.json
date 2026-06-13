@@ -1,0 +1,254 @@
+{
+  "$schema": "../schema/game-definition.schema.json",
+  "game": {
+    "name": "Global Thermonuclear War",
+    "players": ["USA", "USSR"],
+    "information": "imperfect"
+  },
+  "zones": {
+    "world_map": {
+      "zone_type": "graph",
+      "visibility": "public",
+      "nodes": [
+        "washington", "new_york", "los_angeles", "chicago", "houston",
+        "philadelphia", "phoenix", "san_antonio", "san_diego", "dallas",
+        "seattle", "denver", "boston", "atlanta", "miami",
+        "minneapolis", "detroit", "san_francisco", "portland", "las_vegas",
+        "moscow", "leningrad", "kiev", "minsk", "novosibirsk",
+        "sverdlovsk", "gorky", "tashkent", "kharkov", "kuibyshev",
+        "tbilisi", "baku", "odessa", "chelyabinsk", "omsk",
+        "alma_ata", "riga", "volgograd", "vladivostok", "murmansk"
+      ],
+      "edges": [],
+      "node_properties": {
+        "washington":     { "side": "USA",  "population": 4 },
+        "new_york":       { "side": "USA",  "population": 18 },
+        "los_angeles":    { "side": "USA",  "population": 13 },
+        "chicago":        { "side": "USA",  "population": 10 },
+        "houston":        { "side": "USA",  "population": 6 },
+        "philadelphia":   { "side": "USA",  "population": 6 },
+        "phoenix":        { "side": "USA",  "population": 4 },
+        "san_antonio":    { "side": "USA",  "population": 3 },
+        "san_diego":      { "side": "USA",  "population": 3 },
+        "dallas":         { "side": "USA",  "population": 7 },
+        "seattle":        { "side": "USA",  "population": 4 },
+        "denver":         { "side": "USA",  "population": 3 },
+        "boston":          { "side": "USA",  "population": 5 },
+        "atlanta":        { "side": "USA",  "population": 6 },
+        "miami":          { "side": "USA",  "population": 6 },
+        "minneapolis":    { "side": "USA",  "population": 4 },
+        "detroit":        { "side": "USA",  "population": 4 },
+        "san_francisco":  { "side": "USA",  "population": 5 },
+        "portland":       { "side": "USA",  "population": 3 },
+        "las_vegas":      { "side": "USA",  "population": 2 },
+        "moscow":         { "side": "USSR", "population": 9 },
+        "leningrad":      { "side": "USSR", "population": 5 },
+        "kiev":           { "side": "USSR", "population": 3 },
+        "minsk":          { "side": "USSR", "population": 2 },
+        "novosibirsk":    { "side": "USSR", "population": 2 },
+        "sverdlovsk":     { "side": "USSR", "population": 1 },
+        "gorky":          { "side": "USSR", "population": 2 },
+        "tashkent":       { "side": "USSR", "population": 2 },
+        "kharkov":        { "side": "USSR", "population": 2 },
+        "kuibyshev":      { "side": "USSR", "population": 1 },
+        "tbilisi":        { "side": "USSR", "population": 1 },
+        "baku":           { "side": "USSR", "population": 2 },
+        "odessa":         { "side": "USSR", "population": 1 },
+        "chelyabinsk":    { "side": "USSR", "population": 1 },
+        "omsk":           { "side": "USSR", "population": 1 },
+        "alma_ata":       { "side": "USSR", "population": 1 },
+        "riga":           { "side": "USSR", "population": 1 },
+        "volgograd":      { "side": "USSR", "population": 1 },
+        "vladivostok":    { "side": "USSR", "population": 1 },
+        "murmansk":       { "side": "USSR", "population": 1 }
+      },
+      "note": "40 cities: 20 USA, 20 USSR. Cities are independent targets with no adjacency. Population in millions."
+    },
+    "icbm_stockpile": {
+      "zone_type": "counter",
+      "per_player": true,
+      "visibility": "public",
+      "note": "ICBM count. USA starts with 1000, USSR starts with 1200."
+    },
+    "slbm_stockpile": {
+      "zone_type": "counter",
+      "per_player": true,
+      "visibility": "public",
+      "note": "SLBM count. USA starts with 600, USSR starts with 500."
+    },
+    "bomber_stockpile": {
+      "zone_type": "counter",
+      "per_player": true,
+      "visibility": "public",
+      "note": "Bomber count. USA starts with 200, USSR starts with 150."
+    },
+    "abm_stockpile": {
+      "zone_type": "counter",
+      "per_player": true,
+      "visibility": "public",
+      "note": "ABM interceptor count. Both sides start with 100."
+    },
+    "surviving_population": {
+      "zone_type": "counter",
+      "per_player": true,
+      "visibility": "public",
+      "note": "Surviving population in millions. Starts at sum of own city populations. Decremented as cities are destroyed."
+    },
+    "targeting_orders": {
+      "zone_type": "ordered_stack",
+      "per_player": true,
+      "visibility": { "private": "owner" },
+      "note": "Secret targeting assignments. Each entry assigns a missile to an enemy city. Hidden until launch phase resolution."
+    },
+    "defense_orders": {
+      "zone_type": "ordered_stack",
+      "per_player": true,
+      "visibility": { "private": "owner" },
+      "note": "Secret ABM deployment assignments. Each entry assigns interceptors to defend a friendly city. Hidden until resolution."
+    }
+  },
+  "components": {
+    "missile": {
+      "owner": "per_player",
+      "count": 50,
+      "types": {
+        "icbm":   { "count": 20, "warheads": 3, "yield": 10 },
+        "slbm":   { "count": 20, "warheads": 1, "yield": 5 },
+        "bomber": { "count": 10, "warheads": 2, "yield": 8, "recallable": true }
+      },
+      "note": "Nuclear delivery systems. Warheads = number of independent targets. Yield = destruction rating per warhead."
+    },
+    "interceptor": {
+      "owner": "per_player",
+      "count": 20,
+      "properties": { "intercept_chance": "30" },
+      "note": "ABM interceptors. Each has 30% chance to destroy one incoming warhead."
+    }
+  },
+  "turn_order": {
+    "type": "simultaneous",
+    "mandatory": true
+  },
+  "phases": [
+    {
+      "name": "defcon_5_diplomacy",
+      "simultaneous": true,
+      "action": "declare_action",
+      "note": "Both players simultaneously declare posture: escalate, hold, or negotiate. Two negotiates = game ends in peace (draw). Two escalates = skip to DEFCON 1."
+    },
+    {
+      "name": "abm_deployment",
+      "simultaneous": true,
+      "action": "declare_action",
+      "note": "Both players secretly allocate ABM interceptors to their own cities. Limited stockpile forces hard choices."
+    },
+    {
+      "name": "targeting",
+      "simultaneous": true,
+      "action": "declare_action",
+      "note": "Both players secretly assign missiles to enemy cities. Each missile targets one city. Sealed orders — opponent cannot see targeting until launch."
+    },
+    {
+      "name": "launch",
+      "simultaneous": true,
+      "action": "commit",
+      "note": "Both players simultaneously confirm launch or stand down. Commit-reveal ensures neither can react to the other's decision. Both launch = mutual exchange. One launches = first strike. Neither launches = de-escalation."
+    },
+    {
+      "name": "resolution",
+      "resolve": "resolve_strikes",
+      "note": "Server resolves all strikes simultaneously. For each incoming missile: ABM intercept roll (30% per interceptor assigned to target city). Surviving warheads destroy proportional population. Bombers can be recalled if only one side launched."
+    },
+    {
+      "name": "assessment",
+      "resolve": "assess_damage",
+      "note": "Calculate surviving population per side. If both below survival threshold (25% of starting population): mutual destruction — draw. Otherwise: side with more surviving population wins."
+    }
+  ],
+  "library": {
+    "usa_starting_population": "4 + 18 + 13 + 10 + 6 + 6 + 4 + 3 + 3 + 7 + 4 + 3 + 5 + 6 + 6 + 4 + 4 + 5 + 3 + 2",
+    "ussr_starting_population": "9 + 5 + 3 + 2 + 2 + 1 + 2 + 2 + 2 + 1 + 1 + 2 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1",
+    "survival_threshold_pct": "25",
+    "usa_survival_threshold": "usa_starting_population * survival_threshold_pct / 100",
+    "ussr_survival_threshold": "ussr_starting_population * survival_threshold_pct / 100",
+    "city_damage": "surviving_warheads * yield_per_warhead * 100000",
+    "intercept_roll": "d100 <= 30"
+  },
+  "rules": {
+    "missile_allocation": {
+      "definition": "Each missile targets exactly one enemy city",
+      "constraints": [
+        "cannot target own cities",
+        "each missile assigned once",
+        "total assigned <= stockpile"
+      ]
+    },
+    "abm_defense": {
+      "definition": "ABM interceptors defend own cities against incoming warheads",
+      "constraints": [
+        "max 5 interceptors per city",
+        "total deployed <= abm_stockpile"
+      ]
+    },
+    "intercept_resolution": {
+      "definition": "Each interceptor has 30% chance to destroy one incoming warhead",
+      "server_resolves": "for each interceptor: roll d100, if <= 30 then warhead destroyed"
+    },
+    "city_destruction": {
+      "definition": "Surviving warheads destroy population proportional to yield",
+      "effect": "city_population -= surviving_warheads * yield_per_warhead * 100000"
+    },
+    "bomber_recall": {
+      "definition": "Bombers can be recalled if player did not launch",
+      "constraint": "only if player chose stand_down in launch phase"
+    },
+    "mutual_destruction": {
+      "definition": "If both sides fall below 25% surviving population, the game is a draw",
+      "effect": "A strange game. The only winning move is not to play."
+    },
+    "first_strike": {
+      "definition": "If only one side launches, defending side's bombers are destroyed on the ground",
+      "effect": "defender loses all bomber_stockpile; only ICBMs and SLBMs on alert can retaliate"
+    },
+    "negotiation": {
+      "definition": "If both players choose negotiate in diplomacy phase, game ends peacefully",
+      "effect": "draw — peace declared"
+    }
+  },
+  "end_conditions": [
+    {
+      "result": "draw",
+      "condition": "both players chose negotiate in defcon_5_diplomacy phase",
+      "name": "peace"
+    },
+    {
+      "result": "draw",
+      "condition": "both players surviving_population below 25% of starting",
+      "name": "mutual_destruction"
+    },
+    {
+      "result": "win",
+      "player": "current",
+      "condition": "opponent surviving_population below 25% and own above 25%",
+      "name": "strategic_victory"
+    },
+    {
+      "result": "draw",
+      "condition": "both players chose stand_down in launch phase",
+      "name": "de_escalation"
+    }
+  ],
+  "authority": {
+    "server_only": ["roll_intercept", "resolve_strikes", "assess_damage"],
+    "client_verifiable": ["missile_allocation_valid", "abm_deployment_valid", "stockpile_limits"],
+    "wasm_required": ["damage_calculation", "population_assessment"]
+  },
+  "notation": {
+    "piece_symbols": {
+      "icbm": "\ud83d\ude80",
+      "slbm": "\ud83c\udfaf",
+      "bomber": "\u2708",
+      "interceptor": "\ud83d\udee1"
+    }
+  }
+}
