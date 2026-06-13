@@ -56,6 +56,8 @@ fn make_test_room(room_id: &str) -> Room {
         max_players,
         player_tokens: HashMap::new(),
         claim_deadline: None,
+        ready_players: std::collections::HashSet::new(),
+        room_phase: baize_server::room::RoomPhase::Waiting,
     }
 }
 

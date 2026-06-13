@@ -15,6 +15,10 @@ pub struct Hello {
     pub capabilities: Vec<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub token: Option<String>,
+    /// Preferred seat name. If provided, the server will assign this seat
+    /// instead of auto-picking. Rejected if the seat doesn't exist or is taken.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub preferred_seat: Option<String>,
 }
 
 fn default_client_type() -> ClientType {
@@ -70,6 +74,12 @@ pub enum ClientMessage {
         #[serde(default, skip_serializing_if = "Option::is_none")]
         sequence: Option<u64>,
         claim: String,
+    },
+    /// Signal ready (or un-ready) to start the game.
+    Ready {
+        game_id: String,
+        player: String,
+        ready: bool,
     },
 }
 
