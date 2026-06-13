@@ -1,0 +1,165 @@
+{
+  "$schema": "../schema/game-definition.schema.json",
+  "game": {
+    "name": "Oware",
+    "players": ["south", "north"],
+    "information": "perfect"
+  },
+  "zones": {
+    "south_1": {
+      "zone_type": "counter",
+      "visibility": "public",
+      "note": "South pit 1 (leftmost from south's perspective)"
+    },
+    "south_2": {
+      "zone_type": "counter",
+      "visibility": "public"
+    },
+    "south_3": {
+      "zone_type": "counter",
+      "visibility": "public"
+    },
+    "south_4": {
+      "zone_type": "counter",
+      "visibility": "public"
+    },
+    "south_5": {
+      "zone_type": "counter",
+      "visibility": "public"
+    },
+    "south_6": {
+      "zone_type": "counter",
+      "visibility": "public",
+      "note": "South pit 6 (rightmost from south's perspective)"
+    },
+    "south_store": {
+      "zone_type": "counter",
+      "visibility": "public",
+      "note": "South's capture store"
+    },
+    "north_1": {
+      "zone_type": "counter",
+      "visibility": "public",
+      "note": "North pit 1 (leftmost from north's perspective, opposite south_6)"
+    },
+    "north_2": {
+      "zone_type": "counter",
+      "visibility": "public"
+    },
+    "north_3": {
+      "zone_type": "counter",
+      "visibility": "public"
+    },
+    "north_4": {
+      "zone_type": "counter",
+      "visibility": "public"
+    },
+    "north_5": {
+      "zone_type": "counter",
+      "visibility": "public"
+    },
+    "north_6": {
+      "zone_type": "counter",
+      "visibility": "public",
+      "note": "North pit 6 (rightmost from north's perspective, opposite south_1)"
+    },
+    "north_store": {
+      "zone_type": "counter",
+      "visibility": "public",
+      "note": "North's capture store"
+    }
+  },
+  "components": {
+    "seeds": {
+      "owner": "neutral",
+      "count": 48,
+      "note": "48 seeds total: 4 per pit at start. Represented as counter values, not individual components."
+    }
+  },
+  "turn_order": {
+    "type": "alternating",
+    "players": ["south", "north"],
+    "actions_per_turn": 1,
+    "mandatory": true
+  },
+  "library": {
+    "south_side_empty": "south_1 == 0 && south_2 == 0 && south_3 == 0 && south_4 == 0 && south_5 == 0 && south_6 == 0",
+    "north_side_empty": "north_1 == 0 && north_2 == 0 && north_3 == 0 && north_4 == 0 && north_5 == 0 && north_6 == 0",
+    "either_side_empty": "south_side_empty || north_side_empty",
+    "south_wins": "either_side_empty && south_store > north_store",
+    "north_wins": "either_side_empty && north_store > south_store",
+    "south_majority": "south_store >= 25",
+    "north_majority": "north_store >= 25",
+    "draw": "either_side_empty && south_store == north_store",
+    "sow_circuit": "south_1, south_2, south_3, south_4, south_5, south_6, north_1, north_2, north_3, north_4, north_5, north_6",
+    "opposite_pits": "south_1:north_6, south_2:north_5, south_3:north_4, south_4:north_3, south_5:north_2, south_6:north_1"
+  },
+  "rules": {
+    "sow": {
+      "action": "pick_pit(pit_index)",
+      "constraints": [
+        "pit belongs to current player",
+        "pit is not empty"
+      ],
+      "definition": "Pick up all seeds from chosen pit, drop one seed into each subsequent pit counterclockwise. Stores are never included in the sowing circuit. If the pit contains 12 or more seeds, the originating pit is skipped on each lap."
+    },
+    "capture": {
+      "trigger": "last seed lands in a pit on opponent's side AND that pit now contains exactly 2 or 3 seeds",
+      "effect": "Capture seeds from that pit. Then check the preceding pit in the sowing circuit: if it is also on the opponent's side and contains exactly 2 or 3 seeds, capture those too. Continue backwards until a pit does not meet the capture condition or you reach a pit on the current player's side."
+    },
+    "grand_slam_protection": {
+      "trigger": "a capture would take all seeds from opponent's side",
+      "effect": "The capture is forbidden; no seeds are taken. The sowing still occurs but all seeds remain in the pits.",
+      "definition": "A player may never capture every seed from the opponent's side in a single turn. This prevents starvation."
+    },
+    "must_feed_opponent": {
+      "constraint": "If opponent's side is empty, current player must choose a pit whose sowing will deliver at least one seed to opponent's side",
+      "effect": "If no such pit exists, the game ends and current player captures all remaining seeds on their own side."
+    },
+    "game_end_sweep": {
+      "trigger": "a player cannot move (their side is empty and opponent cannot feed them, or no legal move exists)",
+      "effect": "The player who can still move captures all remaining seeds on their own side. Game ends."
+    },
+    "cycle_termination": {
+      "trigger": "both players have 3 or fewer seeds remaining on the board and the position is cycling",
+      "effect": "Each player captures the seeds remaining on their own side. Game ends.",
+      "definition": "Prevents infinite loops in late-game positions. Detected by position repetition or mutual agreement."
+    }
+  },
+  "end_conditions": [
+    {
+      "result": "win",
+      "player": "south",
+      "condition": "south_majority",
+      "name": "south_majority"
+    },
+    {
+      "result": "win",
+      "player": "north",
+      "condition": "north_majority",
+      "name": "north_majority"
+    },
+    {
+      "result": "win",
+      "player": "south",
+      "condition": "south_wins",
+      "name": "south_wins_on_empty"
+    },
+    {
+      "result": "win",
+      "player": "north",
+      "condition": "north_wins",
+      "name": "north_wins_on_empty"
+    },
+    {
+      "result": "draw",
+      "condition": "draw",
+      "name": "draw"
+    }
+  ],
+  "authority": {
+    "server_only": [],
+    "client_verifiable": ["pick_pit", "sow", "capture", "grand_slam_check"]
+  },
+  "wasm_module": "oware.wasm"
+}

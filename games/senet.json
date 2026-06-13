@@ -1,0 +1,151 @@
+{
+  "$schema": "../schema/game-definition.schema.json",
+  "game": {
+    "name": "Senet",
+    "players": ["Cone", "Spool"],
+    "information": "perfect"
+  },
+  "zones": {
+    "board": {
+      "zone_type": "track",
+      "length": 30,
+      "visibility": "public",
+      "cell_properties": {
+        "14": { "name": "House of Rebirth", "rebirth": true },
+        "25": { "name": "House of Beauty", "mandatory_stop": true },
+        "26": { "name": "House of Water", "hazard": true },
+        "27": { "name": "House of Three Truths", "exit_throw": 3 },
+        "28": { "name": "House of Re-Atoum", "exit_throw": 2 },
+        "29": { "name": "Exit", "exit_throw": 1 }
+      },
+      "note": "30 squares in S-pattern: row 1 (squares 1-10) left-to-right, row 2 (squares 11-20) right-to-left, row 3 (squares 21-30) left-to-right. Positions indexed 0-29 (displayed 1-30)."
+    },
+    "off_board": {
+      "zone_type": "set",
+      "per_player": true,
+      "capacity": 5,
+      "visibility": "public",
+      "note": "Pieces that have been borne off the board"
+    }
+  },
+  "components": {
+    "piece": {
+      "owner": "per_player",
+      "count": 5,
+      "movement": [
+        {
+          "primitive": "step",
+          "direction": "forward",
+          "condition": "destination is empty OR occupied by unprotected opponent"
+        },
+        {
+          "primitive": "move_to",
+          "target_zone": "off_board",
+          "condition": "piece is on exit square and throw matches exit requirement"
+        }
+      ],
+      "note": "5 pieces per player. Cone pieces are conical, Spool pieces are spool-shaped. Alternating placement on squares 1-10 at start: Cone on 1,3,5,7,9 and Spool on 2,4,6,8,10."
+    },
+    "casting_sticks": {
+      "owner": "shared",
+      "count": 1,
+      "properties": {
+        "faces": [1, 2, 3, 4, 5],
+        "distribution": "4 flat sticks thrown: 0 flat-up=5, 1 flat-up=1, 2 flat-up=2, 3 flat-up=3, 4 flat-up=4"
+      },
+      "note": "4 two-sided sticks (one flat, one round). Count flat-side-up sticks. Probabilities: P(0)=1/16, P(1)=4/16, P(2)=6/16, P(3)=4/16, P(4)=1/16. Values 1, 4, and 5 grant an extra turn."
+    }
+  },
+  "turn_order": {
+    "type": "alternating",
+    "players": ["Cone", "Spool"],
+    "mandatory": true
+  },
+  "phases": [
+    {
+      "name": "throw",
+      "server_action": "roll(casting_sticks)",
+      "note": "Server throws 4 casting sticks. Result mapped to movement value: 0 flat-up=5, 1=1, 2=2, 3=3, 4=4."
+    },
+    {
+      "name": "move",
+      "action": "move(piece, board, by:throw_value)",
+      "ends_when": "piece moved OR no legal move exists (turn forfeited)",
+      "note": "Player moves one piece forward by the throw value. If no legal move exists, the turn is forfeited."
+    }
+  ],
+  "rules": {
+    "initial_setup": {
+      "definition": "Pieces alternate on squares 1-10: Cone on 1,3,5,7,9 (positions 0,2,4,6,8) and Spool on 2,4,6,8,10 (positions 1,3,5,7,9)."
+    },
+    "movement": {
+      "action": "move(piece, board, by:throw_value)",
+      "constraints": [
+        "pieces move forward only along the track",
+        "cannot land on a square occupied by own piece",
+        "cannot land on a protected opponent piece (opponent with adjacent friendly piece)"
+      ]
+    },
+    "swap": {
+      "trigger": "piece lands on a square occupied by an unprotected opponent piece",
+      "effect": "moving piece and opponent piece swap positions"
+    },
+    "protection": {
+      "definition": "An opponent piece is protected if it has at least one adjacent friendly piece (immediately before or after it on the track). Protected pieces cannot be swapped."
+    },
+    "extra_turn": {
+      "trigger": "throw value is 1, 4, or 5",
+      "effect": "current player takes another turn after completing this move"
+    },
+    "house_of_rebirth": {
+      "definition": "Square 15 (position 14). Pieces sent back by the House of Water land here. If occupied, the displaced piece goes to the nearest empty square before it."
+    },
+    "house_of_beauty": {
+      "definition": "Square 26 (position 25). All pieces must land here exactly before proceeding to bear off. Cannot be skipped."
+    },
+    "house_of_water": {
+      "trigger": "piece lands on square 27 (position 26)",
+      "effect": "piece is sent back to the House of Rebirth (square 15, position 14)"
+    },
+    "house_of_three_truths": {
+      "definition": "Square 28 (position 27). A piece here can only leave with a throw of exactly 3, bearing off directly."
+    },
+    "house_of_re_atoum": {
+      "definition": "Square 29 (position 28). A piece here can only leave with a throw of exactly 2, bearing off directly."
+    },
+    "exit_square": {
+      "definition": "Square 30 (position 29). A piece here bears off with a throw of exactly 1."
+    },
+    "bearing_off": {
+      "action": "move(piece, board -> off_board)",
+      "constraints": [
+        "piece must be on square 26 or beyond (positions 25-29)",
+        "throw value must match the exit requirement for the piece's current square"
+      ]
+    },
+    "no_legal_move": {
+      "trigger": "no piece can legally move by the throw value",
+      "effect": "turn is forfeited; play passes to opponent (unless extra turn was earned)"
+    }
+  },
+  "end_conditions": [
+    {
+      "result": "win",
+      "player": "current",
+      "condition": "all 5 of current player's pieces are in off_board",
+      "name": "bear_off_all"
+    }
+  ],
+  "authority": {
+    "server_only": [
+      "roll(casting_sticks)"
+    ],
+    "client_verifiable": [
+      "move(piece, board, by:throw_value)",
+      "move(piece, board -> off_board)",
+      "validate_protection",
+      "validate_swap",
+      "validate_special_squares"
+    ]
+  }
+}

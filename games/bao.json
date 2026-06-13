@@ -1,0 +1,269 @@
+{
+  "$schema": "../schema/game-definition.schema.json",
+  "game": {
+    "name": "Bao la Kiswahili",
+    "players": ["south", "north"],
+    "information": "perfect"
+  },
+  "zones": {
+    "south_inner_1": {
+      "zone_type": "counter",
+      "visibility": "public",
+      "note": "South inner row pit 1 (leftmost from south's perspective)"
+    },
+    "south_inner_2": {
+      "zone_type": "counter",
+      "visibility": "public"
+    },
+    "south_inner_3": {
+      "zone_type": "counter",
+      "visibility": "public"
+    },
+    "south_inner_4": {
+      "zone_type": "counter",
+      "visibility": "public",
+      "note": "South nyumba (house) — special pit, starts with 6 seeds in mtaji setup"
+    },
+    "south_inner_5": {
+      "zone_type": "counter",
+      "visibility": "public"
+    },
+    "south_inner_6": {
+      "zone_type": "counter",
+      "visibility": "public"
+    },
+    "south_inner_7": {
+      "zone_type": "counter",
+      "visibility": "public"
+    },
+    "south_inner_8": {
+      "zone_type": "counter",
+      "visibility": "public",
+      "note": "South inner row pit 8 (rightmost from south's perspective)"
+    },
+    "south_outer_1": {
+      "zone_type": "counter",
+      "visibility": "public",
+      "note": "South outer row pit 1 (leftmost from south's perspective)"
+    },
+    "south_outer_2": {
+      "zone_type": "counter",
+      "visibility": "public"
+    },
+    "south_outer_3": {
+      "zone_type": "counter",
+      "visibility": "public"
+    },
+    "south_outer_4": {
+      "zone_type": "counter",
+      "visibility": "public"
+    },
+    "south_outer_5": {
+      "zone_type": "counter",
+      "visibility": "public"
+    },
+    "south_outer_6": {
+      "zone_type": "counter",
+      "visibility": "public"
+    },
+    "south_outer_7": {
+      "zone_type": "counter",
+      "visibility": "public"
+    },
+    "south_outer_8": {
+      "zone_type": "counter",
+      "visibility": "public",
+      "note": "South outer row pit 8 (rightmost from south's perspective)"
+    },
+    "north_inner_1": {
+      "zone_type": "counter",
+      "visibility": "public",
+      "note": "North inner row pit 1 (leftmost from north's perspective, opposite south_inner_8)"
+    },
+    "north_inner_2": {
+      "zone_type": "counter",
+      "visibility": "public"
+    },
+    "north_inner_3": {
+      "zone_type": "counter",
+      "visibility": "public"
+    },
+    "north_inner_4": {
+      "zone_type": "counter",
+      "visibility": "public",
+      "note": "North nyumba (house) — special pit, starts with 6 seeds in mtaji setup"
+    },
+    "north_inner_5": {
+      "zone_type": "counter",
+      "visibility": "public"
+    },
+    "north_inner_6": {
+      "zone_type": "counter",
+      "visibility": "public"
+    },
+    "north_inner_7": {
+      "zone_type": "counter",
+      "visibility": "public"
+    },
+    "north_inner_8": {
+      "zone_type": "counter",
+      "visibility": "public",
+      "note": "North inner row pit 8 (rightmost from north's perspective, opposite south_inner_1)"
+    },
+    "north_outer_1": {
+      "zone_type": "counter",
+      "visibility": "public",
+      "note": "North outer row pit 1 (leftmost from north's perspective)"
+    },
+    "north_outer_2": {
+      "zone_type": "counter",
+      "visibility": "public"
+    },
+    "north_outer_3": {
+      "zone_type": "counter",
+      "visibility": "public"
+    },
+    "north_outer_4": {
+      "zone_type": "counter",
+      "visibility": "public"
+    },
+    "north_outer_5": {
+      "zone_type": "counter",
+      "visibility": "public"
+    },
+    "north_outer_6": {
+      "zone_type": "counter",
+      "visibility": "public"
+    },
+    "north_outer_7": {
+      "zone_type": "counter",
+      "visibility": "public"
+    },
+    "north_outer_8": {
+      "zone_type": "counter",
+      "visibility": "public",
+      "note": "North outer row pit 8 (rightmost from north's perspective)"
+    },
+    "south_hand": {
+      "zone_type": "counter",
+      "visibility": "public",
+      "note": "South's unplaced seeds for namua phase (starts at 10)"
+    },
+    "north_hand": {
+      "zone_type": "counter",
+      "visibility": "public",
+      "note": "North's unplaced seeds for namua phase (starts at 10)"
+    }
+  },
+  "components": {
+    "seeds": {
+      "owner": "neutral",
+      "count": 64,
+      "note": "64 seeds total. Initial setup (mtaji variant): each player has 22 seeds on board (6 in nyumba, 2 in each other inner row pit) plus 10 in hand for namua placement. Represented as counter values, not individual components."
+    }
+  },
+  "turn_order": {
+    "type": "alternating",
+    "players": ["south", "north"],
+    "actions_per_turn": 1,
+    "mandatory": true
+  },
+  "phases": [
+    {
+      "name": "namua",
+      "action": "place_and_sow(hand, inner_pit)",
+      "ends_when": "both players have placed all seeds from hand (south_hand == 0 && north_hand == 0)",
+      "note": "Placement phase. On each turn the player takes one seed from hand and places it into a non-empty pit in their inner row (or the nyumba if it is the player's first move), then sows from that pit. If the sow ends in a non-empty inner row pit with a capturable opposite pit, capture and continue sowing the captured seeds. A player entering namua must capture if possible (kula move); only if no capture is available may they tax (place into nyumba without sowing, if nyumba is intact)."
+    },
+    {
+      "name": "mtaji",
+      "action": "sow(pit)",
+      "note": "Main sowing phase. On each turn the player picks up all seeds from one of their own pits and sows counterclockwise through their own two rows. Must begin from an inner row pit if any inner row pit contains seeds and a capture is possible (kutakata rule). Sowing and capture continue as relay sowing until the last seed lands in an empty pit."
+    }
+  ],
+  "library": {
+    "south_inner_empty": "south_inner_1 == 0 && south_inner_2 == 0 && south_inner_3 == 0 && south_inner_4 == 0 && south_inner_5 == 0 && south_inner_6 == 0 && south_inner_7 == 0 && south_inner_8 == 0",
+    "north_inner_empty": "north_inner_1 == 0 && north_inner_2 == 0 && north_inner_3 == 0 && north_inner_4 == 0 && north_inner_5 == 0 && north_inner_6 == 0 && north_inner_7 == 0 && north_inner_8 == 0",
+    "south_all_empty": "south_inner_1 == 0 && south_inner_2 == 0 && south_inner_3 == 0 && south_inner_4 == 0 && south_inner_5 == 0 && south_inner_6 == 0 && south_inner_7 == 0 && south_inner_8 == 0 && south_outer_1 == 0 && south_outer_2 == 0 && south_outer_3 == 0 && south_outer_4 == 0 && south_outer_5 == 0 && south_outer_6 == 0 && south_outer_7 == 0 && south_outer_8 == 0",
+    "north_all_empty": "north_inner_1 == 0 && north_inner_2 == 0 && north_inner_3 == 0 && north_inner_4 == 0 && north_inner_5 == 0 && north_inner_6 == 0 && north_inner_7 == 0 && north_inner_8 == 0 && north_outer_1 == 0 && north_outer_2 == 0 && north_outer_3 == 0 && north_outer_4 == 0 && north_outer_5 == 0 && north_outer_6 == 0 && north_outer_7 == 0 && north_outer_8 == 0",
+    "sow_path_south": ["south_inner_1", "south_inner_2", "south_inner_3", "south_inner_4", "south_inner_5", "south_inner_6", "south_inner_7", "south_inner_8", "south_outer_8", "south_outer_7", "south_outer_6", "south_outer_5", "south_outer_4", "south_outer_3", "south_outer_2", "south_outer_1"],
+    "sow_path_north": ["north_inner_1", "north_inner_2", "north_inner_3", "north_inner_4", "north_inner_5", "north_inner_6", "north_inner_7", "north_inner_8", "north_outer_8", "north_outer_7", "north_outer_6", "north_outer_5", "north_outer_4", "north_outer_3", "north_outer_2", "north_outer_1"],
+    "opposite_pairs": "south_inner_1<>north_inner_8, south_inner_2<>north_inner_7, south_inner_3<>north_inner_6, south_inner_4<>north_inner_5, south_inner_5<>north_inner_4, south_inner_6<>north_inner_3, south_inner_7<>north_inner_2, south_inner_8<>north_inner_1"
+  },
+  "rules": {
+    "sowing_direction": {
+      "definition": "Each player sows only within their own two rows (16 pits). Sowing proceeds counterclockwise: inner row left-to-right (1 to 8), then outer row right-to-left (8 to 1), forming a continuous loop."
+    },
+    "relay_sowing": {
+      "trigger": "last seed lands in a non-empty pit (on the player's own side)",
+      "effect": "Pick up all seeds from that pit (including the one just dropped) and continue sowing from the next pit in the sow path."
+    },
+    "capture_kula": {
+      "trigger": "last seed lands in a non-empty pit in the player's inner row AND the directly opposite pit in the opponent's inner row is non-empty",
+      "effect": "Capture all seeds from the opponent's opposite inner row pit. If the opponent's adjacent outer row pit (same column) also contains seeds, capture those seeds too. Place all captured seeds in the landing pit and continue relay sowing from there."
+    },
+    "kutakata": {
+      "definition": "In mtaji phase, if a capture is possible from any inner row pit, the player must choose a move that results in a capture. Inner row starting pits take priority over outer row pits."
+    },
+    "nyumba_rules": {
+      "definition": "The nyumba (house) is a special pit (inner row position 4). During namua, a player may 'tax' their nyumba: place a seed from hand into the nyumba without sowing, but only if no capture move is available. Once the nyumba is emptied for the first time, it loses its special status and becomes a regular pit for the rest of the game."
+    },
+    "namua_placement": {
+      "action": "place_and_sow(hand, inner_pit)",
+      "constraints": [
+        "player must have seeds in hand",
+        "target pit must be in the player's inner row",
+        "target pit must be non-empty (unless it is the nyumba on the player's first turn)",
+        "if a capture is possible after placement, player must choose a pit that leads to capture (kula move)"
+      ],
+      "effect": "Place one seed from hand into the chosen inner row pit, then sow from that pit following relay sowing rules."
+    },
+    "mtaji_sowing": {
+      "action": "sow(pit)",
+      "constraints": [
+        "pit must belong to the current player",
+        "pit must contain 2 or more seeds (singleton pits cannot be sown in standard Bao)",
+        "must start from inner row if a capture is available (kutakata rule)"
+      ],
+      "effect": "Pick up all seeds from chosen pit, sow one per pit counterclockwise through player's own rows. Apply relay sowing and capture rules."
+    },
+    "singleton_rule": {
+      "definition": "In mtaji phase, a player may not sow from a pit containing only 1 seed. A pit with a single seed (singleton) is frozen unless it is the only option, in which case the game ends."
+    },
+    "sow_termination": {
+      "trigger": "last seed lands in an empty pit on the player's own side",
+      "effect": "Turn ends. No capture occurs."
+    }
+  },
+  "end_conditions": [
+    {
+      "result": "win",
+      "player": "south",
+      "condition": "north_inner_empty",
+      "name": "south_clears_north_inner"
+    },
+    {
+      "result": "win",
+      "player": "north",
+      "condition": "south_inner_empty",
+      "name": "north_clears_south_inner"
+    },
+    {
+      "result": "win",
+      "player": "current",
+      "condition": "opponent has no legal move (all pits empty or all singletons with no capture available)",
+      "name": "no_legal_move"
+    }
+  ],
+  "authority": {
+    "server_only": [],
+    "client_verifiable": ["place_and_sow", "sow", "capture_kula", "relay_sowing"],
+    "wasm_required": ["relay_sowing_chain", "capture_resolution"],
+    "trust_mode": "trusted_server"
+  },
+  "wasm_module": "bao.wasm",
+  "notation": {
+    "move_separator": ">",
+    "capture_marker": "x"
+  }
+}
