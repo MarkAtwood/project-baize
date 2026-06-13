@@ -132,7 +132,7 @@ def _render_grid_svg(
             )
 
             # Draw component if present
-            cid = zone.cells[row * w + col]
+            cid = zone.grid_get(col, row)
             if cid is not None:
                 comp = session.runtime.components.get(cid)
                 if comp is not None:
@@ -217,7 +217,7 @@ def _format_grid_ascii(
         lines.append(sep)
         row_cells: list[str] = []
         for col in range(w):
-            cid = zone.cells[row * w + col]
+            cid = zone.grid_get(col, row)
             if cid is not None:
                 comp = session.runtime.components.get(cid)
                 if comp is not None:

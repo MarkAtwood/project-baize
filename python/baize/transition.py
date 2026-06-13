@@ -61,6 +61,14 @@ def _validate_grid_coords(
     zone: GridZone, col: int, row: int, zone_name: str
 ) -> None:
     """Raise InvalidCoordinateError if (col, row) is outside the grid."""
+    if zone._sparse:
+        # Sparse grids with dimension hints still enforce bounds
+        if zone.width > 0 and zone.height > 0:
+            if col < 0 or row < 0 or col >= zone.width or row >= zone.height:
+                raise InvalidCoordinateError(col, row, zone.width, zone.height)
+        # Unbounded sparse grids accept any coordinate (negative coords
+        # are still disallowed by _parse_coord_str for standard actions)
+        return
     if col < 0 or row < 0 or col >= zone.width or row >= zone.height:
         raise InvalidCoordinateError(col, row, zone.width, zone.height)
 
@@ -1017,10 +1025,9 @@ def _find_component_on_grid(
 
     for zone_name, zone in session.runtime.zones.items():
         if isinstance(zone, GridZone):
-            for row in range(zone.height):
-                for col in range(zone.width):
-                    if zone.grid_get(col, row) == target_cid:
-                        return target_cid, zone_name, col, row
+            for col, row, cid in zone.occupied_cells():
+                if cid == target_cid:
+                    return target_cid, zone_name, col, row
 
     raise IllegalActionError(
         f"component {comp_id_str!r} not found on any grid"

@@ -214,6 +214,11 @@
           "minimum": 0,
           "description": "Maximum components per cell. 1 = no stacking (default), 0 = unlimited."
         },
+        "storage": {
+          "type": "string",
+          "enum": ["dense", "sparse"],
+          "description": "Grid storage backend. \"dense\" (default) uses a flat array indexed by row*width+col — fast for fixed-size boards. \"sparse\" uses a hashmap with signed (col, row) keys — required for unbounded or very large grids. Auto-selected: dense when dimensions provided and <= 1000 per axis, sparse otherwise."
+        },
         "adjacency": {
           "enum": ["orthogonal_4", "orthogonal_8", "hex_6"],
           "description": "How cells connect to their neighbors."

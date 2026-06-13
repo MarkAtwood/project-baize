@@ -55,40 +55,33 @@ def legal_moves(session: GameSession) -> list[LegalMove]:
 
         if isinstance(zone, GridZone):
             seen: set[ComponentId] = set()
-            for row in range(zone.height):
+            for col, row, cid in zone.occupied_cells():
                 if len(moves) >= MAX_LEGAL_MOVES:
                     break
-                for col in range(zone.width):
-                    if len(moves) >= MAX_LEGAL_MOVES:
-                        break
-                    idx = row * zone.width + col
-                    cid = zone.cells[idx]
-                    if cid is None:
-                        continue
-                    if cid in seen:
-                        continue  # Skip duplicate cells of spanning component
-                    seen.add(cid)
-                    comp_data = session.runtime.components.get(cid)
-                    if comp_data is None:
-                        continue
-                    if comp_data.owner != player:
-                        continue
-                    comp_def = session.definition.components.get(
-                        comp_data.component_type
-                    )
-                    if comp_def is None:
-                        continue
-                    zone_def = session.definition.zones[zone_name]
-                    _generate_grid_moves(
-                        session,
-                        zone_name,
-                        cid,
-                        comp_def,
-                        col,
-                        row,
-                        zone_def.adjacency,
-                        moves,
-                    )
+                if cid in seen:
+                    continue  # Skip duplicate cells of spanning component
+                seen.add(cid)
+                comp_data = session.runtime.components.get(cid)
+                if comp_data is None:
+                    continue
+                if comp_data.owner != player:
+                    continue
+                comp_def = session.definition.components.get(
+                    comp_data.component_type
+                )
+                if comp_def is None:
+                    continue
+                zone_def = session.definition.zones[zone_name]
+                _generate_grid_moves(
+                    session,
+                    zone_name,
+                    cid,
+                    comp_def,
+                    col,
+                    row,
+                    zone_def.adjacency,
+                    moves,
+                )
 
     # Also check per-player zones
     if len(moves) < MAX_LEGAL_MOVES:

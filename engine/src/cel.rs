@@ -120,37 +120,37 @@ fn build_end_condition_context(session: &GameSession, current_player: &str) -> C
 /// - `board_width`, `board_height`, `cell_count`, `occupied_count`
 fn populate_grid_lines(ctx: &mut Context<'_>, session: &GameSession) {
     for zone in session.runtime.zones.values() {
-        if let RuntimeZone::Grid { width, height, cells, .. } = zone
+        if let RuntimeZone::Grid { storage, .. } = zone
         {
-            let w = *width as usize;
-            let h = *height as usize;
+            let (w, h) = match storage.dimensions() {
+                Some((w, h)) => (w as usize, h as usize),
+                None => break, // sparse with no dimensions: skip CEL grid context
+            };
 
             // Skip CEL grid context for very large grids to prevent memory exhaustion
             if w * h > MAX_CEL_GRID_CELLS {
-                ctx.add_variable_from_value("board_width", *width as i64);
-                ctx.add_variable_from_value("board_height", *height as i64);
+                ctx.add_variable_from_value("board_width", w as i64);
+                ctx.add_variable_from_value("board_height", h as i64);
                 ctx.add_variable_from_value("cell_count", (w * h) as i64);
                 ctx.add_variable_from_value(
                     "occupied_count",
-                    cells.iter().filter(|c| c.is_some()).count() as i64,
+                    storage.occupied_count() as i64,
                 );
                 break;
             }
 
-            ctx.add_variable_from_value("board_width", *width as i64);
-            ctx.add_variable_from_value("board_height", *height as i64);
+            ctx.add_variable_from_value("board_width", w as i64);
+            ctx.add_variable_from_value("board_height", h as i64);
             ctx.add_variable_from_value("cell_count", (w * h) as i64);
             ctx.add_variable_from_value(
                 "occupied_count",
-                cells.iter().filter(|c| c.is_some()).count() as i64,
+                storage.occupied_count() as i64,
             );
 
             // Closure used by both full lines and windowed sub-lines below.
             let owner_at = |col: usize, row: usize| -> Value {
-                let idx = row * w + col;
-                cells
-                    .get(idx)
-                    .and_then(|c| *c)
+                storage
+                    .get(col as i32, row as i32)
                     .and_then(|cid| session.runtime.components.get(cid))
                     .and_then(|comp| comp.owner.as_deref())
                     .map(|s| Value::String(Arc::new(s.to_string())))
@@ -240,10 +240,8 @@ fn populate_grid_lines(ctx: &mut Context<'_>, session: &GameSession) {
 
             // Component-type-based rows/cols (for placement constraints)
             let type_at = |col: usize, row: usize| -> Value {
-                let idx = row * w + col;
-                cells
-                    .get(idx)
-                    .and_then(|c| *c)
+                storage
+                    .get(col as i32, row as i32)
                     .and_then(|cid| session.runtime.components.get(cid))
                     .map(|comp| Value::String(Arc::new(comp.component_type.clone())))
                     .unwrap_or(Value::String(Arc::new(String::new())))
@@ -278,9 +276,9 @@ fn populate_grid_lines(ctx: &mut Context<'_>, session: &GameSession) {
                         .map(|row| {
                             let line: Vec<Value> = (0..w)
                                 .map(|col| {
-                                    let idx = row * w + col;
+                                    let coord = (col as i32, row as i32);
                                     let val = cell_properties
-                                        .get(&idx)
+                                        .get(&coord)
                                         .and_then(|p| p.get(key.as_str()))
                                         .map(|v| match v {
                                             serde_json::Value::String(s) => s.clone(),
@@ -309,32 +307,28 @@ fn populate_grid_lines(ctx: &mut Context<'_>, session: &GameSession) {
     // Per-zone uniform-type booleans: zone_uniform_<name> is true when all
     // cells in the named grid zone are occupied and have the same component type.
     for (name, zone) in &session.runtime.zones {
-        if let RuntimeZone::Grid { width, height, cells, .. } = zone
-        {
-            debug_assert_eq!(
-                cells.len(),
-                (*width as usize) * (*height as usize),
-                "grid cells length {} != width*height {}x{} in zone {name}",
-                cells.len(),
-                width,
-                height
-            );
-            let uniform = *width > 0
-                && *height > 0
-                && !cells.is_empty()
-                && cells.iter().all(|c| c.is_some())
-                && {
-                    let first_type = cells[0]
-                        .and_then(|cid| session.runtime.components.get(cid))
-                        .map(|c| c.component_type.as_str());
+        if let RuntimeZone::Grid { storage, .. } = zone {
+            if let Some((w, h)) = storage.dimensions() {
+                let total = (w as usize).checked_mul(h as usize).unwrap_or(0);
+                let occupied = storage.occupied_count();
+                let uniform = total > 0 && occupied == total && {
+                    let cells = storage.occupied_cells();
+                    let first_type = cells
+                        .first()
+                        .and_then(|&(_, _, cid)| session.runtime.components.get(cid))
+                        .map(|c| c.component_type.clone());
                     first_type.is_some()
-                        && cells.iter().skip(1).all(|c| {
-                            c.and_then(|cid| session.runtime.components.get(cid))
+                        && cells.iter().skip(1).all(|&(_, _, cid)| {
+                            session
+                                .runtime
+                                .components
+                                .get(cid)
                                 .map(|comp| comp.component_type.as_str())
-                                == first_type
+                                == first_type.as_deref()
                         })
                 };
-            ctx.add_variable_from_value(format!("zone_uniform_{name}"), uniform);
+                ctx.add_variable_from_value(format!("zone_uniform_{name}"), uniform);
+            }
         }
     }
 }
@@ -342,9 +336,12 @@ fn populate_grid_lines(ctx: &mut Context<'_>, session: &GameSession) {
 /// Check whether any grid zone has all cells occupied.
 fn check_any_grid_full(session: &GameSession) -> bool {
     for zone in session.runtime.zones.values() {
-        if let RuntimeZone::Grid { cells, .. } = zone {
-            if !cells.is_empty() && cells.iter().all(|c| c.is_some()) {
-                return true;
+        if let RuntimeZone::Grid { storage, .. } = zone {
+            if let Some((w, h)) = storage.dimensions() {
+                let total = (w as usize).checked_mul(h as usize).unwrap_or(0);
+                if total > 0 && storage.occupied_count() == total {
+                    return true;
+                }
             }
         }
     }

@@ -45,6 +45,12 @@ MAX_STATE_SIZE_BYTES: int = 10 * 1024 * 1024  # 10 MB
 
 #: Check state size every N moves (amortized cost).
 STATE_SIZE_CHECK_INTERVAL: int = 100
+
+#: Maximum cells in a sparse grid — prevents unbounded memory growth.
+SPARSE_GRID_MAX_CELLS: int = 1_000_000
+
+#: Per-axis threshold above which we auto-select sparse storage.
+SPARSE_AUTO_THRESHOLD: int = 1_000
 from baize.state import (
     ComponentInstance,
     CounterState,
@@ -173,7 +179,15 @@ class ComponentTable:
 
 @dataclass
 class GridZone:
-    """Grid-based zone with width x height cells."""
+    """Grid-based zone with width x height cells.
+
+    Supports two storage modes:
+    - **Dense** (default): flat ``list[ComponentId | None]`` indexed by
+      ``row * width + col``.  Requires ``width > 0`` and ``height > 0``.
+    - **Sparse**: ``dict[tuple[int, int], ComponentId]`` keyed by
+      ``(col, row)``.  Supports arbitrarily large or unbounded coordinates
+      (including negative values).  Activated when ``_sparse=True``.
+    """
 
     width: int
     height: int
@@ -184,6 +198,14 @@ class GridZone:
         default_factory=dict
     )
     valid_cells: set[int] | None = None
+    _sparse: bool = False
+    _sparse_cells: dict[tuple[int, int], ComponentId] = field(default_factory=dict)
+    _sparse_stacks: dict[tuple[int, int], list[ComponentId]] = field(
+        default_factory=dict
+    )
+    _sparse_cell_properties: dict[tuple[int, int], dict[str, str | int | bool]] = field(
+        default_factory=dict
+    )
 
     def __post_init__(self) -> None:
         if not isinstance(self.width, int) or not isinstance(self.height, int):
@@ -191,27 +213,83 @@ class GridZone:
                 f"grid dimensions must be integers, got "
                 f"({type(self.width).__name__}, {type(self.height).__name__})"
             )
-        if self.width < 0 or self.height < 0:
-            raise ValidationError(
-                f"grid dimensions must be non-negative, got ({self.width}, {self.height})"
+        if self._sparse:
+            if len(self._sparse_cells) > SPARSE_GRID_MAX_CELLS:
+                raise ResourceBudgetError(
+                    "sparse_grid_cells",
+                    len(self._sparse_cells),
+                    SPARSE_GRID_MAX_CELLS,
+                )
+        else:
+            if self.width < 0 or self.height < 0:
+                raise ValidationError(
+                    f"grid dimensions must be non-negative, got ({self.width}, {self.height})"
+                )
+            expected_len = self.width * self.height
+            if len(self.cells) != expected_len:
+                raise ValidationError(
+                    f"cells length {len(self.cells)} != width*height "
+                    f"{self.width}x{self.height} = {expected_len}"
+                )
+
+    # -- Factory methods ----------------------------------------------------
+
+    @classmethod
+    def create_dense(
+        cls, width: int, height: int, stacking_limit: int = 1
+    ) -> "GridZone":
+        """Create a dense grid. Validates dimensions."""
+        if width <= 0 or height <= 0:
+            raise ValueError(
+                f"Dense grid dimensions must be positive: {width}x{height}"
             )
-        expected_len = self.width * self.height
-        if len(self.cells) != expected_len:
-            raise ValidationError(
-                f"cells length {len(self.cells)} != width*height "
-                f"{self.width}x{self.height} = {expected_len}"
+        if width > 10_000 or height > 10_000:
+            raise ValueError(
+                f"Dense grid dimensions too large: {width}x{height}"
             )
+        cells: list[ComponentId | None] = [None] * (width * height)
+        return cls(
+            width=width, height=height, cells=cells, stacking_limit=stacking_limit
+        )
+
+    @classmethod
+    def create_sparse(
+        cls, width: int = 0, height: int = 0, stacking_limit: int = 1
+    ) -> "GridZone":
+        """Create a sparse grid with optional dimension hints."""
+        return cls(
+            width=width,
+            height=height,
+            cells=[],
+            stacking_limit=stacking_limit,
+            _sparse=True,
+        )
+
+    # -- Cell validity ------------------------------------------------------
 
     def _cell_valid(self, col: int, row: int) -> bool:
+        if self._sparse:
+            if self.width > 0 and self.height > 0:
+                if col < 0 or row < 0 or col >= self.width or row >= self.height:
+                    return False
+            if self.valid_cells is not None:
+                if self.width > 0:
+                    return (row * self.width + col) in self.valid_cells
+                return False
+            return True
         if col < 0 or row < 0 or col >= self.width or row >= self.height:
             return False
         if self.valid_cells is not None:
             return (row * self.width + col) in self.valid_cells
         return True
 
+    # -- Core accessors -----------------------------------------------------
+
     def grid_get(self, col: int, row: int) -> ComponentId | None:
         if not self._cell_valid(col, row):
             return None
+        if self._sparse:
+            return self._sparse_cells.get((col, row))
         return self.cells[row * self.width + col]
 
     def grid_set(
@@ -219,6 +297,17 @@ class GridZone:
     ) -> ComponentId | None:
         if not self._cell_valid(col, row):
             return None
+        if self._sparse:
+            prev = self._sparse_cells.pop((col, row), None)
+            if component is not None:
+                self._sparse_cells[(col, row)] = component
+                if len(self._sparse_cells) > SPARSE_GRID_MAX_CELLS:
+                    raise ResourceBudgetError(
+                        "sparse_grid_cells",
+                        len(self._sparse_cells),
+                        SPARSE_GRID_MAX_CELLS,
+                    )
+            return prev
         idx = row * self.width + col
         prev = self.cells[idx]
         self.cells[idx] = component
@@ -227,6 +316,18 @@ class GridZone:
     def grid_push(self, col: int, row: int, component: ComponentId) -> None:
         """Push a component onto a cell (new component becomes top)."""
         if not self._cell_valid(col, row):
+            return
+        if self._sparse:
+            existing = self._sparse_cells.get((col, row))
+            if existing is not None:
+                self._sparse_stacks.setdefault((col, row), []).append(existing)
+            self._sparse_cells[(col, row)] = component
+            if len(self._sparse_cells) > SPARSE_GRID_MAX_CELLS:
+                raise ResourceBudgetError(
+                    "sparse_grid_cells",
+                    len(self._sparse_cells),
+                    SPARSE_GRID_MAX_CELLS,
+                )
             return
         idx = row * self.width + col
         existing = self.cells[idx]
@@ -238,6 +339,18 @@ class GridZone:
         """Pop the top component from a cell. Promotes stack below."""
         if not self._cell_valid(col, row):
             return None
+        if self._sparse:
+            top = self._sparse_cells.get((col, row))
+            if top is None:
+                return None
+            stack = self._sparse_stacks.get((col, row))
+            if stack:
+                self._sparse_cells[(col, row)] = stack.pop()
+                if not stack:
+                    del self._sparse_stacks[(col, row)]
+            else:
+                del self._sparse_cells[(col, row)]
+            return top
         idx = row * self.width + col
         top = self.cells[idx]
         if top is None:
@@ -255,6 +368,12 @@ class GridZone:
         """Get all components at a position (bottom to top)."""
         if not self._cell_valid(col, row):
             return []
+        if self._sparse:
+            result = list(self._sparse_stacks.get((col, row), []))
+            top = self._sparse_cells.get((col, row))
+            if top is not None:
+                result.append(top)
+            return result
         idx = row * self.width + col
         result = list(self.stacks.get(idx, []))
         top = self.cells[idx]
@@ -286,11 +405,25 @@ class GridZone:
                 )
             cells_to_set.append((col, row))
 
-        for col, row in cells_to_set:
-            if self.grid_get(col, row) is not None:
-                raise IllegalActionError(
-                    f"span cell ({col},{row}) is already occupied"
+        if self._sparse:
+            new_cells = len(self._sparse_cells)
+            for col, row in cells_to_set:
+                if self.grid_get(col, row) is not None:
+                    raise IllegalActionError(
+                        f"span cell ({col},{row}) is already occupied"
+                    )
+                if (col, row) not in self._sparse_cells:
+                    new_cells += 1
+            if new_cells > SPARSE_GRID_MAX_CELLS:
+                raise ResourceBudgetError(
+                    "sparse_grid_cells", new_cells, SPARSE_GRID_MAX_CELLS
                 )
+        else:
+            for col, row in cells_to_set:
+                if self.grid_get(col, row) is not None:
+                    raise IllegalActionError(
+                        f"span cell ({col},{row}) is already occupied"
+                    )
 
         for col, row in cells_to_set:
             self.grid_set(col, row, component)
@@ -302,7 +435,11 @@ class GridZone:
         for col, row in span_cells:
             self.grid_set(col, row, None)
 
+    # -- Counting and capacity ----------------------------------------------
+
     def count(self) -> int:
+        if self._sparse:
+            return len(self._sparse_cells)
         return sum(1 for c in self.cells if c is not None)
 
     def get_cell_property(
@@ -311,6 +448,11 @@ class GridZone:
         """Get a single cell property, or None if not set."""
         if not self._cell_valid(col, row):
             return None
+        if self._sparse:
+            props = self._sparse_cell_properties.get((col, row))
+            if props is None:
+                return None
+            return props.get(key)
         idx = row * self.width + col
         props = self.cell_properties.get(idx)
         if props is None:
@@ -322,6 +464,11 @@ class GridZone:
     ) -> None:
         """Set a cell property."""
         if not self._cell_valid(col, row):
+            return
+        if self._sparse:
+            if (col, row) not in self._sparse_cell_properties:
+                self._sparse_cell_properties[(col, row)] = {}
+            self._sparse_cell_properties[(col, row)][key] = value
             return
         idx = row * self.width + col
         if idx not in self.cell_properties:
@@ -336,6 +483,23 @@ class GridZone:
                 f"capacity must be an int or 'unlimited', got {type(capacity).__name__}"
             )
         return self.count() >= capacity
+
+    # -- Iteration helpers --------------------------------------------------
+
+    def occupied_cells(self) -> Iterator[tuple[int, int, ComponentId]]:
+        """Yield ``(col, row, component_id)`` for every occupied cell.
+
+        Works for both dense and sparse grids.
+        """
+        if self._sparse:
+            for (col, row), cid in self._sparse_cells.items():
+                yield col, row, cid
+        else:
+            for idx, cid in enumerate(self.cells):
+                if cid is not None:
+                    col = idx % self.width
+                    row = idx // self.width
+                    yield col, row, cid
 
 
 @dataclass
@@ -521,18 +685,54 @@ def runtime_zone_from_definition(zone_def: Zone) -> RuntimeZone:
             raise ValidationError(
                 f"grid dimensions must be non-negative, got ({w}, {h})"
             )
+
+        # Decide dense vs sparse storage.
+        # Auto-select sparse when explicitly requested or dimensions are omitted
+        # (dynamic grids).  Large dimensions auto-select sparse only when the
+        # definition explicitly opts in via storage="sparse"; otherwise the
+        # existing dimension cap (1000) is enforced to prevent accidental
+        # dense-allocation of huge grids.
+        use_sparse = (
+            zone_def.storage == "sparse"
+            or (zone_def.dimensions is None and zone_def.dynamic is True)
+        )
+        if zone_def.storage == "dense":
+            use_sparse = False
+
+        if use_sparse:
+            vc: set[int] | None = None
+            if zone_def.valid_cells is not None and w > 0:
+                vc = set()
+                for pair in zone_def.valid_cells:
+                    c, r = pair[0], pair[1]
+                    if 0 <= c < w and 0 <= r < h:
+                        vc.add(r * w + c)
+            grid = GridZone(
+                width=w, height=h, cells=[], _sparse=True, valid_cells=vc
+            )
+            if zone_def.cell_properties:
+                for coord, props in zone_def.cell_properties.items():
+                    parts = coord.split(",")
+                    if len(parts) == 2:
+                        c, r = int(parts[0].strip()), int(parts[1].strip())
+                        grid._sparse_cell_properties[(c, r)] = dict(props)
+            return grid
+
+        # Dense path
         if w > 1000 or h > 1000:
             raise ValidationError(
                 f"grid dimensions ({w}, {h}) exceed maximum (1000)"
             )
-        vc: set[int] | None = None
+        vc_dense: set[int] | None = None
         if zone_def.valid_cells is not None:
-            vc = set()
+            vc_dense = set()
             for pair in zone_def.valid_cells:
                 c, r = pair[0], pair[1]
                 if 0 <= c < w and 0 <= r < h:
-                    vc.add(r * w + c)
-        grid = GridZone(width=w, height=h, cells=[None] * (w * h), valid_cells=vc)
+                    vc_dense.add(r * w + c)
+        grid = GridZone(
+            width=w, height=h, cells=[None] * (w * h), valid_cells=vc_dense
+        )
         if zone_def.cell_properties:
             for coord, props in zone_def.cell_properties.items():
                 parts = coord.split(",")
@@ -794,17 +994,18 @@ class GameSession:
         """Convert a runtime zone to wire-format ZoneState."""
         if isinstance(zone, GridZone):
             cells: dict[str, ComponentInstance | list[ComponentInstance] | None] = {}
-            for row in range(zone.height):
-                for col in range(zone.width):
-                    idx = row * zone.width + col
-                    cid = zone.cells[idx]
-                    if cid is not None:
-                        comp = self.runtime.components.get(cid)
-                        if comp is not None:
-                            coord = f"{col},{row}"
-                            cells[coord] = comp.to_wire_instance()
+            for col, row, cid in zone.occupied_cells():
+                comp = self.runtime.components.get(cid)
+                if comp is not None:
+                    coord = f"{col},{row}"
+                    cells[coord] = comp.to_wire_instance()
             wire_props: dict[str, dict[str, str | int | bool]] | None = None
-            if zone.cell_properties:
+            if zone._sparse:
+                if zone._sparse_cell_properties:
+                    wire_props = {}
+                    for (col, row), props in zone._sparse_cell_properties.items():
+                        wire_props[f"{col},{row}"] = dict(props)
+            elif zone.cell_properties:
                 wire_props = {}
                 for idx, props in zone.cell_properties.items():
                     col = idx % zone.width

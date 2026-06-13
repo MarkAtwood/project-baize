@@ -188,7 +188,9 @@ fn determinism_board_state() {
 
         // Verify empty cells are actually empty
         let (width, height) = match board {
-            baize_engine::runtime::RuntimeZone::Grid { width, height, .. } => (*width, *height),
+            baize_engine::runtime::RuntimeZone::Grid { storage, .. } => {
+                storage.dimensions().unwrap_or((0, 0))
+            }
             _ => panic!("[{name}] board zone is not a grid"),
         };
         for row in 0..height {

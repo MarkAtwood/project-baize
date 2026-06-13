@@ -118,9 +118,7 @@ def _populate_grid_lines(
         variables["board_width"] = w
         variables["board_height"] = h
         variables["cell_count"] = w * h
-        variables["occupied_count"] = sum(
-            1 for c in zone.cells if c is not None
-        )
+        variables["occupied_count"] = zone.count()
 
         # Windowed sub-lines: lines_N contains all N-length consecutive
         # windows in every direction (horizontal, vertical, both diagonals).
@@ -193,28 +191,50 @@ def _populate_grid_lines(
     # cells in the named grid zone are occupied and have the same component type.
     for name, zone in session.runtime.zones.items():
         if isinstance(zone, GridZone):
-            if zone.width > 0 and zone.height > 0 and zone.cells:
-                types = []
-                for cid in zone.cells:
-                    if cid is None:
-                        break
-                    comp = session.runtime.components.get(cid)
-                    if comp is None:
-                        break
-                    types.append(comp.component_type)
-                else:
-                    uniform = len(set(types)) == 1
-                    variables[f"zone_uniform_{name}"] = uniform
-                    continue
-            variables[f"zone_uniform_{name}"] = False
+            if zone._sparse:
+                # For sparse grids: need dimension hints to determine "all cells"
+                if zone.width > 0 and zone.height > 0:
+                    expected = zone.width * zone.height
+                    if zone.count() == expected and expected > 0:
+                        types: set[str] = set()
+                        for _col, _row, cid in zone.occupied_cells():
+                            comp = session.runtime.components.get(cid)
+                            if comp is None:
+                                break
+                            types.add(comp.component_type)
+                        else:
+                            variables[f"zone_uniform_{name}"] = len(types) == 1
+                            continue
+                variables[f"zone_uniform_{name}"] = False
+            else:
+                if zone.width > 0 and zone.height > 0 and zone.cells:
+                    type_list: list[str] = []
+                    for cid in zone.cells:
+                        if cid is None:
+                            break
+                        comp = session.runtime.components.get(cid)
+                        if comp is None:
+                            break
+                        type_list.append(comp.component_type)
+                    else:
+                        uniform = len(set(type_list)) == 1
+                        variables[f"zone_uniform_{name}"] = uniform
+                        continue
+                variables[f"zone_uniform_{name}"] = False
 
 
 def _check_any_grid_full(session: GameSession) -> bool:
     """Check whether any grid zone has all cells occupied."""
     for zone in session.runtime.zones.values():
         if isinstance(zone, GridZone):
-            if len(zone.cells) > 0 and all(c is not None for c in zone.cells):
-                return True
+            if zone._sparse:
+                if zone.width > 0 and zone.height > 0:
+                    expected = zone.width * zone.height
+                    if expected > 0 and zone.count() >= expected:
+                        return True
+            else:
+                if len(zone.cells) > 0 and all(c is not None for c in zone.cells):
+                    return True
     return False
 
 
@@ -273,6 +293,11 @@ def _check_all_cells_occupied(session: GameSession, condition: str) -> bool:
     zone_name = _extract_paren_arg(condition) or "board"
     zone = session.runtime.zones.get(zone_name)
     if zone is None or not isinstance(zone, GridZone):
+        return False
+    if zone._sparse:
+        if zone.width > 0 and zone.height > 0:
+            expected = zone.width * zone.height
+            return expected > 0 and zone.count() >= expected
         return False
     return len(zone.cells) > 0 and all(c is not None for c in zone.cells)
 
