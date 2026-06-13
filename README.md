@@ -107,7 +107,7 @@ implementation, even before full mental poker support.
 
 ## Status
 
-Core engine complete. 317 of 338 issues closed. Fifty-eight games
+Core engine complete. 326 of 338 issues closed. Fifty-eight games
 defined, twenty-one fully playable end-to-end. Texas Hold'em poker
 now playable with full betting, hand evaluation, and showdown.
 The engine parses and validates game definitions, manages runtime
@@ -137,12 +137,15 @@ new `cell_property` builtin. Polymorphic type variables in the Felt
 type checker. Resource system for external data: game definitions
 declare named resources (word lists, lookup tables), engine loads
 them at game start, `word_valid` Felt builtin for dictionary
-validation (Scrabble).
+validation (Scrabble). Mental poker protocol implemented: SRA
+commutative encryption (RFC 3526 2048-bit MODP), N-player encrypted
+shuffle with BLAKE3 hash chain, selective decryption deal, showdown
+key reveal with tamper detection, authority-aware trust mode dispatch.
 
 | Component | Tests | What works |
 |-----------|-------|-----------|
 | Schema (5 JSON Schemas) | — | Game definitions, state, actions, events, component registry |
-| Rust engine | 317 | Parse, validate, state machine, move gen, transitions, CEL end conditions, perturber effects (cycle, remove, flip, promote, counters, invoke), commit-reveal, simultaneous phases, action triggers with claim windows, hash-chained events, tamper detection, visibility filtering, dynamic visibility transitions, fog of war (per-cell per-player), valid_cells grid mask, graph zone, sparse/dense grid storage, cell stacking with limits, partnerships with team win propagation, hostile input rejection, invariant guards, fuel limits, resource budgets, serialization round-trips, cross-engine determinism |
+| Rust engine | 329 | Parse, validate, state machine, move gen, transitions, CEL end conditions, perturber effects (cycle, remove, flip, promote, counters, invoke), commit-reveal, simultaneous phases, action triggers with claim windows, mental poker (SRA commutative encryption, N-player shuffle, selective deal, showdown verification), hash-chained events, tamper detection, visibility filtering, dynamic visibility transitions, fog of war (per-cell per-player), valid_cells grid mask, graph zone, sparse/dense grid storage, cell stacking with limits, partnerships with team win propagation, hostile input rejection, invariant guards, fuel limits, resource budgets, serialization round-trips, cross-engine determinism |
 | Python engine | 3,635 | Feature-parallel with Rust, plus game analysis, Jupyter notebook, terminal CLI, interactive REPL, agent framework (Random/Greedy/MCTS), notation adapter, adversarial input tests, error leak audit, hypothesis fuzzing, cross-engine determinism, poker (hand evaluator, betting FSM, showdown), sparse/dense grid storage, cell stacking, partnerships, dynamic visibility, fog of war, action triggers with claim windows, 58 game definitions with gameplay tests |
 | Server | 130 | Room management, WebSocket protocol, hidden-state vault (ChaCha20Rng), per-player visibility, rate limiting, token auth, spectator isolation, persistence, WASM sandboxing (fuel + memory caps), abuse resistance, protocol hardening, claim window timeouts, cell_property host import, debug redaction, graceful shutdown, Felt host imports |
 | Felt compiler | 127 | Lexer (logos), parser (chumsky), type checker with polymorphic type variables, call graph checker, WASM GC codegen (wasm-encoder), 37 builtins wired as host imports, CLI (compile/check), host import API, example extensions (poker, chess, go, wargame terrain/CRT/ZOC), word_valid for dictionary resources |
