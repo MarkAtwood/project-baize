@@ -76,6 +76,22 @@
     },
     "betting_round": {
       "$ref": "#/$defs/betting_round"
+    },
+    "partnerships": {
+      "type": "array",
+      "items": {
+        "type": "array",
+        "items": { "type": "string" },
+        "minItems": 1,
+        "description": "Player names forming one team/partnership."
+      },
+      "minItems": 1,
+      "description": "Team declarations: array of player arrays. Each inner array is a team. Engine uses for win propagation and shared counters. Example: [[\"North\",\"South\"],[\"East\",\"West\"]]."
+    },
+    "visibility_transitions": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/visibility_transition" },
+      "description": "Rules for changing zone visibility during play, triggered by phase changes or conditions."
     }
   },
   "$defs": {
@@ -777,6 +793,36 @@
           "description": "Marker for hitting/capturing in track games (e.g. \"*\")."
         }
       }
+    },
+
+    "visibility_transition": {
+      "type": "object",
+      "required": ["zone", "new_visibility"],
+      "additionalProperties": false,
+      "properties": {
+        "zone": {
+          "type": "string",
+          "description": "Name of the zone whose visibility changes. For per-player zones, use \"zone_name[player]\" syntax."
+        },
+        "player": {
+          "type": "string",
+          "description": "For per-player zones, the player whose zone instance changes."
+        },
+        "new_visibility": {
+          "description": "The new visibility for this zone.",
+          "type": "string",
+          "enum": ["public", "hidden"]
+        },
+        "trigger": {
+          "type": "string",
+          "description": "CEL expression or phase name that triggers this visibility change."
+        },
+        "phase": {
+          "type": "string",
+          "description": "Phase during which this visibility change takes effect."
+        }
+      },
+      "description": "A rule for changing a zone's visibility during play. Triggered by phase transitions or conditions."
     }
   }
 }

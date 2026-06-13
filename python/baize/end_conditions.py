@@ -27,6 +27,7 @@ def check_end_conditions(session: GameSession) -> GameResult | None:
         if ec.result == "win":
             player_ref = ec.player or "current"
             winner = current_player if player_ref == "current" else player_ref
+            winner = _team_winner(session, winner)
             return GameResult(outcome="win", winner=winner, condition=ec.name)
         elif ec.result == "draw":
             return GameResult(outcome="draw", condition=ec.name)
@@ -35,9 +36,19 @@ def check_end_conditions(session: GameSession) -> GameResult | None:
                 (p for p in session.runtime.players if p != current_player),
                 None,
             )
+            if opponent is not None:
+                opponent = _team_winner(session, opponent)
             return GameResult(outcome="win", winner=opponent, condition=ec.name)
 
     return None
+
+
+def _team_winner(session: GameSession, player: str) -> str:
+    """If the player has teammates, return team name (e.g. 'North/South'); otherwise the player name."""
+    team = session.team_of(player)
+    if team is None or len(team) <= 1:
+        return player
+    return "/".join(team)
 
 
 def _eval_condition(

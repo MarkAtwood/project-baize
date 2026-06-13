@@ -21,6 +21,16 @@ export interface GameDefinition {
   readonly notation?: NotationSpec;
   readonly hand_rankings?: readonly string[];
   readonly betting_round?: BettingRound;
+  readonly partnerships?: ReadonlyArray<readonly string[]>;
+  readonly visibility_transitions?: readonly VisibilityTransition[];
+}
+
+export interface VisibilityTransition {
+  readonly zone: string;
+  readonly player?: string;
+  readonly new_visibility: "public" | "hidden";
+  readonly trigger?: string;
+  readonly phase?: string;
 }
 
 export interface GameMetadata {
@@ -230,6 +240,7 @@ export interface GameState {
   readonly pending_actions?: readonly PendingAction[];
   readonly pending_commits?: Record<string, string>;
   readonly simultaneous_actions?: Record<string, unknown>;
+  readonly visibility_overrides?: Record<string, Visibility>;
   readonly history_hash?: string;
   readonly timestamp?: string;
 }

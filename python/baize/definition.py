@@ -70,6 +70,46 @@ VisibilityTier = Literal["public", "hidden"]
 
 
 @dataclass
+class VisibilityTransitionRule:
+    """Declares a visibility change that fires on a phase transition."""
+
+    zone: str
+    new_visibility: str  # "public" or "hidden"
+    player: str | None = None
+    trigger: str | None = None
+    phase: str | None = None
+
+    @staticmethod
+    def from_dict(d: dict[str, Any]) -> VisibilityTransitionRule:
+        if "zone" not in d:
+            raise ValueError("visibility_transition dict missing required 'zone' key")
+        if "new_visibility" not in d:
+            raise ValueError(
+                "visibility_transition dict missing required 'new_visibility' key"
+            )
+        return VisibilityTransitionRule(
+            zone=d["zone"],
+            new_visibility=d["new_visibility"],
+            player=d.get("player"),
+            trigger=d.get("trigger"),
+            phase=d.get("phase"),
+        )
+
+    def to_dict(self) -> dict[str, Any]:
+        out: dict[str, Any] = {
+            "zone": self.zone,
+            "new_visibility": self.new_visibility,
+        }
+        if self.player is not None:
+            out["player"] = self.player
+        if self.trigger is not None:
+            out["trigger"] = self.trigger
+        if self.phase is not None:
+            out["phase"] = self.phase
+        return out
+
+
+@dataclass
 class PrivateVisibility:
     """Visible only to the named role (typically 'owner')."""
 
@@ -279,6 +319,7 @@ class Zone:
     note: str | None = None
     cell_properties: dict[str, dict[str, str | int | bool]] | None = None
     storage: str | None = None  # "dense" or "sparse"
+    stacking_limit: int | None = None
 
     @staticmethod
     def from_dict(d: dict[str, Any]) -> Zone:
@@ -290,6 +331,18 @@ class Zone:
         labels = GridLabels.from_dict(labels_raw) if labels_raw is not None else None
         draw_vis_raw = d.get("draw_visibility")
         draw_vis = _visibility_from_raw(draw_vis_raw) if draw_vis_raw is not None else None
+        stacking_raw = d.get("stacking_limit")
+        stacking_limit: int | None = None
+        if stacking_raw is not None:
+            if not isinstance(stacking_raw, int) or isinstance(stacking_raw, bool):
+                raise ValueError(
+                    f"stacking_limit must be a non-negative integer, got {stacking_raw!r}"
+                )
+            if stacking_raw < 0:
+                raise ValueError(
+                    f"stacking_limit must be a non-negative integer, got {stacking_raw}"
+                )
+            stacking_limit = stacking_raw
         return Zone(
             zone_type=d["zone_type"],
             visibility=_visibility_from_raw(d["visibility"]),
@@ -317,6 +370,7 @@ class Zone:
             note=d.get("note"),
             cell_properties=d.get("cell_properties"),
             storage=d.get("storage"),
+            stacking_limit=stacking_limit,
         )
 
     def to_dict(self) -> dict[str, Any]:
@@ -372,6 +426,8 @@ class Zone:
             out["cell_properties"] = self.cell_properties
         if self.storage is not None:
             out["storage"] = self.storage
+        if self.stacking_limit is not None:
+            out["stacking_limit"] = self.stacking_limit
         return out
 
 
@@ -816,6 +872,8 @@ class GameDefinition:
     hand_rankings: list[str] = field(default_factory=list)
     betting_round: BettingRound | None = None
     notation: dict[str, Any] | None = None
+    partnerships: list[list[str]] = field(default_factory=list)
+    visibility_transitions: list[VisibilityTransitionRule] = field(default_factory=list)
 
     @classmethod
     def from_json(cls, json_str: str, *, validate_schema: bool = True) -> GameDefinition:
@@ -855,6 +913,11 @@ class GameDefinition:
             br_raw = d.get("betting_round")
             betting_round = BettingRound.from_dict(br_raw) if br_raw is not None else None
 
+            vis_transitions = [
+                VisibilityTransitionRule.from_dict(vt)
+                for vt in d.get("visibility_transitions", [])
+            ]
+
             defn = cls(
                 game=GameMetadata.from_dict(d["game"]),
                 zones=zones,
@@ -869,6 +932,8 @@ class GameDefinition:
                 hand_rankings=d.get("hand_rankings", []),
                 betting_round=betting_round,
                 notation=d.get("notation"),
+                partnerships=d.get("partnerships", []),
+                visibility_transitions=vis_transitions,
             )
             defn.validate()
             return defn
@@ -939,6 +1004,37 @@ class GameDefinition:
                 f"total component count {total} exceeds maximum (10000)"
             )
 
+        # Visibility transition validation
+        valid_vis_values = {"public", "hidden"}
+        for vt in self.visibility_transitions:
+            if vt.zone not in self.zones:
+                raise ValidationError(
+                    f"visibility_transition references unknown zone {vt.zone!r}"
+                )
+            if vt.new_visibility not in valid_vis_values:
+                raise ValidationError(
+                    f"visibility_transition new_visibility must be "
+                    f"'public' or 'hidden', got {vt.new_visibility!r}"
+                )
+
+        # Partnership validation
+        if self.partnerships:
+            seen_players: set[str] = set()
+            player_names_set: set[str] = set()
+            if isinstance(self.game.players, list):
+                player_names_set = set(self.game.players)
+            for team in self.partnerships:
+                for p in team:
+                    if p in seen_players:
+                        raise ValidationError(
+                            f"player {p!r} appears in multiple partnerships"
+                        )
+                    seen_players.add(p)
+                    if player_names_set and p not in player_names_set:
+                        raise ValidationError(
+                            f"partnership player {p!r} not in game player list"
+                        )
+
     def to_json(self, indent: int | None = 2) -> str:
         """Serialize to a JSON string."""
         return json.dumps(self._to_dict(), indent=indent)
@@ -964,4 +1060,10 @@ class GameDefinition:
             out["betting_round"] = self.betting_round.to_dict()
         if self.notation is not None:
             out["notation"] = self.notation
+        if self.partnerships:
+            out["partnerships"] = self.partnerships
+        if self.visibility_transitions:
+            out["visibility_transitions"] = [
+                vt.to_dict() for vt in self.visibility_transitions
+            ]
         return out

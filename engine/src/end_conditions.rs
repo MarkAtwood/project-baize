@@ -17,21 +17,24 @@ pub fn check_end_conditions(session: &GameSession) -> Option<GameResult> {
         let (outcome, winner) = match ec.result {
             EndResult::Win => {
                 let player_ref = ec.player.as_deref().unwrap_or("current");
-                let w = if player_ref == "current" {
-                    current_player.to_string()
+                let winning_player = if player_ref == "current" {
+                    current_player
                 } else {
-                    player_ref.to_string()
+                    player_ref
                 };
+                let w = session.team_name(winning_player);
                 (GameOutcome::Win, Some(w))
             }
             EndResult::Draw => (GameOutcome::Draw, None),
             EndResult::Loss => {
+                // Find the opponent; if partnerships exist, find the opposing team
+                let losing_teammates = session.teammates(current_player);
                 let opponent = session
                     .runtime
                     .players
                     .keys()
-                    .find(|p| p.as_str() != current_player)
-                    .cloned();
+                    .find(|p| !losing_teammates.contains(&p.as_str()))
+                    .map(|p| session.team_name(p));
                 (GameOutcome::Win, opponent)
             }
         };

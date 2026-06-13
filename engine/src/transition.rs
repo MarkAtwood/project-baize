@@ -1,6 +1,7 @@
 use indexmap::IndexMap;
 
 use crate::action::{Action, ActionType, Position};
+use crate::definition::{Visibility, VisibilityTier};
 use crate::end_conditions::check_end_conditions;
 use crate::error::{BaizeError, Result};
 use crate::runtime::{
@@ -54,6 +55,7 @@ pub enum EventType {
     ActionSubmitted,
     TurnAdvance,
     GameEnd,
+    VisibilityChange,
 }
 
 /// Return the current Phase definition, or None if no phases are defined.
@@ -221,30 +223,38 @@ fn execute_action(
                 .grid_get(from_col, from_row)
                 .ok_or_else(|| BaizeError::IllegalAction("no piece at source".into()))?;
 
-            // Check for capture
-            let captured = zone.grid_get(to_col, to_row);
-            if let Some(cap_id) = captured {
-                let cap_name = session
-                    .runtime
-                    .components
-                    .get(cap_id)
-                    .map(|c| c.string_id.clone())
-                    .unwrap_or_default();
-                events.push(make_event(
-                    session.runtime.sequence,
-                    EventType::Capture,
-                    player,
-                    Some(&cap_name),
-                    None,
-                    Some(&format!("{},{}", to_col, to_row)),
-                    "",
-                    prev_hash,
-                ));
-            }
+            let limit = zone.grid_stacking_limit();
+            let dest_occupied = zone.grid_get(to_col, to_row).is_some();
 
-            // Move the piece
-            zone.grid_set(from_col, from_row, None);
-            zone.grid_set(to_col, to_row, Some(cid));
+            if dest_occupied && limit != 1 {
+                // Stacking enabled — push onto destination stack instead of capturing
+                // Remove from source (pop reveals piece below if stacked)
+                zone.grid_pop(from_col, from_row);
+                zone.grid_push(to_col, to_row, cid)?;
+            } else {
+                // Classic behavior: capture if occupied (stacking_limit == 1)
+                if let Some(cap_id) = zone.grid_get(to_col, to_row) {
+                    let cap_name = session
+                        .runtime
+                        .components
+                        .get(cap_id)
+                        .map(|c| c.string_id.clone())
+                        .unwrap_or_default();
+                    events.push(make_event(
+                        session.runtime.sequence,
+                        EventType::Capture,
+                        player,
+                        Some(&cap_name),
+                        None,
+                        Some(&format!("{},{}", to_col, to_row)),
+                        "",
+                        prev_hash,
+                    ));
+                }
+                // Remove from source (pop reveals piece below if stacked)
+                zone.grid_pop(from_col, from_row);
+                zone.grid_set(to_col, to_row, Some(cid));
+            }
 
             let comp_name = session
                 .runtime
@@ -299,7 +309,19 @@ fn execute_action(
                 .and_then(|p| p.zones.get_mut(&zone_name))
                 .or_else(|| session.runtime.zones.get_mut(&zone_name))
                 .ok_or_else(|| BaizeError::UnknownZone(zone_name.clone()))?;
-            zone.grid_set(to_col, to_row, Some(cid));
+
+            let limit = zone.grid_stacking_limit();
+            if zone.grid_get(to_col, to_row).is_some() {
+                if limit == 1 {
+                    return Err(BaizeError::IllegalAction(format!(
+                        "cell ({to_col},{to_row}) is already occupied"
+                    )));
+                }
+                // Stacking enabled — push onto stack
+                zone.grid_push(to_col, to_row, cid)?;
+            } else {
+                zone.grid_set(to_col, to_row, Some(cid));
+            }
 
             events.push(make_event(
                 session.runtime.sequence,
@@ -866,6 +888,75 @@ fn execute_action(
     }
 
     Ok(events)
+}
+
+/// Apply visibility transition rules that match the given phase.
+///
+/// Checks all `definition.visibility_transitions` and applies those whose
+/// `phase` field matches `new_phase`. Emits a `VisibilityChange` event for
+/// each applied transition.
+fn apply_visibility_transitions(
+    session: &mut GameSession,
+    new_phase: &str,
+    prev_hash: &Option<String>,
+) -> Vec<GameEvent> {
+    let mut events = Vec::new();
+
+    let transitions: Vec<_> = session
+        .definition
+        .visibility_transitions
+        .iter()
+        .filter(|vt| vt.phase.as_deref() == Some(new_phase))
+        .cloned()
+        .collect();
+
+    for vt in &transitions {
+        let new_vis = match vt.new_visibility.as_str() {
+            "public" => Visibility::Tier(VisibilityTier::Public),
+            "hidden" => Visibility::Tier(VisibilityTier::Hidden),
+            _ => continue, // validated at parse time, but be defensive
+        };
+
+        let zone_key = match &vt.player {
+            Some(player) => format!("{}[{}]", vt.zone, player),
+            None => vt.zone.clone(),
+        };
+
+        let _prev = session.runtime.change_visibility(&zone_key, new_vis);
+
+        events.push(GameEvent {
+            sequence: session.runtime.sequence,
+            event_type: EventType::VisibilityChange,
+            player: vt.player.clone().unwrap_or_default(),
+            component_id: None,
+            from: None,
+            to: Some(zone_key),
+            captured: None,
+            detail: Some(vt.new_visibility.clone()),
+            state_hash: String::new(),
+            prev_hash: prev_hash.clone(),
+        });
+    }
+
+    events
+}
+
+/// Advance the game to a new phase by index and apply visibility transitions.
+///
+/// Returns events for any visibility changes triggered by the new phase.
+pub fn advance_phase(
+    session: &mut GameSession,
+    new_phase_index: usize,
+    prev_hash: &Option<String>,
+) -> Vec<GameEvent> {
+    session.runtime.phase_index = new_phase_index;
+    let phase_name = session
+        .definition
+        .phases
+        .get(new_phase_index)
+        .map(|p| p.name.clone())
+        .unwrap_or_else(|| "main".to_string());
+    apply_visibility_transitions(session, &phase_name, prev_hash)
 }
 
 /// Check end conditions, advance turn, compute hash, and stamp all events.

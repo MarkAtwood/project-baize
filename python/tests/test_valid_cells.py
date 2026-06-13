@@ -276,6 +276,7 @@ def test_grid_push_pop_valid_cell() -> None:
     """Push and pop on a valid cell work normally."""
     mask = {4}  # only (1,1) in a 3x3
     grid = _make_grid(3, 3, valid_cells=mask)
+    grid.stacking_limit = 0  # unlimited stacking for push/pop test
 
     grid.grid_push(1, 1, _cid(10))
     assert grid.grid_get(1, 1) == _cid(10)
