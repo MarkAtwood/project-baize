@@ -64,6 +64,13 @@ pub enum ClientMessage {
         player: String,
         state_hash: String,
     },
+    SubmitClaim {
+        game_id: String,
+        player: String,
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        sequence: Option<u64>,
+        claim: String,
+    },
 }
 
 // --- Server messages ---
@@ -174,6 +181,7 @@ pub enum ActionType {
     Reveal,
     DeclareAction,
     Custom,
+    ClaimAction,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]

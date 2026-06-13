@@ -15,6 +15,7 @@ from typing import Any, Iterator
 
 import blake3
 
+from baize.action import Action
 from baize.betting import BettingRoundState
 from baize.definition import (
     Capacity,
@@ -912,6 +913,24 @@ class RuntimePlayer:
 
 
 # ---------------------------------------------------------------------------
+# ClaimWindow
+# ---------------------------------------------------------------------------
+
+
+@dataclass
+class ClaimWindow:
+    """Active claim window state during trigger resolution."""
+
+    trigger_name: str
+    triggering_action: Action
+    triggering_player: str
+    eligible_players: list[str]
+    submitted_claims: dict[str, str] = field(default_factory=dict)  # player -> claim
+    priority: list[str] = field(default_factory=list)
+    default_claim: str = "pass"
+
+
+# ---------------------------------------------------------------------------
 # RuntimeState
 # ---------------------------------------------------------------------------
 
@@ -938,6 +957,7 @@ class RuntimeState:
     betting_state: BettingRoundState | None = None
     visibility_overrides: dict[str, str] = field(default_factory=dict)
     partnerships: list[list[str]] = field(default_factory=list)
+    claim_window: ClaimWindow | None = None
 
 
 # ---------------------------------------------------------------------------
@@ -1198,7 +1218,27 @@ class GameSession:
                 if self.runtime.visibility_overrides
                 else None
             ),
+            claim_window=(
+                self._claim_window_to_wire()
+                if self.runtime.claim_window is not None
+                else None
+            ),
         )
+
+    def _claim_window_to_wire(self) -> dict[str, Any] | None:
+        """Convert runtime ClaimWindow to wire-format dict."""
+        cw = self.runtime.claim_window
+        if cw is None:
+            return None
+        return {
+            "trigger_name": cw.trigger_name,
+            "triggering_action": cw.triggering_action.to_dict(),
+            "triggering_player": cw.triggering_player,
+            "eligible_players": list(cw.eligible_players),
+            "submitted_claims": dict(cw.submitted_claims),
+            "priority": list(cw.priority),
+            "default_claim": cw.default_claim,
+        }
 
     def _zone_to_wire(self, zone: RuntimeZone) -> ZoneState:
         """Convert a runtime zone to wire-format ZoneState."""
@@ -1345,6 +1385,11 @@ class GameSession:
             visibility_overrides=(
                 dict(self.runtime.visibility_overrides)
                 if self.runtime.visibility_overrides
+                else None
+            ),
+            claim_window=(
+                self._claim_window_to_wire()
+                if self.runtime.claim_window is not None
                 else None
             ),
         )

@@ -2,7 +2,7 @@ use std::collections::HashMap;
 
 use baize_engine::action::{ClientMessage, RandomRequest, RandomType, ServerMessage};
 use baize_engine::state::GameStatus;
-use baize_engine::transition::apply_action;
+use baize_engine::transition::{apply_action, apply_claim};
 use baize_engine::visibility::filter_for_viewer_with_fog;
 
 use crate::config;
@@ -97,6 +97,12 @@ pub fn handle_client_message(
         ClientMessage::AcknowledgeState {
             game_id, player, ..
         } => (player.as_str(), game_id.as_str(), None),
+        ClientMessage::SubmitClaim {
+            game_id,
+            player,
+            sequence,
+            ..
+        } => (player.as_str(), game_id.as_str(), *sequence),
     };
 
     // Validate player name matches seat
@@ -245,6 +251,38 @@ pub fn handle_client_message(
                 &player,
                 &state_hash,
             ))
+        }
+
+        ClientMessage::SubmitClaim {
+            claim, player, ..
+        } => {
+            if is_spectator {
+                return HandleResult::Error(error_response(
+                    &game_id,
+                    "spectator_not_allowed",
+                    "spectators cannot submit claims",
+                ));
+            }
+            // Validate claim string length
+            if claim.is_empty() {
+                return HandleResult::Error(error_response(
+                    &game_id,
+                    "invalid_claim",
+                    "claim must not be empty",
+                ));
+            }
+            if claim.len() > config::MAX_CLAIM_LENGTH {
+                return HandleResult::Error(error_response(
+                    &game_id,
+                    "invalid_claim",
+                    &format!(
+                        "claim too long ({} chars, max {})",
+                        claim.len(),
+                        config::MAX_CLAIM_LENGTH
+                    ),
+                ));
+            }
+            handle_submit_claim(room, seat, &player, &claim)
         }
     }
 }
@@ -498,6 +536,142 @@ fn handle_submit_move(
             action,
             reason: e.to_string(),
         }]),
+    }
+}
+
+/// Process a submit_claim message:
+/// 1. Verify a claim window is active
+/// 2. Verify the player is eligible and has not already submitted
+/// 3. Apply the claim through the engine
+/// 4. If the window resolved (all claims in), clear the deadline and
+///    broadcast the result state; otherwise broadcast only to the submitter
+fn handle_submit_claim(
+    room: &mut Room,
+    _seat: &str,
+    player: &str,
+    claim: &str,
+) -> HandleResult {
+    let game_id = room.id.clone();
+
+    // Check game is in progress
+    if room.session.runtime.status == GameStatus::Finished {
+        return HandleResult::Error(error_response(
+            &game_id,
+            "claim_rejected",
+            "game is finished",
+        ));
+    }
+
+    // Enforce max events per game
+    if room.session.runtime.event_count >= config::MAX_EVENTS_PER_GAME {
+        eprintln!(
+            "[security] game in room '{game_id}' exceeded max event count ({})",
+            config::MAX_EVENTS_PER_GAME
+        );
+        return HandleResult::Error(error_response(
+            &game_id,
+            "claim_rejected",
+            &format!(
+                "game exceeded maximum event count ({})",
+                config::MAX_EVENTS_PER_GAME
+            ),
+        ));
+    }
+
+    // Server-side pre-checks (engine also validates, but we catch early
+    // for better error messages and to avoid unnecessary engine calls)
+    match &room.session.runtime.claim_window {
+        None => {
+            return HandleResult::Error(error_response(
+                &game_id,
+                "no_claim_window",
+                "no active claim window",
+            ));
+        }
+        Some(window) => {
+            if !window.eligible_players.contains(&player.to_string()) {
+                return HandleResult::Error(error_response(
+                    &game_id,
+                    "not_eligible",
+                    &format!("player {player} is not eligible for this claim window"),
+                ));
+            }
+            if window.submitted_claims.contains_key(player) {
+                return HandleResult::Error(error_response(
+                    &game_id,
+                    "duplicate_claim",
+                    &format!("player {player} has already submitted a claim"),
+                ));
+            }
+        }
+    }
+
+    // Apply through the engine
+    match apply_claim(&mut room.session, player, claim) {
+        Ok(_events) => {
+            // If the claim window was resolved (all claims in), clear the deadline
+            if room.session.runtime.claim_window.is_none() {
+                room.claim_deadline = None;
+            }
+
+            // Broadcast filtered state to all players (same as submit_move)
+            let wire_state = room.session.to_wire_state();
+            let sequence = wire_state.sequence;
+            let definition = &room.session.definition;
+
+            let mut per_player = HashMap::new();
+            for seat_name in room.players.keys() {
+                let filtered = filter_for_viewer_with_fog(
+                    &wire_state,
+                    seat_name,
+                    definition,
+                    Some(&room.session.runtime.zones),
+                );
+                let result_state = Some(
+                    serde_json::to_value(&filtered)
+                        .expect("filtered state should serialize to JSON"),
+                );
+                // Reuse MoveConfirmed with a synthetic action to signal
+                // the claim result. The action_type is Declaration with
+                // the claim in the declaration field.
+                per_player.insert(
+                    seat_name.clone(),
+                    ServerMessage::MoveConfirmed {
+                        game_id: game_id.clone(),
+                        sequence,
+                        action: baize_engine::action::Action {
+                            action_type: baize_engine::action::ActionType::DeclareAction,
+                            authority: None,
+                            component_id: None,
+                            component_type: None,
+                            from: None,
+                            to: None,
+                            zone: None,
+                            count: None,
+                            promote_to: None,
+                            orientation: None,
+                            rotation: None,
+                            amount: None,
+                            side: None,
+                            swap_with: None,
+                            dice_count: None,
+                            dice_type: None,
+                            declaration: Some(claim.to_string()),
+                            commitment: None,
+                            custom_data: None,
+                        },
+                        result_state,
+                    },
+                );
+            }
+
+            HandleResult::FilteredBroadcast { per_player }
+        }
+        Err(e) => HandleResult::Error(error_response(
+            &game_id,
+            "claim_rejected",
+            &e.to_string(),
+        )),
     }
 }
 

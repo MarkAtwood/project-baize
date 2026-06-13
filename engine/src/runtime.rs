@@ -9,8 +9,8 @@ use crate::definition::{
 };
 use crate::error::{BaizeError, Result};
 use crate::state::{
-    CellContents, ComponentInstance, Facing, GameResult, GameState, GameStatus, PlayerState,
-    ZoneState,
+    CellContents, ClaimWindowState, ComponentInstance, Facing, GameResult, GameState, GameStatus,
+    PlayerState, ZoneState,
 };
 
 // ---------------------------------------------------------------------------
@@ -40,6 +40,25 @@ pub struct GameSession {
     pub runtime: RuntimeState,
 }
 
+/// Active claim window state during trigger resolution.
+#[derive(Debug, Clone)]
+pub struct ClaimWindow {
+    /// Name of the trigger that opened this window.
+    pub trigger_name: String,
+    /// The action that fired the trigger.
+    pub triggering_action: crate::action::Action,
+    /// Player who took the triggering action.
+    pub triggering_player: String,
+    /// Players who may submit claims (computed from eligible rule).
+    pub eligible_players: Vec<String>,
+    /// Claims submitted so far: player -> claim action name.
+    pub submitted_claims: IndexMap<String, String>,
+    /// Priority order from the trigger definition.
+    pub priority: Vec<String>,
+    /// Default action for non-respondents.
+    pub default_claim: String,
+}
+
 /// The mutable runtime state of a game in progress.
 #[derive(Debug, Clone)]
 pub struct RuntimeState {
@@ -62,6 +81,8 @@ pub struct RuntimeState {
     /// Per-zone visibility overrides. Key: zone_name or "zone_name[player]" for per-player zones.
     /// If a zone has an override, it takes precedence over the definition's visibility.
     pub visibility_overrides: IndexMap<String, Visibility>,
+    /// Active claim window, if a trigger has fired and claims are being collected.
+    pub claim_window: Option<ClaimWindow>,
 }
 
 impl RuntimeState {
@@ -1074,6 +1095,7 @@ impl GameSession {
                 result: None,
                 partnerships,
                 visibility_overrides: IndexMap::new(),
+                claim_window: None,
             },
             definition,
         })
@@ -1244,6 +1266,22 @@ impl GameSession {
             timestamp: None,
             partnerships: self.runtime.partnerships.clone(),
             visibility_overrides: self.runtime.visibility_overrides.clone(),
+            claim_window: self.runtime.claim_window.as_ref().map(|cw| {
+                let submitted: Vec<String> = cw.submitted_claims.keys().cloned().collect();
+                let awaiting: Vec<String> = cw
+                    .eligible_players
+                    .iter()
+                    .filter(|p| !cw.submitted_claims.contains_key(*p))
+                    .cloned()
+                    .collect();
+                ClaimWindowState {
+                    trigger_name: cw.trigger_name.clone(),
+                    triggering_player: cw.triggering_player.clone(),
+                    eligible_players: cw.eligible_players.clone(),
+                    submitted,
+                    awaiting,
+                }
+            }),
         }
     }
 

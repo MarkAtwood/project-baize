@@ -26,6 +26,8 @@ pub struct GameDefinition {
     pub partnerships: Vec<Vec<String>>,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub visibility_transitions: Vec<VisibilityTransitionRule>,
+    #[serde(default, skip_serializing_if = "IndexMap::is_empty")]
+    pub triggers: IndexMap<String, TriggerDef>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -457,6 +459,36 @@ pub struct Rule {
     pub requires: Vec<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub server_resolves: Option<String>,
+}
+
+// --- Triggers ---
+
+/// A trigger that fires after a specific action type, opening a claim window.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct TriggerDef {
+    /// Action type string that activates this trigger (e.g. "discard").
+    pub on_action: String,
+    /// Optional CEL condition that must be true for the trigger to fire.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub condition: Option<String>,
+    /// Claim window configuration.
+    pub claim_window: ClaimWindowDef,
+}
+
+/// Configuration for a claim window opened by a trigger.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ClaimWindowDef {
+    /// Who may submit claims: "all_except_current" or "next_in_order".
+    pub eligible: String,
+    /// Claim action names eligible players may submit.
+    pub actions: Vec<String>,
+    /// Priority order for resolving competing claims (highest first).
+    pub priority: Vec<String>,
+    /// Seconds before server auto-submits default for non-respondents.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub timeout: Option<u32>,
+    /// Action auto-submitted for non-respondents (typically "pass").
+    pub default: String,
 }
 
 // --- Library entries ---

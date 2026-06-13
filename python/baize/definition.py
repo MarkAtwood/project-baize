@@ -804,6 +804,76 @@ class Authority:
 # ---------------------------------------------------------------------------
 
 @dataclass
+class ClaimWindowDef:
+    """Configuration for a claim window opened by a trigger."""
+
+    eligible: str  # "all_except_current" or "next_in_order"
+    actions: list[str]  # Valid claim action names
+    priority: list[str]  # Priority order, highest first
+    default: str  # Default action for non-respondents
+    timeout: int | None = None  # Seconds before auto-submit
+
+    @staticmethod
+    def from_dict(d: dict[str, Any]) -> ClaimWindowDef:
+        if "eligible" not in d:
+            raise ValueError("claim_window dict missing required 'eligible' key")
+        if "actions" not in d:
+            raise ValueError("claim_window dict missing required 'actions' key")
+        if "priority" not in d:
+            raise ValueError("claim_window dict missing required 'priority' key")
+        if "default" not in d:
+            raise ValueError("claim_window dict missing required 'default' key")
+        return ClaimWindowDef(
+            eligible=d["eligible"],
+            actions=d["actions"],
+            priority=d["priority"],
+            default=d["default"],
+            timeout=d.get("timeout"),
+        )
+
+    def to_dict(self) -> dict[str, Any]:
+        out: dict[str, Any] = {
+            "eligible": self.eligible,
+            "actions": self.actions,
+            "priority": self.priority,
+            "default": self.default,
+        }
+        if self.timeout is not None:
+            out["timeout"] = self.timeout
+        return out
+
+
+@dataclass
+class TriggerDef:
+    """A trigger that fires after a specific action type, opening a claim window."""
+
+    on_action: str  # Action type that activates this trigger
+    claim_window: ClaimWindowDef
+    condition: str | None = None  # Optional CEL condition
+
+    @staticmethod
+    def from_dict(d: dict[str, Any]) -> TriggerDef:
+        if "on_action" not in d:
+            raise ValueError("trigger dict missing required 'on_action' key")
+        if "claim_window" not in d:
+            raise ValueError("trigger dict missing required 'claim_window' key")
+        return TriggerDef(
+            on_action=d["on_action"],
+            claim_window=ClaimWindowDef.from_dict(d["claim_window"]),
+            condition=d.get("condition"),
+        )
+
+    def to_dict(self) -> dict[str, Any]:
+        out: dict[str, Any] = {
+            "on_action": self.on_action,
+            "claim_window": self.claim_window.to_dict(),
+        }
+        if self.condition is not None:
+            out["condition"] = self.condition
+        return out
+
+
+@dataclass
 class BettingRound:
     actions: list[str] = field(default_factory=list)
     ends_when: str | None = None
@@ -922,6 +992,7 @@ class GameDefinition:
     notation: dict[str, Any] | None = None
     partnerships: list[list[str]] = field(default_factory=list)
     visibility_transitions: list[VisibilityTransitionRule] = field(default_factory=list)
+    triggers: dict[str, TriggerDef] = field(default_factory=dict)
 
     @classmethod
     def from_json(cls, json_str: str, *, validate_schema: bool = True) -> GameDefinition:
@@ -966,6 +1037,11 @@ class GameDefinition:
                 for vt in d.get("visibility_transitions", [])
             ]
 
+            triggers = {
+                k: TriggerDef.from_dict(v)
+                for k, v in d.get("triggers", {}).items()
+            }
+
             defn = cls(
                 game=GameMetadata.from_dict(d["game"]),
                 zones=zones,
@@ -982,6 +1058,7 @@ class GameDefinition:
                 notation=d.get("notation"),
                 partnerships=d.get("partnerships", []),
                 visibility_transitions=vis_transitions,
+                triggers=triggers,
             )
             defn.validate()
             return defn
@@ -1114,4 +1191,6 @@ class GameDefinition:
             out["visibility_transitions"] = [
                 vt.to_dict() for vt in self.visibility_transitions
             ]
+        if self.triggers:
+            out["triggers"] = {k: v.to_dict() for k, v in self.triggers.items()}
         return out

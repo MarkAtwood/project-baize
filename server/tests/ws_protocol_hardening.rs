@@ -55,6 +55,7 @@ fn make_test_room(room_id: &str) -> Room {
         players: HashMap::new(),
         max_players: 2,
         player_tokens: HashMap::new(),
+        claim_deadline: None,
     }
 }
 

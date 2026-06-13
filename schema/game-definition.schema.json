@@ -92,6 +92,13 @@
       "type": "array",
       "items": { "$ref": "#/$defs/visibility_transition" },
       "description": "Rules for changing zone visibility during play, triggered by phase changes or conditions."
+    },
+    "triggers": {
+      "type": "object",
+      "additionalProperties": {
+        "$ref": "#/$defs/trigger_def"
+      },
+      "description": "Named triggers that insert claim windows after specific action types. After a matching action, the engine pauses normal turn advancement and opens a mini-simultaneous collection phase for eligible players to submit claims. Resolved by priority order."
     }
   },
   "$defs": {
@@ -843,6 +850,58 @@
         }
       },
       "description": "A rule for changing a zone's visibility during play. Triggered by phase transitions or conditions."
+    },
+
+    "trigger_def": {
+      "type": "object",
+      "required": ["on_action", "claim_window"],
+      "additionalProperties": false,
+      "properties": {
+        "on_action": {
+          "type": "string",
+          "description": "Action type that activates this trigger (e.g. \"discard\", \"play_card\"). Matched against action_type of the just-applied action."
+        },
+        "condition": {
+          "type": "string",
+          "description": "Optional CEL expression that must evaluate to true for the trigger to fire. If omitted, the trigger fires on every matching action."
+        },
+        "claim_window": {
+          "$ref": "#/$defs/claim_window_def"
+        }
+      }
+    },
+
+    "claim_window_def": {
+      "type": "object",
+      "required": ["eligible", "actions", "priority", "default"],
+      "additionalProperties": false,
+      "properties": {
+        "eligible": {
+          "type": "string",
+          "description": "Which players may submit claims. \"all_except_current\" = everyone except the player who took the triggering action. \"next_in_order\" = only the next player in turn order."
+        },
+        "actions": {
+          "type": "array",
+          "items": { "type": "string" },
+          "minItems": 1,
+          "description": "Claim action names that eligible players may submit (e.g. [\"chi\", \"pon\", \"kan\", \"ron\"])."
+        },
+        "priority": {
+          "type": "array",
+          "items": { "type": "string" },
+          "minItems": 1,
+          "description": "Priority order for resolving competing claims, highest priority first. Each entry must appear in actions."
+        },
+        "timeout": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "Seconds before the server auto-submits the default action for non-respondents. Server-enforced; engine treats as advisory."
+        },
+        "default": {
+          "type": "string",
+          "description": "Action auto-submitted for players who do not respond within the timeout (typically \"pass\")."
+        }
+      }
     }
   }
 }
