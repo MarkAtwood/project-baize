@@ -18,9 +18,11 @@ import blake3
 from baize.betting import BettingRoundState
 from baize.definition import (
     Capacity,
+    FogOfWarConfig,
     GameDefinition,
     PlayerRange,
     Zone,
+    _VALID_FOG_STATES,
 )
 from baize.error import (
     IllegalActionError,
@@ -206,6 +208,8 @@ class GridZone:
     _sparse_cell_properties: dict[tuple[int, int], dict[str, str | int | bool]] = field(
         default_factory=dict
     )
+    cell_fog: dict[tuple[int, int], dict[str, str]] | None = None
+    fog_config: FogOfWarConfig | None = None
 
     def __post_init__(self) -> None:
         if not isinstance(self.width, int) or not isinstance(self.height, int):
@@ -511,6 +515,86 @@ class GridZone:
                     row = idx // self.width
                     yield col, row, cid
 
+    # -- Fog of war methods -------------------------------------------------
+
+    def cell_fog_state(self, col: int, row: int, player: str) -> str:
+        """Get fog state for a cell and player.
+
+        Returns the stored state, or the default_state from fog_config
+        if not explicitly set. Returns "visible" if fog is not enabled.
+        """
+        if self.fog_config is None or self.cell_fog is None:
+            return "visible"
+        cell_data = self.cell_fog.get((col, row))
+        if cell_data is None:
+            return self.fog_config.default_state
+        return cell_data.get(player, self.fog_config.default_state)
+
+    def set_cell_fog(self, col: int, row: int, player: str, state: str) -> None:
+        """Set fog state for a cell and player.
+
+        Raises ValueError if state is not a valid fog state or if fog
+        is not enabled on this zone.
+        """
+        if state not in _VALID_FOG_STATES:
+            raise ValidationError(
+                f"invalid fog state {state!r}, must be one of {_VALID_FOG_STATES}"
+            )
+        if self.fog_config is None or self.cell_fog is None:
+            raise ValidationError("fog of war is not enabled on this zone")
+        if (col, row) not in self.cell_fog:
+            self.cell_fog[(col, row)] = {}
+        self.cell_fog[(col, row)][player] = state
+
+    def recompute_fog(
+        self,
+        player: str,
+        unit_positions: list[tuple[int, int]],
+        vision_range: int,
+    ) -> None:
+        """Recompute fog for a player based on unit positions and vision range.
+
+        Cells within Manhattan distance of any unit position become "visible".
+        Previously "visible" cells out of range become "fogged".
+        "unexplored" cells out of range stay "unexplored".
+
+        Args:
+            player: The player whose fog to recompute.
+            unit_positions: List of (col, row) positions of the player's units.
+            vision_range: Manhattan distance for visibility.
+
+        Raises:
+            ValidationError: If fog is not enabled or vision_range < 0.
+        """
+        if self.fog_config is None or self.cell_fog is None:
+            raise ValidationError("fog of war is not enabled on this zone")
+        if vision_range < 0:
+            raise ValidationError(
+                f"vision_range must be >= 0, got {vision_range}"
+            )
+
+        # Collect all cells within Manhattan distance of any unit
+        visible_cells: set[tuple[int, int]] = set()
+        for ux, uy in unit_positions:
+            for dx in range(-vision_range, vision_range + 1):
+                remaining = vision_range - abs(dx)
+                for dy in range(-remaining, remaining + 1):
+                    cx, cy = ux + dx, uy + dy
+                    if self._cell_valid(cx, cy):
+                        visible_cells.add((cx, cy))
+
+        # Transition previously visible cells to fogged,
+        # then mark newly visible cells
+        for (col, row), fog_data in self.cell_fog.items():
+            if player in fog_data and fog_data[player] == "visible":
+                if (col, row) not in visible_cells:
+                    fog_data[player] = "fogged"
+
+        for col, row in visible_cells:
+            if (col, row) not in self.cell_fog:
+                self.cell_fog[(col, row)] = {}
+            self.cell_fog[(col, row)][player] = "visible"
+
 
 @dataclass
 class StackZone:
@@ -719,9 +803,12 @@ def runtime_zone_from_definition(zone_def: Zone) -> RuntimeZone:
                     c, r = pair[0], pair[1]
                     if 0 <= c < w and 0 <= r < h:
                         vc.add(r * w + c)
+            fog_cfg = zone_def.fog_of_war
             grid = GridZone(
                 width=w, height=h, cells=[], _sparse=True,
                 stacking_limit=sl, valid_cells=vc,
+                cell_fog={} if fog_cfg is not None else None,
+                fog_config=fog_cfg,
             )
             if zone_def.cell_properties:
                 for coord, props in zone_def.cell_properties.items():
@@ -743,9 +830,12 @@ def runtime_zone_from_definition(zone_def: Zone) -> RuntimeZone:
                 c, r = pair[0], pair[1]
                 if 0 <= c < w and 0 <= r < h:
                     vc_dense.add(r * w + c)
+        fog_cfg_dense = zone_def.fog_of_war
         grid = GridZone(
             width=w, height=h, cells=[None] * (w * h),
             stacking_limit=sl, valid_cells=vc_dense,
+            cell_fog={} if fog_cfg_dense is not None else None,
+            fog_config=fog_cfg_dense,
         )
         if zone_def.cell_properties:
             for coord, props in zone_def.cell_properties.items():
@@ -1182,3 +1272,157 @@ class GameSession:
             return SetState(components=components)
 
         raise ValidationError(f"unknown zone type: {type(zone)}")
+
+    def to_player_wire_state(self, viewing_player: str) -> GameState:
+        """Convert runtime state to wire-format GameState filtered for a specific player.
+
+        For fog-enabled grid zones, cells are filtered based on the player's fog state:
+        - "unexplored": component and cell_properties are hidden
+        - "fogged": component is hidden; cell_properties shown if remember_terrain
+        - "visible": everything shown
+
+        The player's own fog map is included in the wire state.
+        Other players' fog data is never exposed.
+        """
+        turn = self.current_player() or ""
+        if (
+            self.definition.phases
+            and self.runtime.phase_index < len(self.definition.phases)
+        ):
+            phase = self.definition.phases[self.runtime.phase_index].name
+        else:
+            phase = "main"
+
+        wire_zones: dict[str, ZoneState] = {}
+        for name, zone in self.runtime.zones.items():
+            wire_zones[name] = self._zone_to_wire_for_player(zone, viewing_player)
+
+        wire_players: dict[str, PlayerState] = {}
+        for name, player in self.runtime.players.items():
+            pzones: dict[str, ZoneState] = {}
+            for zname, zone in player.zones.items():
+                pzones[zname] = self._zone_to_wire_for_player(zone, viewing_player)
+            wire_players[name] = PlayerState(
+                seat=player.seat,
+                active=player.active,
+                score=player.score,
+                counters=dict(player.counters) if player.counters else None,
+                zones=pzones if pzones else None,
+            )
+
+        counters: dict[str, int | float] | None = None
+        if self.runtime.counters:
+            counters = dict(self.runtime.counters)
+
+        return GameState(
+            game_id="",
+            schema_ref="",
+            sequence=self.runtime.sequence,
+            status=self.runtime.status,  # type: ignore[arg-type]
+            result=self.runtime.result,
+            turn=turn,
+            phase=phase,
+            zones=wire_zones,
+            players=wire_players,
+            move_count=self.runtime.move_count,
+            halfmove_clock=self.runtime.halfmove_clock,
+            counters=counters,
+            pending_commits=(
+                dict(self.runtime.pending_commits)
+                if self.runtime.pending_commits
+                else None
+            ),
+            simultaneous_actions=(
+                dict(self.runtime.simultaneous_actions)
+                if self.runtime.simultaneous_actions
+                else None
+            ),
+            history_hash=(
+                self.runtime.history_hashes[-1]
+                if self.runtime.history_hashes
+                else None
+            ),
+            visibility_overrides=(
+                dict(self.runtime.visibility_overrides)
+                if self.runtime.visibility_overrides
+                else None
+            ),
+        )
+
+    def _zone_to_wire_for_player(
+        self, zone: RuntimeZone, viewing_player: str
+    ) -> ZoneState:
+        """Convert a runtime zone to wire-format, filtered for a specific player's fog."""
+        if not isinstance(zone, GridZone) or zone.fog_config is None or zone.cell_fog is None:
+            return self._zone_to_wire(zone)
+
+        # Fog-enabled grid: filter cells based on player's fog state
+        cells: dict[str, ComponentInstance | list[ComponentInstance] | None] = {}
+        wire_props: dict[str, dict[str, str | int | bool]] | None = None
+        wire_fog: dict[str, str] = {}
+        remember_terrain = zone.fog_config.remember_terrain
+
+        for col, row, cid in zone.occupied_cells():
+            coord = f"{col},{row}"
+            fog_st = zone.cell_fog_state(col, row, viewing_player)
+            wire_fog[coord] = fog_st
+            if fog_st == "visible":
+                comp = self.runtime.components.get(cid)
+                if comp is not None:
+                    cells[coord] = comp.to_wire_instance()
+
+        # Include fog states for cells without components too
+        if zone._sparse:
+            all_coords: set[tuple[int, int]] = set(zone._sparse_cells.keys())
+            all_coords.update(zone._sparse_cell_properties.keys())
+            all_coords.update(zone.cell_fog.keys())
+        else:
+            all_coords = set()
+            for r in range(zone.height):
+                for c in range(zone.width):
+                    if not zone._cell_valid(c, r):
+                        continue
+                    all_coords.add((c, r))
+
+        for col, row in all_coords:
+            coord = f"{col},{row}"
+            if coord in wire_fog:
+                continue
+            fog_st = zone.cell_fog_state(col, row, viewing_player)
+            if fog_st != zone.fog_config.default_state:
+                wire_fog[coord] = fog_st
+
+        # Filter cell_properties based on fog
+        if zone._sparse:
+            if zone._sparse_cell_properties:
+                for (col, row), props in zone._sparse_cell_properties.items():
+                    coord = f"{col},{row}"
+                    fog_st = zone.cell_fog_state(col, row, viewing_player)
+                    if fog_st == "visible":
+                        if wire_props is None:
+                            wire_props = {}
+                        wire_props[coord] = dict(props)
+                    elif fog_st == "fogged" and remember_terrain:
+                        if wire_props is None:
+                            wire_props = {}
+                        wire_props[coord] = dict(props)
+        elif zone.cell_properties:
+            for idx, props in zone.cell_properties.items():
+                col = idx % zone.width
+                row = idx // zone.width
+                coord = f"{col},{row}"
+                fog_st = zone.cell_fog_state(col, row, viewing_player)
+                if fog_st == "visible":
+                    if wire_props is None:
+                        wire_props = {}
+                    wire_props[coord] = dict(props)
+                elif fog_st == "fogged" and remember_terrain:
+                    if wire_props is None:
+                        wire_props = {}
+                    wire_props[coord] = dict(props)
+
+        return GridState(
+            cells=cells,
+            cell_properties=wire_props,
+            cell_fog=wire_fog if wire_fog else None,
+        )

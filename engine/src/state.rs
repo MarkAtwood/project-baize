@@ -77,6 +77,10 @@ pub enum ZoneState {
         cells: IndexMap<String, CellContents>,
         #[serde(default, skip_serializing_if = "Option::is_none")]
         cell_properties: Option<IndexMap<String, IndexMap<String, serde_json::Value>>>,
+        /// Per-cell fog state for the viewer: "col,row" -> "visible"/"fogged"/"unexplored".
+        /// Only present for fog-of-war zones, contains only the viewer's fog data.
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        cell_fog: Option<IndexMap<String, String>>,
     },
     OrderedStack {
         components: Vec<ComponentInstance>,

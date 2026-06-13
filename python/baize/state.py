@@ -78,6 +78,7 @@ CellPropertyValue = str | int | bool
 class GridState:
     cells: dict[str, ComponentInstance | list[ComponentInstance] | None]
     cell_properties: dict[str, dict[str, CellPropertyValue]] | None = None
+    cell_fog: dict[str, str] | None = None  # "col,row" -> fog_state (for viewing player)
 
     @staticmethod
     def from_dict(d: dict[str, Any]) -> GridState:
@@ -91,7 +92,9 @@ class GridState:
                 cells[k] = ComponentInstance.from_dict(v)
         raw_props = d.get("cell_properties")
         cell_properties = dict(raw_props) if raw_props else None
-        return GridState(cells=cells, cell_properties=cell_properties)
+        raw_fog = d.get("cell_fog")
+        cell_fog = dict(raw_fog) if raw_fog else None
+        return GridState(cells=cells, cell_properties=cell_properties, cell_fog=cell_fog)
 
     def to_dict(self) -> dict[str, Any]:
         cells_out: dict[str, Any] = {}
@@ -105,6 +108,8 @@ class GridState:
         out: dict[str, Any] = {"zone_type": "grid", "cells": cells_out}
         if self.cell_properties:
             out["cell_properties"] = self.cell_properties
+        if self.cell_fog:
+            out["cell_fog"] = self.cell_fog
         return out
 
 

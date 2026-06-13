@@ -9,7 +9,7 @@ use rand::Rng;
 use tokio::sync::Mutex;
 
 use baize_engine::action::{Hello, PROTOCOL_VERSION};
-use baize_engine::visibility::filter_for_viewer;
+use baize_engine::visibility::filter_for_viewer_with_fog;
 
 use crate::config;
 use crate::protocol::{self, HandleResult};
@@ -221,10 +221,11 @@ async fn handle_socket(
 
         // Send initial state sync (filtered for this player)
         let state = room_guard.session.to_wire_state();
-        let filtered = filter_for_viewer(
+        let filtered = filter_for_viewer_with_fog(
             &state,
             &seat,
             &room_guard.session.definition,
+            Some(&room_guard.session.runtime.zones),
         );
         let sync_msg = serde_json::json!({
             "message_type": "state_sync",

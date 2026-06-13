@@ -887,6 +887,11 @@ fn execute_action(
         }
     }
 
+    // Recompute fog of war for the acting player on any fog-enabled zones
+    if matches!(action.action_type, ActionType::MovePiece | ActionType::Place) {
+        recompute_player_fog(session, player);
+    }
+
     Ok(events)
 }
 
@@ -1172,5 +1177,58 @@ fn make_event(
         detail: None,
         state_hash: String::new(), // filled in after state mutation
         prev_hash: prev_hash.clone(),
+    }
+}
+
+/// Recompute fog of war for a player on all fog-enabled shared zones.
+///
+/// Finds all units owned by the player on each fog-enabled zone and calls
+/// `recompute_fog` with their positions and the zone's vision_range.
+fn recompute_player_fog(session: &mut GameSession, player: &str) {
+    // Collect zone names and vision_range for fog-enabled zones
+    let fog_zones: Vec<(String, u32)> = session
+        .runtime
+        .zones
+        .iter()
+        .filter_map(|(name, zone)| {
+            zone.fog_config()
+                .map(|config| (name.clone(), config.vision_range))
+        })
+        .collect();
+
+    for (zone_name, vision_range) in fog_zones {
+        if vision_range == 0 {
+            continue;
+        }
+
+        // Find all units owned by the player on this zone
+        let unit_positions: Vec<(i32, i32)> = {
+            let zone = &session.runtime.zones[&zone_name];
+            if let RuntimeZone::Grid { storage, .. } = zone {
+                storage
+                    .occupied_cells()
+                    .iter()
+                    .filter_map(|&(col, row, cid)| {
+                        session
+                            .runtime
+                            .components
+                            .get(cid)
+                            .and_then(|comp| {
+                                if comp.owner.as_deref() == Some(player) {
+                                    Some((col, row))
+                                } else {
+                                    None
+                                }
+                            })
+                    })
+                    .collect()
+            } else {
+                continue;
+            }
+        };
+
+        if let Some(zone) = session.runtime.zones.get_mut(&zone_name) {
+            zone.recompute_fog(player, &unit_positions, vision_range);
+        }
     }
 }

@@ -235,6 +235,26 @@
           "enum": ["dense", "sparse"],
           "description": "Grid storage backend. \"dense\" (default) uses a flat array indexed by row*width+col — fast for fixed-size boards. \"sparse\" uses a hashmap with signed (col, row) keys — required for unbounded or very large grids. Auto-selected: dense when dimensions provided and <= 1000 per axis, sparse otherwise."
         },
+        "fog_of_war": {
+          "type": "object",
+          "description": "Enable per-cell per-player fog of war. Server holds full map, clients see only what their units reveal.",
+          "properties": {
+            "vision_range": {
+              "type": "integer",
+              "minimum": 0,
+              "description": "Default vision range for units on this grid (in cells). 0 = no vision, units must be told their range via component properties."
+            },
+            "default_state": {
+              "type": "string",
+              "enum": ["unexplored", "visible", "fogged"],
+              "description": "Initial fog state for all cells. Default: \"unexplored\"."
+            },
+            "remember_terrain": {
+              "type": "boolean",
+              "description": "If true, cell_properties (terrain) remain visible once explored even when fogged. Default: true."
+            }
+          }
+        },
         "adjacency": {
           "enum": ["orthogonal_4", "orthogonal_8", "hex_6"],
           "description": "How cells connect to their neighbors."

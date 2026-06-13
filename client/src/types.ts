@@ -25,6 +25,14 @@ export interface GameDefinition {
   readonly visibility_transitions?: readonly VisibilityTransition[];
 }
 
+export type FogState = "unexplored" | "visible" | "fogged";
+
+export interface FogOfWarConfig {
+  readonly vision_range?: number;
+  readonly default_state?: FogState;
+  readonly remember_terrain?: boolean;
+}
+
 export interface VisibilityTransition {
   readonly zone: string;
   readonly player?: string;
@@ -95,6 +103,7 @@ export interface Zone {
   readonly valid_cells?: ReadonlyArray<readonly [number, number]>;
   readonly stacking_limit?: number;
   readonly storage?: "dense" | "sparse";
+  readonly fog_of_war?: FogOfWarConfig;
   readonly nodes?: readonly string[];
   readonly edges?: ReadonlyArray<readonly [string, string]>;
   readonly node_properties?: Record<string, Record<string, unknown>>;
@@ -258,6 +267,7 @@ export interface GridState {
   readonly zone_type: "grid";
   readonly cells: Record<string, ComponentInstance | readonly ComponentInstance[] | null>;
   readonly cell_properties?: Record<string, Record<string, unknown>>;
+  readonly cell_fog?: Record<string, FogState>;
 }
 
 export interface StackState {

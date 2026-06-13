@@ -423,6 +423,9 @@ def _execute_action(
             )
         )
 
+        # Recompute fog after move on fog-enabled zones
+        _recompute_fog_for_player(session, zone, player)
+
     elif action.action_type == "place":
         to_col, to_row = _parse_position(action.to_pos)
         zone_name = _position_zone(action.to_pos) or "board"
@@ -476,6 +479,9 @@ def _execute_action(
                 prev_hash=prev_hash,
             )
         )
+
+        # Recompute fog after place on fog-enabled zones
+        _recompute_fog_for_player(session, zone, player)
 
     elif action.action_type == "pass":
         events.append(
@@ -1026,6 +1032,24 @@ def _execute_action(
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
+
+
+def _recompute_fog_for_player(
+    session: GameSession, zone: GridZone, player: str
+) -> None:
+    """Recompute fog for a player on a fog-enabled zone.
+
+    Finds all of the player's units on the zone and recomputes fog using
+    the zone's configured vision_range.
+    """
+    if zone.fog_config is None or zone.cell_fog is None:
+        return
+    unit_positions: list[tuple[int, int]] = []
+    for col, row, cid in zone.occupied_cells():
+        comp = session.runtime.components.get(cid)
+        if comp is not None and comp.owner == player:
+            unit_positions.append((col, row))
+    zone.recompute_fog(player, unit_positions, zone.fog_config.vision_range)
 
 
 def _find_component_on_grid(

@@ -1,9 +1,11 @@
 use std::collections::{HashMap, HashSet};
 
 use indexmap::IndexMap;
+use serde::{Deserialize, Serialize};
 
 use crate::definition::{
-    Capacity, Dimensions, GameDefinition, InformationType, Players, Visibility, Zone, ZoneType,
+    Capacity, Dimensions, FogOfWarConfig, GameDefinition, InformationType, Players, Visibility,
+    Zone, ZoneType,
 };
 use crate::error::{BaizeError, Result};
 use crate::state::{
@@ -255,6 +257,26 @@ impl GridStorage {
 
 }
 
+/// Per-cell per-player fog of war state.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum FogState {
+    Unexplored,
+    Visible,
+    Fogged,
+}
+
+impl FogState {
+    /// Parse a fog state from a string, defaulting to Unexplored.
+    pub fn from_str_default(s: &str) -> Self {
+        match s {
+            "visible" => FogState::Visible,
+            "fogged" => FogState::Fogged,
+            _ => FogState::Unexplored,
+        }
+    }
+}
+
 /// Runtime zone — efficient storage for each zone type.
 #[derive(Debug, Clone)]
 pub enum RuntimeZone {
@@ -270,6 +292,11 @@ pub enum RuntimeZone {
         /// If present, only these coordinates are valid board positions.
         /// Cells outside this set are treated as out-of-bounds.
         valid_cells: Option<HashSet<(i32, i32)>>,
+        /// Per-cell per-player fog state. Only present when fog_of_war is configured.
+        /// Key: (col, row), Value: player_name -> FogState.
+        cell_fog: Option<IndexMap<(i32, i32), IndexMap<String, FogState>>>,
+        /// Fog of war configuration from the zone definition.
+        fog_config: Option<FogOfWarConfig>,
     },
     OrderedStack {
         components: Vec<ComponentId>,
@@ -435,12 +462,24 @@ impl RuntimeZone {
                         .map(|[c, r]| (*c as i32, *r as i32))
                         .collect::<HashSet<(i32, i32)>>()
                 });
+                // Initialize fog of war if configured
+                let (cell_fog, fog_config) = if let Some(ref fow) = zone_def.fog_of_war {
+                    // For dense grids, we defer population until players are known
+                    // (fog is per-player). Start with an empty map; cells will be
+                    // initialized to default_state lazily via cell_fog_state().
+                    (Some(IndexMap::new()), Some(fow.clone()))
+                } else {
+                    (None, None)
+                };
+
                 Ok(RuntimeZone::Grid {
                     storage,
                     stacks: IndexMap::new(),
                     stacking_limit: zone_def.stacking_limit.unwrap_or(1),
                     cell_properties: cell_props,
                     valid_cells: vc,
+                    cell_fog,
+                    fog_config,
                 })
             }
             ZoneType::OrderedStack => Ok(RuntimeZone::OrderedStack {
@@ -840,6 +879,138 @@ impl RuntimeZone {
             _ => Vec::new(),
         }
     }
+
+    // --- Fog of war helpers ---
+
+    /// Get the fog state for a specific cell and player.
+    ///
+    /// Returns the stored state, or the configured default_state if no entry
+    /// exists. For non-fog zones, returns `FogState::Visible`.
+    pub fn cell_fog_state(&self, col: i32, row: i32, player: &str) -> FogState {
+        match self {
+            RuntimeZone::Grid { cell_fog: Some(fog), fog_config, .. } => {
+                let default = fog_config
+                    .as_ref()
+                    .map(|c| FogState::from_str_default(&c.default_state))
+                    .unwrap_or(FogState::Unexplored);
+                fog.get(&(col, row))
+                    .and_then(|players| players.get(player))
+                    .copied()
+                    .unwrap_or(default)
+            }
+            _ => FogState::Visible,
+        }
+    }
+
+    /// Set the fog state for a specific cell and player.
+    ///
+    /// No-op for non-fog zones.
+    pub fn set_cell_fog(&mut self, col: i32, row: i32, player: &str, state: FogState) {
+        if let RuntimeZone::Grid { cell_fog: Some(fog), .. } = self {
+            fog.entry((col, row))
+                .or_default()
+                .insert(player.to_string(), state);
+        }
+    }
+
+    /// Recompute fog for a player based on their unit positions.
+    ///
+    /// Cells within Manhattan distance `vision_range` of any unit become Visible.
+    /// Previously Visible cells now out of range become Fogged.
+    /// Unexplored cells not in range stay Unexplored.
+    ///
+    /// No-op if vision_range is 0 (manual fog control) or zone has no fog.
+    pub fn recompute_fog(
+        &mut self,
+        player: &str,
+        unit_positions: &[(i32, i32)],
+        vision_range: u32,
+    ) {
+        if vision_range == 0 {
+            return;
+        }
+
+        let RuntimeZone::Grid {
+            cell_fog: Some(fog),
+            fog_config: Some(config),
+            storage,
+            ..
+        } = self
+        else {
+            return;
+        };
+
+        let default_state = FogState::from_str_default(&config.default_state);
+        let range = vision_range as i32;
+
+        // Collect all cells that are now visible (within range of any unit)
+        let mut newly_visible: HashSet<(i32, i32)> = HashSet::new();
+        for &(ux, uy) in unit_positions {
+            for dx in -range..=range {
+                let remaining = range - dx.abs();
+                for dy in -remaining..=remaining {
+                    let cx = ux + dx;
+                    let cy = uy + dy;
+                    if storage.cell_valid(cx, cy) {
+                        newly_visible.insert((cx, cy));
+                    }
+                }
+            }
+        }
+
+        // Update fog state for all cells that have player entries
+        // 1. Previously visible cells not in newly_visible -> Fogged
+        // 2. Newly visible cells -> Visible
+        // First pass: scan existing fog entries for this player
+        let existing_cells: Vec<(i32, i32)> = fog
+            .iter()
+            .filter_map(|(&coord, players)| {
+                if players.contains_key(player) {
+                    Some(coord)
+                } else {
+                    None
+                }
+            })
+            .collect();
+
+        for coord in existing_cells {
+            let current = fog
+                .get(&coord)
+                .and_then(|p| p.get(player))
+                .copied()
+                .unwrap_or(default_state);
+
+            if !newly_visible.contains(&coord) && current == FogState::Visible {
+                // Was visible, now out of range -> Fogged
+                fog.entry(coord)
+                    .or_default()
+                    .insert(player.to_string(), FogState::Fogged);
+            }
+        }
+
+        // Second pass: mark all newly visible cells
+        for coord in newly_visible {
+            fog.entry(coord)
+                .or_default()
+                .insert(player.to_string(), FogState::Visible);
+        }
+    }
+
+    /// Get the fog of war configuration for this zone, if any.
+    pub fn fog_config(&self) -> Option<&FogOfWarConfig> {
+        match self {
+            RuntimeZone::Grid { fog_config, .. } => fog_config.as_ref(),
+            _ => None,
+        }
+    }
+
+    /// Get the cell_fog map reference for this zone, if any.
+    pub fn cell_fog(&self) -> Option<&IndexMap<(i32, i32), IndexMap<String, FogState>>> {
+        match self {
+            RuntimeZone::Grid { cell_fog, .. } => cell_fog.as_ref(),
+            _ => None,
+        }
+    }
 }
 
 // --- GameSession ---
@@ -1096,7 +1267,7 @@ impl GameSession {
                     }
                     Some(props_map)
                 };
-                ZoneState::Grid { cells: wire_cells, cell_properties: wire_props }
+                ZoneState::Grid { cells: wire_cells, cell_properties: wire_props, cell_fog: None }
             }
             RuntimeZone::OrderedStack { components } => ZoneState::OrderedStack {
                 components: components
@@ -1149,7 +1320,7 @@ impl GameSession {
                         }
                     }
                 }
-                ZoneState::Grid { cells: wire_cells, cell_properties: None }
+                ZoneState::Grid { cells: wire_cells, cell_properties: None, cell_fog: None }
             }
         }
     }
