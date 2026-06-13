@@ -1,4 +1,5 @@
 pub mod action;
+pub mod mental_poker;
 pub mod cel;
 pub mod definition;
 pub mod end_conditions;

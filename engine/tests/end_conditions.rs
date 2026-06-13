@@ -51,6 +51,7 @@ fn place(col: u32, row: u32) -> Action {
         declaration: None,
         commitment: None,
         custom_data: None,
+        mental_poker_data: None,
     }
 }
 

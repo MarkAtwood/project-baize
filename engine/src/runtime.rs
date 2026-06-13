@@ -13,6 +13,21 @@ use crate::state::{
     PlayerState, ZoneState,
 };
 
+/// How hidden-state trust is provided for this session.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum TrustMode {
+    /// Trusted server provides randomness and hides state (default).
+    TrustedServer,
+    /// Mental poker: peer-to-peer cryptographic shuffle/deal.
+    MentalPoker,
+}
+
+impl Default for TrustMode {
+    fn default() -> Self {
+        TrustMode::TrustedServer
+    }
+}
+
 // ---------------------------------------------------------------------------
 // Resource budget defaults
 // ---------------------------------------------------------------------------
@@ -83,6 +98,8 @@ pub struct RuntimeState {
     pub visibility_overrides: IndexMap<String, Visibility>,
     /// Active claim window, if a trigger has fired and claims are being collected.
     pub claim_window: Option<ClaimWindow>,
+    /// How hidden-state trust is provided for this session.
+    pub trust_mode: TrustMode,
 }
 
 impl RuntimeState {
@@ -1096,6 +1113,7 @@ impl GameSession {
                 partnerships,
                 visibility_overrides: IndexMap::new(),
                 claim_window: None,
+                trust_mode: TrustMode::TrustedServer,
             },
             definition,
         })
@@ -1266,6 +1284,10 @@ impl GameSession {
             timestamp: None,
             partnerships: self.runtime.partnerships.clone(),
             visibility_overrides: self.runtime.visibility_overrides.clone(),
+            trust_mode: match &self.runtime.trust_mode {
+                TrustMode::TrustedServer => None,
+                TrustMode::MentalPoker => Some("mental_poker".to_string()),
+            },
             claim_window: self.runtime.claim_window.as_ref().map(|cw| {
                 let submitted: Vec<String> = cw.submitted_claims.keys().cloned().collect();
                 let awaiting: Vec<String> = cw

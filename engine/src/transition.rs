@@ -59,6 +59,14 @@ pub enum EventType {
     TriggerActivated,
     ClaimSubmitted,
     ClaimResolved,
+    /// Shuffle step completed by a player.
+    ShuffleComplete,
+    /// A card has been dealt (decryption shares collected).
+    CardDealt,
+    /// Player revealed their encryption key for verification.
+    KeyRevealed,
+    /// Mental poker verification completed (pass or fail).
+    VerificationComplete,
 }
 
 /// Return the current Phase definition, or None if no phases are defined.

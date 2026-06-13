@@ -763,6 +763,10 @@
           "type": "array",
           "items": { "type": "string" },
           "description": "Operations that require WASM module execution (complex scoring, flood-fill, etc.)."
+        },
+        "trust_mode": {
+          "type": "string",
+          "description": "How hidden-state trust is provided. \"trusted_server\" (default) uses the server Vault. \"mental_poker\" uses peer-to-peer SRA cryptographic shuffle/deal. Negotiated at room creation."
         }
       }
     },

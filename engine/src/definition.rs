@@ -546,6 +546,9 @@ pub struct Authority {
     pub client_verifiable: Vec<String>,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub wasm_required: Vec<String>,
+    /// How hidden-state trust is provided: "trusted_server" (default) or "mental_poker".
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub trust_mode: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

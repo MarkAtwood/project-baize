@@ -109,6 +109,7 @@ fn build_action(v: &Value) -> Action {
         declaration: None,
         commitment: None,
         custom_data: None,
+        mental_poker_data: None,
     }
 }
 

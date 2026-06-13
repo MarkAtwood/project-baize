@@ -42,6 +42,9 @@ pub struct GameState {
     /// Active claim window, if a trigger has fired and claims are being collected.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub claim_window: Option<ClaimWindowState>,
+    /// How hidden-state trust is provided: "trusted_server" or "mental_poker".
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub trust_mode: Option<String>,
 }
 
 /// Serializable snapshot of an active claim window.
