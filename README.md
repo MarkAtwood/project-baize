@@ -108,9 +108,10 @@ implementation, even before full mental poker support.
 ## Status
 
 Core engine complete. 336 of 361 issues closed. Sixty-four games
-defined, twenty-one fully playable end-to-end. Texas Hold'em poker
-now playable with full betting, hand evaluation, and showdown.
-The engine parses and validates game definitions, manages runtime
+defined and playable with gameplay tests — no skipped tests, no
+stub implementations. Texas Hold'em poker plays full betting,
+hand evaluation, and showdown. The engine parses and validates
+game definitions, manages runtime
 state, generates legal moves, evaluates CEL expressions for
 win/constraint conditions, applies state transitions with a
 structured perturber language, and produces BLAKE3 hash-chained
@@ -146,7 +147,7 @@ key reveal with tamper detection, authority-aware trust mode dispatch.
 |-----------|-------|-----------|
 | Schema (5 JSON Schemas) | — | Game definitions, state, actions, events, component registry |
 | Rust engine | 329 | Parse, validate, state machine, move gen, transitions, CEL end conditions, perturber effects (cycle, remove, flip, promote, counters, invoke), commit-reveal, simultaneous phases, action triggers with claim windows, mental poker (SRA commutative encryption, N-player shuffle, selective deal, showdown verification), hash-chained events, tamper detection, visibility filtering, dynamic visibility transitions, fog of war (per-cell per-player), valid_cells grid mask, graph zone, sparse/dense grid storage, cell stacking with limits, partnerships with team win propagation, hostile input rejection, invariant guards, fuel limits, resource budgets, serialization round-trips, cross-engine determinism |
-| Python engine | 3,690 | Feature-parallel with Rust, plus game analysis, Jupyter notebook, terminal CLI, interactive REPL, agent framework (Random/Greedy/MCTS), notation adapter, adversarial input tests, error leak audit, hypothesis fuzzing, cross-engine determinism, poker (hand evaluator, betting FSM, showdown), sparse/dense grid storage, cell stacking, partnerships, dynamic visibility, fog of war, action triggers with claim windows, 58 game definitions with gameplay tests |
+| Python engine | 3,690 | Feature-parallel with Rust, plus game analysis, Jupyter notebook, terminal CLI, interactive REPL, agent framework (Random/Greedy/MCTS), notation adapter, adversarial input tests, error leak audit, hypothesis fuzzing, cross-engine determinism, poker (hand evaluator, betting FSM, showdown), sparse/dense grid storage, cell stacking, partnerships, dynamic visibility, fog of war, action triggers with claim windows, 64 game definitions with gameplay tests |
 | Server | 130 | Room management, WebSocket protocol, hidden-state vault (ChaCha20Rng), per-player visibility, rate limiting, token auth, spectator isolation, persistence, WASM sandboxing (fuel + memory caps), abuse resistance, protocol hardening, claim window timeouts, cell_property host import, debug redaction, graceful shutdown, Felt host imports |
 | Felt compiler | 127 | Lexer (logos), parser (chumsky), type checker with polymorphic type variables, call graph checker, WASM GC codegen (wasm-encoder), 37 builtins wired as host imports, CLI (compile/check), host import API, example extensions (poker, chess, go, wargame terrain/CRT/ZOC), word_valid for dictionary resources |
 | Client (TypeScript) | 86 | Full type definitions for all schemas (game state, actions, events, registry, effects); Web Components (`<baize-game>`, `<baize-board>`, `<baize-hand>`, `<baize-clock>`, `<baize-score>`); WASM engine wrapper; WebSocket connection with auto-reconnect; server message validation with prototype-pollution defense; drag-and-drop board interaction; Go-style intersection rendering; stacking visualization |
@@ -173,83 +174,74 @@ in external tools.
 Sixty-four reference game definitions spanning the complexity spectrum.
 Game rules are not subject to intellectual property protection. All
 trademarked names are used here in their descriptive sense to identify
-the games whose rules are implemented. Games marked ✓ are fully
-playable end-to-end with tests. Games marked `def` have a JSON
-definition that parses and validates. Planned games have beads issues
-tracking their implementation.
-
-### Playable
+the games whose rules are implemented.
 
 | Game | Information | Notable features |
 |------|------------|-----------------|
-| Tic-Tac-Toe | Perfect | Simplest definition; library CEL expressions; zero server authority |
-| Connect Four™ | Perfect | 7×6 grid, gravity drop placement, CEL `lines_4` window detection |
-| Pig | Perfect + random | Push-your-luck dice, multi-action turns, counter-based scoring |
-| Battleship™ | Imperfect | Hidden ship placement, multi-cell spans, hit/miss/sunk tracking |
-| Rock Paper Scissors | Imperfect | Simultaneous phases, commit-reveal (SHA-256), best-of-3 |
-| High Card | Imperfect | Deck shuffle/deal pipeline, private hands, rank comparison |
-| Go | Perfect | 9×9/19×19, flood-fill captures, ko rule, suicide, territory scoring |
-| Othello™ / Reversi | Perfect | 8-direction bracket flipping, legal move detection, disc count scoring |
-| Checkers | Perfect | Hop captures, multi-jump chains, mandatory captures, king promotion |
-| Snakes & Ladders | Perfect + random | TrackZone, d6 dice, snake/ladder triggered effects, bounce-back |
-| Yahtzee™ | Perfect + random | 5d6, keep/re-roll, 13 scoring categories, upper bonus |
-| Liar's Dice | Imperfect | Hidden per-player dice, escalating bids, challenge/reveal, elimination |
+| Abalone™ | Perfect | 61-cell hex, push chains of marbles off the edge |
+| Azul™ | Imperfect | Factory tile drafting, pattern building, adjacency scoring |
 | Backgammon | Perfect + random | 24-point track, hitting/bar, re-entry, bearing off, doubles |
-| Chess | Perfect | All pieces, castling, en passant, promotion, check/checkmate/stalemate, repetition, 50-move, insufficient material |
-| Hex | Perfect | Hex grid, 6-neighbor adjacency, BFS edge-to-edge connectivity win |
-| Chinese Checkers | Perfect | 121-position hexagram via valid_cells mask, hex_6 adjacency, step/hop, multi-hop chains |
+| Bao la Kiswahili | Perfect | 4×8 board (32 pits), 64 seeds, namua/mtaji phases, relay sowing, kula capture — most complex mancala variant |
+| Battleship™ | Imperfect | Hidden ship placement, multi-cell spans, hit/miss/sunk tracking |
 | Blokus™ | Perfect | 20×20 grid, 21 polyomino shapes, rotation/flip, corner-only adjacency |
-| Polyiamond Placement | Perfect | 486-cell hex triangular grid, D6 symmetry, 22 polyiamond pieces |
-| Ogre™ | Perfect | 22×15 hex wargame, Ogre Mk III subsystem targeting, CRT combat, GEV hit-and-run, overrun |
-| Rubik's Cube™ | Perfect | Single-player puzzle, 6-zone cycle perturbers, solved-state CEL |
-
-### Definition exists (parse + validate, with gameplay tests)
-
-| Game | Information | Notable features |
-|------|------------|-----------------|
-| Texas Hold'em | Imperfect | Betting FSM, hand evaluator (7-card best-of-21), server deal/burn/reveal phases, showdown with pot distribution |
-| Risk™ | Imperfect | 12 territories, 3 continents, dice combat, reinforcement/fortification phases |
-| Pandemic™ | Imperfect | Cooperative, 12 cities, disease cubes, outbreaks, cure mechanics |
-| Ticket to Ride™ | Imperfect | 10-city route network, train card deck, route claiming/scoring |
+| Bridge | Imperfect | 4-player partnership, auction bidding, dummy hand exposure, trick-taking |
 | Carcassonne™ | Imperfect | 30 tiles with edge matching, meeple placement, city/road/monastery scoring |
+| Checkers | Perfect | Hop captures, multi-jump chains, mandatory captures, king promotion |
+| Chess | Perfect | All pieces, castling, en passant, promotion, check/checkmate/stalemate, repetition, 50-move, insufficient material |
+| Chickenfoot Dominoes | Imperfect | Dynamic graph branching layout, double-nine set, chickenfoot fork rule |
+| Chinese Checkers | Perfect | 121-position hexagram via valid_cells mask, hex_6 adjacency, step/hop, multi-hop chains |
 | Clue™ | Imperfect | 9 rooms + hallways graph, hidden envelope, deduction, secret passages |
-| Scotland Yard™ | Imperfect | 20-location transit network, hidden Mr. X movement, reveal turns |
-| Diplomacy™ | Imperfect | 12 territories, simultaneous secret orders, support/strength resolution |
-| Settlers of Catan™ | Imperfect | 7-hex resource map, graph settlement placement, dice production, bank trading |
 | Colossal Cave Adventure | Perfect | 17-room graph text adventure, obstacles, treasures, single player |
 | Colossal Cave Adventure (350) | Perfect | 46-room expanded version, lamp battery, darkness, 10 treasures, 350 points |
-| Shogi | Perfect | 9×9, piece drops (captured pieces return to play), directional movement, promotion |
-| Xiangqi | Perfect | 9×10, river/palace constraints, cannon jump-capture, flying general |
-| Mancala | Perfect | 14 pits, seed-sowing distribution, captures, extra turns |
-| Oware | Perfect | 2×6 board, 48 seeds, counter-clockwise sowing, chain capture (2 or 3), grand slam protection — international tournament variant |
-| Bao la Kiswahili | Perfect | 4×8 board (32 pits), 64 seeds, namua/mtaji phases, relay sowing, kula capture — most complex mancala variant |
-| Senet | Perfect + random | 30-square S-track, casting sticks, 5 special squares, swap capture, bearing off — ancient Egypt (~3100 BCE) |
-| Mahjong™ | Imperfect | 4-player, 136 tiles, interrupt claiming (chi/pon/ron), yaku scoring |
-| Dominoes | Imperfect | 28 tiles (double-six), chain topology, end matching |
-| Bridge | Imperfect | 4-player partnership, auction bidding, dummy hand exposure, trick-taking |
-| Stratego™ | Imperfect | 10×10, hidden piece ranks, simultaneous placement, combat reveal |
-| Mastermind™ | Imperfect | Code-breaking, structured feedback (black/white pegs), information-theoretic deduction |
-| Hanabi™ | Imperfect | Cooperative, reverse hidden info (see others not yourself), constrained clues |
-| Nine Men's Morris | Perfect | 24 intersections, phase transition (place → slide), mill captures, flying |
-| Quarto™ | Perfect | 4×4, opponent chooses your piece, 4-in-a-row by shared property |
-| Dots and Boxes | Perfect | Dot grid, edges as playable positions, box completion, chain reactions |
-| Abalone™ | Perfect | 61-cell hex, push chains of marbles off the edge |
-| Hive™ | Perfect | Boardless — pieces form the board, insect movement, one-hive rule |
-| Scrabble™ | Imperfect | 15×15 premium grid, dictionary validation, cross-word formation |
-| Azul™ | Imperfect | Factory tile drafting, pattern building, adjacency scoring |
+| Connect Four™ | Perfect | 7×6 grid, gravity drop placement, CEL `lines_4` window detection |
 | Cribbage | Imperfect | Pegging phase (running total to 31), combinatorial hand scoring, pegboard |
-| Hearts | Imperfect | 4-player trick avoidance, shoot-the-moon gambit, card passing |
-| Gin Rummy | Imperfect | Deadwood optimization, knocking, undercut, layoff |
-| Uno™ | Imperfect | 108-card color-matching, Skip/Reverse/Draw Two/Wild effects, direction reversal, 2-10 players |
-| Skip-Bo™ | Imperfect | 162-card sequential building piles, stockpile race, wild cards, 4 personal discard stacks, 2-6 players |
-| Nim | Perfect | Multiple heaps, Sprague-Grundy theory, mathematically solved |
-| Infinite Go | Perfect | Unbounded sparse board, superko rule, capture-only scoring |
-| Power Grid™ | Imperfect | City network graph, auction economy, resource market, Dijkstra path costs |
+| Diplomacy™ | Imperfect | 12 territories, simultaneous secret orders, support/strength resolution |
+| Dominoes | Imperfect | 28 tiles (double-six), chain topology, end matching |
+| Dots and Boxes | Perfect | Dot grid, edges as playable positions, box completion, chain reactions |
 | Fury of Dracula™ | Imperfect | Hidden movement on European map, asymmetric teams, trail mechanic, day/night cycle |
-| Triangle Dominoes | Imperfect | Triangular tiles on sparse hex grid, edge matching, region scoring |
-| Chickenfoot Dominoes | Imperfect | Dynamic graph branching layout, double-nine set, chickenfoot fork rule |
-| Hex Wargame | Perfect | 20×15 hex grid, mixed terrain (cell_properties), CRT combat, ZOC, IGOUGO phases, Felt wargame extensions |
+| Gin Rummy | Imperfect | Deadwood optimization, knocking, undercut, layoff |
 | Global Thermonuclear War | Imperfect | 40 cities (20/side), ICBM/SLBM/bomber allocation, ABM defense, simultaneous sealed orders, commit-reveal launch, mutual destruction. A strange game. |
+| Go | Perfect | 9×9/19×19, flood-fill captures, ko rule, suicide, territory scoring |
+| Hanabi™ | Imperfect | Cooperative, reverse hidden info (see others not yourself), constrained clues |
+| Hearts | Imperfect | 4-player trick avoidance, shoot-the-moon gambit, card passing |
+| Hex | Perfect | Hex grid, 6-neighbor adjacency, BFS edge-to-edge connectivity win |
+| Hex Wargame | Perfect | 20×15 hex grid, mixed terrain (cell_properties), CRT combat, ZOC, IGOUGO phases, Felt wargame extensions |
+| High Card | Imperfect | Deck shuffle/deal pipeline, private hands, rank comparison |
+| Hive™ | Perfect | Boardless — pieces form the board, insect movement, one-hive rule |
+| Infinite Go | Perfect | Unbounded sparse board, superko rule, capture-only scoring |
+| Liar's Dice | Imperfect | Hidden per-player dice, escalating bids, challenge/reveal, elimination |
+| Mahjong™ | Imperfect | 4-player, 136 tiles, interrupt claiming (chi/pon/ron), yaku scoring |
+| Mancala | Perfect | 14 pits, seed-sowing distribution, captures, extra turns |
+| Mastermind™ | Imperfect | Code-breaking, structured feedback (black/white pegs), information-theoretic deduction |
+| Nim | Perfect | Multiple heaps, Sprague-Grundy theory, mathematically solved |
+| Nine Men's Morris | Perfect | 24 intersections, phase transition (place → slide), mill captures, flying |
+| Ogre™ | Perfect | 22×15 hex wargame, Ogre Mk III subsystem targeting, CRT combat, GEV hit-and-run, overrun |
+| Othello™ / Reversi | Perfect | 8-direction bracket flipping, legal move detection, disc count scoring |
+| Oware | Perfect | 2×6 board, 48 seeds, counter-clockwise sowing, chain capture (2 or 3), grand slam protection — international tournament variant |
+| Pandemic™ | Imperfect | Cooperative, 12 cities, disease cubes, outbreaks, cure mechanics |
+| Pig | Perfect + random | Push-your-luck dice, multi-action turns, counter-based scoring |
+| Polyiamond Placement | Perfect | 486-cell hex triangular grid, D6 symmetry, 22 polyiamond pieces |
+| Power Grid™ | Imperfect | City network graph, auction economy, resource market, Dijkstra path costs |
+| Quarto™ | Perfect | 4×4, opponent chooses your piece, 4-in-a-row by shared property |
+| Risk™ | Imperfect | 12 territories, 3 continents, dice combat, reinforcement/fortification phases |
+| Rock Paper Scissors | Imperfect | Simultaneous phases, commit-reveal (SHA-256), best-of-3 |
+| Rubik's Cube™ | Perfect | Single-player puzzle, 6-zone cycle perturbers, solved-state CEL |
+| Scotland Yard™ | Imperfect | 20-location transit network, hidden Mr. X movement, reveal turns |
+| Scrabble™ | Imperfect | 15×15 premium grid, dictionary validation, cross-word formation |
+| Senet | Perfect + random | 30-square S-track, casting sticks, 5 special squares, swap capture, bearing off — ancient Egypt (~3100 BCE) |
+| Settlers of Catan™ | Imperfect | 7-hex resource map, graph settlement placement, dice production, bank trading |
+| Shogi | Perfect | 9×9, piece drops (captured pieces return to play), directional movement, promotion |
+| Skip-Bo™ | Imperfect | 162-card sequential building piles, stockpile race, wild cards, 4 personal discard stacks, 2-6 players |
+| Snakes & Ladders | Perfect + random | TrackZone, d6 dice, snake/ladder triggered effects, bounce-back |
+| Stratego™ | Imperfect | 10×10, hidden piece ranks, simultaneous placement, combat reveal |
+| Texas Hold'em | Imperfect | Betting FSM, hand evaluator (7-card best-of-21), server deal/burn/reveal phases, showdown with pot distribution |
+| Tic-Tac-Toe | Perfect | Simplest definition; library CEL expressions; zero server authority |
+| Ticket to Ride™ | Imperfect | 10-city route network, train card deck, route claiming/scoring |
+| Tile Kingdoms | Imperfect | Tile placement with edge matching, meeple followers, field scoring via WASM extension |
+| Triangle Dominoes | Imperfect | Triangular tiles on sparse hex grid, edge matching, region scoring |
+| Uno™ | Imperfect | 108-card color-matching, Skip/Reverse/Draw Two/Wild effects, direction reversal, 2-10 players |
+| Xiangqi | Perfect | 9×10, river/palace constraints, cannon jump-capture, flying general |
+| Yahtzee™ | Perfect + random | 5d6, keep/re-roll, 13 scoring categories, upper bonus |
 
 ™ marks identify trademarks of their respective owners. Used here
 descriptively to identify the game rules implemented, not to imply

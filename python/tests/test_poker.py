@@ -1,9 +1,7 @@
-"""Texas Hold'em poker engine capability assessment tests.
+"""Texas Hold'em poker engine tests — core mechanics.
 
-Tests are organized into three tiers:
-  TIER 1 — What works today (must pass)
-  TIER 2 — What is structurally present but broken (expected failures, documenting gaps)
-  TIER 3 — What is entirely missing (skipped, filed as beads)
+Betting FSM, hand evaluation, and showdown are tested in dedicated modules:
+  test_poker_betting.py, test_poker_hands.py, test_poker_showdown.py
 
 Run with: cd /home/mark/PROJECT/baize/python && python3 -m pytest tests/test_poker.py -v
 """
@@ -130,12 +128,9 @@ def poker_session() -> GameSession:
     return session
 
 
-# ===========================================================================
-# TIER 1 — Works today
-# ===========================================================================
 
 
-class TestTier1ParseAndSessionCreation:
+class TestParseAndSessionCreation:
     """The definition parses and a valid session is created with correct zones."""
 
     def test_poker_definition_parses(self) -> None:
@@ -225,7 +220,7 @@ class TestTier1ParseAndSessionCreation:
         assert parsed["status"] == "setup"
 
 
-class TestTier1DeckOperations:
+class TestDeckOperations:
     """Manual deck population and stack operations work."""
 
     def test_deck_starts_empty(self) -> None:
@@ -300,7 +295,7 @@ class TestTier1DeckOperations:
         assert deck.stack_pop() is None
 
 
-class TestTier1ManualDeal:
+class TestManualDeal:
     """Manually dealing cards into per-player SetZone hands works."""
 
     def _deal_hole_cards(self, session: GameSession, count: int = 2) -> None:
@@ -404,7 +399,7 @@ class TestTier1ManualDeal:
         assert deck.count() == 40  # 52 - 4 hole - 3 burns - 5 community
 
 
-class TestTier1PotAndChipAccounting:
+class TestPotAndChipAccounting:
     """CounterZone arithmetic for pot and chip tracking."""
 
     def test_bet_moves_chips_to_pot(self) -> None:
@@ -458,7 +453,7 @@ class TestTier1PotAndChipAccounting:
         assert pot.value == 0
 
 
-class TestTier1WireStateIncludesPokerZones:
+class TestWireStateIncludesPokerZones:
     """Wire-format state snapshot exposes poker zones correctly."""
 
     def test_wire_state_has_deck_zone(self) -> None:
@@ -494,13 +489,8 @@ class TestTier1WireStateIncludesPokerZones:
         assert h_before != h_after
 
 
-# ===========================================================================
-# TIER 2 — Structurally present but broken (document gaps via xfail)
-# ===========================================================================
-
-
-class TestTier2DrawActionGap:
-    """The 'draw' action delivers cards to SetZone hands (fixed)."""
+class TestDrawAction:
+    """The 'draw' action delivers cards to SetZone hands."""
 
     def test_draw_action_delivers_to_set_zone_hand(self) -> None:
         session = poker_session()
@@ -517,8 +507,8 @@ class TestTier2DrawActionGap:
         assert hand.count() == 1
 
 
-class TestTier2BettingActions:
-    """fold/check/call/raise/all_in betting actions (implemented)."""
+class TestBettingActions:
+    """fold/check/call/raise/all_in betting actions."""
 
     def test_fold_action_is_handled(self) -> None:
         session = poker_session()
@@ -552,8 +542,8 @@ class TestTier2BettingActions:
         assert any(e.event_type == "raise" for e in events)
 
 
-class TestTier2ServerDealGap:
-    """Server phase execution: deal phase populates player hands (fixed)."""
+class TestServerDeal:
+    """Server phase execution: deal phase populates player hands."""
 
     def test_advance_to_deal_phase_populates_hands(self) -> None:
         session = poker_session()
@@ -569,37 +559,3 @@ class TestTier2ServerDealGap:
             assert isinstance(hand, SetZone)
             assert hand.count() == 2
 
-
-# ===========================================================================
-# TIER 3 — Entirely missing (skipped, each maps to a filed bead)
-# ===========================================================================
-
-
-@pytest.mark.skip(reason="GAP: no betting round state machine. Bead: poker-betting-round-fsm")
-def test_betting_round_ends_when_bets_equal() -> None:
-    """Betting round should end when all active players have matched the current bet."""
-    raise NotImplementedError
-
-
-@pytest.mark.skip(reason="GAP: no hand ranking evaluator. Bead: poker-hand-ranking")
-def test_best_hand_from_seven_cards() -> None:
-    """Given 2 hole + 5 community cards, select best 5-card hand and rank it."""
-    raise NotImplementedError
-
-
-@pytest.mark.skip(reason="GAP: no showdown resolution. Bead: poker-showdown-resolution")
-def test_showdown_winner_gets_pot() -> None:
-    """At showdown, player with best hand wins the pot."""
-    raise NotImplementedError
-
-
-@pytest.mark.skip(reason="GAP: no side pot logic. Bead: poker-side-pots")
-def test_side_pot_created_on_all_in() -> None:
-    """When a player goes all-in with fewer chips than the current bet, a side pot is created."""
-    raise NotImplementedError
-
-
-@pytest.mark.skip(reason="GAP: no community reveal via server action. Bead: poker-server-deal-action")
-def test_flop_server_action_burns_and_reveals() -> None:
-    """Executing the flop server_action should burn 1 card and reveal 3 to community."""
-    raise NotImplementedError
