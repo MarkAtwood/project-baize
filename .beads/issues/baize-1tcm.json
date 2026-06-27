@@ -1,0 +1,15 @@
+{
+  "id": "baize-1tcm",
+  "title": "Cribbage: pegging and combinatorial hand scoring",
+  "description": "2 players, 52-card deck. Deal 6, discard 2 to crib. Pegging phase: alternating play to 31. Show phase: score 15-combinations, pairs, runs, flushes. First to 121 on pegboard. Demonstrates dual scoring systems, running total, crib as deferred-scoring zone.",
+  "status": "closed",
+  "priority": 3,
+  "issue_type": "task",
+  "assignee": "Mark Atwood",
+  "owner": "mark@wolfssl.com",
+  "created_at": "2026-06-12T18:37:31Z",
+  "created_by": "Mark Atwood",
+  "updated_at": "2026-06-12T18:52:42Z",
+  "closed_at": "2026-06-12T18:52:42Z",
+  "close_reason": "Closed"
+}

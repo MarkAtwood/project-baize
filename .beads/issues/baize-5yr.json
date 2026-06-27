@@ -1,0 +1,15 @@
+{
+  "id": "baize-5yr",
+  "title": "Input validation at all system boundaries",
+  "description": "Every JSON parse, every action, every WebSocket message must be validated. Never trust the caller. Game definitions validated against schema on load. Actions validated against legal moves before apply. Component IDs bounds-checked. Grid coordinates bounds-checked. Player identity verified. Malformed messages rejected with clear errors, never panics.",
+  "status": "closed",
+  "priority": 1,
+  "issue_type": "task",
+  "assignee": "Mark Atwood",
+  "owner": "mark@reviewcommit.com",
+  "created_at": "2026-06-08T00:27:35Z",
+  "created_by": "Mark Atwood",
+  "updated_at": "2026-06-08T00:38:29Z",
+  "closed_at": "2026-06-08T00:38:29Z",
+  "close_reason": "Umbrella issue - specific work completed in baize-x74, gaw, l54, 894, k1f, cxn, gdl"
+}

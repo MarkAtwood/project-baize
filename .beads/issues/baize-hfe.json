@@ -1,0 +1,25 @@
+{
+  "id": "baize-hfe",
+  "title": "Polyiamond Placement: triangle-tiled territory game",
+  "description": "Blokus variant played on a triangular grid. Players place polyiamond pieces (shapes made of equilateral triangles) onto the board. Pieces must touch your own pieces at corners only (not edges). Validates: triangular grid topology (not hex, not square — equilateral triangle tiling), polyiamond piece shapes (multi-cell spans on triangular grid), corner-only adjacency constraint. Requires a new zone_type for triangular grids, or modeling as a graph.",
+  "status": "closed",
+  "priority": 4,
+  "issue_type": "feature",
+  "assignee": "Mark Atwood",
+  "owner": "mark@wolfssl.com",
+  "created_at": "2026-06-12T00:23:56Z",
+  "created_by": "Mark Atwood",
+  "updated_at": "2026-06-26T19:56:29Z",
+  "closed_at": "2026-06-12T04:17:05Z",
+  "close_reason": "Polyiamond Placement fully playable. 486-cell hex board, triangular grid with D6 symmetry, 22 algorithmically generated polyiamond pieces, corner-only adjacency, 2/4 players. 50 tests.",
+  "dependencies": [
+    {
+      "issue_id": "baize-hfe",
+      "depends_on_id": "baize-xat",
+      "type": "blocks",
+      "created_at": "2026-06-11T17:28:25Z",
+      "created_by": "Mark Atwood",
+      "metadata": "{}"
+    }
+  ]
+}

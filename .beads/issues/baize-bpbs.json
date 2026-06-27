@@ -1,0 +1,24 @@
+{
+  "id": "baize-bpbs",
+  "title": "Rust definition: parse resources from game definition JSON",
+  "description": "Add Resource struct and resources field to GameDefinition in definition.rs. Resource has type_field (word_list, lookup_table, etc.) and name (e.g. twl06). Serde derives, skip_serializing_if for backward compat. IndexMap\u003cString, Resource\u003e defaulting to empty.",
+  "status": "closed",
+  "priority": 2,
+  "issue_type": "task",
+  "owner": "mark@wolfssl.com",
+  "created_at": "2026-06-13T05:35:55Z",
+  "created_by": "Mark Atwood",
+  "updated_at": "2026-06-26T19:56:29Z",
+  "closed_at": "2026-06-13T05:42:10Z",
+  "close_reason": "ResourceDef struct + resources field on GameDefinition. Compiles, all 317 engine tests pass.",
+  "dependencies": [
+    {
+      "issue_id": "baize-bpbs",
+      "depends_on_id": "baize-bodx",
+      "type": "blocks",
+      "created_at": "2026-06-12T22:36:33Z",
+      "created_by": "Mark Atwood",
+      "metadata": "{}"
+    }
+  ]
+}

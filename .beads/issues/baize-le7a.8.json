@@ -1,0 +1,33 @@
+{
+  "id": "baize-le7a.8",
+  "title": "Felt example extensions: poker, Go, Carcassonne",
+  "description": "Write reference .felt files for three games demonstrating the language. poker.felt (hand ranking, best-five selection, scoring). go.felt (territory counting via flood_fill, capture detection). carcassonne.felt (city/road/field scoring via connected components). These serve as both documentation and compiler test cases. Each should compile to under 100KB WASM.",
+  "status": "closed",
+  "priority": 2,
+  "issue_type": "task",
+  "assignee": "Mark Atwood",
+  "owner": "mark@wolfssl.com",
+  "created_at": "2026-06-12T16:15:55Z",
+  "created_by": "Mark Atwood",
+  "updated_at": "2026-06-26T19:56:29Z",
+  "closed_at": "2026-06-12T18:18:21Z",
+  "close_reason": "Three example .felt files created: poker.felt (hand ranking/scoring), go.felt (territory counting), chess.felt (checkmate detection). Demonstrate target syntax with host imports, records, pipes, lambdas.",
+  "dependencies": [
+    {
+      "issue_id": "baize-le7a.8",
+      "depends_on_id": "baize-le7a",
+      "type": "parent-child",
+      "created_at": "2026-06-12T09:15:54Z",
+      "created_by": "Mark Atwood",
+      "metadata": "{}"
+    },
+    {
+      "issue_id": "baize-le7a.8",
+      "depends_on_id": "baize-le7a.7",
+      "type": "blocks",
+      "created_at": "2026-06-12T09:15:54Z",
+      "created_by": "Mark Atwood",
+      "metadata": "{}"
+    }
+  ]
+}

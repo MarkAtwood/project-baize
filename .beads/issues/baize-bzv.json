@@ -1,0 +1,15 @@
+{
+  "id": "baize-bzv",
+  "title": "Commit-reveal protocol + RPS and High Card games",
+  "description": "Add commit/reveal action types to both engines for cryptographic commitment protocol. Update RPS to use commit-reveal phases. Add High Card game exercising shuffle/deal pipeline. Forces protocol space open for serverless crypto.",
+  "status": "closed",
+  "priority": 1,
+  "issue_type": "feature",
+  "assignee": "Mark Atwood",
+  "owner": "mark@wolfssl.com",
+  "created_at": "2026-06-12T01:29:05Z",
+  "created_by": "Mark Atwood",
+  "updated_at": "2026-06-12T01:38:45Z",
+  "closed_at": "2026-06-12T01:38:45Z",
+  "close_reason": "Commit-reveal protocol implemented in both engines. New commit/reveal action types with SHA-256 verification. RPS tested with full commit-reveal flow (18 tests). High Card game with deck shuffle/deal pipeline (19 tests). Protocol space forced open for serverless crypto."
+}

@@ -1,0 +1,18 @@
+{
+  "id": "baize-4gv",
+  "title": "WASM mod extensibility: new primitives or validation only?",
+  "description": "Can a WASM module extend the declarative schema (add new movement primitives, new component types)? Or is the schema fixed and WASM is only for validation/scoring logic that can't be expressed declaratively? This determines the boundary between 'games the schema can express' and 'games that need WASM.' If WASM can add primitives, the schema is a base layer. If not, WASM is an escape hatch for complex scoring (like Carcassonne field scoring).",
+  "notes": "Decision: Option A — WASM is an escape hatch for scoring/validation only. The declarative schema defines all pieces, boards, movements, and turn structure. WASM modules implement predicates and scoring that are too complex to express as JSON (e.g. Carcassonne field flood-fill). The schema remains self-describing: a client that reads the JSON knows every legal move without running WASM. However, the spec explicitly permits servers to implement Option B (WASM modules that define new movement primitives, component types, triggered effects) as a server-side extension. Games that need this (MTG-class complexity) run their rule logic server-side; the client cannot independently verify legal moves and relies on server authority. The schema still carries metadata (name, components, player count, visual layout) for those games, but the rules are opaque to the client. This preserves the 'read the JSON, know the game' promise for the common case while not closing the door on complex games that need full programmability.",
+  "status": "closed",
+  "priority": 2,
+  "issue_type": "task",
+  "owner": "mark@reviewcommit.com",
+  "created_at": "2026-06-07T21:53:37Z",
+  "created_by": "Mark Atwood",
+  "updated_at": "2026-06-07T21:57:43Z",
+  "closed_at": "2026-06-07T21:57:43Z",
+  "close_reason": "Decided: Option A client-side (WASM for scoring/validation only, schema is self-describing), Option B permitted server-side (servers may use WASM to define new primitives for complex games, client relies on server authority)",
+  "labels": [
+    "human-judgment"
+  ]
+}

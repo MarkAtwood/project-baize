@@ -1,0 +1,25 @@
+{
+  "id": "baize-q8j",
+  "title": "Chinese Checkers: star-shaped triangular lattice",
+  "description": "Chinese Checkers uses a 121-position star-shaped board (hexagram) on a triangular lattice. Players hop pieces across the board from one triangle point to the opposite. Validates: non-rectangular board boundaries on hex/triangular grids, hop movement primitive with multi-hop chains (like checkers), 2-6 player support. The board is a hex grid with a star-shaped mask — positions exist only where the star has points. Could use a graph zone with explicit adjacency, or a hex_grid with boundary masking.",
+  "status": "closed",
+  "priority": 3,
+  "issue_type": "feature",
+  "assignee": "Mark Atwood",
+  "owner": "mark@wolfssl.com",
+  "created_at": "2026-06-12T00:23:46Z",
+  "created_by": "Mark Atwood",
+  "updated_at": "2026-06-12T03:27:18Z",
+  "closed_at": "2026-06-12T03:27:18Z",
+  "close_reason": "Chinese Checkers fully playable. 121-position hexagram board via valid_cells mask, hex_6 adjacency, step/hop movement, multi-hop chains, win detection. 42 tests.",
+  "dependencies": [
+    {
+      "issue_id": "baize-q8j",
+      "depends_on_id": "baize-70u",
+      "type": "blocks",
+      "created_at": "2026-06-11T20:05:05Z",
+      "created_by": "Mark Atwood",
+      "metadata": "{}"
+    }
+  ]
+}

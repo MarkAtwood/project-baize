@@ -1,0 +1,15 @@
+{
+  "id": "baize-6eh",
+  "title": "poker: implement fold/check/call/raise/all_in actions",
+  "description": "fold, check, call, raise, all_in are declared in ActionTypeLiteral (action.py) but transition.py apply_action() hits the else-raise for all of them. Need implementations: fold marks player inactive and emits fold event; check is a no-op pass in a betting round; call deducts chips equal to (current_bet - player_contribution) and adds to pot; raise sets new current_bet and deducts chips; all_in puts player's remaining chips into pot and marks them all-in. Tests: TestTier2BettingActionsGap in tests/test_poker.py.",
+  "status": "closed",
+  "priority": 1,
+  "issue_type": "task",
+  "assignee": "Mark Atwood",
+  "owner": "mark@wolfssl.com",
+  "created_at": "2026-06-12T00:34:57Z",
+  "created_by": "Mark Atwood",
+  "updated_at": "2026-06-12T18:18:56Z",
+  "closed_at": "2026-06-12T18:18:56Z",
+  "close_reason": "Closed"
+}

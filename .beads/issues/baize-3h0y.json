@@ -1,0 +1,41 @@
+{
+  "id": "baize-3h0y",
+  "title": "Generic hex wargame: full CRT/TEC/ZOC/supply on NATO-symbol counters",
+  "description": "A reference hex-and-counter wargame implementing the full suite of classic wargame mechanics. Not based on any specific commercial game — a generic demonstration of the form, like what a wargame design textbook would use as its running example.\n\n**Map:**\n- 20x15 hex grid with mixed terrain: clear, forest, hills, mountains, river (hex-side), road, town, bridge\n- Terrain Effects Chart (TEC) as cell properties: movement cost, defense modifier, LOS blocking\n\n**Counters (NATO MIL-STD-2525 style):**\n- ~20 units per side (2 players: blue/red)\n- Unit types: infantry, armor, artillery, mechanized infantry, headquarters\n- Counter values: attack strength, defense strength, movement points\n- Unit properties: unit_type, formation, step_losses (multi-step units)\n\n**Turn structure:**\n- IGOUGO (I Go, You Go): active player does all phases, then opponent\n- Phases per turn: reinforcement, movement, combat, exploitation (armor breakthrough), supply check\n\n**Movement:**\n- Terrain movement costs from TEC\n- Road movement bonus (half cost along road hexes)\n- Zone of Control: entering enemy ZOC costs all remaining MP, must stop\n- ZOC-to-ZOC movement prohibited (no sliding between enemy units)\n- Stacking limit: 3 units per hex\n\n**Combat:**\n- Mandatory attack against adjacent enemy units\n- Odds ratio: total attack strength / total defense strength → column on CRT\n- Terrain defense modifier shifts odds\n- Die roll (d6) cross-referenced on CRT\n- Results: DE (defender eliminated), DR (defender retreat 1-2 hexes), EX (exchange — both lose), AR (attacker retreat), NE (no effect)\n- Retreat through enemy ZOC causes additional step loss\n- Advance after combat into vacated hex\n\n**Supply:**\n- Each unit must trace supply line (path of hexes, max length ~10) to friendly map edge or HQ\n- Out-of-supply: halved attack, no advance after combat, attrition losses if still out-of-supply next turn\n\n**Victory conditions:**\n- Control of objective hexes (towns marked as objectives)\n- Eliminate enemy units (VP per unit destroyed)\n- Time limit: fixed number of turns, highest VP wins\n\n**Authority:**\n- server_only: die rolls for CRT\n- client_verifiable: movement (path cost calculation), attack declaration, retreat paths\n- wasm_required (Felt): CRT lookup, supply line tracing, ZOC computation, odds calculation\n\n**What this proves for Baize:**\n- Hex grid with cell properties (terrain) at scale\n- Stacking (3 units per hex)\n- Multi-phase turns with distinct action types per phase\n- Combat resolution via table lookup (Felt extension)\n- Supply line pathfinding (Felt extension with flood_fill)\n- Zone of control as movement constraint\n- Component properties (attack/defense/movement) driving game logic\n- NATO-style counter rendering (client SVG work, future)\n\nBlocked by: baize-5hux (stacking), baize-6fm9 (wargame primitives/Felt)",
+  "status": "closed",
+  "priority": 3,
+  "issue_type": "feature",
+  "assignee": "Mark Atwood",
+  "owner": "mark@wolfssl.com",
+  "created_at": "2026-06-12T19:10:27Z",
+  "created_by": "Mark Atwood",
+  "updated_at": "2026-06-13T05:29:06Z",
+  "closed_at": "2026-06-13T05:29:06Z",
+  "close_reason": "Full reference hex wargame: 20x15 grid, 300 cells (8 terrain types, river/bridges), 20 units/side (6 types), 5 phases (reinforcement/movement/combat/exploitation/supply), 12 rules, Felt extensions (terrain/CRT/ZOC/supply), 98 Python tests. Validates against schema.",
+  "dependencies": [
+    {
+      "issue_id": "baize-3h0y",
+      "depends_on_id": "baize-21n8",
+      "type": "blocks",
+      "created_at": "2026-06-12T12:11:59Z",
+      "created_by": "Mark Atwood",
+      "metadata": "{}"
+    },
+    {
+      "issue_id": "baize-3h0y",
+      "depends_on_id": "baize-5hux",
+      "type": "blocks",
+      "created_at": "2026-06-12T12:10:39Z",
+      "created_by": "Mark Atwood",
+      "metadata": "{}"
+    },
+    {
+      "issue_id": "baize-3h0y",
+      "depends_on_id": "baize-6fm9",
+      "type": "blocks",
+      "created_at": "2026-06-12T12:10:39Z",
+      "created_by": "Mark Atwood",
+      "metadata": "{}"
+    }
+  ]
+}

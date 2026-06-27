@@ -1,0 +1,15 @@
+{
+  "id": "baize-sq8m",
+  "title": "Evaluate Roc as game designer language with Baize platform",
+  "description": "Roc (roc-lang.org) is a pure functional language with a platform/embedding model, WASM target, no runtime exceptions, and designed for non-academics. Evaluate whether a Baize-specific Roc platform can provide board query primitives (zone, adjacent, flood_fill, connected_components, path_exists) as platform functions, letting game designers write pure Roc scoring/validation logic that compiles to WASM matching our WasmHost ABI. Spike: write a minimal Roc platform that exposes game state, implement poker hand scoring in Roc, compile to WASM, load via WasmHost. If viable, this avoids building a compiler from scratch.",
+  "notes": "Alternative to Felt (baize-l8ai). Decide between Roc and Felt based on spike results.",
+  "status": "closed",
+  "priority": 2,
+  "issue_type": "task",
+  "owner": "mark@wolfssl.com",
+  "created_at": "2026-06-12T16:12:10Z",
+  "created_by": "Mark Atwood",
+  "updated_at": "2026-06-12T18:51:52Z",
+  "closed_at": "2026-06-12T18:51:52Z",
+  "close_reason": "Decision: Felt wins. Roc evaluation dropped."
+}

@@ -1,0 +1,15 @@
+{
+  "id": "baize-d4v",
+  "title": "Colossal Cave Adventure: graph zone text adventure (Tier 1)",
+  "description": "The original Crowther \u0026 Woods (1977) text adventure. ~130 rooms as graph nodes, ~15 collectible objects as components, simple verb-object parser as game logic. Almost entirely data-driven: room connections are edges, object locations are component placements, puzzles are state flags (lamp lit, door open, snake scared). State transitions via CEL + perturbers — if player has item X in room Y, set flag Z. Seeded RNG for dwarf attacks and pirate. No WASM needed. Proves graph zone handles text adventures at Tier 1.",
+  "status": "closed",
+  "priority": 3,
+  "issue_type": "feature",
+  "assignee": "Mark Atwood",
+  "owner": "mark@wolfssl.com",
+  "created_at": "2026-06-12T04:54:27Z",
+  "created_by": "Mark Atwood",
+  "updated_at": "2026-06-26T19:56:29Z",
+  "closed_at": "2026-06-12T18:07:20Z",
+  "close_reason": "Closed"
+}

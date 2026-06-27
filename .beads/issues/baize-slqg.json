@@ -1,0 +1,15 @@
+{
+  "id": "baize-slqg",
+  "title": "Phase 4: TypeScript test suite",
+  "description": "Add tests for types, validation, engine wrapper, and connection. Use a lightweight test runner that works with the existing esbuild/TypeScript setup.",
+  "status": "closed",
+  "priority": 1,
+  "issue_type": "task",
+  "assignee": "Mark Atwood",
+  "owner": "mark@wolfssl.com",
+  "created_at": "2026-06-12T19:31:03Z",
+  "created_by": "Mark Atwood",
+  "updated_at": "2026-06-12T19:36:50Z",
+  "closed_at": "2026-06-12T19:36:50Z",
+  "close_reason": "Tests written and passing (86 tests)"
+}

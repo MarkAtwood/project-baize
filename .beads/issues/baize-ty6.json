@@ -1,0 +1,14 @@
+{
+  "id": "baize-ty6",
+  "title": "Hex wargaming: stacking, terrain costs, CRT combat",
+  "description": "Feature track for hex wargaming support. Foundation data model (stacking, orientation) is implemented directly. Complex mechanics go to WASM: combat resolution tables (CRT), supply line connectivity, terrain-aware movement point costs. This epic covers the gap between the current grid-game engine and hex wargaming requirements. Sub-issues handle individual mechanics.",
+  "status": "closed",
+  "priority": 3,
+  "issue_type": "feature",
+  "owner": "mark@wolfssl.com",
+  "created_at": "2026-06-12T00:16:50Z",
+  "created_by": "Mark Atwood",
+  "updated_at": "2026-06-26T19:56:29Z",
+  "closed_at": "2026-06-12T06:00:07Z",
+  "close_reason": "Ogre proved hex wargaming mechanics: stacking, terrain movement costs, CRT combat, subsystem targeting. Remaining WASM generalizations (baize-0d6, baize-1w4, baize-el1) are independent engine features, not blockers."
+}

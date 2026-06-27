@@ -1,0 +1,15 @@
+{
+  "id": "baize-f1l",
+  "title": "Evaluate end conditions at runtime",
+  "description": "End conditions in game definitions are currently decorative strings that are never evaluated. Implement end condition checking after each state transition. Start with tic-tac-toe (three-in-a-row, board-full). Pre-CEL: implement a small set of hardcoded condition evaluators that match the existing game definitions. Post-CEL: replace with CEL expression evaluation. Both Rust and Python engines.",
+  "status": "closed",
+  "priority": 1,
+  "issue_type": "feature",
+  "assignee": "Mark Atwood",
+  "owner": "mark@wolfssl.com",
+  "created_at": "2026-06-11T16:48:49Z",
+  "created_by": "Mark Atwood",
+  "updated_at": "2026-06-26T19:56:29Z",
+  "closed_at": "2026-06-11T17:10:34Z",
+  "close_reason": "Implemented end condition evaluation in both Rust and Python engines. Hardcoded evaluators for three_in_line (row/column/diagonal win) and board_is_full (draw). Checks run after each action, before turn advance. Both engines: 14 new tests, all passing. Forward-compatible with CEL (unrecognized conditions silently skip)."
+}

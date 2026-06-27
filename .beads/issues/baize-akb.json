@@ -1,0 +1,33 @@
+{
+  "id": "baize-akb",
+  "title": "Notation spec: Chess algebraic (SAN)",
+  "description": "Chess Standard Algebraic Notation for the notation adapter.\n\n## Piece symbols\nK=King, Q=Queen, R=Rook, B=Bishop, N=Knight, pawn=empty string\n\n## Move format\n{piece}{disambiguation}{capture}{destination}{promotion}{check}\n\nExamples: e4, Nf3, Bxc6, Rae1, R1e1, e8=Q, O-O, O-O-O, Qh4#\n\n## Grid labels\nfiles: a-h (col 0-7), ranks: 1-8 (row 0-7)\n\n## Disambiguation\nWhen two pieces of the same type can reach the destination:\n1. Add source file if unique (Rae1)\n2. Add source rank if file ambiguous (R1e1)\n3. Add both if needed (Qa3b4 — rare)\nResolved by filtering legal moves that match destination.\n\n## Capture marker\n\"x\" between piece and destination: Bxc6, exd5 (pawn captures include source file)\n\n## Special moves\n- O-O → castle kingside\n- O-O-O → castle queenside\n- e8=Q → promotion (= + target piece letter)\n\n## Annotations\n+ = check, # = checkmate (output only, not needed for input parsing)\n\n## Declarative spec\n```json\n\"notation\": {\n  \"piece_symbols\": {\"king\":\"K\",\"queen\":\"Q\",\"rook\":\"R\",\"bishop\":\"B\",\"knight\":\"N\",\"pawn\":\"\"},\n  \"capture_marker\": \"x\",\n  \"disambiguation\": \"file_then_rank\",\n  \"promotion_marker\": \"=\",\n  \"check_marker\": \"+\",\n  \"checkmate_marker\": \"#\",\n  \"special_moves\": {\n    \"O-O\": {\"action_type\":\"castle\",\"side\":\"kingside\"},\n    \"O-O-O\": {\"action_type\":\"castle\",\"side\":\"queenside\"}\n  }\n}\n```\nFully covered by declarative spec — no WASM needed.",
+  "status": "closed",
+  "priority": 3,
+  "issue_type": "task",
+  "assignee": "Mark Atwood",
+  "owner": "mark@wolfssl.com",
+  "created_at": "2026-06-11T21:29:56Z",
+  "created_by": "Mark Atwood",
+  "updated_at": "2026-06-12T06:11:57Z",
+  "closed_at": "2026-06-12T06:11:57Z",
+  "close_reason": "Chess SAN notation spec added to chess.json + 8 tests.",
+  "dependencies": [
+    {
+      "issue_id": "baize-akb",
+      "depends_on_id": "baize-z9d",
+      "type": "blocks",
+      "created_at": "2026-06-11T23:03:06Z",
+      "created_by": "Mark Atwood",
+      "metadata": "{}"
+    },
+    {
+      "issue_id": "baize-akb",
+      "depends_on_id": "baize-uei",
+      "type": "blocks",
+      "created_at": "2026-06-11T14:31:18Z",
+      "created_by": "Mark Atwood",
+      "metadata": "{}"
+    }
+  ]
+}

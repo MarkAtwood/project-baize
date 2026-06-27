@@ -1,0 +1,25 @@
+{
+  "id": "baize-935.1",
+  "title": "CEL evaluator lacks window/consecutive support for Four in a Row",
+  "description": "The built-in CEL evaluator (cel.py) supports exists/all/filter on lists but has no integer indexing or window/slice operation. The four_in_a_row win condition requires checking 4 consecutive same-owner cells in any direction on a 7x6 board. The current rows/cols/lines variables contain full rows (length 7) and full cols (length 6); a .all() check would require ALL cells to be owned, not just 4. Options: (1) add integer indexing to _parse_postfix so window-iteration is expressible in CEL, (2) precompute all 4-cell windows as a lines_4 variable in _populate_grid_lines, (3) support WASM for game-specific win logic. Until resolved, four_in_a_row.json uses a placeholder condition and tests verify placement only.",
+  "status": "closed",
+  "priority": 2,
+  "issue_type": "bug",
+  "assignee": "Mark Atwood",
+  "owner": "mark@wolfssl.com",
+  "created_at": "2026-06-12T00:33:36Z",
+  "created_by": "Mark Atwood",
+  "updated_at": "2026-06-12T01:07:05Z",
+  "closed_at": "2026-06-12T01:07:05Z",
+  "close_reason": "Added lines_N windowed sub-lines to both Python and Rust CEL contexts. Updated four-in-a-row.json to use lines_4.exists(). All win/draw tests now verify engine end conditions.",
+  "dependencies": [
+    {
+      "issue_id": "baize-935.1",
+      "depends_on_id": "baize-935",
+      "type": "parent-child",
+      "created_at": "2026-06-11T17:33:36Z",
+      "created_by": "Mark Atwood",
+      "metadata": "{}"
+    }
+  ]
+}

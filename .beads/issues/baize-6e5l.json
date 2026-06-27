@@ -1,0 +1,24 @@
+{
+  "id": "baize-6e5l",
+  "title": "Python runtime: ClaimWindow state on RuntimeState",
+  "description": "Add ClaimWindow dataclass and claim_window: Optional[ClaimWindow] to RuntimeState. Wire into GameState serialization. Mirror Rust implementation exactly.",
+  "status": "closed",
+  "priority": 2,
+  "issue_type": "task",
+  "owner": "mark@wolfssl.com",
+  "created_at": "2026-06-13T02:30:17Z",
+  "created_by": "Mark Atwood",
+  "updated_at": "2026-06-26T19:56:29Z",
+  "closed_at": "2026-06-13T02:40:23Z",
+  "close_reason": "Implemented in parallel subagents. All existing tests pass.",
+  "dependencies": [
+    {
+      "issue_id": "baize-6e5l",
+      "depends_on_id": "baize-71q3",
+      "type": "blocks",
+      "created_at": "2026-06-12T19:30:37Z",
+      "created_by": "Mark Atwood",
+      "metadata": "{}"
+    }
+  ]
+}

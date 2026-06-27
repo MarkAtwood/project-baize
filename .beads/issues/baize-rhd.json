@@ -1,0 +1,25 @@
+{
+  "id": "baize-rhd",
+  "title": "Standard component library",
+  "description": "All standard components from COMPONENTS.md as validated JSON files: French/German/Tarot/Asian card decks, dice (d4-d100), chess/xiangqi/shogi pieces, board topologies (chess, Go, backgammon, hex), tile sets (dominoes, mahjong), currency, SVG asset templates. These ship with the engine and are referenced by game definitions.",
+  "status": "closed",
+  "priority": 2,
+  "issue_type": "epic",
+  "assignee": "Mark Atwood",
+  "owner": "mark@reviewcommit.com",
+  "created_at": "2026-06-07T22:14:19Z",
+  "created_by": "Mark Atwood",
+  "updated_at": "2026-06-26T19:56:29Z",
+  "closed_at": "2026-06-08T00:07:51Z",
+  "close_reason": "all steps complete",
+  "dependencies": [
+    {
+      "issue_id": "baize-rhd",
+      "depends_on_id": "baize-0a0",
+      "type": "blocks",
+      "created_at": "2026-06-07T15:16:34Z",
+      "created_by": "Mark Atwood",
+      "metadata": "{}"
+    }
+  ]
+}

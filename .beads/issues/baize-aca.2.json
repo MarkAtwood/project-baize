@@ -1,0 +1,24 @@
+{
+  "id": "baize-aca.2",
+  "title": "Hidden state vault",
+  "description": "Server-side storage for hidden game state: shuffled deck orders, fog-of-war truth, face-down cards. Reveals state according to the game definition's visibility rules. This is the server's core irreducible responsibility.",
+  "status": "closed",
+  "priority": 1,
+  "issue_type": "task",
+  "owner": "mark@reviewcommit.com",
+  "created_at": "2026-06-07T22:15:33Z",
+  "created_by": "Mark Atwood",
+  "updated_at": "2026-06-07T23:49:43Z",
+  "closed_at": "2026-06-07T23:49:43Z",
+  "close_reason": "Implemented in vault.rs: hidden deck orders, per-player hidden facts, visibility-controlled reveals",
+  "dependencies": [
+    {
+      "issue_id": "baize-aca.2",
+      "depends_on_id": "baize-aca",
+      "type": "parent-child",
+      "created_at": "2026-06-07T15:15:32Z",
+      "created_by": "Mark Atwood",
+      "metadata": "{}"
+    }
+  ]
+}

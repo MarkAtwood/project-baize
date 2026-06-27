@@ -1,0 +1,15 @@
+{
+  "id": "baize-11wa",
+  "title": "Adversarial player input handling: out-of-turn, impossible actions, replay attacks",
+  "description": "Systematically test and harden against adversarial players. Out-of-turn action submission must be rejected. Actions referencing non-existent components, wrong zones, other players' pieces must fail cleanly. Duplicate/replayed action sequences must be idempotent or rejected. Ensure error messages never leak hidden state (opponent's hand, deck order, fog-of-war zones).",
+  "status": "closed",
+  "priority": 1,
+  "issue_type": "task",
+  "assignee": "Mark Atwood",
+  "owner": "mark@wolfssl.com",
+  "created_at": "2026-06-12T14:23:21Z",
+  "created_by": "Mark Atwood",
+  "updated_at": "2026-06-26T19:56:29Z",
+  "closed_at": "2026-06-12T15:44:41Z",
+  "close_reason": "Closed"
+}

@@ -1,0 +1,15 @@
+{
+  "id": "baize-2z7",
+  "title": "Notation adapter: schema — add notation block to game definition",
+  "description": "Add optional notation object to game-definition.schema.json with: piece_symbols (map component type to display char), capture_marker, promotion_marker, check_marker, checkmate_marker, disambiguation (file_then_rank|rank_then_file|none), special_moves (map notation string to action dict). Also add to Rust Zone/GameDefinition and Python definition.py.",
+  "status": "closed",
+  "priority": 2,
+  "issue_type": "task",
+  "assignee": "Mark Atwood",
+  "owner": "mark@wolfssl.com",
+  "created_at": "2026-06-12T06:02:57Z",
+  "created_by": "Mark Atwood",
+  "updated_at": "2026-06-26T19:56:29Z",
+  "closed_at": "2026-06-12T06:04:53Z",
+  "close_reason": "Added notation block to JSON schema, Python GameDefinition.notation field, parsing and serialization."
+}

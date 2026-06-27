@@ -1,0 +1,15 @@
+{
+  "id": "baize-1xcd",
+  "title": "Python: stacking integration — parse, enforce, wire actions",
+  "description": "Parse stacking_limit from zone definitions, wire grid_push/pop into actions (place, move_piece), enforce limits.",
+  "status": "closed",
+  "priority": 1,
+  "issue_type": "task",
+  "assignee": "Mark Atwood",
+  "owner": "mark@wolfssl.com",
+  "created_at": "2026-06-13T01:20:36Z",
+  "created_by": "Mark Atwood",
+  "updated_at": "2026-06-13T01:26:22Z",
+  "closed_at": "2026-06-13T01:26:22Z",
+  "close_reason": "Closed"
+}

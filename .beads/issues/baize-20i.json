@@ -1,0 +1,25 @@
+{
+  "id": "baize-20i",
+  "title": "Settlers of Catan: hex resource economy with graph settlement",
+  "description": "19 hex tiles producing resources, settlements/cities on hex vertices, roads on hex edges. Dice-driven resource production, trading, building. 3-4 players. Board is a graph (vertices+edges of hex grid), not a grid. Requires graph zone + resource economy.",
+  "status": "closed",
+  "priority": 4,
+  "issue_type": "feature",
+  "assignee": "Mark Atwood",
+  "owner": "mark@wolfssl.com",
+  "created_at": "2026-06-12T04:39:18Z",
+  "created_by": "Mark Atwood",
+  "updated_at": "2026-06-12T18:16:07Z",
+  "closed_at": "2026-06-12T18:16:07Z",
+  "close_reason": "Closed",
+  "dependencies": [
+    {
+      "issue_id": "baize-20i",
+      "depends_on_id": "baize-j2b",
+      "type": "blocks",
+      "created_at": "2026-06-11T21:39:27Z",
+      "created_by": "Mark Atwood",
+      "metadata": "{}"
+    }
+  ]
+}

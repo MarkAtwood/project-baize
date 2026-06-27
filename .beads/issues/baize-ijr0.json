@@ -1,0 +1,32 @@
+{
+  "id": "baize-ijr0",
+  "title": "Shuffle protocol: multi-party encrypted shuffle",
+  "description": "SRA shuffle for N players. Each player encrypts all cards with their key, shuffles, forwards. Final deck is N-times encrypted in random order no single player controls. Commit-then-forward messages. Optional ZK proofs that each step is a valid permutation (can defer).",
+  "status": "closed",
+  "priority": 3,
+  "issue_type": "task",
+  "owner": "mark@wolfssl.com",
+  "created_at": "2026-06-13T05:15:27Z",
+  "created_by": "Mark Atwood",
+  "updated_at": "2026-06-26T19:56:29Z",
+  "closed_at": "2026-06-13T05:57:05Z",
+  "close_reason": "encrypt_and_shuffle with Fisher-Yates, full_shuffle for N players, BLAKE3 hash chain integrity. Tests pass.",
+  "dependencies": [
+    {
+      "issue_id": "baize-ijr0",
+      "depends_on_id": "baize-l1rv",
+      "type": "blocks",
+      "created_at": "2026-06-12T22:16:11Z",
+      "created_by": "Mark Atwood",
+      "metadata": "{}"
+    },
+    {
+      "issue_id": "baize-ijr0",
+      "depends_on_id": "baize-vz1l",
+      "type": "blocks",
+      "created_at": "2026-06-12T22:16:11Z",
+      "created_by": "Mark Atwood",
+      "metadata": "{}"
+    }
+  ]
+}

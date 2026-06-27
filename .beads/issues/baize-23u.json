@@ -1,0 +1,15 @@
+{
+  "id": "baize-23u",
+  "title": "Yacht: multi-phase dice game with scoring categories",
+  "description": "Pure dice game. Each turn: roll 5d6, optionally keep some and re-roll (up to 2 re-rolls), then assign result to one of 13 scoring categories (ones through sixes, three/four of a kind, full house, small/large straight, yahtzee, chance). Game ends when all categories filled. Validates: dice as components, multi-phase turns (roll/keep/re-roll/assign), constrained choice (unused categories only), counter-based scoring per category, game end when all slots filled. The definitive dice game.",
+  "status": "closed",
+  "priority": 3,
+  "issue_type": "feature",
+  "assignee": "Mark Atwood",
+  "owner": "mark@wolfssl.com",
+  "created_at": "2026-06-12T00:04:41Z",
+  "created_by": "Mark Atwood",
+  "updated_at": "2026-06-12T02:31:32Z",
+  "closed_at": "2026-06-12T02:31:32Z",
+  "close_reason": "Yacht playable with 21 tests. Covers: 13 scoring categories (independent oracle functions), turn flow (roll/keep/re-roll), 2-reroll limit, category assignment, turn alternation, single-use categories, game end after 26 assignments, winner by total score, upper section bonus (35 pts at 63+)."
+}

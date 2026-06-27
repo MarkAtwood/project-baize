@@ -1,0 +1,14 @@
+{
+  "id": "baize-7a2",
+  "title": "CEL predicates are state queries only — no hypotheticals",
+  "description": "## Decision\n\nCEL functions in game definitions are restricted to pure queries over current observable state. Predicates requiring move simulation or hypotheticals belong in Tier 2 (WASM extensions) or dedicated engine functions.\n\n## Rationale\n\nCEL functions must be pure queries over current observable state (pattern matching, flood fill, counting, graph reachability). All are O(board_size) and guaranteed to terminate. Predicates requiring move simulation or hypotheticals (e.g. no_legal_moves, checkmate detection) belong in Tier 2 WASM extensions or dedicated engine functions callable from CEL but not redefinable by game authors. This prevents mutual recursion between the CEL evaluator and the move generator, and keeps the declarative layer decidable.\n\nThree tiers:\n1. **CEL = what's true now** — state queries (lines, groups, count, connected, adjacent)\n2. **WASM = what happens if** — move simulation, hypothetical evaluation\n3. **Agent/AI = is there a winning strategy** — game-tree search, solvers\n\n## Alternatives Considered\n\n- **Allow hypothetical predicates in CEL**: Rejected because it creates mutual recursion between the CEL evaluator and move generator, making termination undecidable.\n- **Definable predicates with a solver backend**: Rejected as over-engineering — crosses from game definition into AI territory. The existing Tier 2/3 architecture already handles this.\n- **No composable predicates at all (keep hardcoded)**: Rejected because it forces every new game mechanic into engine code rather than game definitions.\n\n## Affects\n\n- baize-82w: Replace hardcoded three_in_line with composable CEL functions\n- baize-1ye: CEL constraint language integration (closed)\n- baize-olc: Implement remaining movement primitives",
+  "status": "closed",
+  "priority": 2,
+  "issue_type": "decision",
+  "owner": "mark@wolfssl.com",
+  "created_at": "2026-06-11T18:54:44Z",
+  "created_by": "Mark Atwood",
+  "updated_at": "2026-06-26T19:56:29Z",
+  "closed_at": "2026-06-11T20:46:08Z",
+  "close_reason": "Design decision recorded and enforced. CEL predicates are pure state queries; hypotheticals go to WASM extensions."
+}

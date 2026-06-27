@@ -1,0 +1,15 @@
+{
+  "id": "baize-pc7y",
+  "title": "Server: GET /games catalog endpoint",
+  "description": "Add GET /games endpoint that returns the list of available game definitions. Reads from games/ directory. Response: array of {name, players (min/max or named list), information, file} objects. Cached at startup, no filesystem reads per request. Client uses this to populate game picker in lobby. Defensive: validate each JSON on load, skip invalid files with warning.",
+  "status": "closed",
+  "priority": 3,
+  "issue_type": "task",
+  "assignee": "Mark Atwood",
+  "owner": "mark@wolfssl.com",
+  "created_at": "2026-06-13T06:31:42Z",
+  "created_by": "Mark Atwood",
+  "updated_at": "2026-06-26T19:56:29Z",
+  "closed_at": "2026-06-13T07:00:30Z",
+  "close_reason": "GET /games endpoint returns sorted catalog of game definitions with name, file, players. Skips invalid files with warning."
+}

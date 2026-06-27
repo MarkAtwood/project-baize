@@ -1,0 +1,65 @@
+{
+  "id": "baize-0v2",
+  "title": "Chess: full playability",
+  "description": "Chess game definition parses and has partial move generation (step/slide/leap/hop for pieces on empty board) but lacks: castling execution, en passant capture, pawn promotion execution, check/checkmate detection, stalemate detection, threefold repetition, 50-move rule, insufficient material. Need full-game integration tests that play through to checkmate/stalemate/draw. The 5 end conditions in chess.json are never tested to completion.",
+  "status": "closed",
+  "priority": 2,
+  "issue_type": "feature",
+  "assignee": "Mark Atwood",
+  "owner": "mark@wolfssl.com",
+  "created_at": "2026-06-12T00:00:56Z",
+  "created_by": "Mark Atwood",
+  "updated_at": "2026-06-12T04:36:01Z",
+  "closed_at": "2026-06-12T04:36:01Z",
+  "close_reason": "Chess fully playable: all piece movement, castling, en passant, promotion, check/checkmate/stalemate, threefold repetition, fifty-move rule, insufficient material. 68 tests.",
+  "dependencies": [
+    {
+      "issue_id": "baize-0v2",
+      "depends_on_id": "baize-72z",
+      "type": "blocks",
+      "created_at": "2026-06-11T21:22:33Z",
+      "created_by": "Mark Atwood",
+      "metadata": "{}"
+    },
+    {
+      "issue_id": "baize-0v2",
+      "depends_on_id": "baize-ktk",
+      "type": "blocks",
+      "created_at": "2026-06-11T21:22:33Z",
+      "created_by": "Mark Atwood",
+      "metadata": "{}"
+    },
+    {
+      "issue_id": "baize-0v2",
+      "depends_on_id": "baize-6p4",
+      "type": "blocks",
+      "created_at": "2026-06-11T21:22:32Z",
+      "created_by": "Mark Atwood",
+      "metadata": "{}"
+    },
+    {
+      "issue_id": "baize-0v2",
+      "depends_on_id": "baize-9jt",
+      "type": "blocks",
+      "created_at": "2026-06-11T21:22:31Z",
+      "created_by": "Mark Atwood",
+      "metadata": "{}"
+    },
+    {
+      "issue_id": "baize-0v2",
+      "depends_on_id": "baize-bf4",
+      "type": "blocks",
+      "created_at": "2026-06-11T21:22:33Z",
+      "created_by": "Mark Atwood",
+      "metadata": "{}"
+    },
+    {
+      "issue_id": "baize-0v2",
+      "depends_on_id": "baize-oiu",
+      "type": "blocks",
+      "created_at": "2026-06-11T21:22:32Z",
+      "created_by": "Mark Atwood",
+      "metadata": "{}"
+    }
+  ]
+}

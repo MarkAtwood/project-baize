@@ -1,0 +1,15 @@
+{
+  "id": "baize-hjmv",
+  "title": "Mahjong: 4-player tile matching with melds and scoring",
+  "description": "4 players, 144 tiles (already in registry: registry/tiles/mahjong-144.json). Wall of face-down tiles, 13-tile hands. Draw-and-discard with interrupt claims: chi (sequence from left player only), pon (triplet from any), kan (quad from any), ron (win from discard). Tsumo (win from self-draw). Concealed vs open hands affect scoring. Riichi declaration (betting on ready hand). Yaku scoring system: specific hand patterns worth different points (pinfu, tanyao, iipeiko, etc). Multiple rounds with seat winds rotating. Imperfect information: hidden hands, hidden wall. server_only for wall shuffle/draw, client_verifiable for discard/meld validation. Demonstrates: interrupt-based turn order (any player can claim a discard out of turn), complex scoring (WASM/Felt candidate), 4-player simultaneous claims with priority. Already have mahjong tiles in registry.",
+  "status": "closed",
+  "priority": 3,
+  "issue_type": "task",
+  "assignee": "Mark Atwood",
+  "owner": "mark@wolfssl.com",
+  "created_at": "2026-06-12T18:33:06Z",
+  "created_by": "Mark Atwood",
+  "updated_at": "2026-06-12T18:52:43Z",
+  "closed_at": "2026-06-12T18:52:43Z",
+  "close_reason": "Closed"
+}

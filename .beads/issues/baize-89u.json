@@ -1,0 +1,14 @@
+{
+  "id": "baize-89u",
+  "title": "Defensive programming: CEL expression complexity limits",
+  "description": "CEL expressions have no complexity bounds.\n\n1. Expression length unbounded — arbitrarily long expressions consume memory/CPU during compilation\n2. Grid context builds all rows/cols/diags without size cap — 1000x1000 grid creates 2M Value objects\n3. No per-expression evaluation timeout\n\nFix: Add MAX_CEL_LENGTH (4096 chars), skip CEL grid context for grids \u003e 10K cells, document complexity guarantees. Both engines.",
+  "status": "closed",
+  "priority": 1,
+  "issue_type": "bug",
+  "owner": "mark@wolfssl.com",
+  "created_at": "2026-06-11T21:03:22Z",
+  "created_by": "Mark Atwood",
+  "updated_at": "2026-06-11T21:06:31Z",
+  "closed_at": "2026-06-11T21:06:31Z",
+  "close_reason": "CEL expression length capped at 4096 bytes. Grid context skipped for grids \u003e 10K cells. Covered in baize-4xq commit."
+}

@@ -1,0 +1,15 @@
+{
+  "id": "baize-1sad",
+  "title": "Computational DoS: fuel limits on CEL evaluation and move generation",
+  "description": "Crafted CEL expressions or game definitions could cause exponential move generation, infinite evaluation, or combinatorial explosion. Add fuel/step limits to CEL evaluation and move generation. A legal-looking game definition must not be able to pin a CPU. Enforce wall-clock timeouts as a backstop. Both Rust and Python engines.",
+  "status": "closed",
+  "priority": 1,
+  "issue_type": "task",
+  "assignee": "Mark Atwood",
+  "owner": "mark@wolfssl.com",
+  "created_at": "2026-06-12T14:36:44Z",
+  "created_by": "Mark Atwood",
+  "updated_at": "2026-06-26T19:56:29Z",
+  "closed_at": "2026-06-12T15:33:53Z",
+  "close_reason": "Closed"
+}

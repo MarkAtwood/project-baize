@@ -1,0 +1,144 @@
+{
+  "id": "baize-x1qx",
+  "title": "Defensive and paranoid programming",
+  "description": "Epic for hardening Baize against malicious, malformed, and adversarial inputs at every layer. Trust nothing, validate everything, fail loudly. Covers: input validation, engine invariants, server abuse resistance, fuzzing infrastructure, WebSocket hardening, and adversarial player input handling.",
+  "status": "closed",
+  "priority": 1,
+  "issue_type": "feature",
+  "owner": "mark@wolfssl.com",
+  "created_at": "2026-06-12T14:23:00Z",
+  "created_by": "Mark Atwood",
+  "updated_at": "2026-06-12T15:56:32Z",
+  "closed_at": "2026-06-12T15:56:32Z",
+  "close_reason": "All 16 sub-issues completed",
+  "dependencies": [
+    {
+      "issue_id": "baize-x1qx",
+      "depends_on_id": "baize-mpn4",
+      "type": "blocks",
+      "created_at": "2026-06-12T07:23:28Z",
+      "created_by": "Mark Atwood",
+      "metadata": "{}"
+    },
+    {
+      "issue_id": "baize-x1qx",
+      "depends_on_id": "baize-4ifa",
+      "type": "blocks",
+      "created_at": "2026-06-12T07:23:29Z",
+      "created_by": "Mark Atwood",
+      "metadata": "{}"
+    },
+    {
+      "issue_id": "baize-x1qx",
+      "depends_on_id": "baize-7e32",
+      "type": "blocks",
+      "created_at": "2026-06-12T07:37:06Z",
+      "created_by": "Mark Atwood",
+      "metadata": "{}"
+    },
+    {
+      "issue_id": "baize-x1qx",
+      "depends_on_id": "baize-11wa",
+      "type": "blocks",
+      "created_at": "2026-06-12T07:23:30Z",
+      "created_by": "Mark Atwood",
+      "metadata": "{}"
+    },
+    {
+      "issue_id": "baize-x1qx",
+      "depends_on_id": "baize-9p50",
+      "type": "blocks",
+      "created_at": "2026-06-12T07:37:07Z",
+      "created_by": "Mark Atwood",
+      "metadata": "{}"
+    },
+    {
+      "issue_id": "baize-x1qx",
+      "depends_on_id": "baize-zris",
+      "type": "blocks",
+      "created_at": "2026-06-12T07:23:28Z",
+      "created_by": "Mark Atwood",
+      "metadata": "{}"
+    },
+    {
+      "issue_id": "baize-x1qx",
+      "depends_on_id": "baize-emmw",
+      "type": "blocks",
+      "created_at": "2026-06-12T07:23:29Z",
+      "created_by": "Mark Atwood",
+      "metadata": "{}"
+    },
+    {
+      "issue_id": "baize-x1qx",
+      "depends_on_id": "baize-1sad",
+      "type": "blocks",
+      "created_at": "2026-06-12T07:37:06Z",
+      "created_by": "Mark Atwood",
+      "metadata": "{}"
+    },
+    {
+      "issue_id": "baize-x1qx",
+      "depends_on_id": "baize-tcu6",
+      "type": "blocks",
+      "created_at": "2026-06-12T07:37:07Z",
+      "created_by": "Mark Atwood",
+      "metadata": "{}"
+    },
+    {
+      "issue_id": "baize-x1qx",
+      "depends_on_id": "baize-6x4d",
+      "type": "blocks",
+      "created_at": "2026-06-12T07:37:06Z",
+      "created_by": "Mark Atwood",
+      "metadata": "{}"
+    },
+    {
+      "issue_id": "baize-x1qx",
+      "depends_on_id": "baize-34le",
+      "type": "blocks",
+      "created_at": "2026-06-12T07:23:30Z",
+      "created_by": "Mark Atwood",
+      "metadata": "{}"
+    },
+    {
+      "issue_id": "baize-x1qx",
+      "depends_on_id": "baize-dr0m",
+      "type": "blocks",
+      "created_at": "2026-06-12T07:23:31Z",
+      "created_by": "Mark Atwood",
+      "metadata": "{}"
+    },
+    {
+      "issue_id": "baize-x1qx",
+      "depends_on_id": "baize-jd8m",
+      "type": "blocks",
+      "created_at": "2026-06-12T07:37:08Z",
+      "created_by": "Mark Atwood",
+      "metadata": "{}"
+    },
+    {
+      "issue_id": "baize-x1qx",
+      "depends_on_id": "baize-4jk9",
+      "type": "blocks",
+      "created_at": "2026-06-12T07:37:08Z",
+      "created_by": "Mark Atwood",
+      "metadata": "{}"
+    },
+    {
+      "issue_id": "baize-x1qx",
+      "depends_on_id": "baize-4u8c",
+      "type": "blocks",
+      "created_at": "2026-06-12T07:25:10Z",
+      "created_by": "Mark Atwood",
+      "metadata": "{}"
+    },
+    {
+      "issue_id": "baize-x1qx",
+      "depends_on_id": "baize-l94l",
+      "type": "blocks",
+      "created_at": "2026-06-12T07:31:27Z",
+      "created_by": "Mark Atwood",
+      "metadata": "{}"
+    }
+  ]
+}

@@ -1,0 +1,25 @@
+{
+  "id": "baize-ep0.1",
+  "title": "Game definition parser (Python)",
+  "description": "Parse and validate game definition JSON. Mirror the Rust parser's behavior. Used for analysis and AI, not performance-critical.",
+  "notes": "Modern Python (3.12+), full type annotations, strict mypy. Dataclasses for parsed structures. Readable reference implementation — this is the version humans read to understand the spec.",
+  "status": "closed",
+  "priority": 2,
+  "issue_type": "task",
+  "owner": "mark@reviewcommit.com",
+  "created_at": "2026-06-07T22:15:17Z",
+  "created_by": "Mark Atwood",
+  "updated_at": "2026-06-07T23:36:07Z",
+  "closed_at": "2026-06-07T23:36:07Z",
+  "close_reason": "Python dataclasses matching game-definition, component-registry, game-state, move-action schemas. 6 tests pass, mypy strict.",
+  "dependencies": [
+    {
+      "issue_id": "baize-ep0.1",
+      "depends_on_id": "baize-ep0",
+      "type": "parent-child",
+      "created_at": "2026-06-07T15:15:17Z",
+      "created_by": "Mark Atwood",
+      "metadata": "{}"
+    }
+  ]
+}

@@ -1,0 +1,25 @@
+{
+  "id": "baize-562.4",
+  "title": "Visibility model tests",
+  "description": "Tests that hidden state is correctly hidden from non-owner clients. Poker: opponent's hole cards invisible. Battleship: opponent's ship positions invisible. Ensures the trust boundary works.",
+  "status": "closed",
+  "priority": 1,
+  "issue_type": "task",
+  "assignee": "Mark Atwood",
+  "owner": "mark@reviewcommit.com",
+  "created_at": "2026-06-07T22:16:06Z",
+  "created_by": "Mark Atwood",
+  "updated_at": "2026-06-07T23:58:15Z",
+  "closed_at": "2026-06-07T23:58:15Z",
+  "close_reason": "tests/vectors/visibility.json + 9 Rust tests + 16 Python tests, all passing",
+  "dependencies": [
+    {
+      "issue_id": "baize-562.4",
+      "depends_on_id": "baize-562",
+      "type": "parent-child",
+      "created_at": "2026-06-07T15:16:05Z",
+      "created_by": "Mark Atwood",
+      "metadata": "{}"
+    }
+  ]
+}

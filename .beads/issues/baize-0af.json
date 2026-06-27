@@ -1,0 +1,33 @@
+{
+  "id": "baize-0af",
+  "title": "Notation spec: Backgammon point notation",
+  "description": "Backgammon point notation for the notation adapter.\n\n## Point notation\nPoints numbered 1-24. Special positions: bar, off.\nMoves are from/to pairs: 13/7, bar/22, 6/off.\n\n## Dice\nShown as parenthesized pair: (6-4), (3-3).\nDoubles: same number means four moves available.\n\n## Move format\n{from}/{to} — one move per die value.\nFull turn example: (6-4) 13/7 8/4\nHitting: 13/7* (asterisk = opponent piece sent to bar)\nBearing off: 6/off\n\n## Multiple checkers with same move\n13/7(2) = move two checkers from 13 to 7 (when doubles rolled)\n\n## Grid labels\nTrack zone with 24 points. Labels: [\"1\",\"2\",...,\"24\"] plus \"bar\" and \"off\" as special positions.\n\n## Declarative spec\n```json\n{\n  \"notation\": {\n    \"type\": \"track_based\",\n    \"move_separator\": \"/\",\n    \"special_positions\": {\n      \"bar\": \"bar\",\n      \"off\": \"off\"\n    },\n    \"hit_marker\": \"*\",\n    \"dice_format\": \"({d1}-{d2})\"\n  }\n}\n```\nRequires extending notation spec for track-based games. Mostly declarative but dice+multi-move turns may need WASM for full parsing.",
+  "status": "closed",
+  "priority": 3,
+  "issue_type": "task",
+  "assignee": "Mark Atwood",
+  "owner": "mark@wolfssl.com",
+  "created_at": "2026-06-11T21:30:47Z",
+  "created_by": "Mark Atwood",
+  "updated_at": "2026-06-12T06:11:59Z",
+  "closed_at": "2026-06-12T06:11:59Z",
+  "close_reason": "Backgammon point notation added to backgammon.json + 3 tests.",
+  "dependencies": [
+    {
+      "issue_id": "baize-0af",
+      "depends_on_id": "baize-z9d",
+      "type": "blocks",
+      "created_at": "2026-06-11T23:03:06Z",
+      "created_by": "Mark Atwood",
+      "metadata": "{}"
+    },
+    {
+      "issue_id": "baize-0af",
+      "depends_on_id": "baize-uei",
+      "type": "blocks",
+      "created_at": "2026-06-11T14:31:19Z",
+      "created_by": "Mark Atwood",
+      "metadata": "{}"
+    }
+  ]
+}

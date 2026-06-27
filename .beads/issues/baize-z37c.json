@@ -1,0 +1,24 @@
+{
+  "id": "baize-z37c",
+  "title": "Tests: wargame Felt extensions + cell_property builtin",
+  "description": "Tests for: (1) cell_property builtin — Felt compiler check pass, host import returns correct values, missing property returns empty. (2) Terrain costs — movement budget validation, path cost computation. (3) CRT — odds ratio calculation, column mapping, result lookup. (4) ZOC — adjacency detection, movement restriction. (5) Integration — hex wargame def loads and validates. Both Rust and Python where applicable.",
+  "status": "closed",
+  "priority": 2,
+  "issue_type": "task",
+  "owner": "mark@wolfssl.com",
+  "created_at": "2026-06-13T02:56:21Z",
+  "created_by": "Mark Atwood",
+  "updated_at": "2026-06-13T03:14:13Z",
+  "closed_at": "2026-06-13T03:14:13Z",
+  "close_reason": "All Felt examples type-check (crt/zoc cleanly, wargame with known Score alias issue). 127 Felt + 317 engine + 130 server + 3504 Python tests pass. Zero regressions.",
+  "dependencies": [
+    {
+      "issue_id": "baize-z37c",
+      "depends_on_id": "baize-w3yh",
+      "type": "blocks",
+      "created_at": "2026-06-12T19:56:29Z",
+      "created_by": "Mark Atwood",
+      "metadata": "{}"
+    }
+  ]
+}

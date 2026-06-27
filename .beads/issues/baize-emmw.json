@@ -1,0 +1,15 @@
+{
+  "id": "baize-emmw",
+  "title": "Fuzzing infrastructure: cargo-fuzz and hypothesis for both engines",
+  "description": "Set up continuous fuzzing. Rust: cargo-fuzz targets for game definition parsing, action validation, state transitions, CEL evaluation. Python: hypothesis strategies for the same entry points. Fuzz targets should cover: JSON deserialization, move generation with random states, phase transitions with random inputs, event log serialization round-trips. CI integration for scheduled fuzz runs.",
+  "status": "closed",
+  "priority": 2,
+  "issue_type": "task",
+  "assignee": "Mark Atwood",
+  "owner": "mark@wolfssl.com",
+  "created_at": "2026-06-12T14:23:15Z",
+  "created_by": "Mark Atwood",
+  "updated_at": "2026-06-26T19:56:29Z",
+  "closed_at": "2026-06-12T15:56:18Z",
+  "close_reason": "Closed"
+}

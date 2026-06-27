@@ -1,0 +1,15 @@
+{
+  "id": "baize-y60b",
+  "title": "Bridge: 4-player partnership trick-taking with bidding and dummy",
+  "description": "4 players in 2 partnerships (N/S vs E/W), 52-card deck (already in registry). Two phases: auction (bidding) and play. Auction: players bid level (1-7) and strain (clubs/diamonds/hearts/spades/notrump) in ascending order, or pass/double/redouble. Final bid sets contract (declarer, trump suit, trick target). Play: 13 tricks, declarer's partner (dummy) lays hand face-up and declarer plays both hands. Follow suit required, trump wins when void. Scoring: making contract vs undertricks, vulnerability, slam bonuses, doubles. Demonstrates: partnership (2v2 cooperative/competitive hybrid), dummy exposure (one player's hand becomes public mid-game), auction as a structured phase with constrained bids, trick-taking with trump, complex scoring (Felt/WASM candidate). Imperfect information: hidden hands during auction, dummy revealed after opening lead. server_only for deal, client_verifiable for bidding and play.",
+  "status": "closed",
+  "priority": 3,
+  "issue_type": "task",
+  "assignee": "Mark Atwood",
+  "owner": "mark@wolfssl.com",
+  "created_at": "2026-06-12T18:34:17Z",
+  "created_by": "Mark Atwood",
+  "updated_at": "2026-06-12T18:52:43Z",
+  "closed_at": "2026-06-12T18:52:43Z",
+  "close_reason": "Closed"
+}

@@ -1,0 +1,15 @@
+{
+  "id": "baize-7nh",
+  "title": "Reject moves from spectator seats",
+  "description": "Spectators (spectator_N seats) can send RequestRandom messages. Fix: explicitly reject SubmitMove and RequestRandom from spectator seats in protocol.rs.",
+  "status": "closed",
+  "priority": 1,
+  "issue_type": "bug",
+  "assignee": "Mark Atwood",
+  "owner": "mark@reviewcommit.com",
+  "created_at": "2026-06-08T01:09:06Z",
+  "created_by": "Mark Atwood",
+  "updated_at": "2026-06-08T01:11:39Z",
+  "closed_at": "2026-06-08T01:11:39Z",
+  "close_reason": "Added spectator rejection for SubmitMove and RequestRandom at dispatch level. MoveRejected also changed from Broadcast to Reply to prevent info leaks."
+}

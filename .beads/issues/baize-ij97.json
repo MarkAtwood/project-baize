@@ -1,0 +1,14 @@
+{
+  "id": "baize-ij97",
+  "title": "Evaluate WIT Component Model as alternative to JSON ABI for Felt extensions",
+  "description": "Currently Felt extensions use a JSON-string ABI: host serializes game state to JSON, passes as bytes in linear memory, Felt runtime parses into GC structs. Alternative: define game state as a WIT interface (baize:game/state world) with concrete types. The canonical ABI handles marshaling — no JSON parsing at all. Smaller binaries, faster, type-safe at the interface boundary. Blocked on: (1) wasmtime Component Model + GC interaction maturity, (2) WIT recursive type support (needed for nested game state). Track and evaluate when wasmtime stabilizes Component Model + GC together.",
+  "status": "closed",
+  "priority": 4,
+  "issue_type": "task",
+  "owner": "mark@wolfssl.com",
+  "created_at": "2026-06-12T17:26:27Z",
+  "created_by": "Mark Atwood",
+  "updated_at": "2026-06-13T06:07:54Z",
+  "closed_at": "2026-06-13T06:07:54Z",
+  "close_reason": "Moot — Felt extensions already use handle-based host imports (i32 handles, 37 builtins) instead of JSON ABI. Current approach is effectively a hand-rolled WIT. Re-evaluate if wasmtime ships Component Model + GC together, but no actionable work now."
+}

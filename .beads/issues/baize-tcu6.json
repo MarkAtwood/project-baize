@@ -1,0 +1,15 @@
+{
+  "id": "baize-tcu6",
+  "title": "Serialization round-trip integrity: serialize-deserialize-serialize must be bitwise identical",
+  "description": "For all serializable types (GameState, GameDefinition, events, actions): serialize → deserialize → serialize must produce bitwise identical output. Any divergence could bypass hash chain verification or produce ambiguous state. Test with all game definitions and generated random states. Covers JSON canonical form, key ordering, float representation, Option/null handling. Both Rust and Python.",
+  "status": "closed",
+  "priority": 2,
+  "issue_type": "task",
+  "assignee": "Mark Atwood",
+  "owner": "mark@wolfssl.com",
+  "created_at": "2026-06-12T14:36:54Z",
+  "created_by": "Mark Atwood",
+  "updated_at": "2026-06-26T19:56:29Z",
+  "closed_at": "2026-06-12T15:12:49Z",
+  "close_reason": "Closed"
+}

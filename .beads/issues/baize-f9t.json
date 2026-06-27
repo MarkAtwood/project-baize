@@ -1,0 +1,15 @@
+{
+  "id": "baize-f9t",
+  "title": "Game definition loading from room creation API",
+  "description": "Server currently auto-creates rooms with a hardcoded placeholder definition. Add an HTTP endpoint or WebSocket message to create a room with a specific game definition (JSON body or URI reference). Validate definition before creating room. Remove the auto-create fallback.",
+  "status": "closed",
+  "priority": 1,
+  "issue_type": "feature",
+  "assignee": "Mark Atwood",
+  "owner": "mark@wolfssl.com",
+  "created_at": "2026-06-11T16:48:59Z",
+  "created_by": "Mark Atwood",
+  "updated_at": "2026-06-26T19:56:29Z",
+  "closed_at": "2026-06-11T17:22:54Z",
+  "close_reason": "Added POST /rooms endpoint that accepts full game definition JSON, validates via engine, and creates room. Added GET /rooms to list active rooms. Removed auto-create fallback — WebSocket handler now returns 404 for nonexistent rooms. Client resolves definition URLs and POSTs the JSON."
+}

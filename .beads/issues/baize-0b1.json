@@ -1,0 +1,25 @@
+{
+  "id": "baize-0b1",
+  "title": "Cube: single-player game support",
+  "description": "Verify the engine handles a single-player game.\n\n## What to test\n- players: [\"solver\"] — only one player\n- turn_order: {\"type\": \"alternating\", \"players\": [\"solver\"], \"actions_per_turn\": 1}\n- current_player() always returns \"solver\"\n- turn_index never advances past 0\n- No opponent-related logic fires (captures, etc.)\n\n## Potential issues\n- Does advance_turn() work with 1 player? turn_index = (0+1) % 1 = 0. Should be fine.\n- Do end conditions work when there is no \"opponent\"?\n- Does the agent framework handle single-player (always your turn)?\n\n## Test\nCreate a minimal single-player game definition, play a few moves, verify the session works correctly. Both Rust and Python.",
+  "status": "closed",
+  "priority": 3,
+  "issue_type": "task",
+  "assignee": "Mark Atwood",
+  "owner": "mark@wolfssl.com",
+  "created_at": "2026-06-11T21:32:34Z",
+  "created_by": "Mark Atwood",
+  "updated_at": "2026-06-26T19:56:29Z",
+  "closed_at": "2026-06-11T23:33:27Z",
+  "close_reason": "Closed",
+  "dependencies": [
+    {
+      "issue_id": "baize-0b1",
+      "depends_on_id": "baize-7df",
+      "type": "blocks",
+      "created_at": "2026-06-11T14:34:09Z",
+      "created_by": "Mark Atwood",
+      "metadata": "{}"
+    }
+  ]
+}

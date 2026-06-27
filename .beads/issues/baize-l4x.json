@@ -1,0 +1,15 @@
+{
+  "id": "baize-l4x",
+  "title": "Fix StateSync broadcasting hidden state to all players",
+  "description": "StateSync with full_state is broadcast to ALL players, leaking hidden/private zones in imperfect-info games. Any player can trigger by sending wrong state_hash. Fix: (a) send StateSync only to requesting player, (b) filter state per-player visibility.",
+  "status": "closed",
+  "priority": 0,
+  "issue_type": "bug",
+  "assignee": "Mark Atwood",
+  "owner": "mark@reviewcommit.com",
+  "created_at": "2026-06-08T01:08:55Z",
+  "created_by": "Mark Atwood",
+  "updated_at": "2026-06-08T01:11:38Z",
+  "closed_at": "2026-06-08T01:11:38Z",
+  "close_reason": "Changed StateSync from Broadcast to Reply — only sent to requesting player, preventing hidden state leaks in imperfect-info games."
+}

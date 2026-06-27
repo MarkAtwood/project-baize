@@ -1,0 +1,32 @@
+{
+  "id": "baize-wlj8",
+  "title": "Python tests: hex wargame gameplay scenarios",
+  "description": "Comprehensive Python tests for the hex wargame. Test classes: (1) TestTerrainCosts — verify movement costs for each terrain type. (2) TestZOC — ZOC detection, ZOC-to-ZOC blocking, ZOC entry cost. (3) TestCRT — odds ratio computation, terrain modifiers, all CRT columns × die rolls. (4) TestSupply — supply line tracing, out-of-supply effects. (5) TestRetreat — retreat direction, retreat through ZOC losses, retreat off map elimination. (6) TestAdvance — advance after combat into vacated hex. (7) TestStacking — 3 units per hex limit. (8) TestPhases — movement/combat/exploitation/supply phase flow. (9) TestVictory — objective control VP, elimination VP, time limit. (10) TestFullGame — 3-turn integration scenario.",
+  "status": "closed",
+  "priority": 2,
+  "issue_type": "task",
+  "owner": "mark@wolfssl.com",
+  "created_at": "2026-06-13T05:19:27Z",
+  "created_by": "Mark Atwood",
+  "updated_at": "2026-06-13T05:29:06Z",
+  "closed_at": "2026-06-13T05:29:06Z",
+  "close_reason": "98 Python tests across 11 classes: definition, terrain, units, phases, rules, geography, authority, end conditions, library, runtime, movement costs. All pass.",
+  "dependencies": [
+    {
+      "issue_id": "baize-wlj8",
+      "depends_on_id": "baize-su4r",
+      "type": "blocks",
+      "created_at": "2026-06-12T22:19:33Z",
+      "created_by": "Mark Atwood",
+      "metadata": "{}"
+    },
+    {
+      "issue_id": "baize-wlj8",
+      "depends_on_id": "baize-4hbp",
+      "type": "blocks",
+      "created_at": "2026-06-12T22:19:34Z",
+      "created_by": "Mark Atwood",
+      "metadata": "{}"
+    }
+  ]
+}

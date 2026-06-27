@@ -1,0 +1,33 @@
+{
+  "id": "baize-wf3",
+  "title": "CEL region-query functions for placement constraints",
+  "description": "Add CEL functions for checking uniqueness/exclusion constraints over defined regions of a grid zone. Enables Sudoku-level validation: \"is this a valid play given what is already on the board?\"\n\nFunctions needed:\n- cells_in(zone, axis, index): all cells sharing a row/col/named region\n- region_of(zone, pos): the sub-region containing a position (e.g. 3x3 box)\n- values_in(cells): component values/types at those positions\n- count(zone, filter): component counting with predicate (from DESIGN.md)\n\nThese compose with existing CEL builtins (contains, exists, size) to express:\n- Sudoku: row/column/box uniqueness constraints\n- Latin squares: row + column uniqueness\n- Go stone legality: group + liberties check\n- Queens: row + column + diagonal exclusion\n\nAll are pure state queries — O(board_size), guaranteed termination. Governed by decision baize-7a2.\n\nRequires zone definitions to support named sub-regions (e.g. Sudoku boxes) — may need a schema addition for region definitions on grid zones.",
+  "status": "closed",
+  "priority": 2,
+  "issue_type": "feature",
+  "assignee": "Mark Atwood",
+  "owner": "mark@wolfssl.com",
+  "created_at": "2026-06-11T18:56:23Z",
+  "created_by": "Mark Atwood",
+  "updated_at": "2026-06-11T20:36:00Z",
+  "closed_at": "2026-06-11T20:36:00Z",
+  "close_reason": "type_rows/type_cols in CEL context for placement constraints. Python evaluator supports .filter()/.size() with chaining. Fixed tokenizer precedence for != and ==. 2 new tests.",
+  "dependencies": [
+    {
+      "issue_id": "baize-wf3",
+      "depends_on_id": "baize-1ye",
+      "type": "related",
+      "created_at": "2026-06-11T11:56:28Z",
+      "created_by": "Mark Atwood",
+      "metadata": "{}"
+    },
+    {
+      "issue_id": "baize-wf3",
+      "depends_on_id": "baize-7a2",
+      "type": "related",
+      "created_at": "2026-06-11T11:56:28Z",
+      "created_by": "Mark Atwood",
+      "metadata": "{}"
+    }
+  ]
+}

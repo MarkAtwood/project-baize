@@ -1,0 +1,25 @@
+{
+  "id": "baize-lvlf",
+  "title": "Rust: GridStorage enum with Dense/Sparse backends",
+  "description": "Create GridStorage enum in engine/src/runtime.rs. Dense uses Vec, Sparse uses HashMap\u003c(i32,i32)\u003e. All grid_* methods delegate to GridStorage. Auto-select based on dimensions. Paranoid bounds checking, overflow protection, cell count limits.",
+  "status": "closed",
+  "priority": 1,
+  "issue_type": "task",
+  "assignee": "Mark Atwood",
+  "owner": "mark@wolfssl.com",
+  "created_at": "2026-06-13T00:52:42Z",
+  "created_by": "Mark Atwood",
+  "updated_at": "2026-06-26T19:56:29Z",
+  "closed_at": "2026-06-13T01:05:42Z",
+  "close_reason": "GridStorage enum with Dense/Sparse backends, all 304 Rust tests passing",
+  "dependencies": [
+    {
+      "issue_id": "baize-lvlf",
+      "depends_on_id": "baize-450g",
+      "type": "blocks",
+      "created_at": "2026-06-12T17:52:51Z",
+      "created_by": "Mark Atwood",
+      "metadata": "{}"
+    }
+  ]
+}

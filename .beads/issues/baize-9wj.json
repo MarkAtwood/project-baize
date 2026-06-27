@@ -1,0 +1,25 @@
+{
+  "id": "baize-9wj",
+  "title": "Built-in reference agents (random, greedy, MCTS)",
+  "description": "Ship a small set of reference agents that demonstrate the agent SDK and serve as baseline opponents. Random: uniform random legal move. Greedy: maximize immediate score delta. MCTS: Monte Carlo tree search with configurable playout budget. Useful for testing, single-player practice, and benchmarking custom agents.",
+  "status": "closed",
+  "priority": 4,
+  "issue_type": "feature",
+  "assignee": "Mark Atwood",
+  "owner": "mark@wolfssl.com",
+  "created_at": "2026-06-11T17:55:56Z",
+  "created_by": "Mark Atwood",
+  "updated_at": "2026-06-11T20:04:50Z",
+  "closed_at": "2026-06-11T20:04:50Z",
+  "close_reason": "RandomAgent (uniform), GreedyAgent (capture-first), MCTSAgent (tree search with UCB1 + random playout). All use AgentSession for local move enumeration. 6 tests.",
+  "dependencies": [
+    {
+      "issue_id": "baize-9wj",
+      "depends_on_id": "baize-a0o",
+      "type": "blocks",
+      "created_at": "2026-06-11T10:56:02Z",
+      "created_by": "Mark Atwood",
+      "metadata": "{}"
+    }
+  ]
+}

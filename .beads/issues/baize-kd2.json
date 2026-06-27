@@ -1,0 +1,15 @@
+{
+  "id": "baize-kd2",
+  "title": "poker: showdown resolution and pot distribution",
+  "description": "No showdown logic exists. At showdown: (1) reveal all active players' hole cards, (2) call hand ranking evaluator for each player's best 7-card hand, (3) award pot to winner (or split on tie), (4) handle side pots when a player went all-in. The end_condition 'best_hand(hand + community) at showdown' is a free-form string not evaluated by check_end_conditions. Depends on: hand ranking evaluator (baize-po7) and side pot logic. Tests: test_showdown_winner_gets_pot, test_side_pot_created_on_all_in in tests/test_poker.py.",
+  "status": "closed",
+  "priority": 1,
+  "issue_type": "task",
+  "assignee": "Mark Atwood",
+  "owner": "mark@wolfssl.com",
+  "created_at": "2026-06-12T00:35:23Z",
+  "created_by": "Mark Atwood",
+  "updated_at": "2026-06-12T18:23:17Z",
+  "closed_at": "2026-06-12T18:23:17Z",
+  "close_reason": "Closed"
+}

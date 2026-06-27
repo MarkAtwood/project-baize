@@ -1,0 +1,15 @@
+{
+  "id": "baize-dr0m",
+  "title": "Error message audit: never leak hidden state in errors",
+  "description": "Audit all error paths in both engines and the server. Error messages returned to clients must never reveal: hidden zone contents (opponent hands, deck order), server-side PRNG state, internal component IDs that could enable guessing, or stack traces with file paths. Create a test suite that submits invalid actions and asserts error responses contain no hidden information.",
+  "status": "closed",
+  "priority": 1,
+  "issue_type": "task",
+  "assignee": "Mark Atwood",
+  "owner": "mark@wolfssl.com",
+  "created_at": "2026-06-12T14:23:25Z",
+  "created_by": "Mark Atwood",
+  "updated_at": "2026-06-26T19:56:29Z",
+  "closed_at": "2026-06-12T15:12:49Z",
+  "close_reason": "Closed"
+}

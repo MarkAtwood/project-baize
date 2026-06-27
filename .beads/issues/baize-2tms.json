@@ -1,0 +1,54 @@
+{
+  "id": "baize-2tms",
+  "title": "Flutter: reference game screens — Tic-Tac-Toe, Chess, Poker",
+  "description": "Three reference game implementations as Flutter screens to prove the widget system works end-to-end. (1) Tic-Tac-Toe: simplest — 3x3 grid, tap to place, win detection. (2) Chess: full board with piece images, legal move highlights, drag-and-drop, promotion dialog. (3) Texas Hold'em: card hand fan, community cards, betting controls, pot display. Each plays against the server via WebSocket. Screenshot tests for visual regression.",
+  "status": "open",
+  "priority": 3,
+  "issue_type": "task",
+  "owner": "mark@wolfssl.com",
+  "created_at": "2026-06-13T06:26:33Z",
+  "created_by": "Mark Atwood",
+  "updated_at": "2026-06-26T19:56:30Z",
+  "dependencies": [
+    {
+      "issue_id": "baize-2tms",
+      "depends_on_id": "baize-j3tb",
+      "type": "blocks",
+      "created_at": "2026-06-12T23:26:55Z",
+      "created_by": "Mark Atwood",
+      "metadata": "{}"
+    },
+    {
+      "issue_id": "baize-2tms",
+      "depends_on_id": "baize-mjag",
+      "type": "blocks",
+      "created_at": "2026-06-12T23:26:54Z",
+      "created_by": "Mark Atwood",
+      "metadata": "{}"
+    },
+    {
+      "issue_id": "baize-2tms",
+      "depends_on_id": "baize-g6t7",
+      "type": "blocks",
+      "created_at": "2026-06-12T23:26:55Z",
+      "created_by": "Mark Atwood",
+      "metadata": "{}"
+    },
+    {
+      "issue_id": "baize-2tms",
+      "depends_on_id": "baize-v1e3",
+      "type": "blocks",
+      "created_at": "2026-06-12T23:26:56Z",
+      "created_by": "Mark Atwood",
+      "metadata": "{}"
+    },
+    {
+      "issue_id": "baize-2tms",
+      "depends_on_id": "baize-d8yd",
+      "type": "blocks",
+      "created_at": "2026-06-12T23:29:02Z",
+      "created_by": "Mark Atwood",
+      "metadata": "{}"
+    }
+  ]
+}

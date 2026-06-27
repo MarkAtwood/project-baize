@@ -1,0 +1,17 @@
+{
+  "id": "baize-99b",
+  "title": "Infinite/unbounded game state",
+  "description": "The schema assumes finite state. How do we handle games with unbounded state? Examples: deck-builders that add cards during play (Dominion), procedurally generated maps (Catan expansions), games where players create new pieces. Does the component registry need dynamic instantiation? Is this a WASM concern or does the declarative layer need to express it?",
+  "status": "closed",
+  "priority": 3,
+  "issue_type": "task",
+  "owner": "mark@reviewcommit.com",
+  "created_at": "2026-06-07T21:53:35Z",
+  "created_by": "Mark Atwood",
+  "updated_at": "2026-06-08T00:17:38Z",
+  "closed_at": "2026-06-08T00:17:38Z",
+  "close_reason": "Option A: all component types declared upfront, instantiated dynamically at runtime. count sets initial supply, Place action creates new instances. Deck-builders declare full card pool. Truly procedural content is a Tier 2 WASM concern.",
+  "labels": [
+    "human-judgment"
+  ]
+}

@@ -1,0 +1,15 @@
+{
+  "id": "baize-rt8",
+  "title": "Fix unbounded dice/draw DoS vectors in server",
+  "description": "Security audit found: roll_dice() accepts unbounded dice_count (u32), draw_cards() accepts unbounded draw_count. A malicious client can request billions of dice rolls causing OOM/CPU exhaustion. Add MAX_DICE_COUNT and MAX_DRAW_COUNT bounds in config.rs and validate in protocol.rs.",
+  "status": "closed",
+  "priority": 0,
+  "issue_type": "bug",
+  "assignee": "Mark Atwood",
+  "owner": "mark@reviewcommit.com",
+  "created_at": "2026-06-08T00:55:17Z",
+  "created_by": "Mark Atwood",
+  "updated_at": "2026-06-08T01:02:45Z",
+  "closed_at": "2026-06-08T01:02:45Z",
+  "close_reason": "Added MAX_DICE_COUNT (100), MAX_DRAW_COUNT (1000), MAX_DICE_FACES (1000), MAX_ZONE_NAME_LENGTH (128) to config.rs. Added validate_random_request() in protocol.rs with bounds for all random request types. Added dice_count bounds to validate_action(). Added state_hash format validation (64-char hex)."
+}

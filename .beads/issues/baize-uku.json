@@ -1,0 +1,15 @@
+{
+  "id": "baize-uku",
+  "title": "Texas Hold'em: full playability (mental poker prerequisite)",
+  "description": "Poker definition parses and has analysis metrics (hidden info ratio) but zero gameplay tests. Need: deck shuffle/deal (server authority), betting round phases (fold/check/call/raise), community card reveal phases (flop/turn/river), showdown and hand ranking evaluation, pot distribution, multi-hand session. This is critical for mental poker demo — can't demo commit-reveal if the base game doesn't play. Requires phase system and betting round execution in the engine.",
+  "status": "closed",
+  "priority": 1,
+  "issue_type": "feature",
+  "assignee": "Mark Atwood",
+  "owner": "mark@wolfssl.com",
+  "created_at": "2026-06-12T00:01:02Z",
+  "created_by": "Mark Atwood",
+  "updated_at": "2026-06-12T18:23:23Z",
+  "closed_at": "2026-06-12T18:23:23Z",
+  "close_reason": "All 6 sub-issues complete: hand evaluator, betting FSM, fold/check/call/raise/all_in, draw-to-SetZone, server phase execution, showdown resolution"
+}

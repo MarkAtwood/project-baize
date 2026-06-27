@@ -1,0 +1,15 @@
+{
+  "id": "baize-9p50",
+  "title": "Cross-engine determinism verification: automated Rust vs Python differential testing",
+  "description": "Rust and Python engines must produce identical state from identical inputs. Any divergence is a bug or exploit vector. Build automated differential testing: feed identical game definitions, seeds, and action sequences to both engines, compare state hashes after every transition. Run against all 22 game definitions. Goes beyond current static test vectors — needs randomized action sequence generation.",
+  "status": "closed",
+  "priority": 2,
+  "issue_type": "task",
+  "assignee": "Mark Atwood",
+  "owner": "mark@wolfssl.com",
+  "created_at": "2026-06-12T14:36:51Z",
+  "created_by": "Mark Atwood",
+  "updated_at": "2026-06-26T19:56:29Z",
+  "closed_at": "2026-06-12T15:56:17Z",
+  "close_reason": "Closed"
+}

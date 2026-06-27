@@ -1,0 +1,22 @@
+{
+  "id": "baize-6ewo",
+  "title": "Epic: Demo-ready — docker pull, open browser, play",
+  "description": "End-to-end demo path: docker run -p 8080:8080 ghcr.io/markatwood/baize, open browser, pick a game, play. Single container serves both the Rust WebSocket server and a static web client. No Flutter required — works in any browser including mobile.\n\nMilestone for conference demos: 'available now, docker pull from github, open your phone browser.'",
+  "status": "open",
+  "priority": 2,
+  "issue_type": "feature",
+  "owner": "mark@wolfssl.com",
+  "created_at": "2026-06-13T07:04:03Z",
+  "created_by": "Mark Atwood",
+  "updated_at": "2026-06-26T19:56:30Z",
+  "dependencies": [
+    {
+      "issue_id": "baize-6ewo",
+      "depends_on_id": "baize-7r9k",
+      "type": "blocks",
+      "created_at": "2026-06-13T00:05:00Z",
+      "created_by": "Mark Atwood",
+      "metadata": "{}"
+    }
+  ]
+}

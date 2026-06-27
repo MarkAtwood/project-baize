@@ -1,0 +1,15 @@
+{
+  "id": "baize-4jk9",
+  "title": "Graceful crash handling: no corrupted state, leaked secrets, or orphaned rooms on panic",
+  "description": "Audit server crash paths. When the server hits an unrecoverable error (panic, OOM, SIGTERM): game state must not be left corrupted on disk, hidden state (deck orders, hands) must not appear in core dumps or logs, orphaned rooms must be cleaned up on restart, in-flight WebSocket connections must get clean close frames. Implement crash-safe state persistence (write-ahead or atomic rename). Test with kill -9 during active games.",
+  "status": "closed",
+  "priority": 1,
+  "issue_type": "task",
+  "assignee": "Mark Atwood",
+  "owner": "mark@wolfssl.com",
+  "created_at": "2026-06-12T14:37:01Z",
+  "created_by": "Mark Atwood",
+  "updated_at": "2026-06-26T19:56:29Z",
+  "closed_at": "2026-06-12T15:44:42Z",
+  "close_reason": "Closed"
+}

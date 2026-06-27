@@ -1,0 +1,15 @@
+{
+  "id": "baize-3x02",
+  "title": "Nim: heap removal with Sprague-Grundy theory",
+  "description": "2 players, N heaps of objects. Each turn: choose a heap, remove 1 or more objects from it. Player who takes the last object loses (misère) or wins (normal). Mathematically solved via XOR of heap sizes. Simplest meaningful strategy game. Demonstrates: counter-based zones (heaps), variable action count, mathematically provable optimal play. Perfect information, no randomness, fully client_verifiable.",
+  "status": "closed",
+  "priority": 3,
+  "issue_type": "task",
+  "assignee": "Mark Atwood",
+  "owner": "mark@wolfssl.com",
+  "created_at": "2026-06-12T18:36:46Z",
+  "created_by": "Mark Atwood",
+  "updated_at": "2026-06-12T18:52:34Z",
+  "closed_at": "2026-06-12T18:52:34Z",
+  "close_reason": "Closed"
+}

@@ -1,0 +1,15 @@
+{
+  "id": "baize-jxt",
+  "title": "Expose global counters to CEL end-condition evaluator",
+  "description": "check_end_conditions calls _build_end_condition_variables which does not include session.runtime.counters in the CEL variable context. Games like Pig that use global counters for player totals (alice_total, bob_total) cannot use check_end_conditions to evaluate win conditions like 'alice_total \u003e= 100'. Fix: merge session.runtime.counters into the variables dict in _build_end_condition_variables in python/baize/end_conditions.py.",
+  "status": "closed",
+  "priority": 2,
+  "issue_type": "task",
+  "assignee": "Mark Atwood",
+  "owner": "mark@wolfssl.com",
+  "created_at": "2026-06-12T00:36:15Z",
+  "created_by": "Mark Atwood",
+  "updated_at": "2026-06-12T01:07:05Z",
+  "closed_at": "2026-06-12T01:07:05Z",
+  "close_reason": "Counters were already injected at end_conditions.py:82-83 and cel.rs:70-72. Updated Pig test to use check_end_conditions() instead of manual CEL workaround."
+}

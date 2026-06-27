@@ -1,0 +1,15 @@
+{
+  "id": "baize-xat",
+  "title": "Polyomino Placement: grid territory game",
+  "description": "The game commonly known by a trademarked name. Players take turns placing polyomino pieces (shapes made of connected squares) onto a 20x20 grid. Each new piece must touch your existing pieces at corners only — never edge-to-edge. Validates: square grid placement, multi-cell spans with arbitrary shapes (not just linear spans like Naval Battle), corner-only adjacency constraint as CEL/placement rule, 2-4 players with starting corners. Pieces are all distinct polyominoes from monominoes through pentominoes (21 shapes, 1+1+2+5+12). Exercises the span system with 2D shapes rather than 1D lines.",
+  "status": "closed",
+  "priority": 3,
+  "issue_type": "feature",
+  "assignee": "Mark Atwood",
+  "owner": "mark@wolfssl.com",
+  "created_at": "2026-06-12T00:28:15Z",
+  "created_by": "Mark Atwood",
+  "updated_at": "2026-06-26T19:56:29Z",
+  "closed_at": "2026-06-12T03:40:53Z",
+  "close_reason": "Polyomino Placement fully playable. 20x20 grid, 21 shapes with rotation/flip, corner-only adjacency, 2/4 players, scoring. 51 tests."
+}

@@ -1,0 +1,15 @@
+{
+  "id": "baize-jfe1",
+  "title": "Mancala: seed-sowing pit capture game",
+  "description": "2 players, 14 pits (6 per player + 1 store each). Track zone with counter-per-pit semantics. Sowing mechanic: pick up all seeds from a pit, drop one in each subsequent pit counterclockwise. Capture: if last seed lands in an empty pit on your side, capture that seed plus opposite pit's seeds. Extra turn: if last seed lands in your store. Game ends when one side is empty, remaining seeds go to that side's opponent. Perfect information, no randomness, fully client_verifiable. Demonstrates track zone with multi-step seed distribution — a mechanic unlike any other game in the catalog.",
+  "status": "closed",
+  "priority": 3,
+  "issue_type": "task",
+  "assignee": "Mark Atwood",
+  "owner": "mark@wolfssl.com",
+  "created_at": "2026-06-12T18:32:40Z",
+  "created_by": "Mark Atwood",
+  "updated_at": "2026-06-12T18:52:34Z",
+  "closed_at": "2026-06-12T18:52:34Z",
+  "close_reason": "Closed"
+}

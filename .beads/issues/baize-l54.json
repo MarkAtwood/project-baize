@@ -1,0 +1,15 @@
+{
+  "id": "baize-l54",
+  "title": "Server protocol hardening",
+  "description": "WebSocket server must handle: oversized payloads, malformed JSON, unknown message types, out-of-turn moves, replayed messages, connection flooding, graceful shutdown. Rate limiting per connection. Message size limits. Sequence number validation.",
+  "status": "closed",
+  "priority": 1,
+  "issue_type": "task",
+  "assignee": "Mark Atwood",
+  "owner": "mark@reviewcommit.com",
+  "created_at": "2026-06-08T00:27:36Z",
+  "created_by": "Mark Atwood",
+  "updated_at": "2026-06-08T00:38:16Z",
+  "closed_at": "2026-06-08T00:38:16Z",
+  "close_reason": "All security hardening committed and tests passing"
+}

@@ -1,0 +1,15 @@
+{
+  "id": "baize-lc2",
+  "title": "Defensive programming: server protocol validation hardening",
+  "description": "Server trusts client data it should validate at the protocol boundary.\n\n1. Zone names not validated against game definition — invalid zones pass through to engine\n2. Component types not validated against definition — non-existent types accepted\n3. Default zone names (\"board\", \"deck\") assumed without existence check\n4. Coordinates validated for format but not against grid dimensions\n\nFix: Validate zone names and component types in protocol.rs validate_action() against the room definition. Validate default zone names exist. Bounds-check coordinates against known grid dimensions at the protocol boundary, not just in the engine.",
+  "status": "closed",
+  "priority": 1,
+  "issue_type": "bug",
+  "assignee": "Mark Atwood",
+  "owner": "mark@wolfssl.com",
+  "created_at": "2026-06-11T21:03:30Z",
+  "created_by": "Mark Atwood",
+  "updated_at": "2026-06-11T21:09:28Z",
+  "closed_at": "2026-06-11T21:09:28Z",
+  "close_reason": "Zone names, component types, promote_to, draw_from, shuffle_zone all validated against game definition at protocol boundary."
+}

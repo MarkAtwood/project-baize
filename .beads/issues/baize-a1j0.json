@@ -1,0 +1,12 @@
+{
+  "id": "baize-a1j0",
+  "title": "Dev environment: install Flutter SDK + Xvfb screenshot loop",
+  "description": "Install Flutter SDK (~2GB) on dev machine. Verify flutter doctor passes for Linux desktop and web targets. Set up visual feedback loop: Xvfb virtual display + Playwright screenshots. Test with flutter create + flutter run -d linux under Xvfb, screenshot with Playwright, verify Claude can see the rendered output. This is the foundation for all Flutter GUI iteration.",
+  "status": "open",
+  "priority": 3,
+  "issue_type": "task",
+  "owner": "mark@wolfssl.com",
+  "created_at": "2026-06-13T06:25:31Z",
+  "created_by": "Mark Atwood",
+  "updated_at": "2026-06-26T19:56:29Z"
+}

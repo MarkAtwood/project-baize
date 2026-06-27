@@ -1,0 +1,25 @@
+{
+  "id": "baize-562.2",
+  "title": "State transition test vectors",
+  "description": "For each reference game: known state + move → expected next state. Tests apply_move across all implementations. Includes edge cases (castling, en passant, promotion, captures).",
+  "status": "closed",
+  "priority": 1,
+  "issue_type": "task",
+  "assignee": "Mark Atwood",
+  "owner": "mark@reviewcommit.com",
+  "created_at": "2026-06-07T22:16:05Z",
+  "created_by": "Mark Atwood",
+  "updated_at": "2026-06-07T23:58:14Z",
+  "closed_at": "2026-06-07T23:58:14Z",
+  "close_reason": "tests/vectors/state-transitions.json + 8 test cases, Rust and Python runners passing",
+  "dependencies": [
+    {
+      "issue_id": "baize-562.2",
+      "depends_on_id": "baize-562",
+      "type": "parent-child",
+      "created_at": "2026-06-07T15:16:04Z",
+      "created_by": "Mark Atwood",
+      "metadata": "{}"
+    }
+  ]
+}

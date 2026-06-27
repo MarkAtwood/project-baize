@@ -1,0 +1,25 @@
+{
+  "id": "baize-57v",
+  "title": "Cube: 6-zone face topology with cross-zone perturber swaps",
+  "description": "A face rotation on a Rubik's Cube affects stickers on the rotated face AND stickers on 4 adjacent faces. The perturber language must support cross-zone mutations.\n\n## The problem\nA U (up face clockwise) rotation:\n1. Cycles 8 stickers on the U face (4 corners + 4 edges, center stays)\n2. Cycles 12 stickers on the top edges of Front, Right, Back, Left faces:\n   - Front top row → Right top row → Back top row → Left top row → Front top row\n\nThis is 20 individual sticker position changes, all in one atomic move.\n\n## What needs to work\n- Perturber sequence of swap/move effects across different zones\n- Currently, remove/swap/promote in the perturber find components by ID on any grid. But move/place target specific zones.\n- Need: a perturber effect that can relocate a component from zone A position X to zone B position Y\n\n## Current gap\nThe perturber has remove/flip/promote but NOT a general \"move component from (zone, col, row) to (zone, col, row)\" effect. The transition engine has MovePiece but it operates within a single zone.\n\n## Required addition\nAdd a transfer/relocate effect to the perturber:\n```json\n{\"transfer\": {\"component\": \"sticker-id\", \"from_zone\": \"front\", \"from_pos\": \"0,0\", \"to_zone\": \"right\", \"to_pos\": \"0,0\"}}\n```\nOr a multi-swap that cycles positions:\n```json\n{\"cycle\": [\n  {\"zone\": \"front\", \"pos\": \"0,0\"},\n  {\"zone\": \"right\", \"pos\": \"0,0\"},\n  {\"zone\": \"back\", \"pos\": \"2,0\"},\n  {\"zone\": \"left\", \"pos\": \"0,0\"}\n]}\n```\nA cycle primitive would be cleaner than 20 individual swaps — a 4-element cycle is 4 positions rotating by 1.\n\n## Test\nDefine 2 adjacent 3x3 grid zones, run a perturber that moves stickers between them, verify positions update correctly in both zones.",
+  "status": "closed",
+  "priority": 3,
+  "issue_type": "task",
+  "assignee": "Mark Atwood",
+  "owner": "mark@wolfssl.com",
+  "created_at": "2026-06-11T21:32:52Z",
+  "created_by": "Mark Atwood",
+  "updated_at": "2026-06-26T19:56:29Z",
+  "closed_at": "2026-06-11T23:09:06Z",
+  "close_reason": "Closed",
+  "dependencies": [
+    {
+      "issue_id": "baize-57v",
+      "depends_on_id": "baize-7df",
+      "type": "blocks",
+      "created_at": "2026-06-11T14:34:09Z",
+      "created_by": "Mark Atwood",
+      "metadata": "{}"
+    }
+  ]
+}

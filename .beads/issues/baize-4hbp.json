@@ -1,0 +1,24 @@
+{
+  "id": "baize-4hbp",
+  "title": "Felt wargame: retreat, advance after combat, mandatory attack",
+  "description": "Add combat aftermath logic to wargame.felt and crt.felt. Retreat: DR result forces defender to move 1-2 hexes away from attacker, cannot retreat into enemy ZOC (causes step loss), cannot retreat off map (eliminated). Advance: after DE/DR, attacker may advance into vacated hex. Mandatory attack: units adjacent to enemies MUST attack in combat phase. Step losses: units can take 1-2 step losses before elimination (reduce attack/defense). Road bonus: movement along road hexes costs half (round up).",
+  "status": "closed",
+  "priority": 2,
+  "issue_type": "task",
+  "owner": "mark@wolfssl.com",
+  "created_at": "2026-06-13T05:19:20Z",
+  "created_by": "Mark Atwood",
+  "updated_at": "2026-06-26T19:56:29Z",
+  "closed_at": "2026-06-13T05:24:46Z",
+  "close_reason": "Step losses, retreat validation, mandatory attack, advance after combat, exploitation eligibility added to crt.felt and wargame.felt. Both type-check cleanly.",
+  "dependencies": [
+    {
+      "issue_id": "baize-4hbp",
+      "depends_on_id": "baize-t5e5",
+      "type": "blocks",
+      "created_at": "2026-06-12T22:19:33Z",
+      "created_by": "Mark Atwood",
+      "metadata": "{}"
+    }
+  ]
+}

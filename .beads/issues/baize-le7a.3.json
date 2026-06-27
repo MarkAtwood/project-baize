@@ -1,0 +1,33 @@
+{
+  "id": "baize-le7a.3",
+  "title": "Felt type checker: infer and verify types",
+  "description": "Hindley-Milner type inference with game-specific base types (State, Zone, Cell, Component, Player). Type check function signatures, pattern match exhaustiveness, let bindings. Report clear error messages with source locations. No generics beyond built-in polymorphic functions (map, filter, fold).",
+  "status": "closed",
+  "priority": 2,
+  "issue_type": "task",
+  "assignee": "Mark Atwood",
+  "owner": "mark@wolfssl.com",
+  "created_at": "2026-06-12T16:15:21Z",
+  "created_by": "Mark Atwood",
+  "updated_at": "2026-06-26T19:56:29Z",
+  "closed_at": "2026-06-12T18:02:45Z",
+  "close_reason": "Closed",
+  "dependencies": [
+    {
+      "issue_id": "baize-le7a.3",
+      "depends_on_id": "baize-le7a",
+      "type": "parent-child",
+      "created_at": "2026-06-12T09:15:21Z",
+      "created_by": "Mark Atwood",
+      "metadata": "{}"
+    },
+    {
+      "issue_id": "baize-le7a.3",
+      "depends_on_id": "baize-le7a.2",
+      "type": "blocks",
+      "created_at": "2026-06-12T09:15:21Z",
+      "created_by": "Mark Atwood",
+      "metadata": "{}"
+    }
+  ]
+}

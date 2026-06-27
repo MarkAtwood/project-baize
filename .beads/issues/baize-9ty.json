@@ -1,0 +1,15 @@
+{
+  "id": "baize-9ty",
+  "title": "poker: draw action must support SetZone hand",
+  "description": "transition.py apply_action('draw') only pushes drawn card into player's first per-player zone when it is a StackZone (line 373). Poker hand zones are SetZone. Fix: detect SetZone and call set_add() instead. Test: TestTier2DrawActionGap.test_draw_action_delivers_to_set_zone_hand in tests/test_poker.py should flip from xfail to pass.",
+  "status": "closed",
+  "priority": 1,
+  "issue_type": "task",
+  "assignee": "Mark Atwood",
+  "owner": "mark@wolfssl.com",
+  "created_at": "2026-06-12T00:34:51Z",
+  "created_by": "Mark Atwood",
+  "updated_at": "2026-06-12T18:18:56Z",
+  "closed_at": "2026-06-12T18:18:56Z",
+  "close_reason": "Closed"
+}

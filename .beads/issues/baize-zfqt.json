@@ -1,0 +1,15 @@
+{
+  "id": "baize-zfqt",
+  "title": "Server: seat selection — player picks seat on join",
+  "description": "Extend the Hello handshake to include an optional preferred_seat field. If specified and available, player gets that seat. If taken, reject with error listing available seats. If omitted, auto-assign as today (backward compatible). Update join_room to check seat availability before assignment. Enables players to choose sides (e.g., Blue/Red in wargame, East/West in Bridge). Spectator seat still auto-assigned for overflow.",
+  "status": "closed",
+  "priority": 3,
+  "issue_type": "task",
+  "assignee": "Mark Atwood",
+  "owner": "mark@wolfssl.com",
+  "created_at": "2026-06-13T06:32:02Z",
+  "created_by": "Mark Atwood",
+  "updated_at": "2026-06-26T19:56:29Z",
+  "closed_at": "2026-06-13T07:00:39Z",
+  "close_reason": "preferred_seat field on Hello. Validates seat exists and is available, returns invalid_seat/seat_taken errors. Falls back to auto-assign if omitted."
+}

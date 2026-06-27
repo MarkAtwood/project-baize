@@ -1,0 +1,41 @@
+{
+  "id": "baize-wx3",
+  "title": "Cube: face rotation as perturber sequence",
+  "description": "Define each of the 18 Rubik's Cube moves as a perturber effect.\n\n## Moves\n6 faces x 3 rotations = 18 moves:\n- U, U'(ccw), U2(180) — Up face\n- D, D', D2 — Down face  \n- F, F', F2 — Front face\n- B, B', B2 — Back face\n- L, L', L2 — Left face\n- R, R', R2 — Right face\n\n## Anatomy of a single rotation (e.g. U clockwise)\nTwo cycles happening simultaneously:\n\n### Face cycle (8 stickers on the U face)\nCorner cycle: (0,0)→(2,0)→(2,2)→(0,2)→(0,0)\nEdge cycle: (1,0)→(2,1)→(1,2)→(0,1)→(1,0)\nCenter (1,1) stays fixed.\n\n### Edge strip cycle (12 stickers on adjacent faces)\nFront row 0: (0,0)(1,0)(2,0) → Right row 0 → Back row 0 (reversed) → Left row 0 → Front row 0\n\n## Perturber representation\nEach move is a sequence of cycle effects:\n```json\n{\"sequence\": [\n  {\"cycle\": [\n    {\"zone\":\"up\",\"pos\":\"0,0\"}, {\"zone\":\"up\",\"pos\":\"2,0\"},\n    {\"zone\":\"up\",\"pos\":\"2,2\"}, {\"zone\":\"up\",\"pos\":\"0,2\"}\n  ]},\n  {\"cycle\": [\n    {\"zone\":\"up\",\"pos\":\"1,0\"}, {\"zone\":\"up\",\"pos\":\"2,1\"},\n    {\"zone\":\"up\",\"pos\":\"1,2\"}, {\"zone\":\"up\",\"pos\":\"0,1\"}\n  ]},\n  {\"cycle\": [\n    {\"zone\":\"front\",\"pos\":\"0,0\"}, {\"zone\":\"right\",\"pos\":\"0,0\"},\n    {\"zone\":\"back\",\"pos\":\"2,0\"}, {\"zone\":\"left\",\"pos\":\"0,0\"}\n  ]},\n  ... (more edge strip cycles)\n]}\n```\n\n## Counterclockwise\nU' is the same cycles but in reverse order (or cycle direction reversed).\n\n## 180 degree\nU2 is U applied twice (sequence of the U effect repeated).\n\n## Dependencies\n- Requires the cycle perturber primitive (baize-57v)\n- All 18 moves must be defined in the game definition rules section\n\n## Test\nApply U to a solved cube, verify exactly the right 20 stickers moved. Apply U 4 times, verify cube returns to solved state.",
+  "status": "closed",
+  "priority": 3,
+  "issue_type": "task",
+  "assignee": "Mark Atwood",
+  "owner": "mark@wolfssl.com",
+  "created_at": "2026-06-11T21:33:08Z",
+  "created_by": "Mark Atwood",
+  "updated_at": "2026-06-26T19:56:29Z",
+  "closed_at": "2026-06-11T23:26:16Z",
+  "close_reason": "Closed",
+  "dependencies": [
+    {
+      "issue_id": "baize-wx3",
+      "depends_on_id": "baize-7df",
+      "type": "blocks",
+      "created_at": "2026-06-11T14:34:09Z",
+      "created_by": "Mark Atwood",
+      "metadata": "{}"
+    },
+    {
+      "issue_id": "baize-wx3",
+      "depends_on_id": "baize-0b1",
+      "type": "blocks",
+      "created_at": "2026-06-11T14:34:20Z",
+      "created_by": "Mark Atwood",
+      "metadata": "{}"
+    },
+    {
+      "issue_id": "baize-wx3",
+      "depends_on_id": "baize-57v",
+      "type": "blocks",
+      "created_at": "2026-06-11T14:34:19Z",
+      "created_by": "Mark Atwood",
+      "metadata": "{}"
+    }
+  ]
+}

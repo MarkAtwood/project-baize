@@ -1,0 +1,26 @@
+{
+  "id": "baize-ah1",
+  "title": "Rust core engine (WASM)",
+  "description": "Core game engine in Rust: JSON parser, game definition loader, state representation, legal move generator, state transition engine. Compiles to WASM via wasm-bindgen. This is the MIT-licensed embeddable engine that runs identically on client and server.",
+  "notes": "Must emit structured JSONL event log (see baize-562.6) during game execution. Same events as Python implementation for mechanical diffing.",
+  "status": "closed",
+  "priority": 1,
+  "issue_type": "epic",
+  "assignee": "Mark Atwood",
+  "owner": "mark@reviewcommit.com",
+  "created_at": "2026-06-07T22:14:18Z",
+  "created_by": "Mark Atwood",
+  "updated_at": "2026-06-26T19:56:29Z",
+  "closed_at": "2026-06-07T23:40:18Z",
+  "close_reason": "all steps complete",
+  "dependencies": [
+    {
+      "issue_id": "baize-ah1",
+      "depends_on_id": "baize-0a0",
+      "type": "blocks",
+      "created_at": "2026-06-07T15:16:33Z",
+      "created_by": "Mark Atwood",
+      "metadata": "{}"
+    }
+  ]
+}

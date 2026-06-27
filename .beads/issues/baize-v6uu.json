@@ -1,0 +1,24 @@
+{
+  "id": "baize-v6uu",
+  "title": "Update Mahjong game definition to use formal triggers",
+  "description": "Replace Mahjong's implicit claim_window phase with formal triggers section. on_discard trigger with chi/pon/kan/ron claims, priority order (ron \u003e pon/kan \u003e chi). Validate against updated schema.",
+  "status": "closed",
+  "priority": 2,
+  "issue_type": "task",
+  "owner": "mark@wolfssl.com",
+  "created_at": "2026-06-13T02:30:28Z",
+  "created_by": "Mark Atwood",
+  "updated_at": "2026-06-13T02:47:34Z",
+  "closed_at": "2026-06-13T02:47:34Z",
+  "close_reason": "Added triggers section to mahjong.json. Passes schema validation.",
+  "dependencies": [
+    {
+      "issue_id": "baize-v6uu",
+      "depends_on_id": "baize-9v4x",
+      "type": "blocks",
+      "created_at": "2026-06-12T19:30:39Z",
+      "created_by": "Mark Atwood",
+      "metadata": "{}"
+    }
+  ]
+}

@@ -1,0 +1,25 @@
+{
+  "id": "baize-5vf",
+  "title": "Bot/headless client harness",
+  "description": "A headless client library for writing bots and automated players. Connects via WebSocket, receives state, submits moves programmatically. No rendering. Use cases: AI research, automated testing, tournament bots, load testing the server. Should be a thin Rust library (and/or Python wrapper) over the existing WebSocket protocol.",
+  "status": "closed",
+  "priority": 3,
+  "issue_type": "feature",
+  "assignee": "Mark Atwood",
+  "owner": "mark@wolfssl.com",
+  "created_at": "2026-06-11T17:54:58Z",
+  "created_by": "Mark Atwood",
+  "updated_at": "2026-06-26T19:56:29Z",
+  "closed_at": "2026-06-11T19:56:21Z",
+  "close_reason": "BaizeClient Python class: WebSocket connect, hello/welcome handshake, state_sync receipt, move submission, token reconnection. Optional websocket-client dep. 9 tests.",
+  "dependencies": [
+    {
+      "issue_id": "baize-5vf",
+      "depends_on_id": "baize-7ce",
+      "type": "blocks",
+      "created_at": "2026-06-11T10:55:07Z",
+      "created_by": "Mark Atwood",
+      "metadata": "{}"
+    }
+  ]
+}

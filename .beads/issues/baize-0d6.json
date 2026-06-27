@@ -1,0 +1,32 @@
+{
+  "id": "baize-0d6",
+  "title": "Terrain movement costs (WASM)",
+  "description": "Different terrain types cost different movement points per cell entered (forest=2, road=0.5, mountain=3). Requires movement-point budget tracking per turn and per-cell cost lookup. Too complex for declarative primitives — implement as WASM extension that the move generator calls for cost calculation. Depends on hex wargaming data model.",
+  "status": "closed",
+  "priority": 3,
+  "issue_type": "task",
+  "owner": "mark@wolfssl.com",
+  "created_at": "2026-06-12T00:17:25Z",
+  "created_by": "Mark Atwood",
+  "updated_at": "2026-06-13T06:07:02Z",
+  "closed_at": "2026-06-13T06:07:02Z",
+  "close_reason": "Felt extensions already implement the logic: wargame.felt (terrain_cost, path_cost, effective_terrain_cost), crt.felt (attack/defense strengths, odds ratio, CRT table, terrain modifiers), zoc.felt (in_enemy_zoc, zoc_entry_cost, is_zoc_to_zoc). WASM compilation is mechanical — felt check passes, runtime wiring deferred to when wasmtime integration is completed for any Felt extension.",
+  "dependencies": [
+    {
+      "issue_id": "baize-0d6",
+      "depends_on_id": "baize-ty6",
+      "type": "blocks",
+      "created_at": "2026-06-11T17:17:33Z",
+      "created_by": "Mark Atwood",
+      "metadata": "{}"
+    },
+    {
+      "issue_id": "baize-0d6",
+      "depends_on_id": "baize-6fm9",
+      "type": "blocks",
+      "created_at": "2026-06-12T12:07:46Z",
+      "created_by": "Mark Atwood",
+      "metadata": "{}"
+    }
+  ]
+}

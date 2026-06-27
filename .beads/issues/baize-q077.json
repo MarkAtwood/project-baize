@@ -1,0 +1,14 @@
+{
+  "id": "baize-q077",
+  "title": "Game definition: Senet (ancient Egyptian race game)",
+  "description": "Senet: 2-player, 30-square linear track (3×10 grid traversed in S-pattern), 5 pieces per player. Throw sticks for movement (binary dice: 1-5). Special squares: House of Rebirth, House of Water (restart), House of Three Truths, House of Re-Atoum. Race to bear off all pieces. One of the oldest known board games (~3100 BCE). Rules reconstructed from Kendall 1978 and Piccione 1980.",
+  "status": "closed",
+  "priority": 3,
+  "issue_type": "task",
+  "owner": "mark@wolfssl.com",
+  "created_at": "2026-06-13T06:48:01Z",
+  "created_by": "Mark Atwood",
+  "updated_at": "2026-06-13T06:52:35Z",
+  "closed_at": "2026-06-13T06:52:35Z",
+  "close_reason": "Senet: 30-square track, 5 pieces/side, casting sticks (1-5), 5 special squares (rebirth/water/truths/re-atoum/exit), swap capture, bearing off. Validates against schema."
+}

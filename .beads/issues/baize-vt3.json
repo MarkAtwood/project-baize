@@ -1,0 +1,33 @@
+{
+  "id": "baize-vt3",
+  "title": "Notation spec: Carcassonne tile placement",
+  "description": "Carcassonne has no standard algebraic notation. This is an invented notation for the adapter.\n\n## Proposed notation\nTile placement + optional meeple:\n  T5@3,2:R90 meeple:road\n  T12@-1,0:R270\n  T5@3,2 meeple:city\n\nComponents:\n- T{n} = tile number/name from the tile set\n- @{col},{row} = grid position\n- :R{0|90|180|270} = rotation (default R0)\n- meeple:{feature} = optional meeple placement on a feature (road, city, field, monastery)\n\n## Actions\n- Place tile: T5@3,2:R90\n- Place tile + meeple: T5@3,2:R90 meeple:city\n- Skip meeple: just the tile placement without meeple clause\n\n## Special considerations\n- Tile drawn is random (server authority) — notation records which tile was placed, not drawn\n- Meeple placement is a second action within the same turn (phase-based)\n- Feature identification (which road, which city) may need adjacency context\n\n## Declarative spec\n```json\n{\n  \"notation\": {\n    \"type\": \"tile_placement\",\n    \"tile_prefix\": \"T\",\n    \"position_marker\": \"@\",\n    \"rotation_prefix\": \"R\",\n    \"rotations\": [0, 90, 180, 270],\n    \"meeple_keyword\": \"meeple\",\n    \"features\": [\"road\", \"city\", \"field\", \"monastery\"]\n  }\n}\n```\nNovel notation — may need WASM for feature disambiguation in complex board states.\n\n## Open questions\n- Is there an established Carcassonne notation in tournament play or apps?\n- How to identify which specific road/city segment on a tile?\n- Should we adopt the notation from BoardGameArena or another platform?",
+  "status": "closed",
+  "priority": 3,
+  "issue_type": "task",
+  "assignee": "Mark Atwood",
+  "owner": "mark@wolfssl.com",
+  "created_at": "2026-06-11T21:31:04Z",
+  "created_by": "Mark Atwood",
+  "updated_at": "2026-06-12T06:11:59Z",
+  "closed_at": "2026-06-12T06:11:59Z",
+  "close_reason": "Carcassonne/Tile Kingdoms notation added to tile-kingdoms.json + 2 tests.",
+  "dependencies": [
+    {
+      "issue_id": "baize-vt3",
+      "depends_on_id": "baize-uei",
+      "type": "blocks",
+      "created_at": "2026-06-11T14:31:19Z",
+      "created_by": "Mark Atwood",
+      "metadata": "{}"
+    },
+    {
+      "issue_id": "baize-vt3",
+      "depends_on_id": "baize-z9d",
+      "type": "blocks",
+      "created_at": "2026-06-11T23:03:07Z",
+      "created_by": "Mark Atwood",
+      "metadata": "{}"
+    }
+  ]
+}

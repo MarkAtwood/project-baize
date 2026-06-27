@@ -1,0 +1,15 @@
+{
+  "id": "baize-fk5",
+  "title": "CI pipeline",
+  "description": "No CI/CD pipeline exists. Set up GitHub Actions workflow that runs on push/PR: cargo test (engine), cargo clippy (engine), cargo build (server), python pytest (python), python mypy (python), npx tsc --noEmit (client). Fail on any error.",
+  "status": "closed",
+  "priority": 2,
+  "issue_type": "task",
+  "assignee": "Mark Atwood",
+  "owner": "mark@wolfssl.com",
+  "created_at": "2026-06-11T16:49:00Z",
+  "created_by": "Mark Atwood",
+  "updated_at": "2026-06-11T19:04:03Z",
+  "closed_at": "2026-06-11T19:04:03Z",
+  "close_reason": "CI pipeline green: 3 parallel jobs (Rust clippy+test, Python mypy+pytest, TypeScript tsc), all passing on GitHub Actions"
+}

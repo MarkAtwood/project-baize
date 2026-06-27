@@ -1,0 +1,24 @@
+{
+  "id": "baize-3zrk",
+  "title": "Engine integration: authority-aware shuffle/deal dispatch",
+  "description": "Extend authority system to dispatch shuffle/deal to trusted Vault or mental poker protocol based on trust_mode. When all clients support mental poker, server relays only. Fall back to trusted server otherwise. GameSession tracks active trust mode.",
+  "status": "closed",
+  "priority": 3,
+  "issue_type": "task",
+  "owner": "mark@wolfssl.com",
+  "created_at": "2026-06-13T05:15:37Z",
+  "created_by": "Mark Atwood",
+  "updated_at": "2026-06-26T19:56:29Z",
+  "closed_at": "2026-06-13T06:03:36Z",
+  "close_reason": "TrustMode enum (TrustedServer/MentalPoker) on RuntimeState, wired into GameState serialization, schema authority section. Default=TrustedServer, backward compatible.",
+  "dependencies": [
+    {
+      "issue_id": "baize-3zrk",
+      "depends_on_id": "baize-uda4",
+      "type": "blocks",
+      "created_at": "2026-06-12T22:16:13Z",
+      "created_by": "Mark Atwood",
+      "metadata": "{}"
+    }
+  ]
+}

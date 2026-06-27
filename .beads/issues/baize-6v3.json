@@ -1,0 +1,15 @@
+{
+  "id": "baize-6v3",
+  "title": "poker: betting round state machine",
+  "description": "No betting round FSM exists. A poker betting round needs: (1) track current_bet amount per round, (2) track each active player's contribution this round, (3) track who has acted since the last raise, (4) end condition: all active players have acted and all contributions equal current_bet (or player is all-in). The Phase with type='betting_round' should trigger this FSM. The ends_when field from BettingRound definition should drive termination. Without this, multi-player betting sequences cannot execute correctly. Tests: test_betting_round_ends_when_bets_equal in tests/test_poker.py.",
+  "status": "closed",
+  "priority": 1,
+  "issue_type": "task",
+  "assignee": "Mark Atwood",
+  "owner": "mark@wolfssl.com",
+  "created_at": "2026-06-12T00:35:11Z",
+  "created_by": "Mark Atwood",
+  "updated_at": "2026-06-12T18:18:56Z",
+  "closed_at": "2026-06-12T18:18:56Z",
+  "close_reason": "Closed"
+}

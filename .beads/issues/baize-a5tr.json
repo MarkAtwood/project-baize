@@ -1,0 +1,12 @@
+{
+  "id": "baize-a5tr",
+  "title": "GET /rooms/{id} detail endpoint",
+  "description": "Add GET /rooms/{id} returning room detail: room_id, game_name, max_players, seats (list with seat_name, player_name, connected, ready status), room_phase (waiting/all_ready/in_progress/finished), created_at. 404 if room not found. Used by web lobby to show room state before joining and to render the waiting room.",
+  "status": "open",
+  "priority": 2,
+  "issue_type": "task",
+  "owner": "mark@wolfssl.com",
+  "created_at": "2026-06-13T07:04:42Z",
+  "created_by": "Mark Atwood",
+  "updated_at": "2026-06-26T19:56:29Z"
+}

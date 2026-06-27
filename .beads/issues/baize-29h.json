@@ -1,0 +1,15 @@
+{
+  "id": "baize-29h",
+  "title": "Bound client-side array lengths in validation",
+  "description": "random_value arrays and facts arrays have no length cap in validateServerMessage. Fix: add MAX_ARRAY_LENGTH check.",
+  "status": "closed",
+  "priority": 4,
+  "issue_type": "bug",
+  "assignee": "Mark Atwood",
+  "owner": "mark@reviewcommit.com",
+  "created_at": "2026-06-08T01:39:01Z",
+  "created_by": "Mark Atwood",
+  "updated_at": "2026-06-08T01:41:05Z",
+  "closed_at": "2026-06-08T01:41:05Z",
+  "close_reason": "Added MAX_ARRAY_LENGTH (10000) check on random_value and facts arrays."
+}

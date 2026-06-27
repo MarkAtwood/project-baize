@@ -1,0 +1,24 @@
+{
+  "id": "baize-pjfn",
+  "title": "Engine resource loader: load word lists from registry",
+  "description": "Add ResourceStore to Rust engine. Loads resources declared in game definitions. For word_list type: loads a newline-delimited text file into a HashSet\u003cString\u003e. Lookup via word_valid(resource_name, word) -\u003e bool. Resource files stored in registry/dictionaries/. ResourceStore attached to GameSession. Defensive: missing resource file is an error at load time, not at query time.",
+  "status": "closed",
+  "priority": 2,
+  "issue_type": "task",
+  "owner": "mark@wolfssl.com",
+  "created_at": "2026-06-13T05:36:06Z",
+  "created_by": "Mark Atwood",
+  "updated_at": "2026-06-26T19:56:29Z",
+  "closed_at": "2026-06-13T05:42:19Z",
+  "close_reason": "ResourceStore with word_list loading, word_valid(), defensive size/count limits. All tests pass.",
+  "dependencies": [
+    {
+      "issue_id": "baize-pjfn",
+      "depends_on_id": "baize-bpbs",
+      "type": "blocks",
+      "created_at": "2026-06-12T22:36:34Z",
+      "created_by": "Mark Atwood",
+      "metadata": "{}"
+    }
+  ]
+}

@@ -1,0 +1,25 @@
+{
+  "id": "baize-hktu",
+  "title": "Python: sparse grid mode in GridZone",
+  "description": "Add sparse mode to GridZone in python/baize/runtime.py. Dense uses list, Sparse uses dict with (col,row) tuple keys. Same API. Auto-select based on dimensions. Paranoid bounds checking, cell count limits.",
+  "status": "closed",
+  "priority": 1,
+  "issue_type": "task",
+  "assignee": "Mark Atwood",
+  "owner": "mark@wolfssl.com",
+  "created_at": "2026-06-13T00:52:43Z",
+  "created_by": "Mark Atwood",
+  "updated_at": "2026-06-26T19:56:29Z",
+  "closed_at": "2026-06-13T01:00:48Z",
+  "close_reason": "Closed",
+  "dependencies": [
+    {
+      "issue_id": "baize-hktu",
+      "depends_on_id": "baize-450g",
+      "type": "blocks",
+      "created_at": "2026-06-12T17:52:51Z",
+      "created_by": "Mark Atwood",
+      "metadata": "{}"
+    }
+  ]
+}

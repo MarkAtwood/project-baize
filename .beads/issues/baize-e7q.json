@@ -1,0 +1,15 @@
+{
+  "id": "baize-e7q",
+  "title": "Defensive programming: Python client/agent message validation",
+  "description": "Python client and agent trust server messages without validation.\n\n1. client.py — welcome fields (seat, game_id) silently default to empty string if missing\n2. agent.py — state fields (status, turn) assumed present, empty defaults cause infinite loops\n3. No validation that state_sync contains expected structure\n\nFix: Validate required fields in welcome messages (raise on missing). Validate state_sync structure. Add timeout/fallback for agent turn detection when fields are missing.",
+  "status": "closed",
+  "priority": 2,
+  "issue_type": "task",
+  "assignee": "Mark Atwood",
+  "owner": "mark@wolfssl.com",
+  "created_at": "2026-06-11T21:03:53Z",
+  "created_by": "Mark Atwood",
+  "updated_at": "2026-06-11T21:11:17Z",
+  "closed_at": "2026-06-11T21:11:17Z",
+  "close_reason": "Validate welcome seat/game_id, state_sync full_state dict, sequence type in Python client."
+}

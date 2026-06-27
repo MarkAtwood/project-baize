@@ -1,0 +1,24 @@
+{
+  "id": "baize-mth8",
+  "title": "Server: GET /rooms/{id} detail endpoint",
+  "description": "Add GET /rooms/{id} endpoint returning room detail: room_id, game_name, max_players, seats (list of {seat_name, player_name, connected, ready} objects), game_status (waiting/in_progress/finished), created_at. 404 if room not found. Used by lobby to show room state before joining.",
+  "status": "closed",
+  "priority": 3,
+  "issue_type": "task",
+  "owner": "mark@wolfssl.com",
+  "created_at": "2026-06-13T06:31:56Z",
+  "created_by": "Mark Atwood",
+  "updated_at": "2026-06-26T19:56:29Z",
+  "closed_at": "2026-06-13T07:05:01Z",
+  "close_reason": "Superseded by baize-a5tr (same feature, no longer blocked on ready-up which is now done).",
+  "dependencies": [
+    {
+      "issue_id": "baize-mth8",
+      "depends_on_id": "baize-naoo",
+      "type": "blocks",
+      "created_at": "2026-06-12T23:32:15Z",
+      "created_by": "Mark Atwood",
+      "metadata": "{}"
+    }
+  ]
+}

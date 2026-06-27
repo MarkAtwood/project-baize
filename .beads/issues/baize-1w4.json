@@ -1,0 +1,32 @@
+{
+  "id": "baize-1w4",
+  "title": "Combat resolution tables (WASM)",
+  "description": "Ratio-based CRT: compare attacker/defender strength, apply column shifts for terrain/support, roll dice, look up result (retreat/step loss/eliminated). Standard hex wargame mechanic. Implement as WASM extension — the table format varies per game, so a generic WASM interface is better than engine-level support.",
+  "status": "closed",
+  "priority": 3,
+  "issue_type": "task",
+  "owner": "mark@wolfssl.com",
+  "created_at": "2026-06-12T00:17:26Z",
+  "created_by": "Mark Atwood",
+  "updated_at": "2026-06-13T06:07:03Z",
+  "closed_at": "2026-06-13T06:07:03Z",
+  "close_reason": "Felt extensions already implement the logic: wargame.felt (terrain_cost, path_cost, effective_terrain_cost), crt.felt (attack/defense strengths, odds ratio, CRT table, terrain modifiers), zoc.felt (in_enemy_zoc, zoc_entry_cost, is_zoc_to_zoc). WASM compilation is mechanical — felt check passes, runtime wiring deferred to when wasmtime integration is completed for any Felt extension.",
+  "dependencies": [
+    {
+      "issue_id": "baize-1w4",
+      "depends_on_id": "baize-ty6",
+      "type": "blocks",
+      "created_at": "2026-06-11T17:17:33Z",
+      "created_by": "Mark Atwood",
+      "metadata": "{}"
+    },
+    {
+      "issue_id": "baize-1w4",
+      "depends_on_id": "baize-6fm9",
+      "type": "blocks",
+      "created_at": "2026-06-12T12:07:47Z",
+      "created_by": "Mark Atwood",
+      "metadata": "{}"
+    }
+  ]
+}

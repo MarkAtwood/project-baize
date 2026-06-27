@@ -1,0 +1,25 @@
+{
+  "id": "baize-i9s",
+  "title": "Interactive engine REPL for local game exploration",
+  "description": "Python REPL for interacting with the game engine directly, no server required. Load a game definition, step through moves, inspect state, test CEL expressions, and run perturber effects interactively.\n\n## Commands\n\n### Session management\n- `load \u003cpath\u003e` — Load a game definition JSON file, create a GameSession\n- `reset` — Reset to initial state\n- `status` — Show game status, current player, move count, sequence\n- `history` — Show move history\n\n### Board and state\n- `board` — Render current board as ASCII art (reuse cli.py rendering)\n- `state` — Dump full state as formatted JSON\n- `zones` — List all zones with types and component counts\n- `zone \u003cname\u003e` — Show contents of a specific zone\n- `components` — List all component instances with positions\n- `counters` — Show all counter values\n- `players` — Show player states (score, active, zones)\n\n### Moves\n- `place \u003ctype\u003e \u003ccol,row\u003e` — Place a component\n- `move \u003cfrom\u003e \u003cto\u003e` — Move a piece\n- `pass` — Pass turn\n- `resign` — Resign\n- `flip \u003cid\u003e` — Flip a component\n- `remove \u003cid\u003e` — Remove a component\n- `swap \u003cid1\u003e \u003cid2\u003e` — Swap two components\n- `promote \u003cid\u003e \u003ctype\u003e` — Promote a component\n- `legal` — List all legal moves for current player\n- `undo` — Undo last move (replay from initial state minus last action)\n\n### CEL testing\n- `cel \u003cexpression\u003e` — Evaluate a CEL expression against current state\n- `celctx` — Show all CEL context variables (current_player, lines, rows, etc.)\n\n### Perturber testing\n- `effect \u003cjson\u003e` — Execute a perturber effect JSON against current state\n- `effect-file \u003cpath\u003e` — Load and execute a perturber effect from a file\n\n### Analysis\n- `hash` — Show current state hash\n- `hashes` — Show history hash chain\n- `moves-for \u003cplayer\u003e` — Legal moves for a specific player (not just current)\n\n### Scripting\n- `run \u003cpath\u003e` — Execute a script of REPL commands from a file\n- `save \u003cpath\u003e` — Save current state as JSON\n- `load-state \u003cpath\u003e` — Load a saved state\n\n## Implementation\n\n- Single file: `python/baize/repl.py`\n- Entry point: `python -m baize.repl` or `python -m baize.repl games/tic-tac-toe.json`\n- Uses `cmd.Cmd` for readline/history/tab-completion\n- Reuses `cli.py` rendering functions\n- Reuses `sdk.py` AgentSession for legal move enumeration\n- State snapshots stored in a list for undo support (copy-on-write via deepcopy)\n- CEL evaluation via `cel.py` try_eval_end_condition with full context\n- Perturber execution via `perturber.py` execute_effect\n- No external dependencies beyond what baize already requires\n\n## Use cases\n\n1. **Game designer**: Load a definition, try moves, see if end conditions fire correctly\n2. **CEL debugging**: Test CEL expressions against real game state\n3. **Perturber debugging**: Run effects and see state changes\n4. **Agent development**: Explore the move tree manually before coding an agent\n5. **Teaching**: Step through game mechanics interactively",
+  "status": "closed",
+  "priority": 3,
+  "issue_type": "feature",
+  "assignee": "Mark Atwood",
+  "owner": "mark@wolfssl.com",
+  "created_at": "2026-06-11T21:21:57Z",
+  "created_by": "Mark Atwood",
+  "updated_at": "2026-06-11T23:47:23Z",
+  "closed_at": "2026-06-11T23:47:23Z",
+  "close_reason": "Closed",
+  "dependencies": [
+    {
+      "issue_id": "baize-i9s",
+      "depends_on_id": "baize-uei",
+      "type": "related",
+      "created_at": "2026-06-11T14:24:07Z",
+      "created_by": "Mark Atwood",
+      "metadata": "{}"
+    }
+  ]
+}

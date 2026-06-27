@@ -1,0 +1,25 @@
+{
+  "id": "baize-ep0.4",
+  "title": "Game analysis tools",
+  "description": "Branching factor computation, game tree depth estimation, hidden information ratio, average game length. Outputs metrics that TAG already computes, using our schema as input.",
+  "status": "closed",
+  "priority": 3,
+  "issue_type": "task",
+  "assignee": "Mark Atwood",
+  "owner": "mark@reviewcommit.com",
+  "created_at": "2026-06-07T22:15:19Z",
+  "created_by": "Mark Atwood",
+  "updated_at": "2026-06-08T00:29:57Z",
+  "closed_at": "2026-06-08T00:29:57Z",
+  "close_reason": "analysis.py: branching_factor, complexity_profile, hidden_info_ratio, replay_game, find_shortest_game — 11 tests",
+  "dependencies": [
+    {
+      "issue_id": "baize-ep0.4",
+      "depends_on_id": "baize-ep0",
+      "type": "parent-child",
+      "created_at": "2026-06-07T15:15:18Z",
+      "created_by": "Mark Atwood",
+      "metadata": "{}"
+    }
+  ]
+}

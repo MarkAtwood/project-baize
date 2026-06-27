@@ -1,0 +1,15 @@
+{
+  "id": "baize-1yb",
+  "title": "CLI/terminal client",
+  "description": "Text-mode client for dev/testing. Renders board state as ASCII/Unicode art, accepts moves via text commands. Useful for SSH play, accessibility, and rapid prototyping without a browser. Low priority — Python REPL partially fills this role already.",
+  "status": "closed",
+  "priority": 4,
+  "issue_type": "feature",
+  "assignee": "Mark Atwood",
+  "owner": "mark@wolfssl.com",
+  "created_at": "2026-06-11T17:55:00Z",
+  "created_by": "Mark Atwood",
+  "updated_at": "2026-06-11T20:38:39Z",
+  "closed_at": "2026-06-11T20:38:39Z",
+  "close_reason": "Terminal client: ASCII grid rendering, text command parsing (place/move/pass/resign/flip/remove), token reconnection. python -m baize.cli. 15 tests."
+}

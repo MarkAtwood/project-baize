@@ -1,0 +1,15 @@
+{
+  "id": "baize-ipm",
+  "title": "Engine: simultaneous move collection",
+  "description": "RPS and other simultaneous-move games (Diplomacy, etc.) need both players to submit their action before either is revealed. apply_action() is strictly sequential — it evaluates the current player, mutates state, advances the turn, and emits events immediately. There is no pending-move buffer or phase that waits for all players to submit before resolving. Needed: a SimultaneousPhase state in RuntimeState that buffers submitted moves per player, and a resolution step (either an explicit server_action or an automatic trigger when all players have submitted) that applies all moves atomically. The Phase dataclass already has simultaneous: bool. The definition schema supports turn_order.type = simultaneous. Only the engine execution path is missing. test_rps.py documents the workaround (sequential placement + Python-level resolve_round helper) and will need updating when this lands.",
+  "status": "closed",
+  "priority": 2,
+  "issue_type": "task",
+  "assignee": "Mark Atwood",
+  "owner": "mark@wolfssl.com",
+  "created_at": "2026-06-12T00:34:50Z",
+  "created_by": "Mark Atwood",
+  "updated_at": "2026-06-12T01:55:04Z",
+  "closed_at": "2026-06-12T01:55:04Z",
+  "close_reason": "Simultaneous move collection implemented in both engines. When phase has simultaneous:true, apply_action buffers actions until all players submit, then resolves in player order. Refactored transition into execute_action (mechanics) + finalize (turn advance). RPS updated with simultaneous phase. 9 Python + 9 Rust tests. Place action now supports per-player zones."
+}

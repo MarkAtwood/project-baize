@@ -1,0 +1,24 @@
+{
+  "id": "baize-uwgy",
+  "title": "Python definition: parse resources from game definition JSON",
+  "description": "Add Resource dataclass and resources field to GameDefinition in definition.py. Mirror Rust implementation. Wire into from_dict/to_dict serialization.",
+  "status": "closed",
+  "priority": 2,
+  "issue_type": "task",
+  "owner": "mark@wolfssl.com",
+  "created_at": "2026-06-13T05:36:00Z",
+  "created_by": "Mark Atwood",
+  "updated_at": "2026-06-26T19:56:29Z",
+  "closed_at": "2026-06-13T05:42:20Z",
+  "close_reason": "ResourceDef dataclass + resources field on GameDefinition in Python. All tests pass.",
+  "dependencies": [
+    {
+      "issue_id": "baize-uwgy",
+      "depends_on_id": "baize-bodx",
+      "type": "blocks",
+      "created_at": "2026-06-12T22:36:33Z",
+      "created_by": "Mark Atwood",
+      "metadata": "{}"
+    }
+  ]
+}

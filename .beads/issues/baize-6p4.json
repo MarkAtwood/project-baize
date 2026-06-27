@@ -1,0 +1,25 @@
+{
+  "id": "baize-6p4",
+  "title": "Chess: check, checkmate, stalemate detection",
+  "description": "is_in_check(player): is player's king attacked by any opponent piece? Legal move filtering: a move is legal only if it does not leave own king in check. Checkmate: in check + no legal moves. Stalemate: not in check + no legal moves. All move generation must filter through check validation.",
+  "status": "closed",
+  "priority": 2,
+  "issue_type": "task",
+  "assignee": "Mark Atwood",
+  "owner": "mark@wolfssl.com",
+  "created_at": "2026-06-12T04:22:09Z",
+  "created_by": "Mark Atwood",
+  "updated_at": "2026-06-26T19:56:29Z",
+  "closed_at": "2026-06-12T04:29:04Z",
+  "close_reason": "is_attacked, in_check, legal_moves (filtered through check), checkmate, stalemate. 12 tests.",
+  "dependencies": [
+    {
+      "issue_id": "baize-6p4",
+      "depends_on_id": "baize-9jt",
+      "type": "blocks",
+      "created_at": "2026-06-11T21:22:30Z",
+      "created_by": "Mark Atwood",
+      "metadata": "{}"
+    }
+  ]
+}

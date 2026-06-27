@@ -1,0 +1,24 @@
+{
+  "id": "baize-52rl",
+  "title": "Felt wargame extension: combat resolution table (CRT)",
+  "description": "Write CRT logic in Felt. Functions: odds_ratio(attackers, defenders) computes attack/defense strength ratio. crt_column(ratio) maps to CRT column index. crt_resolve(column, die_roll) returns combat result string (DE/DR/EX/AR/NE). apply_effect dispatches on trigger=combat to resolve CRT. Terrain defense modifiers shift column. CRT data embedded as Felt lookup functions.",
+  "status": "closed",
+  "priority": 2,
+  "issue_type": "task",
+  "owner": "mark@wolfssl.com",
+  "created_at": "2026-06-13T02:56:11Z",
+  "created_by": "Mark Atwood",
+  "updated_at": "2026-06-26T19:56:29Z",
+  "closed_at": "2026-06-13T03:14:11Z",
+  "close_reason": "crt.felt implements attack/defense strengths, odds ratio, CRT lookup table, terrain modifiers. Type-checks cleanly.",
+  "dependencies": [
+    {
+      "issue_id": "baize-52rl",
+      "depends_on_id": "baize-axtp",
+      "type": "blocks",
+      "created_at": "2026-06-12T19:56:27Z",
+      "created_by": "Mark Atwood",
+      "metadata": "{}"
+    }
+  ]
+}

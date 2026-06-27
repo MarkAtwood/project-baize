@@ -1,0 +1,22 @@
+{
+  "id": "baize-p120",
+  "title": "CI: GitHub Actions build for iOS, Android, Linux, macOS, Windows",
+  "description": "GitHub Actions workflow that builds Flutter app for all 5 targets on every push to main. iOS: uses macos-latest runner + Xcode, produces .ipa. Android: uses ubuntu-latest + Android SDK, produces .apk. Linux: ubuntu-latest, produces .deb/.AppImage. macOS: macos-latest, produces .dmg. Windows: windows-latest, produces .msix. Artifacts attached to GitHub releases. Optional: Codemagic for App Store / Play Store deployment.",
+  "status": "open",
+  "priority": 3,
+  "issue_type": "task",
+  "owner": "mark@wolfssl.com",
+  "created_at": "2026-06-13T06:26:39Z",
+  "created_by": "Mark Atwood",
+  "updated_at": "2026-06-26T19:56:30Z",
+  "dependencies": [
+    {
+      "issue_id": "baize-p120",
+      "depends_on_id": "baize-2tms",
+      "type": "blocks",
+      "created_at": "2026-06-12T23:26:56Z",
+      "created_by": "Mark Atwood",
+      "metadata": "{}"
+    }
+  ]
+}

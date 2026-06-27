@@ -1,0 +1,25 @@
+{
+  "id": "baize-e3s",
+  "title": "Authentication and player identity",
+  "description": "Server assigns seats by connection order with no identity verification. Add authentication so players have stable identity across reconnections. Minimum viable: token-based auth (JWT or similar) passed on WebSocket upgrade. Player can reconnect to their seat. Spectators remain anonymous.",
+  "status": "closed",
+  "priority": 2,
+  "issue_type": "feature",
+  "assignee": "Mark Atwood",
+  "owner": "mark@wolfssl.com",
+  "created_at": "2026-06-11T16:49:00Z",
+  "created_by": "Mark Atwood",
+  "updated_at": "2026-06-11T19:50:55Z",
+  "closed_at": "2026-06-11T19:50:55Z",
+  "close_reason": "Token-based auth: 128-bit hex token generated on first join, returned in welcome, sent in hello for reconnection. Client stores token across reconnects. Spectators anonymous.",
+  "dependencies": [
+    {
+      "issue_id": "baize-e3s",
+      "depends_on_id": "baize-z6r",
+      "type": "blocks",
+      "created_at": "2026-06-11T09:49:11Z",
+      "created_by": "Mark Atwood",
+      "metadata": "{}"
+    }
+  ]
+}

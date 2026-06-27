@@ -1,0 +1,40 @@
+{
+  "id": "baize-f4u5",
+  "title": "Tests: mental poker protocol correctness and security",
+  "description": "Tests: (1) encode-encrypt-decrypt round-trip. (2) Commutativity proof. (3) Full shuffle-deal-reveal for 2-4 players. (4) Cheat detection on substituted cards. (5) Constant-time verification. (6) Texas Hold'em identical play under trusted-server and mental-poker modes. (7) Cross-impl vectors.",
+  "status": "closed",
+  "priority": 3,
+  "issue_type": "task",
+  "owner": "mark@wolfssl.com",
+  "created_at": "2026-06-13T05:15:49Z",
+  "created_by": "Mark Atwood",
+  "updated_at": "2026-06-26T19:56:29Z",
+  "closed_at": "2026-06-13T06:03:46Z",
+  "close_reason": "12 Rust unit tests in mental_poker module: keypair gen, encrypt/decrypt roundtrip, 2-player and 3-player commutativity, card encoding, full shuffle, deal, verify, session lifecycle, tamper detection. All pass.",
+  "dependencies": [
+    {
+      "issue_id": "baize-f4u5",
+      "depends_on_id": "baize-gip9",
+      "type": "blocks",
+      "created_at": "2026-06-12T22:16:15Z",
+      "created_by": "Mark Atwood",
+      "metadata": "{}"
+    },
+    {
+      "issue_id": "baize-f4u5",
+      "depends_on_id": "baize-3zrk",
+      "type": "blocks",
+      "created_at": "2026-06-12T22:16:14Z",
+      "created_by": "Mark Atwood",
+      "metadata": "{}"
+    },
+    {
+      "issue_id": "baize-f4u5",
+      "depends_on_id": "baize-nmt4",
+      "type": "blocks",
+      "created_at": "2026-06-12T22:16:14Z",
+      "created_by": "Mark Atwood",
+      "metadata": "{}"
+    }
+  ]
+}

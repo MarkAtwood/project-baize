@@ -1,0 +1,32 @@
+{
+  "id": "baize-562",
+  "title": "Cross-implementation test suite",
+  "description": "Test vectors that all three implementations (Rust, TypeScript, Python) must pass identically. Known game states + legal moves, state transitions, round-trip serialization, WASM integration. Tests are the spec's teeth — if an implementation passes the tests, it's conformant.",
+  "status": "closed",
+  "priority": 1,
+  "issue_type": "epic",
+  "owner": "mark@reviewcommit.com",
+  "created_at": "2026-06-07T22:14:20Z",
+  "created_by": "Mark Atwood",
+  "updated_at": "2026-06-26T19:56:29Z",
+  "closed_at": "2026-06-08T00:04:06Z",
+  "close_reason": "all steps complete",
+  "dependencies": [
+    {
+      "issue_id": "baize-562",
+      "depends_on_id": "baize-ah1",
+      "type": "blocks",
+      "created_at": "2026-06-07T15:16:35Z",
+      "created_by": "Mark Atwood",
+      "metadata": "{}"
+    },
+    {
+      "issue_id": "baize-562",
+      "depends_on_id": "baize-xhp",
+      "type": "blocks",
+      "created_at": "2026-06-07T15:16:35Z",
+      "created_by": "Mark Atwood",
+      "metadata": "{}"
+    }
+  ]
+}

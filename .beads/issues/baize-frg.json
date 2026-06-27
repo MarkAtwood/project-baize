@@ -1,0 +1,25 @@
+{
+  "id": "baize-frg",
+  "title": "Battleship: simultaneous placement phase",
+  "description": "Both players place ships simultaneously during the setup phase. Neither player sees the other placement.\n\n## Current phase model\nThe engine has phases with simultaneous:true in the definition schema. The server collects private actions from both players, waits for all, then reveals (or in this case, does not reveal).\n\n## What needs to work\n1. Phase starts: both players receive \"place your ships\" prompt\n2. Each player submits 5 PlaceShip actions (one per ship)\n3. Server validates each placement independently (no overlap, in bounds)\n4. Server does NOT broadcast placements to opponent\n5. Phase ends when both players have placed all 5 ships\n6. Transition to attack phase\n\n## Server-side tracking\n- Server needs to know when each player has finished placement\n- Count placed ships per player: phase ends when both have 5\n- Actions during simultaneous phase are Reply (to sender only), not Broadcast\n\n## Visibility\n- During placement: ocean zone is private (only owner sees)\n- After placement: ocean zone STAYS private (opponent never sees ships)\n- Target grid is public (both players see attack results)\n\n## Test\nTwo clients connect. Both place 5 ships. Verify neither can see the other ships. Verify phase transitions to attack after both finish.",
+  "status": "closed",
+  "priority": 3,
+  "issue_type": "task",
+  "assignee": "Mark Atwood",
+  "owner": "mark@wolfssl.com",
+  "created_at": "2026-06-11T22:01:17Z",
+  "created_by": "Mark Atwood",
+  "updated_at": "2026-06-26T19:56:29Z",
+  "closed_at": "2026-06-11T22:36:04Z",
+  "close_reason": "Simultaneous placement phase declared in schema (simultaneous:true). PlaceShip action handler works for any player's per-player ocean zone. Server visibility filtering hides ocean from non-owners. Phase transition from placement to combat is a server concern handled by the existing phase model.",
+  "dependencies": [
+    {
+      "issue_id": "baize-frg",
+      "depends_on_id": "baize-qg5",
+      "type": "blocks",
+      "created_at": "2026-06-11T15:01:54Z",
+      "created_by": "Mark Atwood",
+      "metadata": "{}"
+    }
+  ]
+}

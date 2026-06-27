@@ -1,0 +1,25 @@
+{
+  "id": "baize-2lu",
+  "title": "Clue: deduction on room graph",
+  "description": "9 rooms connected by doorways and secret passages. Players move between rooms, make suggestions to deduce murder weapon/suspect/room. Card-based deduction with hidden hands. 3-6 players. Requires graph zone + deduction/hidden info.",
+  "status": "closed",
+  "priority": 4,
+  "issue_type": "feature",
+  "assignee": "Mark Atwood",
+  "owner": "mark@wolfssl.com",
+  "created_at": "2026-06-12T04:39:19Z",
+  "created_by": "Mark Atwood",
+  "updated_at": "2026-06-12T18:16:06Z",
+  "closed_at": "2026-06-12T18:16:06Z",
+  "close_reason": "Closed",
+  "dependencies": [
+    {
+      "issue_id": "baize-2lu",
+      "depends_on_id": "baize-j2b",
+      "type": "blocks",
+      "created_at": "2026-06-11T21:39:28Z",
+      "created_by": "Mark Atwood",
+      "metadata": "{}"
+    }
+  ]
+}

@@ -1,0 +1,22 @@
+{
+  "id": "baize-j3tb",
+  "title": "Flutter: game chrome — score, clock, turn indicator, phase display",
+  "description": "Scaffold widgets for game metadata: BaizeScore (player scores/counters), BaizeClock (time controls countdown), BaizeTurnIndicator (whose turn, phase name), BaizeHistory (scrollable event log). Material Design 3 theming. Dark/light mode. Responsive layout: phone portrait, tablet landscape, desktop widescreen.",
+  "status": "open",
+  "priority": 3,
+  "issue_type": "task",
+  "owner": "mark@wolfssl.com",
+  "created_at": "2026-06-13T06:26:08Z",
+  "created_by": "Mark Atwood",
+  "updated_at": "2026-06-26T19:56:30Z",
+  "dependencies": [
+    {
+      "issue_id": "baize-j3tb",
+      "depends_on_id": "baize-rr7l",
+      "type": "blocks",
+      "created_at": "2026-06-12T23:26:52Z",
+      "created_by": "Mark Atwood",
+      "metadata": "{}"
+    }
+  ]
+}

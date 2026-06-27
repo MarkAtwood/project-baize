@@ -1,0 +1,33 @@
+{
+  "id": "baize-0zh",
+  "title": "Cube: solved-state end condition in CEL",
+  "description": "Express \"the cube is solved\" as a composable CEL expression.\n\n## Solved state\nEach face has all 9 stickers of the same color. The center sticker defines the face color (centers never move).\n\n## CEL expression approach\nNeed to check 6 faces, each is a 3x3 grid zone. For each zone, all cells have the same component type (color).\n\n### Option A: per-zone check with type_rows\nFor each zone, type_rows.all(row, row.all(cell, cell == type_rows[0][0]))\nBut this requires evaluating across 6 zones. Current CEL context only populates lines/rows/cols for the first grid zone.\n\n### Option B: precompute a \"solved\" boolean per zone\nIn the CEL context builder, for each grid zone, check if all cells have the same component type. Inject as:\n- up_solved, down_solved, front_solved, back_solved, left_solved, right_solved\nThen: up_solved \u0026\u0026 down_solved \u0026\u0026 front_solved \u0026\u0026 back_solved \u0026\u0026 left_solved \u0026\u0026 right_solved\n\n### Option C: multi-zone CEL context\nExtend the CEL context builder to populate lines/rows for ALL grid zones (keyed by zone name):\n- zones.up.type_rows, zones.front.type_rows, etc.\nThen: [\"up\",\"down\",\"front\",\"back\",\"left\",\"right\"].all(face, zones[face].solved)\n\n## Recommendation\nOption B is simplest and works within current architecture. Option C is more general but requires refactoring the CEL context builder.\n\n## Dependencies\n- May require extending CEL context to support multiple grid zones\n- Current populate_grid_lines() breaks after first grid zone — needs to handle all zones\n\n## Test\nSet up a solved cube state, evaluate the end condition CEL expression, verify true. Rotate one face, verify false.",
+  "status": "closed",
+  "priority": 3,
+  "issue_type": "task",
+  "assignee": "Mark Atwood",
+  "owner": "mark@wolfssl.com",
+  "created_at": "2026-06-11T21:33:26Z",
+  "created_by": "Mark Atwood",
+  "updated_at": "2026-06-11T23:33:37Z",
+  "closed_at": "2026-06-11T23:33:37Z",
+  "close_reason": "Closed",
+  "dependencies": [
+    {
+      "issue_id": "baize-0zh",
+      "depends_on_id": "baize-7df",
+      "type": "blocks",
+      "created_at": "2026-06-11T14:34:10Z",
+      "created_by": "Mark Atwood",
+      "metadata": "{}"
+    },
+    {
+      "issue_id": "baize-0zh",
+      "depends_on_id": "baize-0b1",
+      "type": "blocks",
+      "created_at": "2026-06-11T14:34:20Z",
+      "created_by": "Mark Atwood",
+      "metadata": "{}"
+    }
+  ]
+}

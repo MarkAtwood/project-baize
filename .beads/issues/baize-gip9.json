@@ -1,0 +1,24 @@
+{
+  "id": "baize-gip9",
+  "title": "P2P message protocol for mental poker rounds",
+  "description": "Wire protocol for mental poker: EncryptedDeck, DecryptionShare, KeyReveal message types. Rides on WebSocket or P2P. Hash chaining, rate limiting, size bounds (52 cards × 256B ciphertexts ≈ 13KB per shuffle step).",
+  "status": "closed",
+  "priority": 3,
+  "issue_type": "task",
+  "owner": "mark@wolfssl.com",
+  "created_at": "2026-06-13T05:15:44Z",
+  "created_by": "Mark Atwood",
+  "updated_at": "2026-06-26T19:56:29Z",
+  "closed_at": "2026-06-13T06:03:45Z",
+  "close_reason": "ShuffleDeck/DecryptionShare/KeyReveal action types, ShuffleComplete/CardDealt/KeyRevealed/VerificationComplete event types, mental_poker_data field on Action. Both Rust and Python.",
+  "dependencies": [
+    {
+      "issue_id": "baize-gip9",
+      "depends_on_id": "baize-ijr0",
+      "type": "blocks",
+      "created_at": "2026-06-12T22:16:13Z",
+      "created_by": "Mark Atwood",
+      "metadata": "{}"
+    }
+  ]
+}

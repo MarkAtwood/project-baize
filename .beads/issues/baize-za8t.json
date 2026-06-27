@@ -1,0 +1,25 @@
+{
+  "id": "baize-za8t",
+  "title": "Felt stdlib: board algorithms and collections compiled to WASM",
+  "description": "Implement the Felt standard library in Rust, compile to WASM, link into every Felt binary. Uses Layer 1 host imports for data access. Implements: collection ops (map, filter, fold, sort, combinations, etc.), set ops (union, intersect, difference), map ops (lookup, keys, values), board algorithms (flood_fill via BFS using adjacent imports, flood_groups, connected, border, border_owners, liberties, line_cells), grouping (group_by, count_groups, has_group). ~500 lines Rust → ~8KB WASM. Uses WASM GC for intermediate allocations (filtered arrays, flood fill visited sets, result records).",
+  "status": "closed",
+  "priority": 2,
+  "issue_type": "task",
+  "assignee": "Mark Atwood",
+  "owner": "mark@wolfssl.com",
+  "created_at": "2026-06-12T17:31:35Z",
+  "created_by": "Mark Atwood",
+  "updated_at": "2026-06-26T19:56:29Z",
+  "closed_at": "2026-06-13T01:49:14Z",
+  "close_reason": "Felt codegen wired to emit WASM host import calls for 35 builtins. AST scanning imports only used builtins. Alloc/dealloc exports for string ABI. 127 tests passing.",
+  "dependencies": [
+    {
+      "issue_id": "baize-za8t",
+      "depends_on_id": "baize-gtms",
+      "type": "blocks",
+      "created_at": "2026-06-12T10:31:51Z",
+      "created_by": "Mark Atwood",
+      "metadata": "{}"
+    }
+  ]
+}

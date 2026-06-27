@@ -1,0 +1,25 @@
+{
+  "id": "baize-bf4",
+  "title": "Chess: castling (kingside and queenside)",
+  "description": "Castle move for king+rook. Requirements: king hasn't moved, rook hasn't moved, no pieces between, king not in check, king doesn't pass through check, king doesn't land in check. Track has_moved flags per piece. Kingside: king e-\u003eg, rook h-\u003ef. Queenside: king e-\u003ec, rook a-\u003ed. Both colors.",
+  "status": "closed",
+  "priority": 2,
+  "issue_type": "task",
+  "assignee": "Mark Atwood",
+  "owner": "mark@wolfssl.com",
+  "created_at": "2026-06-12T04:22:12Z",
+  "created_by": "Mark Atwood",
+  "updated_at": "2026-06-26T19:56:29Z",
+  "closed_at": "2026-06-12T04:32:28Z",
+  "close_reason": "Castling kingside/queenside with all 6 requirements, has_moved tracking. 7 tests.",
+  "dependencies": [
+    {
+      "issue_id": "baize-bf4",
+      "depends_on_id": "baize-6p4",
+      "type": "blocks",
+      "created_at": "2026-06-11T21:22:30Z",
+      "created_by": "Mark Atwood",
+      "metadata": "{}"
+    }
+  ]
+}

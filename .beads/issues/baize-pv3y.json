@@ -1,0 +1,14 @@
+{
+  "id": "baize-pv3y",
+  "title": "Create games/bridge.json game definition for Contract Bridge",
+  "status": "closed",
+  "priority": 2,
+  "issue_type": "task",
+  "assignee": "Mark Atwood",
+  "owner": "mark@wolfssl.com",
+  "created_at": "2026-06-12T18:49:12Z",
+  "created_by": "Mark Atwood",
+  "updated_at": "2026-06-12T18:55:28Z",
+  "closed_at": "2026-06-12T18:55:28Z",
+  "close_reason": "Closed"
+}

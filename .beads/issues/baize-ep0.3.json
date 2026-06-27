@@ -1,0 +1,25 @@
+{
+  "id": "baize-ep0.3",
+  "title": "Legal move generator (Python)",
+  "description": "Enumerate legal moves. Same algorithm as Rust, different language. Validated against cross-implementation test vectors.",
+  "notes": "Clear, readable, type-annotated. Generators for lazy move enumeration. Must match Rust output exactly but optimized for clarity, not throughput.",
+  "status": "closed",
+  "priority": 2,
+  "issue_type": "task",
+  "owner": "mark@reviewcommit.com",
+  "created_at": "2026-06-07T22:15:18Z",
+  "created_by": "Mark Atwood",
+  "updated_at": "2026-06-07T23:49:09Z",
+  "closed_at": "2026-06-07T23:49:09Z",
+  "close_reason": "Python runtime, moves, and transitions implemented with 24 tests passing",
+  "dependencies": [
+    {
+      "issue_id": "baize-ep0.3",
+      "depends_on_id": "baize-ep0",
+      "type": "parent-child",
+      "created_at": "2026-06-07T15:15:18Z",
+      "created_by": "Mark Atwood",
+      "metadata": "{}"
+    }
+  ]
+}

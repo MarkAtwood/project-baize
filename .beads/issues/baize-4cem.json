@@ -1,0 +1,15 @@
+{
+  "id": "baize-4cem",
+  "title": "Stratego: hidden-rank army on 10x10 grid with lakes",
+  "description": "10x10 grid, 2 players, 40 pieces each with hidden ranks (1-10 plus bombs and flag). Imperfect information: piece ranks hidden from opponent until combat. Setup phase: simultaneous hidden placement on your half. Movement: 1 cell orthogonal (except scout: slide any distance). Combat: higher rank wins, both removed on tie. Special rules: spy kills marshal only on attack, miners defuse bombs, flag is immobile. Lakes (2x2 impassable zones in center). Win: capture opponent's flag. Demonstrates hidden per-component properties (rank visible only to owner).",
+  "status": "closed",
+  "priority": 3,
+  "issue_type": "task",
+  "assignee": "Mark Atwood",
+  "owner": "mark@wolfssl.com",
+  "created_at": "2026-06-12T18:31:43Z",
+  "created_by": "Mark Atwood",
+  "updated_at": "2026-06-12T18:52:43Z",
+  "closed_at": "2026-06-12T18:52:43Z",
+  "close_reason": "Closed"
+}

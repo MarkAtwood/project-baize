@@ -1,0 +1,15 @@
+{
+  "id": "baize-0p2",
+  "title": "poker: server-side deal/burn/reveal phase execution",
+  "description": "Phase.server_action is stored as a raw string or list of strings (e.g. 'deal(deck, hand, count:2, to:each_player)') but is never executed. Need an execute_server_phase(session, phase_name) function that parses and runs server_action verbs: deal(src, dst, count:N, to:each_player) pops N cards from src StackZone into each player's hand SetZone; burn(src, dst, count:N) pops N cards into discard SetZone; reveal(src, dst, count:N) pops N cards face-up into community SetZone. This unblocks the deal, flop, turn, river phases. Tests: TestTier2ServerDealGap and Tier3 skips in tests/test_poker.py.",
+  "status": "closed",
+  "priority": 1,
+  "issue_type": "task",
+  "assignee": "Mark Atwood",
+  "owner": "mark@wolfssl.com",
+  "created_at": "2026-06-12T00:35:04Z",
+  "created_by": "Mark Atwood",
+  "updated_at": "2026-06-12T18:18:56Z",
+  "closed_at": "2026-06-12T18:18:56Z",
+  "close_reason": "Closed"
+}

@@ -1,0 +1,25 @@
+{
+  "id": "baize-z9d",
+  "title": "Notation adapter: Python parse/format module",
+  "description": "Create python/baize/notation.py with: parse_move(text, session) -\u003e Action and format_move(action, session) -\u003e str. Reads notation block from game definition. Layer 1: grid label coordinate lookup (file+rank -\u003e col,row). Layer 2: piece symbol resolution, capture marker, disambiguation against legal moves, promotion parsing, special move keywords. Output: format_move generates human-readable text from Action.",
+  "status": "closed",
+  "priority": 2,
+  "issue_type": "task",
+  "assignee": "Mark Atwood",
+  "owner": "mark@wolfssl.com",
+  "created_at": "2026-06-12T06:02:58Z",
+  "created_by": "Mark Atwood",
+  "updated_at": "2026-06-26T19:56:29Z",
+  "closed_at": "2026-06-12T06:08:11Z",
+  "close_reason": "notation.py module with parse_move/format_move, label mapping, piece symbols, special moves. 18 tests.",
+  "dependencies": [
+    {
+      "issue_id": "baize-z9d",
+      "depends_on_id": "baize-2z7",
+      "type": "blocks",
+      "created_at": "2026-06-11T23:03:05Z",
+      "created_by": "Mark Atwood",
+      "metadata": "{}"
+    }
+  ]
+}

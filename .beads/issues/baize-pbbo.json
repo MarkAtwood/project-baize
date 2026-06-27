@@ -1,0 +1,15 @@
+{
+  "id": "baize-pbbo",
+  "title": "Xiangqi: Chinese chess with river and palace constraints",
+  "description": "9x10 grid, 2 players (red/black). Unique mechanics: river divides board (soldiers promote on crossing, elephants cannot cross), palace (3x3 zone confining generals and advisors), generals cannot face each other on open file (flying general rule). 7 piece types with asymmetric movement: general (1 step orthogonal, palace only), advisor (1 step diagonal, palace only), elephant (2 steps diagonal, no river crossing, blocked by intervening piece), horse (knight but blockable), chariot (rook slide), cannon (slide but captures by jumping exactly one piece), soldier (forward only, lateral after crossing river). Already have xiangqi pieces and board in registry.",
+  "status": "closed",
+  "priority": 3,
+  "issue_type": "task",
+  "assignee": "Mark Atwood",
+  "owner": "mark@wolfssl.com",
+  "created_at": "2026-06-12T18:32:10Z",
+  "created_by": "Mark Atwood",
+  "updated_at": "2026-06-12T18:52:42Z",
+  "closed_at": "2026-06-12T18:52:42Z",
+  "close_reason": "Closed"
+}
