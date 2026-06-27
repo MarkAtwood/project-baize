@@ -1,0 +1,33 @@
+{
+  "id": "baize-xkr",
+  "title": "Notation spec: Tic-Tac-Toe grid labels",
+  "description": "Tic-Tac-Toe notation — trivial, covered by Layer 1 label mapping.\n\n## Grid labels (already in definition)\nfiles: [\"a\",\"b\",\"c\"], ranks: [1,2,3]\nMoves: a1, b2, c3, etc.\n\n## Alternative: numeric\nJust use 1-9 mapping to cells (common in casual play):\n1=a1, 2=b1, 3=c1, 4=a2, 5=b2, 6=c2, 7=a3, 8=b3, 9=c3\n\n## Declarative spec\nNo notation block needed — Layer 1 label mapping handles it.\nThe existing grid labels in the definition are sufficient.",
+  "status": "closed",
+  "priority": 3,
+  "issue_type": "task",
+  "assignee": "Mark Atwood",
+  "owner": "mark@wolfssl.com",
+  "created_at": "2026-06-11T21:31:12Z",
+  "created_by": "Mark Atwood",
+  "updated_at": "2026-06-12T06:11:58Z",
+  "closed_at": "2026-06-12T06:11:58Z",
+  "close_reason": "Tic-Tac-Toe label notation added to tic-tac-toe.json + 2 tests.",
+  "dependencies": [
+    {
+      "issue_id": "baize-xkr",
+      "depends_on_id": "baize-uei",
+      "type": "blocks",
+      "created_at": "2026-06-11T14:31:20Z",
+      "created_by": "Mark Atwood",
+      "metadata": "{}"
+    },
+    {
+      "issue_id": "baize-xkr",
+      "depends_on_id": "baize-z9d",
+      "type": "blocks",
+      "created_at": "2026-06-11T23:03:08Z",
+      "created_by": "Mark Atwood",
+      "metadata": "{}"
+    }
+  ]
+}

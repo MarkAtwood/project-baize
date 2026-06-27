@@ -1,0 +1,24 @@
+{
+  "id": "baize-dqd",
+  "title": "Notation adapter: core tests",
+  "description": "Tests for the notation module itself: label coordinate mapping, piece symbol parsing, disambiguation logic, special move parsing, format round-trip. Use a simple test game definition with notation block. Verify parse(format(action)) == action for well-formed moves.",
+  "status": "closed",
+  "priority": 2,
+  "issue_type": "task",
+  "owner": "mark@wolfssl.com",
+  "created_at": "2026-06-12T06:02:58Z",
+  "created_by": "Mark Atwood",
+  "updated_at": "2026-06-26T19:56:29Z",
+  "closed_at": "2026-06-12T06:08:11Z",
+  "close_reason": "Core tests in test_notation.py: label mapping, special moves, piece notation, format, plain coordinates.",
+  "dependencies": [
+    {
+      "issue_id": "baize-dqd",
+      "depends_on_id": "baize-z9d",
+      "type": "blocks",
+      "created_at": "2026-06-11T23:03:05Z",
+      "created_by": "Mark Atwood",
+      "metadata": "{}"
+    }
+  ]
+}

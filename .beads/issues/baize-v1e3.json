@@ -1,0 +1,54 @@
+{
+  "id": "baize-v1e3",
+  "title": "Flutter: lobby + room management screens",
+  "description": "Lobby screen: list available rooms, create room (pick game definition, player count), join room. Room screen: show seated players, ready-up, spectator view. Settings: server URL, player name, theme. Navigation: lobby → room → game → results. Deep links for sharing room URLs.",
+  "status": "open",
+  "priority": 3,
+  "issue_type": "task",
+  "owner": "mark@wolfssl.com",
+  "created_at": "2026-06-13T06:26:20Z",
+  "created_by": "Mark Atwood",
+  "updated_at": "2026-06-26T19:56:30Z",
+  "dependencies": [
+    {
+      "issue_id": "baize-v1e3",
+      "depends_on_id": "baize-pc7y",
+      "type": "blocks",
+      "created_at": "2026-06-12T23:32:16Z",
+      "created_by": "Mark Atwood",
+      "metadata": "{}"
+    },
+    {
+      "issue_id": "baize-v1e3",
+      "depends_on_id": "baize-zfqt",
+      "type": "blocks",
+      "created_at": "2026-06-12T23:32:17Z",
+      "created_by": "Mark Atwood",
+      "metadata": "{}"
+    },
+    {
+      "issue_id": "baize-v1e3",
+      "depends_on_id": "baize-naoo",
+      "type": "blocks",
+      "created_at": "2026-06-12T23:32:17Z",
+      "created_by": "Mark Atwood",
+      "metadata": "{}"
+    },
+    {
+      "issue_id": "baize-v1e3",
+      "depends_on_id": "baize-u5jt",
+      "type": "blocks",
+      "created_at": "2026-06-12T23:26:53Z",
+      "created_by": "Mark Atwood",
+      "metadata": "{}"
+    },
+    {
+      "issue_id": "baize-v1e3",
+      "depends_on_id": "baize-mth8",
+      "type": "blocks",
+      "created_at": "2026-06-12T23:32:16Z",
+      "created_by": "Mark Atwood",
+      "metadata": "{}"
+    }
+  ]
+}

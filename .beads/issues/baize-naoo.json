@@ -1,0 +1,15 @@
+{
+  "id": "baize-naoo",
+  "title": "Server: ready-up protocol before game starts",
+  "description": "Add a ready-up phase between joining and game start. New room state: Waiting (players joining) → Ready (all seats filled and all players confirmed ready) → InProgress (first action applied). New WebSocket messages: ClientReady (player signals ready), ServerReadyState (broadcast current ready status of all seats). Game does not start until all seated players send ClientReady. Player can un-ready by sending ClientReady again (toggle). If a player disconnects during ready phase, their ready status clears. Timeout: optional auto-start N seconds after all seats filled (configurable per room, default: no auto-start).",
+  "status": "closed",
+  "priority": 3,
+  "issue_type": "task",
+  "assignee": "Mark Atwood",
+  "owner": "mark@wolfssl.com",
+  "created_at": "2026-06-13T06:32:10Z",
+  "created_by": "Mark Atwood",
+  "updated_at": "2026-06-26T19:56:29Z",
+  "closed_at": "2026-06-13T07:00:39Z",
+  "close_reason": "RoomPhase (Waiting/AllReady/InProgress), ready_players HashSet, Ready client message, handle_ready with broadcast ready_state. Disconnect clears ready. Backward compatible."
+}

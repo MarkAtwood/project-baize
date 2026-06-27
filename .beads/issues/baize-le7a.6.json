@@ -1,0 +1,47 @@
+{
+  "id": "baize-le7a.6",
+  "title": "Felt standard library: board traversal and game primitives",
+  "description": "Implement all built-in functions from FELT.md spec. Zone access (zone, components, cells, cell_at, count). Component properties (type_of, owner, rank, suit, property, position). Grid ops (adjacent, diagonal, neighbors, in_bounds, dimensions). Graph ops (flood_fill, flood_groups, connected, border, border_owners, liberties). Collection ops (map, filter, fold, sort, group_by, combinations). Grouping (count_groups, has_group, group_value, all_same, consecutive). These compile to WASM helper functions included in every binary.",
+  "status": "closed",
+  "priority": 2,
+  "issue_type": "task",
+  "owner": "mark@wolfssl.com",
+  "created_at": "2026-06-12T16:15:42Z",
+  "created_by": "Mark Atwood",
+  "updated_at": "2026-06-26T19:56:29Z",
+  "closed_at": "2026-06-12T17:31:56Z",
+  "dependencies": [
+    {
+      "issue_id": "baize-le7a.6",
+      "depends_on_id": "baize-le7a",
+      "type": "parent-child",
+      "created_at": "2026-06-12T09:15:42Z",
+      "created_by": "Mark Atwood",
+      "metadata": "{}"
+    },
+    {
+      "issue_id": "baize-le7a.6",
+      "depends_on_id": "baize-za8t",
+      "type": "supersedes",
+      "created_at": "2026-06-12T10:31:55Z",
+      "created_by": "Mark Atwood",
+      "metadata": "{}"
+    },
+    {
+      "issue_id": "baize-le7a.6",
+      "depends_on_id": "baize-gtms",
+      "type": "blocks",
+      "created_at": "2026-06-12T10:31:50Z",
+      "created_by": "Mark Atwood",
+      "metadata": "{}"
+    },
+    {
+      "issue_id": "baize-le7a.6",
+      "depends_on_id": "baize-le7a.5",
+      "type": "blocks",
+      "created_at": "2026-06-12T09:15:42Z",
+      "created_by": "Mark Atwood",
+      "metadata": "{}"
+    }
+  ]
+}

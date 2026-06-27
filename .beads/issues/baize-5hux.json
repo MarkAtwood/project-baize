@@ -1,0 +1,16 @@
+{
+  "id": "baize-5hux",
+  "title": "Grid cell stacking: Vec\u003cComponentId\u003e with stacking_limit",
+  "description": "Change grid cell model from Option\u003cComponentId\u003e to Vec\u003cComponentId\u003e with a per-zone stacking_limit. Default limit = 1 (backward compatible, all existing games unchanged).\n\nPatterns supported:\n- Vertical stacking (Hive beetles): LIFO, top piece active, below pinned\n- Same-owner grouping (Backgammon): count matters, not individual identity\n- Layered placement (Carcassonne): tile + meeple coexist\n\nAPI:\n- cell_top(zone, col, row) → top component (backward compat with cell_at)\n- cell_stack(zone, col, row) → full stack as list\n- cell_count(zone, col, row) → stack size\n- stack_push(zone, col, row, component) → add to top (fails if at limit)\n- stack_pop(zone, col, row) → remove from top\n\nSchema: stacking_limit field on grid zones (already exists in schema, not enforced). Values: 1 (default), N (fixed limit), \"unlimited\".\n\nExisting cell_at returns cell_top. Zero breaking changes for games with limit=1.\n\nDeliverables: (1) Rust engine: Vec\u003cComponentId\u003e per cell, limit enforcement. (2) Python engine: same. (3) Felt host imports: cell_top, cell_stack, cell_count. (4) Update Hive definition to use stacking. (5) Update Backgammon if beneficial. (6) Tests for push/pop/limit/backward compat.",
+  "design": "Vec\u003cComponentId\u003e per cell with stacking_limit. Default 1 = backward compatible. cell_at returns cell_top. LIFO stack semantics.",
+  "status": "closed",
+  "priority": 2,
+  "issue_type": "feature",
+  "assignee": "Mark Atwood",
+  "owner": "mark@wolfssl.com",
+  "created_at": "2026-06-12T19:03:59Z",
+  "created_by": "Mark Atwood",
+  "updated_at": "2026-06-26T19:56:29Z",
+  "closed_at": "2026-06-13T01:27:41Z",
+  "close_reason": "Stacking integrated: stacking_limit parsed from definitions, grid_push/pop wired into place/move actions, limit enforced. Both engines. 304 Rust + 3496 Python tests passing."
+}

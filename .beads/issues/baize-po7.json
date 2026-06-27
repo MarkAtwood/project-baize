@@ -1,0 +1,15 @@
+{
+  "id": "baize-po7",
+  "title": "poker: 7-card hand ranking evaluator",
+  "description": "No hand ranking evaluator exists. GameDefinition.hand_rankings parses the ranking list (royal_flush..high_card) but nothing evaluates hands. Need a function best_hand(cards: list[ComponentData]) -\u003e HandRank that selects the best 5-card combination from 7 cards (2 hole + 5 community) and returns an orderable rank. This can be pure Python in the engine or a WASM extension per the architecture. The showdown phase resolves 'best_hand(hand + community) wins pot'. Tests: test_best_hand_from_seven_cards in tests/test_poker.py.",
+  "status": "closed",
+  "priority": 1,
+  "issue_type": "task",
+  "assignee": "Mark Atwood",
+  "owner": "mark@wolfssl.com",
+  "created_at": "2026-06-12T00:35:18Z",
+  "created_by": "Mark Atwood",
+  "updated_at": "2026-06-12T18:16:07Z",
+  "closed_at": "2026-06-12T18:16:07Z",
+  "close_reason": "Closed"
+}

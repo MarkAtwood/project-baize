@@ -1,0 +1,24 @@
+{
+  "id": "baize-xfe8",
+  "title": "Rust engine: post-action trigger check and claim window entry",
+  "description": "In finalize_turn(), after execute_action() but before advancing turn, check if the action matches any trigger's on_action. If so, enter claim window: set runtime.claim_window, emit TriggerActivated event, do NOT advance turn. New apply_claim() entry point for submitting claims during an active window. When all eligible players respond, resolve by priority, execute winning claim action, then finalize_turn().",
+  "status": "closed",
+  "priority": 2,
+  "issue_type": "task",
+  "owner": "mark@wolfssl.com",
+  "created_at": "2026-06-13T02:30:14Z",
+  "created_by": "Mark Atwood",
+  "updated_at": "2026-06-26T19:56:29Z",
+  "closed_at": "2026-06-13T02:40:23Z",
+  "close_reason": "Implemented in parallel subagents. All existing tests pass.",
+  "dependencies": [
+    {
+      "issue_id": "baize-xfe8",
+      "depends_on_id": "baize-0ywn",
+      "type": "blocks",
+      "created_at": "2026-06-12T19:30:36Z",
+      "created_by": "Mark Atwood",
+      "metadata": "{}"
+    }
+  ]
+}

@@ -1,0 +1,15 @@
+{
+  "id": "baize-oq9",
+  "title": "Pig: push-your-luck dice game",
+  "description": "Simplest push-your-luck dice game. Roll a d6: score the value, or roll a 1 and lose your turn score. Player chooses roll or bank each action. First to 100 wins. Validates: dice rolling (server authority), multi-action turns (roll/bank decision loop), counter-based scoring, simple end condition (score \u003e= 100). Tiny definition, good starter dice game.",
+  "status": "closed",
+  "priority": 3,
+  "issue_type": "feature",
+  "assignee": "Mark Atwood",
+  "owner": "mark@wolfssl.com",
+  "created_at": "2026-06-12T00:04:10Z",
+  "created_by": "Mark Atwood",
+  "updated_at": "2026-06-12T00:40:58Z",
+  "closed_at": "2026-06-12T00:40:58Z",
+  "close_reason": "Closed"
+}

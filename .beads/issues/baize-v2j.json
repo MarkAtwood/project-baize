@@ -1,0 +1,41 @@
+{
+  "id": "baize-v2j",
+  "title": "Battleship: server-authority attack resolution",
+  "description": "When a player attacks a coordinate, the server checks the opponent hidden grid and returns hit/miss. The attacker cannot verify the result independently — this is pure Tier 3 trust.\n\n## Attack flow\n1. Attacker sends: Fire action at coordinate (e.g. B4)\n2. Server looks up opponent ocean grid at B4\n3. If ship segment present: HIT — mark segment as damaged, place hit marker on attacker target grid\n4. If empty: MISS — place miss marker on attacker target grid\n5. If all segments of a ship are damaged: announce \"carrier sunk\" (reveal ship type, not positions)\n6. Broadcast result to both players (hit/miss at coordinate, sunk announcement if applicable)\n\n## What the attacker sees\n- Their target grid updated with hit/miss marker at the coordinate\n- If sunk: which ship type was sunk\n- They do NOT see the opponent ocean grid\n\n## What the defender sees\n- Their ocean grid shows damage to their ship segment\n- They see the attack coordinate\n\n## Server vault integration\nShip positions stored in the vault as hidden facts. Attack resolution reads from vault. This is exactly what the vault was designed for.\n\n## Duplicate attack prevention\nAttacking the same coordinate twice should be rejected (\"already attacked B4\").\n\n## Test\nPlace ships for both players. Player 1 attacks B4 (hit). Verify hit marker on player 1 target grid. Verify player 1 cannot see player 2 ocean. Attack same cell again — verify rejection.",
+  "status": "closed",
+  "priority": 3,
+  "issue_type": "task",
+  "assignee": "Mark Atwood",
+  "owner": "mark@wolfssl.com",
+  "created_at": "2026-06-11T22:01:32Z",
+  "created_by": "Mark Atwood",
+  "updated_at": "2026-06-26T19:56:29Z",
+  "closed_at": "2026-06-11T22:36:13Z",
+  "close_reason": "Fire action handler implemented in both Rust and Python engines. Checks opponent ocean grid, places hit/miss peg on attacker target grid, increments hit_count on ship component, prevents duplicate fires. Tested with hit, miss, and duplicate rejection tests.",
+  "dependencies": [
+    {
+      "issue_id": "baize-v2j",
+      "depends_on_id": "baize-qg5",
+      "type": "blocks",
+      "created_at": "2026-06-11T15:01:54Z",
+      "created_by": "Mark Atwood",
+      "metadata": "{}"
+    },
+    {
+      "issue_id": "baize-v2j",
+      "depends_on_id": "baize-56g",
+      "type": "blocks",
+      "created_at": "2026-06-11T15:01:56Z",
+      "created_by": "Mark Atwood",
+      "metadata": "{}"
+    },
+    {
+      "issue_id": "baize-v2j",
+      "depends_on_id": "baize-frg",
+      "type": "blocks",
+      "created_at": "2026-06-11T15:01:55Z",
+      "created_by": "Mark Atwood",
+      "metadata": "{}"
+    }
+  ]
+}

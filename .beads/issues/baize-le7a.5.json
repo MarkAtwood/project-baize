@@ -1,0 +1,41 @@
+{
+  "id": "baize-le7a.5",
+  "title": "Felt WASM code generator: typed AST → .wasm binary",
+  "description": "Generate WASM binary from verified AST using wasm-encoder crate, targeting WASM GC (WebAssembly 3.0). All collections and records use GC struct/array types (struct.new, array.new, struct.get, array.get). Options use nullable refs (ref.null, ref.is_null). Linear memory used ONLY for JSON I/O buffers. Emit GC type definitions in TypeSection. Emit alloc/dealloc for JSON buffer only. Emit extension functions as WASM exports. Include minimal JSON serde runtime that deserializes into GC structs and serializes from GC structs. Target: under 30KB for typical extensions (smaller than pre-GC since no allocator). Dependencies: wasm-encoder. Requires wasmtime 27+ or Chrome/Firefox for execution.",
+  "status": "closed",
+  "priority": 2,
+  "issue_type": "task",
+  "assignee": "Mark Atwood",
+  "owner": "mark@wolfssl.com",
+  "created_at": "2026-06-12T16:15:34Z",
+  "created_by": "Mark Atwood",
+  "updated_at": "2026-06-26T19:56:29Z",
+  "closed_at": "2026-06-12T18:08:36Z",
+  "close_reason": "Closed",
+  "dependencies": [
+    {
+      "issue_id": "baize-le7a.5",
+      "depends_on_id": "baize-le7a.4",
+      "type": "blocks",
+      "created_at": "2026-06-12T09:15:34Z",
+      "created_by": "Mark Atwood",
+      "metadata": "{}"
+    },
+    {
+      "issue_id": "baize-le7a.5",
+      "depends_on_id": "baize-le7a",
+      "type": "parent-child",
+      "created_at": "2026-06-12T09:15:34Z",
+      "created_by": "Mark Atwood",
+      "metadata": "{}"
+    },
+    {
+      "issue_id": "baize-le7a.5",
+      "depends_on_id": "baize-gtms",
+      "type": "blocks",
+      "created_at": "2026-06-12T10:31:50Z",
+      "created_by": "Mark Atwood",
+      "metadata": "{}"
+    }
+  ]
+}

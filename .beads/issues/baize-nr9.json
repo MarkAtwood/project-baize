@@ -1,0 +1,15 @@
+{
+  "id": "baize-nr9",
+  "title": "Grid stacking: multiple components per cell",
+  "description": "Add sparse stacking overlay to grid zones. Currently cells hold Option\u003cComponentId\u003e (one component). Add a stacks map for additional occupants below the top, plus stacking_limit on zones. Backward compatible: grid_get/grid_set unchanged (operate on top of stack). New methods: grid_push, grid_pop, grid_stack, grid_stack_size. Zero overhead for non-stacking games (empty hashmap). Required for hex wargames, also useful for Go (multiple stones captured from same position) and any game with unit stacking.",
+  "status": "closed",
+  "priority": 2,
+  "issue_type": "task",
+  "assignee": "Mark Atwood",
+  "owner": "mark@wolfssl.com",
+  "created_at": "2026-06-12T00:17:15Z",
+  "created_by": "Mark Atwood",
+  "updated_at": "2026-06-26T19:56:29Z",
+  "closed_at": "2026-06-12T00:21:29Z",
+  "close_reason": "Closed"
+}

@@ -1,0 +1,15 @@
+{
+  "id": "baize-ccb",
+  "title": "Reversi: chain-reaction flipping",
+  "description": "Two players place discs on 8x8 board. Placing brackets opponent discs in any direction, flipping them to your color. All bracketed lines flip simultaneously. Game ends when neither player can move. Validates: repeat_until_stable perturber for line scanning and flipping (the canonical example from DESIGN.md but never implemented), placement constraints (must bracket at least one opponent disc), pass-when-no-legal-move, end condition when both players pass, score by disc count.",
+  "status": "closed",
+  "priority": 3,
+  "issue_type": "feature",
+  "assignee": "Mark Atwood",
+  "owner": "mark@wolfssl.com",
+  "created_at": "2026-06-12T00:04:48Z",
+  "created_by": "Mark Atwood",
+  "updated_at": "2026-06-12T02:23:09Z",
+  "closed_at": "2026-06-12T02:23:09Z",
+  "close_reason": "Reversi playable with 22 tests. Covers: initial 4-disc position, legal move generation (8-direction bracket detection), single and multi-disc flipping, long line flips, illegal move rejection, pass when no moves, double-pass game end, disc count scoring. Game definition + ReversiGame helper."
+}

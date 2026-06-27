@@ -1,0 +1,15 @@
+{
+  "id": "baize-nnfh",
+  "title": "Shogi: Japanese chess with piece drops and promotion",
+  "description": "9x9 grid, 2 players, 20 pieces each. Unique mechanics: captured pieces go to opponent's hand and can be dropped back onto the board (piece recycling). Promotion zone (last 3 ranks). Multiple piece types with directional movement (gold, silver, knight, lance, rook, bishop, king, pawn). Promotion changes movement patterns. Drop restrictions: no two pawns in same column, no pawn drop checkmate, no drops on last rank for pieces that can't move. Already have shogi pieces in registry (registry/pieces/).",
+  "status": "closed",
+  "priority": 3,
+  "issue_type": "task",
+  "assignee": "Mark Atwood",
+  "owner": "mark@wolfssl.com",
+  "created_at": "2026-06-12T18:30:52Z",
+  "created_by": "Mark Atwood",
+  "updated_at": "2026-06-12T18:52:42Z",
+  "closed_at": "2026-06-12T18:52:42Z",
+  "close_reason": "Closed"
+}

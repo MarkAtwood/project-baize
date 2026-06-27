@@ -1,0 +1,15 @@
+{
+  "id": "baize-r54",
+  "title": "Add protocol.rs dispatch tests",
+  "description": "No tests for the server protocol dispatch logic (spectator rejection, turn checks, state_hash validation, sequence enforcement). Add integration tests.",
+  "status": "closed",
+  "priority": 3,
+  "issue_type": "task",
+  "assignee": "Mark Atwood",
+  "owner": "mark@reviewcommit.com",
+  "created_at": "2026-06-08T01:39:02Z",
+  "created_by": "Mark Atwood",
+  "updated_at": "2026-06-08T01:46:56Z",
+  "closed_at": "2026-06-08T01:46:56Z",
+  "close_reason": "11 protocol tests added and passing"
+}

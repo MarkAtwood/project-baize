@@ -1,0 +1,15 @@
+{
+  "id": "baize-ccxp",
+  "title": "Phase 3a: baize-game — handle moves and welcome",
+  "description": "Add handling for baize-move events from drag-drop board interactions, and handle welcome server messages properly.",
+  "status": "closed",
+  "priority": 1,
+  "issue_type": "task",
+  "assignee": "Mark Atwood",
+  "owner": "mark@wolfssl.com",
+  "created_at": "2026-06-12T19:29:00Z",
+  "created_by": "Mark Atwood",
+  "updated_at": "2026-06-12T19:30:11Z",
+  "closed_at": "2026-06-12T19:30:11Z",
+  "close_reason": "Closed"
+}

@@ -1,0 +1,25 @@
+{
+  "id": "baize-ah1.2",
+  "title": "State representation",
+  "description": "Runtime game state: zone contents, component positions, player hands, hidden state markers, score, turn/phase pointer. Must be serializable, diffable, and hashable for state comparison.",
+  "status": "closed",
+  "priority": 1,
+  "issue_type": "task",
+  "assignee": "Mark Atwood",
+  "owner": "mark@reviewcommit.com",
+  "created_at": "2026-06-07T22:14:45Z",
+  "created_by": "Mark Atwood",
+  "updated_at": "2026-06-07T23:30:33Z",
+  "closed_at": "2026-06-07T23:30:33Z",
+  "close_reason": "RuntimeState, ComponentTable, RuntimeZone with grid/stack/set/slot/counter/track ops, GameSession with init/turn/hash/wire-conversion, 8 tests",
+  "dependencies": [
+    {
+      "issue_id": "baize-ah1.2",
+      "depends_on_id": "baize-ah1",
+      "type": "parent-child",
+      "created_at": "2026-06-07T15:14:45Z",
+      "created_by": "Mark Atwood",
+      "metadata": "{}"
+    }
+  ]
+}

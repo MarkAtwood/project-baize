@@ -1,0 +1,15 @@
+{
+  "id": "baize-33c",
+  "title": "Add Python mypy to CI",
+  "description": "Run mypy --strict on the Python library in CI. pyproject.toml already configures strict mode.",
+  "status": "closed",
+  "priority": 2,
+  "issue_type": "task",
+  "assignee": "Mark Atwood",
+  "owner": "mark@reviewcommit.com",
+  "created_at": "2026-06-08T00:49:09Z",
+  "created_by": "Mark Atwood",
+  "updated_at": "2026-06-08T00:53:14Z",
+  "closed_at": "2026-06-08T00:53:14Z",
+  "close_reason": "Clippy and mypy added to CI, all lint errors fixed"
+}

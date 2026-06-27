@@ -1,0 +1,24 @@
+{
+  "id": "baize-zhc9",
+  "title": "Server: claim window timeout and message routing",
+  "description": "Server protocol: when engine returns TriggerActivated event, server starts timeout timer. Accept ClaimAction messages from eligible players during window. On timeout, submit default action (pass) for non-respondents. Route claims through engine's apply_claim().",
+  "status": "closed",
+  "priority": 2,
+  "issue_type": "task",
+  "owner": "mark@wolfssl.com",
+  "created_at": "2026-06-13T02:30:22Z",
+  "created_by": "Mark Atwood",
+  "updated_at": "2026-06-13T02:47:51Z",
+  "closed_at": "2026-06-13T02:47:51Z",
+  "close_reason": "Added SubmitClaim protocol handling, claim deadline timeout, defensive validation. All 78 server tests pass.",
+  "dependencies": [
+    {
+      "issue_id": "baize-zhc9",
+      "depends_on_id": "baize-xfe8",
+      "type": "blocks",
+      "created_at": "2026-06-12T19:30:37Z",
+      "created_by": "Mark Atwood",
+      "metadata": "{}"
+    }
+  ]
+}

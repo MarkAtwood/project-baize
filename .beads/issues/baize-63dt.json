@@ -1,0 +1,22 @@
+{
+  "id": "baize-63dt",
+  "title": "Flutter: board widget — grid + hex rendering with CustomPainter",
+  "description": "BaizeBoard widget renders grid and hex_grid zones. CustomPainter draws cells, cell properties (terrain coloring), component pieces, selection highlights, legal move indicators. Supports square grids (chess, tic-tac-toe) and hex grids (wargame, Hex). Coordinate system matches engine (col,row). Pinch-to-zoom and pan for large boards. Cell tap/drag callbacks for move input.",
+  "status": "open",
+  "priority": 3,
+  "issue_type": "task",
+  "owner": "mark@wolfssl.com",
+  "created_at": "2026-06-13T06:25:52Z",
+  "created_by": "Mark Atwood",
+  "updated_at": "2026-06-26T19:56:30Z",
+  "dependencies": [
+    {
+      "issue_id": "baize-63dt",
+      "depends_on_id": "baize-rr7l",
+      "type": "blocks",
+      "created_at": "2026-06-12T23:26:51Z",
+      "created_by": "Mark Atwood",
+      "metadata": "{}"
+    }
+  ]
+}

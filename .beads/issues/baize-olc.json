@@ -1,0 +1,33 @@
+{
+  "id": "baize-olc",
+  "title": "Implement remaining movement primitives",
+  "description": "Only step/slide/leap/hop are implemented for move generation. Implement the remaining primitives: draw (take from stack), move_to/transfer (between zones), swap, remove (as movement trigger), promote (with choice), castle (composite king+rook), flip (as movement trigger). Also implement hand plays (generate_hand_plays is currently a no-op stub). Both Rust and Python engines.",
+  "status": "closed",
+  "priority": 2,
+  "issue_type": "feature",
+  "assignee": "Mark Atwood",
+  "owner": "mark@wolfssl.com",
+  "created_at": "2026-06-11T16:48:59Z",
+  "created_by": "Mark Atwood",
+  "updated_at": "2026-06-26T19:56:29Z",
+  "closed_at": "2026-06-11T19:19:14Z",
+  "close_reason": "Implemented remove, swap, promote, draw transitions + flip/remove/swap move generation in both Rust and Python. Castle and move_to deferred to follow-up (multi-piece coordination, cross-zone transfer).",
+  "dependencies": [
+    {
+      "issue_id": "baize-olc",
+      "depends_on_id": "baize-7a2",
+      "type": "related",
+      "created_at": "2026-06-11T11:54:57Z",
+      "created_by": "Mark Atwood",
+      "metadata": "{}"
+    },
+    {
+      "issue_id": "baize-olc",
+      "depends_on_id": "baize-1ye",
+      "type": "blocks",
+      "created_at": "2026-06-11T09:49:10Z",
+      "created_by": "Mark Atwood",
+      "metadata": "{}"
+    }
+  ]
+}

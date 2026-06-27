@@ -1,0 +1,15 @@
+{
+  "id": "baize-3xm",
+  "title": "Snakes \u0026 Ladders: track + dice + triggered effects",
+  "description": "Classic track game. Roll d6, advance along track, land on snake head = slide to tail, land on ladder bottom = climb to top. First to position 100 wins. Validates: track zone type, dice rolling (server authority), perturber effects triggered by position (snake/ladder as cycle or transfer effects), shared single track with multiple players. Good test of track zones which exist in the engine but have never been exercised with actual gameplay.",
+  "status": "closed",
+  "priority": 3,
+  "issue_type": "feature",
+  "assignee": "Mark Atwood",
+  "owner": "mark@wolfssl.com",
+  "created_at": "2026-06-12T00:04:19Z",
+  "created_by": "Mark Atwood",
+  "updated_at": "2026-06-12T02:28:47Z",
+  "closed_at": "2026-06-12T02:28:47Z",
+  "close_reason": "Snakes \u0026 Ladders playable with 19 tests. First game to exercise TrackZone. Covers: track movement, d6 dice simulation, snake slide-down, ladder climb-up, overshoot bounce-back, exact-100 win, ladder-to-win, multiple tokens on same position, deterministic game flow."
+}

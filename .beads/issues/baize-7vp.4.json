@@ -1,0 +1,24 @@
+{
+  "id": "baize-7vp.4",
+  "title": "\u003cbaize-score\u003e scoreboard",
+  "description": "Displays scores, round info, game phase. Reads from game state.",
+  "status": "closed",
+  "priority": 3,
+  "issue_type": "task",
+  "owner": "mark@reviewcommit.com",
+  "created_at": "2026-06-07T22:15:05Z",
+  "created_by": "Mark Atwood",
+  "updated_at": "2026-06-07T23:50:55Z",
+  "closed_at": "2026-06-07T23:50:55Z",
+  "close_reason": "Implemented in baize-score.ts: HTML table with player scores, active turn, game result display",
+  "dependencies": [
+    {
+      "issue_id": "baize-7vp.4",
+      "depends_on_id": "baize-7vp",
+      "type": "parent-child",
+      "created_at": "2026-06-07T15:15:05Z",
+      "created_by": "Mark Atwood",
+      "metadata": "{}"
+    }
+  ]
+}

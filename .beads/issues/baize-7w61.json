@@ -1,0 +1,24 @@
+{
+  "id": "baize-7w61",
+  "title": "Felt wargame extension: zones of control (ZOC)",
+  "description": "Write ZOC logic in Felt. Functions: in_zoc(state, zone, col, row, player) returns true if cell is adjacent to enemy units. zoc_movement_cost(state, zone, col, row, player) returns extra MP cost for entering ZOC. is_legal validates no ZOC-to-ZOC movement (cannot move directly between two enemy ZOC hexes without passing through friendly-controlled hex).",
+  "status": "closed",
+  "priority": 2,
+  "issue_type": "task",
+  "owner": "mark@wolfssl.com",
+  "created_at": "2026-06-13T02:56:13Z",
+  "created_by": "Mark Atwood",
+  "updated_at": "2026-06-26T19:56:29Z",
+  "closed_at": "2026-06-13T03:14:12Z",
+  "close_reason": "zoc.felt implements in_enemy_zoc, adjacent_enemy_count, is_zoc_to_zoc, zoc_entry_cost, player_zoc_cells. Type-checks cleanly.",
+  "dependencies": [
+    {
+      "issue_id": "baize-7w61",
+      "depends_on_id": "baize-axtp",
+      "type": "blocks",
+      "created_at": "2026-06-12T19:56:27Z",
+      "created_by": "Mark Atwood",
+      "metadata": "{}"
+    }
+  ]
+}

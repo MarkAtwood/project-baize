@@ -1,0 +1,15 @@
+{
+  "id": "baize-4ifa",
+  "title": "Server abuse resistance: rate limiting, resource exhaustion, connection limits",
+  "description": "Harden the Axum server against abuse. Rate limit room creation and WebSocket connections per IP. Cap max rooms, max players per room, max message size, max messages per second. Implement idle connection timeouts. Guard against slowloris and connection flooding. Ensure one bad client cannot degrade service for others.",
+  "status": "closed",
+  "priority": 1,
+  "issue_type": "task",
+  "assignee": "Mark Atwood",
+  "owner": "mark@wolfssl.com",
+  "created_at": "2026-06-12T14:23:12Z",
+  "created_by": "Mark Atwood",
+  "updated_at": "2026-06-26T19:56:29Z",
+  "closed_at": "2026-06-12T15:56:17Z",
+  "close_reason": "Closed"
+}

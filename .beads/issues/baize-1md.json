@@ -1,0 +1,15 @@
+{
+  "id": "baize-1md",
+  "title": "Text adventure parser as WASM extension",
+  "description": "Natural language command parser (go north, take lamp, open mailbox) as a WASM extension. Maps free-text player input to structured Baize actions. Game-specific vocabulary loaded from game definition. Deterministic, no I/O, runs on client and server. Required by all three IF paths. Speculative/crazy project.",
+  "status": "open",
+  "priority": 4,
+  "issue_type": "feature",
+  "owner": "mark@wolfssl.com",
+  "created_at": "2026-06-12T04:53:10Z",
+  "created_by": "Mark Atwood",
+  "updated_at": "2026-06-26T19:56:29Z",
+  "labels": [
+    "speculative"
+  ]
+}

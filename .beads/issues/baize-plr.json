@@ -1,0 +1,33 @@
+{
+  "id": "baize-plr",
+  "title": "Ogre: GEV second movement, overrun, win conditions",
+  "description": "GEV second movement phase after combat. Overrun: Ogre entering a hex with defenders forces overrun combat (Ogre AP guns vs each unit at 1:1). Win conditions: Ogre wins by destroying Command Post. Defender wins by immobilizing Ogre (treads=0 AND all weapons destroyed). Draw if Ogre immobilized but CP destroyed.",
+  "status": "closed",
+  "priority": 2,
+  "issue_type": "task",
+  "assignee": "Mark Atwood",
+  "owner": "mark@wolfssl.com",
+  "created_at": "2026-06-12T04:57:28Z",
+  "created_by": "Mark Atwood",
+  "updated_at": "2026-06-26T19:56:29Z",
+  "closed_at": "2026-06-12T05:08:28Z",
+  "close_reason": "GEV second movement, overrun combat (AP guns vs defenders), win conditions (CP destroyed/Ogre neutralized). 10 tests.",
+  "dependencies": [
+    {
+      "issue_id": "baize-plr",
+      "depends_on_id": "baize-2du",
+      "type": "blocks",
+      "created_at": "2026-06-11T21:57:37Z",
+      "created_by": "Mark Atwood",
+      "metadata": "{}"
+    },
+    {
+      "issue_id": "baize-plr",
+      "depends_on_id": "baize-kg0",
+      "type": "blocks",
+      "created_at": "2026-06-11T21:57:36Z",
+      "created_by": "Mark Atwood",
+      "metadata": "{}"
+    }
+  ]
+}

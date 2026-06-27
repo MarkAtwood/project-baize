@@ -1,0 +1,12 @@
+{
+  "id": "baize-tix",
+  "title": "Game definition generator: Ludii/BGG pipeline",
+  "description": "Build a pipeline to generate Baize game definitions from existing game databases. Two sources: (1) Ludii (1,400+ games with formal rules in Ludii DSL, open source) — translate Ludii DSL to Baize JSON. Ludii covers movement, capture, end conditions, board topology. (2) BoardGameGeek (130,000+ games, open API) — use mechanics taxonomy (~200 categories) + metadata (player count, playtime, complexity) to generate skeleton definitions, then use LLM to fill in rules from BGG descriptions. Start with Ludii translation for classic abstract games (already formalized), then BGG for card/board games. pagat.com (2,000+ card games) is another source for card game rules.",
+  "status": "open",
+  "priority": 3,
+  "issue_type": "feature",
+  "owner": "mark@wolfssl.com",
+  "created_at": "2026-06-12T00:23:57Z",
+  "created_by": "Mark Atwood",
+  "updated_at": "2026-06-12T00:23:57Z"
+}

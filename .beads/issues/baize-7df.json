@@ -1,0 +1,14 @@
+{
+  "id": "baize-7df",
+  "title": "Rubik's Cube as a single-player game definition",
+  "description": "Define a 3x3 Rubik's Cube as a Baize game. Validates that the engine supports single-player puzzles, non-standard zone topologies, and complex perturber-driven state mutations.\n\n## Why this matters\n- Proves the engine handles single-player games\n- Proves perturber language can express complex multi-piece coordinated mutations (face rotations)\n- Proves CEL can express puzzle completion (all faces uniform color)\n- Stress-tests the notation adapter with standard cube notation (U R F D L B)\n- A solved cube is a satisfying demo\n\n## Architecture\n- 1 player: solver\n- 6 grid zones (3x3 each): up, down, front, back, left, right\n- 54 components: colored face stickers (9 per face, 6 colors)\n- Moves: 12 basic (6 faces x CW/CCW) + 6 double moves = 18 total\n- Each move is a perturber sequence of 20 swaps (8 stickers on the rotated face + 12 stickers on adjacent face edges)\n- End condition: each face has all 9 stickers of the same color\n- Notation: standard Singmaster (U, R, F, D, L, B, U', R2, etc.)\n\n## Open questions\n- Do we need a new zone topology for face adjacency, or can 6 independent grids + perturber handle it?\n- Should center stickers be immovable (they define the face color)?\n- How to represent scramble as initial setup?",
+  "status": "closed",
+  "priority": 3,
+  "issue_type": "feature",
+  "owner": "mark@wolfssl.com",
+  "created_at": "2026-06-11T21:32:23Z",
+  "created_by": "Mark Atwood",
+  "updated_at": "2026-06-26T19:56:29Z",
+  "closed_at": "2026-06-12T02:57:37Z",
+  "close_reason": "Already implemented. 25 Rust tests pass. 6-zone face topology, perturber rotations, solved-state CEL, scramble generation all done. Only remaining sub-issue is Singmaster notation (baize-wt9), blocked on notation adapter."
+}

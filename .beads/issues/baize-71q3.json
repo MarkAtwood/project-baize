@@ -1,0 +1,24 @@
+{
+  "id": "baize-71q3",
+  "title": "Python definition: parse triggers from game definition JSON",
+  "description": "Add Trigger and ClaimWindowDef dataclasses to definition.py. Parse triggers dict from game definition JSON. Defensive: validate all fields, reject unknown keys.",
+  "status": "closed",
+  "priority": 2,
+  "issue_type": "task",
+  "owner": "mark@wolfssl.com",
+  "created_at": "2026-06-13T02:30:16Z",
+  "created_by": "Mark Atwood",
+  "updated_at": "2026-06-26T19:56:29Z",
+  "closed_at": "2026-06-13T02:40:23Z",
+  "close_reason": "Implemented in parallel subagents. All existing tests pass.",
+  "dependencies": [
+    {
+      "issue_id": "baize-71q3",
+      "depends_on_id": "baize-c6ze",
+      "type": "blocks",
+      "created_at": "2026-06-12T19:30:35Z",
+      "created_by": "Mark Atwood",
+      "metadata": "{}"
+    }
+  ]
+}

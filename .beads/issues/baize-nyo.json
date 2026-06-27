@@ -1,0 +1,25 @@
+{
+  "id": "baize-nyo",
+  "title": "Graph zone: Python GraphZone runtime class",
+  "description": "Add GraphZone class to runtime.py with adjacency dict, node occupants, graph_get/graph_set/graph_neighbors. Wire into runtime_zone_from_definition(). Mirror Rust implementation.",
+  "status": "closed",
+  "priority": 2,
+  "issue_type": "task",
+  "assignee": "Mark Atwood",
+  "owner": "mark@wolfssl.com",
+  "created_at": "2026-06-12T04:42:11Z",
+  "created_by": "Mark Atwood",
+  "updated_at": "2026-06-26T19:56:29Z",
+  "closed_at": "2026-06-12T04:45:42Z",
+  "close_reason": "GraphZone class with adjacency dict, occupants, graph_get/graph_set/graph_neighbors. Wire serialization. Wired into runtime_zone_from_definition.",
+  "dependencies": [
+    {
+      "issue_id": "baize-nyo",
+      "depends_on_id": "baize-056",
+      "type": "blocks",
+      "created_at": "2026-06-11T21:42:17Z",
+      "created_by": "Mark Atwood",
+      "metadata": "{}"
+    }
+  ]
+}

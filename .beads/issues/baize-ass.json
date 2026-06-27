@@ -1,0 +1,15 @@
+{
+  "id": "baize-ass",
+  "title": "Add server vault unit tests",
+  "description": "Server has 0% test coverage. At minimum, vault.rs needs tests for: roll_dice determinism, draw_cards underflow handling, shuffle_zone Fisher-Yates correctness, RNG seed reproducibility.",
+  "status": "closed",
+  "priority": 1,
+  "issue_type": "task",
+  "assignee": "Mark Atwood",
+  "owner": "mark@reviewcommit.com",
+  "created_at": "2026-06-08T00:55:26Z",
+  "created_by": "Mark Atwood",
+  "updated_at": "2026-06-08T01:02:45Z",
+  "closed_at": "2026-06-08T01:02:45Z",
+  "close_reason": "Added 8 vault unit tests: roll_dice determinism, range, draw_cards basic/underflow/empty, shuffle Fisher-Yates determinism, RNG seed reproducibility, hidden_facts round-trip."
+}

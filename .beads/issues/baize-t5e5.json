@@ -1,0 +1,14 @@
+{
+  "id": "baize-t5e5",
+  "title": "Hex wargame: expand game definition to full 20x15 spec",
+  "description": "Expand hex-wargame.json to full baize-3h0y spec: 20x15 hex grid, all terrain types (clear/forest/hills/mountains/river/road/town/bridge), ~20 units per side (infantry×6, armor×4, mechanized×4, artillery×3, headquarters×1, recon×2), 5 phases (reinforcement/movement/combat/exploitation/supply), multi-step units (step_losses property), road bonus rules, mandatory combat rules, retreat mechanics, advance after combat, supply line rules. River as hex-side terrain via cell_properties.",
+  "status": "closed",
+  "priority": 2,
+  "issue_type": "task",
+  "owner": "mark@wolfssl.com",
+  "created_at": "2026-06-13T05:19:07Z",
+  "created_by": "Mark Atwood",
+  "updated_at": "2026-06-26T19:56:29Z",
+  "closed_at": "2026-06-13T05:24:36Z",
+  "close_reason": "Expanded to 20x15 grid, 300 cells with river/bridge/mountains, 20 units/side with recon, 5 phases, 12 rules, step losses, supply. Schema validates."
+}

@@ -1,0 +1,24 @@
+{
+  "id": "baize-nta0",
+  "title": "Felt wargame extension: terrain movement costs",
+  "description": "Write a Felt extension (wargame.felt) implementing terrain-aware movement. Functions: terrain_cost(state, zone, col, row) reads cell_property movement_cost. is_legal validates movement actions against movement point budget considering per-cell terrain costs. Uses Felt builtins: cell_property, adjacent, neighbors, property.",
+  "status": "closed",
+  "priority": 2,
+  "issue_type": "task",
+  "owner": "mark@wolfssl.com",
+  "created_at": "2026-06-13T02:56:10Z",
+  "created_by": "Mark Atwood",
+  "updated_at": "2026-06-26T19:56:29Z",
+  "closed_at": "2026-06-13T03:14:02Z",
+  "close_reason": "wargame.felt implements terrain_cost, defense_bonus, movement_points_for, path_cost, score. Type-checks with known Score alias limitation.",
+  "dependencies": [
+    {
+      "issue_id": "baize-nta0",
+      "depends_on_id": "baize-axtp",
+      "type": "blocks",
+      "created_at": "2026-06-12T19:56:26Z",
+      "created_by": "Mark Atwood",
+      "metadata": "{}"
+    }
+  ]
+}

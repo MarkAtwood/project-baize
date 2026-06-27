@@ -1,0 +1,49 @@
+{
+  "id": "baize-wt9",
+  "title": "Cube: Singmaster notation (U R F D L B)",
+  "description": "Standard Rubik's Cube notation for the notation adapter.\n\n## Singmaster notation\n- Face letters: U (up), D (down), F (front), B (back), L (left), R (right)\n- Clockwise: bare letter (U, R, F, etc.)\n- Counterclockwise: letter + apostrophe (U', R', F')\n- 180 degree: letter + 2 (U2, R2, F2)\n- Total: 18 moves\n\n## Extended notation (optional, future)\n- Slice moves: M (middle, like L), E (equator, like D), S (standing, like F)\n- Wide moves: u (Uw = U + E'), r (Rw = R + M'), etc.\n- Whole cube rotations: x (like R), y (like U), z (like F)\n\n## Declarative spec\n```json\n\"notation\": {\n  \"type\": \"special_moves_only\",\n  \"special_moves\": {\n    \"U\":  {\"action_type\": \"custom\", \"declaration\": \"rotate_U_cw\"},\n    \"U'\": {\"action_type\": \"custom\", \"declaration\": \"rotate_U_ccw\"},\n    \"U2\": {\"action_type\": \"custom\", \"declaration\": \"rotate_U_180\"},\n    \"R\":  {\"action_type\": \"custom\", \"declaration\": \"rotate_R_cw\"},\n    ... (18 total)\n  }\n}\n```\nEach move maps to a named perturber effect in the rules section.\n\n## Scramble notation\nA scramble is a sequence of moves: \"R U R' U' R' F R2 U' R' U' R U R' F'\"\nThe REPL should accept a space-separated sequence and apply each move in order.\n\n## Test\nParse \"U R' F2\", verify 3 actions generated. Apply to solved cube, verify state changed correctly.",
+  "status": "closed",
+  "priority": 3,
+  "issue_type": "task",
+  "assignee": "Mark Atwood",
+  "owner": "mark@wolfssl.com",
+  "created_at": "2026-06-11T21:33:44Z",
+  "created_by": "Mark Atwood",
+  "updated_at": "2026-06-12T06:11:58Z",
+  "closed_at": "2026-06-12T06:11:58Z",
+  "close_reason": "Rubik's Cube Singmaster notation (18 moves) added + 3 tests.",
+  "dependencies": [
+    {
+      "issue_id": "baize-wt9",
+      "depends_on_id": "baize-z9d",
+      "type": "blocks",
+      "created_at": "2026-06-11T23:03:07Z",
+      "created_by": "Mark Atwood",
+      "metadata": "{}"
+    },
+    {
+      "issue_id": "baize-wt9",
+      "depends_on_id": "baize-uei",
+      "type": "blocks",
+      "created_at": "2026-06-11T14:34:22Z",
+      "created_by": "Mark Atwood",
+      "metadata": "{}"
+    },
+    {
+      "issue_id": "baize-wt9",
+      "depends_on_id": "baize-7df",
+      "type": "blocks",
+      "created_at": "2026-06-11T14:34:10Z",
+      "created_by": "Mark Atwood",
+      "metadata": "{}"
+    },
+    {
+      "issue_id": "baize-wt9",
+      "depends_on_id": "baize-wx3",
+      "type": "blocks",
+      "created_at": "2026-06-11T14:34:21Z",
+      "created_by": "Mark Atwood",
+      "metadata": "{}"
+    }
+  ]
+}

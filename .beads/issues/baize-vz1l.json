@@ -1,0 +1,24 @@
+{
+  "id": "baize-vz1l",
+  "title": "Card encoding: bijective map between cards and group elements",
+  "description": "Deterministic bijective encoding from card IDs to prime-order group elements for SRA. Must be reversible after decryption, deterministic across clients, handle 32-136 card decks. Consider hash-to-group or sequential assignment with domain separation.",
+  "status": "closed",
+  "priority": 3,
+  "issue_type": "task",
+  "owner": "mark@wolfssl.com",
+  "created_at": "2026-06-13T05:15:23Z",
+  "created_by": "Mark Atwood",
+  "updated_at": "2026-06-26T19:56:29Z",
+  "closed_at": "2026-06-13T05:57:04Z",
+  "close_reason": "Bijective card encoding: card i → (i+2) as BigUint, reversible decode. Bounded by MAX_DECK_SIZE=256. Tests pass.",
+  "dependencies": [
+    {
+      "issue_id": "baize-vz1l",
+      "depends_on_id": "baize-l1rv",
+      "type": "blocks",
+      "created_at": "2026-06-12T22:15:59Z",
+      "created_by": "Mark Atwood",
+      "metadata": "{}"
+    }
+  ]
+}

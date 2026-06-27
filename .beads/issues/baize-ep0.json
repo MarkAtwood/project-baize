@@ -1,0 +1,26 @@
+{
+  "id": "baize-ep0",
+  "title": "Python library",
+  "description": "Python implementation for AI research, game analysis, and Jupyter notebooks. Game definition parser, state representation, legal move generator, analysis tools (branching factor, game tree depth, hidden information ratio). Used for balance testing and AI development, not for production play. Implementation requirements: modern Python (3.12+), full type annotations (strict mypy), dataclasses/attrs for state, readable and provable code over performance. This is the reference implementation that humans read to understand the spec — clarity beats speed. Event-driven architecture where applicable.",
+  "notes": "Must emit structured JSONL event log (see baize-562.6) during game execution. Same events as Rust implementation for mechanical diffing.",
+  "status": "closed",
+  "priority": 2,
+  "issue_type": "epic",
+  "assignee": "Mark Atwood",
+  "owner": "mark@reviewcommit.com",
+  "created_at": "2026-06-07T22:14:19Z",
+  "created_by": "Mark Atwood",
+  "updated_at": "2026-06-26T19:56:29Z",
+  "closed_at": "2026-06-08T00:29:58Z",
+  "close_reason": "all steps complete",
+  "dependencies": [
+    {
+      "issue_id": "baize-ep0",
+      "depends_on_id": "baize-0a0",
+      "type": "blocks",
+      "created_at": "2026-06-07T15:16:33Z",
+      "created_by": "Mark Atwood",
+      "metadata": "{}"
+    }
+  ]
+}

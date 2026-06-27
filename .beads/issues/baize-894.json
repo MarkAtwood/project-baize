@@ -1,0 +1,15 @@
+{
+  "id": "baize-894",
+  "title": "Client-side message sanitization",
+  "description": "TypeScript client must validate all server messages before processing. Unknown fields ignored, missing required fields rejected. Never innerHTML from server data (XSS). SVG rendering must sanitize component names/labels. WebSocket reconnect must not leak state from previous session.",
+  "status": "closed",
+  "priority": 1,
+  "issue_type": "task",
+  "assignee": "Mark Atwood",
+  "owner": "mark@reviewcommit.com",
+  "created_at": "2026-06-08T00:27:37Z",
+  "created_by": "Mark Atwood",
+  "updated_at": "2026-06-08T00:38:16Z",
+  "closed_at": "2026-06-08T00:38:16Z",
+  "close_reason": "All security hardening committed and tests passing"
+}

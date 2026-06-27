@@ -1,0 +1,32 @@
+{
+  "id": "baize-56g",
+  "title": "Battleship: multi-cell ship placement",
+  "description": "Ships span multiple grid cells (carrier=5, battleship=4, etc.). The engine currently has no concept of a component occupying more than one cell.\n\n## Options\n\n### Option A: One component per cell segment\nCarrier = 5 separate \"carrier_segment\" components placed on 5 adjacent cells. Each segment tracks damage independently. Ship is sunk when all segments are hit.\n- Pro: Works with current engine (each segment is a normal component on a grid cell)\n- Pro: Hit detection is just \"is there a component at this cell?\"\n- Con: Need to track which segments belong to the same ship (component properties or naming convention)\n- Con: Placement validation must ensure segments are contiguous and aligned\n\n### Option B: Single component spanning multiple cells\nCarrier = 1 component with a \"cells\" list: [(2,3),(2,4),(2,5),(2,6),(2,7)]\n- Pro: Cleaner model — one ship is one component\n- Con: Requires new engine capability (multi-cell components)\n- Con: Grid model assumes one component per cell\n\n### Recommendation\nOption A (segments) — works with the existing engine. Use component properties to group segments:\n```json\n{\"component_type\": \"carrier_seg\", \"properties\": {\"ship\": \"carrier\", \"segment\": 0, \"damaged\": false}}\n```\nShip is sunk when all components with {\"ship\": \"carrier\"} have {\"damaged\": true}.\n\n## Placement action\nPlaceShip action type already exists in ActionType enum. Needs to:\n1. Accept ship type + starting cell + orientation (horizontal/vertical)\n2. Compute all cells the ship occupies\n3. Validate: within bounds, no overlap with existing ships\n4. Create segment components on each cell\n\nThis is a server-side action (placement happens during simultaneous phase, server validates).\n\n## Test\nPlace a carrier at B2 horizontal. Verify 5 segment components at B2-F2. Try to overlap with another ship — verify rejection.",
+  "status": "closed",
+  "priority": 3,
+  "issue_type": "task",
+  "owner": "mark@wolfssl.com",
+  "created_at": "2026-06-11T22:01:04Z",
+  "created_by": "Mark Atwood",
+  "updated_at": "2026-06-26T19:56:29Z",
+  "closed_at": "2026-06-11T22:28:08Z",
+  "close_reason": "Multi-cell ship placement works via first-class engine span support (baize-jae). PlaceShip action handler validates bounds, overlap, and sets all span cells. Tests confirm horizontal/vertical placement, collision rejection, and span removal.",
+  "dependencies": [
+    {
+      "issue_id": "baize-56g",
+      "depends_on_id": "baize-jae",
+      "type": "blocks",
+      "created_at": "2026-06-11T15:15:44Z",
+      "created_by": "Mark Atwood",
+      "metadata": "{}"
+    },
+    {
+      "issue_id": "baize-56g",
+      "depends_on_id": "baize-qg5",
+      "type": "blocks",
+      "created_at": "2026-06-11T15:01:54Z",
+      "created_by": "Mark Atwood",
+      "metadata": "{}"
+    }
+  ]
+}

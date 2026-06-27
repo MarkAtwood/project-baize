@@ -1,0 +1,24 @@
+{
+  "id": "baize-nmt4",
+  "title": "Reveal protocol: showdown verification and cheat detection",
+  "description": "At showdown, players reveal encryption keys. Any party re-derives the full shuffle sequence to verify no card substitution. Invalid decryptions flag cheating. Integrates with BLAKE3 hash-chained event log for tamper-evident audit.",
+  "status": "closed",
+  "priority": 3,
+  "issue_type": "task",
+  "owner": "mark@wolfssl.com",
+  "created_at": "2026-06-13T05:15:33Z",
+  "created_by": "Mark Atwood",
+  "updated_at": "2026-06-26T19:56:29Z",
+  "closed_at": "2026-06-13T05:57:06Z",
+  "close_reason": "verify_game: re-derives entire shuffle, decrypts with all keys, detects tampered cards. Tamper detection test passes.",
+  "dependencies": [
+    {
+      "issue_id": "baize-nmt4",
+      "depends_on_id": "baize-uda4",
+      "type": "blocks",
+      "created_at": "2026-06-12T22:16:12Z",
+      "created_by": "Mark Atwood",
+      "metadata": "{}"
+    }
+  ]
+}

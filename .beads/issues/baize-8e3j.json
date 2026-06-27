@@ -1,0 +1,15 @@
+{
+  "id": "baize-8e3j",
+  "title": "Dynamic visibility transitions: change zone visibility mid-game",
+  "description": "The visibility model is currently static (set at game definition time). Bridge requires exposing dummy's hand after the opening lead. Stratego reveals piece ranks during combat. Other games may need visibility changes triggered by game events. Add: (1) visibility_transition rules in game definitions that trigger on conditions/phases, (2) engine support for changing a zone's visibility during play, (3) server support for re-filtering state after visibility changes, (4) event log entries for visibility transitions. This is required for Bridge (dummy hand), Stratego (combat reveal), and potentially Mahjong (meld exposure).",
+  "status": "closed",
+  "priority": 2,
+  "issue_type": "feature",
+  "assignee": "Mark Atwood",
+  "owner": "mark@wolfssl.com",
+  "created_at": "2026-06-12T18:52:14Z",
+  "created_by": "Mark Atwood",
+  "updated_at": "2026-06-26T19:56:29Z",
+  "closed_at": "2026-06-13T01:27:43Z",
+  "close_reason": "Dynamic visibility: visibility_transitions parsed, visibility_overrides in runtime state, phase-triggered transitions, filter_for_viewer checks overrides. Both engines."
+}

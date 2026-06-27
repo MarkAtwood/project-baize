@@ -1,0 +1,25 @@
+{
+  "id": "baize-ah1.1",
+  "title": "Game definition parser",
+  "description": "Parse and validate game definition JSON against the schema. Load topology, components, movement rules, turn structure, visibility model, win conditions. Output: in-memory game definition struct.",
+  "status": "closed",
+  "priority": 1,
+  "issue_type": "task",
+  "assignee": "Mark Atwood",
+  "owner": "mark@reviewcommit.com",
+  "created_at": "2026-06-07T22:14:45Z",
+  "created_by": "Mark Atwood",
+  "updated_at": "2026-06-07T22:48:47Z",
+  "closed_at": "2026-06-07T22:48:47Z",
+  "close_reason": "Rust serde structs matching all 4 JSON schemas, with parse tests for tic-tac-toe, chess, and poker",
+  "dependencies": [
+    {
+      "issue_id": "baize-ah1.1",
+      "depends_on_id": "baize-ah1",
+      "type": "parent-child",
+      "created_at": "2026-06-07T15:14:44Z",
+      "created_by": "Mark Atwood",
+      "metadata": "{}"
+    }
+  ]
+}

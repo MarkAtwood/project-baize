@@ -1,0 +1,33 @@
+{
+  "id": "baize-ebp",
+  "title": "Notation spec: Go board coordinates",
+  "description": "Go coordinate notation for the notation adapter.\n\n## Board coordinates (primary)\nColumn letters A-T skipping I (avoids confusion with J), row numbers 1-19.\nExamples: Q16, D4, K10, A1\n\n## SGF coordinates (secondary)\nTwo lowercase letters: aa=top-left (A19 in board coords), ss=bottom-right (T1).\nColumn a-s = A-T, row a-s = 19-1 (inverted).\n\n## Grid labels\nfiles: [\"A\",\"B\",\"C\",\"D\",\"E\",\"F\",\"G\",\"H\",\"J\",\"K\",\"L\",\"M\",\"N\",\"O\",\"P\",\"Q\",\"R\",\"S\",\"T\"]\nranks: [19,18,...,1] (or [1,...,19] with row inversion)\nNote: no \"I\" column — this is universal in Go.\n\n## Special moves\n- pass → {\"action_type\": \"pass\"}\n- resign → {\"action_type\": \"resign\"}\n\n## Board sizes\n9x9, 13x13, 19x19 all use the same notation, just with fewer columns/rows.\n\n## Declarative spec\n```json\n\"notation\": {\n  \"piece_symbols\": {\"stone\": \"\"},\n  \"special_moves\": {\n    \"pass\": {\"action_type\": \"pass\"},\n    \"resign\": {\"action_type\": \"resign\"}\n  }\n}\n```\nCovered by Layer 1 label mapping + special moves. No disambiguation needed (placement only). No WASM needed.",
+  "status": "closed",
+  "priority": 3,
+  "issue_type": "task",
+  "assignee": "Mark Atwood",
+  "owner": "mark@wolfssl.com",
+  "created_at": "2026-06-11T21:30:18Z",
+  "created_by": "Mark Atwood",
+  "updated_at": "2026-06-12T06:11:57Z",
+  "closed_at": "2026-06-12T06:11:57Z",
+  "close_reason": "Go coordinate notation added to go.json + 3 tests.",
+  "dependencies": [
+    {
+      "issue_id": "baize-ebp",
+      "depends_on_id": "baize-z9d",
+      "type": "blocks",
+      "created_at": "2026-06-11T23:03:06Z",
+      "created_by": "Mark Atwood",
+      "metadata": "{}"
+    },
+    {
+      "issue_id": "baize-ebp",
+      "depends_on_id": "baize-uei",
+      "type": "blocks",
+      "created_at": "2026-06-11T14:31:18Z",
+      "created_by": "Mark Atwood",
+      "metadata": "{}"
+    }
+  ]
+}

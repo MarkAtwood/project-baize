@@ -1,0 +1,15 @@
+{
+  "id": "baize-7h1",
+  "title": "Hex: connection game on graph/hex grid",
+  "description": "Two players place stones on an 11x11 hex grid. Each player owns two opposite edges. Win by forming a connected path between your two edges. No draws possible (proven by John Nash). Validates: hex_grid zone type (declared in schema, never exercised), edge_ownership zone property, graph connectivity for win detection (BFS/DFS — simpler than Ticket to Ride or Go territory, just 'are my two edges connected through my stones?'). Hex board already exists in the component registry (registry/boards/). Simplest possible graph-connectivity game — good first test of hex zones before tackling Go.",
+  "status": "closed",
+  "priority": 3,
+  "issue_type": "feature",
+  "assignee": "Mark Atwood",
+  "owner": "mark@wolfssl.com",
+  "created_at": "2026-06-12T00:09:19Z",
+  "created_by": "Mark Atwood",
+  "updated_at": "2026-06-12T02:45:54Z",
+  "closed_at": "2026-06-12T02:45:54Z",
+  "close_reason": "Hex playable with 19 tests. First hex_grid game. Covers: hex adjacency (6 neighbors), stone placement, BFS connectivity win detection (Red top-bottom, Blue left-right), vertical/horizontal/diagonal paths, partial paths don't win, variable board sizes (5×5, 7×7, 11×11)."
+}

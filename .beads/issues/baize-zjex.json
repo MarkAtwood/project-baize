@@ -1,0 +1,25 @@
+{
+  "id": "baize-zjex",
+  "title": "Epic: Mental poker — serverless cryptographic card shuffling (SRA)",
+  "description": "Replace the trusted-server Vault (ChaCha20Rng) with a peer-to-peer cryptographic card shuffling protocol for imperfect-information card games. Uses SRA (Shamir-Rivest-Adleman 1979) commutative encryption: each player encrypts the deck with their own key, shuffles, passes it on. Cards are selectively decrypted to deal to specific players. No trusted server needed — any player cheating is cryptographically detectable.\n\nScope: SRA primitives, card encoding, shuffle/deal/reveal protocols, engine integration via authority declarations, P2P transport option, verification tests. The existing commit-reveal protocol (SHA-256) already handles simultaneous moves; mental poker extends this to card shuffling.\n\nReferences: SRA 1979, Barnett \u0026 Smart 2003 (elliptic curve variant), Castellà-Roca et al. 2006 (practical improvements).\n\nArchitectural principle: the authority declaration describes what trust is needed, not who provides it. Games with server_only shuffle operations can transparently switch to mental poker when all clients support it.",
+  "status": "closed",
+  "priority": 3,
+  "issue_type": "feature",
+  "assignee": "Mark Atwood",
+  "owner": "mark@wolfssl.com",
+  "created_at": "2026-06-13T05:14:34Z",
+  "created_by": "Mark Atwood",
+  "updated_at": "2026-06-13T06:03:46Z",
+  "closed_at": "2026-06-13T06:03:46Z",
+  "close_reason": "Mental poker epic complete: SRA primitives (num-bigint, RFC 3526), card encoding, N-player shuffle with BLAKE3 hash chain, selective decryption deal, showdown verification with tamper detection, TrustMode authority integration, P2P message types. 12 tests. Swappable to WASI-Crypto later.",
+  "dependencies": [
+    {
+      "issue_id": "baize-zjex",
+      "depends_on_id": "baize-f4u5",
+      "type": "blocks",
+      "created_at": "2026-06-12T22:16:15Z",
+      "created_by": "Mark Atwood",
+      "metadata": "{}"
+    }
+  ]
+}

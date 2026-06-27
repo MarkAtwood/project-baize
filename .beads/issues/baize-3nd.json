@@ -1,0 +1,33 @@
+{
+  "id": "baize-3nd",
+  "title": "Graph zone: tests",
+  "description": "Tests for graph zone across schema, Rust, and Python. Cover: construction from definition, get/set occupants, neighbor lookup, node_properties, directed vs undirected edges, invalid node handling. Use a small test graph (5-7 nodes). Verify Rust and Python produce identical results.",
+  "status": "closed",
+  "priority": 2,
+  "issue_type": "task",
+  "assignee": "Mark Atwood",
+  "owner": "mark@wolfssl.com",
+  "created_at": "2026-06-12T04:42:12Z",
+  "created_by": "Mark Atwood",
+  "updated_at": "2026-06-26T19:56:29Z",
+  "closed_at": "2026-06-12T04:48:56Z",
+  "close_reason": "23 tests (13 Python + 10 Rust) covering construction, get/set, neighbors, count, node_properties, error handling.",
+  "dependencies": [
+    {
+      "issue_id": "baize-3nd",
+      "depends_on_id": "baize-nyo",
+      "type": "blocks",
+      "created_at": "2026-06-11T21:42:18Z",
+      "created_by": "Mark Atwood",
+      "metadata": "{}"
+    },
+    {
+      "issue_id": "baize-3nd",
+      "depends_on_id": "baize-sm4",
+      "type": "blocks",
+      "created_at": "2026-06-11T21:42:18Z",
+      "created_by": "Mark Atwood",
+      "metadata": "{}"
+    }
+  ]
+}

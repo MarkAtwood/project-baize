@@ -1,0 +1,15 @@
+{
+  "id": "baize-8ct",
+  "title": "Visibility filtering on state sync",
+  "description": "Server currently sends full game state to all players including hidden and private information. Implement per-player state filtering based on zone visibility declarations (public/private/hidden). Private zones only visible to owner. Hidden zones omitted from all client responses (count only). Must filter in both state_sync and move_confirmed messages.",
+  "status": "closed",
+  "priority": 1,
+  "issue_type": "feature",
+  "assignee": "Mark Atwood",
+  "owner": "mark@wolfssl.com",
+  "created_at": "2026-06-11T16:48:58Z",
+  "created_by": "Mark Atwood",
+  "updated_at": "2026-06-26T19:56:29Z",
+  "closed_at": "2026-06-11T17:19:16Z",
+  "close_reason": "Promoted filter_for_viewer from engine test to library (engine/src/visibility.rs). Wired into server: initial state_sync, MoveConfirmed (per-player FilteredBroadcast), and StateSync reply all now filter based on zone visibility. Hidden zones stripped to count only, private zones visible only to owner."
+}

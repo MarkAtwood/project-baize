@@ -1,0 +1,24 @@
+{
+  "id": "baize-0fjn",
+  "title": "Felt builtin: word_valid(state, resource_name, word) -\u003e Bool",
+  "description": "Add word_valid builtin to Felt compiler and server host. Signature: word_valid(state: State, name: String, word: String) -\u003e Bool. Checker type registration, codegen host import, felt_host.rs implementation that queries the ResourceStore loaded from the game definition. Server must load resources when creating a room.",
+  "status": "closed",
+  "priority": 2,
+  "issue_type": "task",
+  "owner": "mark@wolfssl.com",
+  "created_at": "2026-06-13T05:36:20Z",
+  "created_by": "Mark Atwood",
+  "updated_at": "2026-06-26T19:56:29Z",
+  "closed_at": "2026-06-13T05:42:21Z",
+  "close_reason": "word_valid builtin added to Felt checker, codegen, and server host. Case-insensitive lookup. All tests pass.",
+  "dependencies": [
+    {
+      "issue_id": "baize-0fjn",
+      "depends_on_id": "baize-pjfn",
+      "type": "blocks",
+      "created_at": "2026-06-12T22:36:35Z",
+      "created_by": "Mark Atwood",
+      "metadata": "{}"
+    }
+  ]
+}

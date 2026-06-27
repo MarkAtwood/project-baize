@@ -1,0 +1,26 @@
+{
+  "id": "baize-6fm9",
+  "title": "Wargame primitives: terrain costs, combat tables, ZOC via cell properties + Felt",
+  "description": "Design decision for three related wargame beads (baize-0d6 terrain movement costs, baize-1w4 combat resolution tables, baize-el1 zones of control).\n\nDecision: two layers, no new schema types.\n\n**Layer 1: Cell properties (already supported)**\nTerrain is declared as cell properties in the game definition:\n```json\n\"cell_properties\": {\n  \"0\": {\"terrain\": \"forest\", \"movement_cost\": 2, \"defense_bonus\": 1},\n  \"1\": {\"terrain\": \"mountain\", \"movement_cost\": 3, \"defense_bonus\": 2},\n  \"2\": {\"terrain\": \"road\", \"movement_cost\": 0.5}\n}\n```\nThe schema already supports arbitrary key-value cell properties. No changes needed.\n\n**Layer 2: Felt extensions for game logic**\nCombat resolution tables (CRT), zone of control computation, and movement cost pathfinding are too complex for CEL, too game-specific for the core schema. Implement as Felt extensions:\n\n- `is_legal(state, player, action)` — check movement cost budget, ZOC entry restrictions\n- `legal_moves(state, player)` — pathfinding with terrain costs, ZOC blocking\n- `apply_effect(state, trigger)` — CRT resolution (odds column lookup, die roll modifier, result application)\n- `score(state)` — victory point calculation from terrain control\n\nCRT tables are data — could be a resource (like dictionaries) or embedded in the Felt file as lookup tables.\n\nThis means the wargame beads are blocked on Felt stdlib (baize-za8t) being usable. Ogre already works with hardcoded Rust, so this is about making wargame mechanics declarative and portable.\n\nBlocked by: baize-za8t (Felt stdlib)",
+  "design": "Cell properties for terrain data (already works). Felt extensions for combat/ZOC/pathfinding logic. No new schema types.",
+  "status": "closed",
+  "priority": 3,
+  "issue_type": "task",
+  "assignee": "Mark Atwood",
+  "owner": "mark@wolfssl.com",
+  "created_at": "2026-06-12T19:07:41Z",
+  "created_by": "Mark Atwood",
+  "updated_at": "2026-06-26T19:56:29Z",
+  "closed_at": "2026-06-13T03:14:18Z",
+  "close_reason": "Fully implemented: cell_property Felt builtin (checker + codegen + host), three Felt wargame extensions (terrain/CRT/ZOC), hex-wargame.json game definition, polymorphic type checker improvements. Unblocks baize-0d6, baize-1w4, baize-el1, baize-3h0y.",
+  "dependencies": [
+    {
+      "issue_id": "baize-6fm9",
+      "depends_on_id": "baize-za8t",
+      "type": "blocks",
+      "created_at": "2026-06-12T12:07:46Z",
+      "created_by": "Mark Atwood",
+      "metadata": "{}"
+    }
+  ]
+}

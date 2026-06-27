@@ -1,0 +1,15 @@
+{
+  "id": "baize-2oan",
+  "title": "Quarto: opponent chooses your piece, 4-in-a-row with properties",
+  "description": "2 players, 16 unique pieces with 4 binary properties (tall/short, dark/light, round/square, hollow/solid). 4x4 grid. Opponent chooses which piece you must play, you choose where. Win: 4 in a line sharing any one property. Unique turn structure.",
+  "status": "closed",
+  "priority": 3,
+  "issue_type": "task",
+  "assignee": "Mark Atwood",
+  "owner": "mark@wolfssl.com",
+  "created_at": "2026-06-12T18:37:28Z",
+  "created_by": "Mark Atwood",
+  "updated_at": "2026-06-12T18:52:34Z",
+  "closed_at": "2026-06-12T18:52:34Z",
+  "close_reason": "Closed"
+}

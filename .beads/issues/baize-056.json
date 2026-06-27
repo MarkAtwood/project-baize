@@ -1,0 +1,15 @@
+{
+  "id": "baize-056",
+  "title": "Graph zone: schema definition",
+  "description": "Add nodes, edges, node_properties, directed_edges fields to zone schema in game-definition.schema.json. Add nodes/edges to Zone struct in Rust definition.rs and Python definition.py. Graph zone uses named string nodes, edges as pairs of node names.",
+  "status": "closed",
+  "priority": 2,
+  "issue_type": "task",
+  "assignee": "Mark Atwood",
+  "owner": "mark@wolfssl.com",
+  "created_at": "2026-06-12T04:42:11Z",
+  "created_by": "Mark Atwood",
+  "updated_at": "2026-06-26T19:56:29Z",
+  "closed_at": "2026-06-12T04:43:12Z",
+  "close_reason": "Added nodes, edges, node_properties to schema JSON, Rust Zone struct, and Python Zone dataclass."
+}

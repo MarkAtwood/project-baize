@@ -1,0 +1,15 @@
+{
+  "id": "baize-bu6",
+  "title": "Schema: named compound perturber effects in game definitions",
+  "description": "Game definitions need a way to declare named compound perturber effects — libraries of game-specific moves composed from foundation primitives. Currently rule.effect is a plain string. Need to support structured perturber JSON so games can define moves like U, U', R2 (Rubik's Cube) or en_passant_capture (Chess) as reusable named sequences of foundation primitives (cycle, remove, flip, etc.). Two parts: (1) extend the schema to accept structured perturber effects in rules, (2) engine support for invoking named effects by reference.",
+  "status": "closed",
+  "priority": 2,
+  "issue_type": "feature",
+  "assignee": "Mark Atwood",
+  "owner": "mark@wolfssl.com",
+  "created_at": "2026-06-11T23:26:46Z",
+  "created_by": "Mark Atwood",
+  "updated_at": "2026-06-11T23:55:20Z",
+  "closed_at": "2026-06-11T23:55:20Z",
+  "close_reason": "Closed"
+}

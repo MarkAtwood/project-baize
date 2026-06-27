@@ -1,0 +1,25 @@
+{
+  "id": "baize-xhp.2",
+  "title": "Chess game definition",
+  "description": "Perfect information, complex movement. Tests: all movement primitives (slide, hop, step, leap), castling, en passant, promotion, check/checkmate detection (WASM for checkmate), draw conditions (stalemate, repetition, 50-move).",
+  "status": "closed",
+  "priority": 1,
+  "issue_type": "task",
+  "assignee": "Mark Atwood",
+  "owner": "mark@reviewcommit.com",
+  "created_at": "2026-06-07T22:16:25Z",
+  "created_by": "Mark Atwood",
+  "updated_at": "2026-06-07T23:49:06Z",
+  "closed_at": "2026-06-07T23:49:06Z",
+  "close_reason": "Game definitions committed and validated against schema",
+  "dependencies": [
+    {
+      "issue_id": "baize-xhp.2",
+      "depends_on_id": "baize-xhp",
+      "type": "parent-child",
+      "created_at": "2026-06-07T15:16:25Z",
+      "created_by": "Mark Atwood",
+      "metadata": "{}"
+    }
+  ]
+}

@@ -1,0 +1,22 @@
+{
+  "id": "baize-rr7l",
+  "title": "Flutter: game state model + JSON deserialization",
+  "description": "Dart data model mirroring GameState, ZoneState, PlayerState, Action, GameEvent from the schema. Use json_serializable + freezed for immutable models with JSON round-trip. Type-safe deserialization of server messages. Visibility filtering (public/private/hidden) applied client-side. Tests against cross-impl test vectors in tests/vectors/.",
+  "status": "open",
+  "priority": 3,
+  "issue_type": "task",
+  "owner": "mark@wolfssl.com",
+  "created_at": "2026-06-13T06:25:44Z",
+  "created_by": "Mark Atwood",
+  "updated_at": "2026-06-26T19:56:30Z",
+  "dependencies": [
+    {
+      "issue_id": "baize-rr7l",
+      "depends_on_id": "baize-u5jt",
+      "type": "blocks",
+      "created_at": "2026-06-12T23:26:50Z",
+      "created_by": "Mark Atwood",
+      "metadata": "{}"
+    }
+  ]
+}

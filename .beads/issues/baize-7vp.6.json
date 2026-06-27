@@ -1,0 +1,25 @@
+{
+  "id": "baize-7vp.6",
+  "title": "Drag/drop interaction layer",
+  "description": "Mouse and touch interaction for moving pieces, playing cards, placing tiles. Highlights legal targets (from WASM legal move generator). Snap-to-zone. Animates transitions.",
+  "status": "closed",
+  "priority": 1,
+  "issue_type": "task",
+  "assignee": "Mark Atwood",
+  "owner": "mark@reviewcommit.com",
+  "created_at": "2026-06-07T22:15:06Z",
+  "created_by": "Mark Atwood",
+  "updated_at": "2026-06-08T00:03:17Z",
+  "closed_at": "2026-06-08T00:03:17Z",
+  "close_reason": "Drag/drop with mouse+touch, legal move highlighting, ghost pieces, ESC cancel",
+  "dependencies": [
+    {
+      "issue_id": "baize-7vp.6",
+      "depends_on_id": "baize-7vp",
+      "type": "parent-child",
+      "created_at": "2026-06-07T15:15:06Z",
+      "created_by": "Mark Atwood",
+      "metadata": "{}"
+    }
+  ]
+}

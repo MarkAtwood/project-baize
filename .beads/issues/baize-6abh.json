@@ -1,0 +1,30 @@
+{
+  "id": "baize-6abh",
+  "title": "Epic: Flutter native clients — mobile + desktop from one codebase",
+  "description": "Build native iOS/Android/Linux/macOS/Windows clients using Flutter. Same Dart codebase targets all platforms. Flutter draws its own pixels (Skia), so visual output is identical across platforms.\n\nDevelopment loop: write Flutter app, run as Linux desktop under Xvfb or Flutter Web mode, Playwright screenshots for visual feedback, iterate. CI builds native mobile binaries (GitHub Actions + Codemagic).\n\nArchitecture: Flutter UI shell connects to Baize server via WebSocket (same protocol as TypeScript client). Game state rendering, drag-and-drop piece movement, board visualization, player hand display. Rust engine compiled to shared library via FFI for offline/local play.\n\nSupersedes baize-042 (native mobile) and baize-rkf (desktop standalone).",
+  "status": "open",
+  "priority": 3,
+  "issue_type": "feature",
+  "owner": "mark@wolfssl.com",
+  "created_at": "2026-06-13T06:25:11Z",
+  "created_by": "Mark Atwood",
+  "updated_at": "2026-06-26T19:56:30Z",
+  "dependencies": [
+    {
+      "issue_id": "baize-6abh",
+      "depends_on_id": "baize-8una",
+      "type": "blocks",
+      "created_at": "2026-06-12T23:26:57Z",
+      "created_by": "Mark Atwood",
+      "metadata": "{}"
+    },
+    {
+      "issue_id": "baize-6abh",
+      "depends_on_id": "baize-p120",
+      "type": "blocks",
+      "created_at": "2026-06-12T23:26:57Z",
+      "created_by": "Mark Atwood",
+      "metadata": "{}"
+    }
+  ]
+}

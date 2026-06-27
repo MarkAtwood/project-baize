@@ -1,0 +1,15 @@
+{
+  "id": "baize-fkmb",
+  "title": "Resource system: external data files referenced by game definitions",
+  "description": "Game definitions need to reference external data that's too large for JSON: word lists (Scrabble: TWL 180k words, SOWPODS 270k), card art, tile images, sound effects. Add a resources section to the schema:\n\n```json\n\"resources\": {\n  \"dictionary\": { \"type\": \"word_list\", \"name\": \"twl06\" }\n}\n```\n\nEngine loads resources at game start. Host imports expose typed accessors (e.g. word_valid : String -\u003e Bool). Server validates authoritatively. Client deployment options: full dictionary download, compiled DAWG/trie in WASM, or Bloom filter (~100KB) with server confirmation.\n\nImmediate need: Scrabble word validation. Future: any game needing external data larger than fits in a JSON definition.\n\nDeliverables: (1) Schema addition for resources section. (2) Engine resource loader. (3) Host import for word_valid. (4) Ship TWL06 and SOWPODS as resource files. (5) Felt host import for word_valid.",
+  "status": "closed",
+  "priority": 2,
+  "issue_type": "feature",
+  "assignee": "Mark Atwood",
+  "owner": "mark@wolfssl.com",
+  "created_at": "2026-06-12T18:59:25Z",
+  "created_by": "Mark Atwood",
+  "updated_at": "2026-06-13T05:42:21Z",
+  "closed_at": "2026-06-13T05:42:21Z",
+  "close_reason": "Fully implemented: schema resources section, Rust+Python ResourceStore, word_valid Felt builtin, test dictionary, Scrabble integration, 12 tests. All existing tests pass."
+}

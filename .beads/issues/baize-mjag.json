@@ -1,0 +1,22 @@
+{
+  "id": "baize-mjag",
+  "title": "Flutter: drag-and-drop move input + action builder",
+  "description": "Translate user gestures into engine Actions. Drag piece from cell to cell → MovePiece action. Tap empty cell → Place action. Drag from hand to board → PlayCard/Place. Long-press for context menu (promote, declare, claim). Action validation feedback: legal move highlighting (green), illegal shake animation (red). Supports all ActionTypes in the schema.",
+  "status": "open",
+  "priority": 3,
+  "issue_type": "task",
+  "owner": "mark@wolfssl.com",
+  "created_at": "2026-06-13T06:26:15Z",
+  "created_by": "Mark Atwood",
+  "updated_at": "2026-06-26T19:56:30Z",
+  "dependencies": [
+    {
+      "issue_id": "baize-mjag",
+      "depends_on_id": "baize-63dt",
+      "type": "blocks",
+      "created_at": "2026-06-12T23:26:53Z",
+      "created_by": "Mark Atwood",
+      "metadata": "{}"
+    }
+  ]
+}

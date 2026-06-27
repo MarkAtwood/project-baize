@@ -1,0 +1,15 @@
+{
+  "id": "baize-70u",
+  "title": "Grid valid_cells mask for irregular board shapes",
+  "description": "Add valid_cells field to grid/hex_grid zones — an array of [col,row] pairs defining which cells exist. Runtime stores as HashSet\u003cusize\u003e. grid_get/grid_set/movement all check membership. Cells outside mask treated as out-of-bounds. Unblocks Chinese Checkers (star on hex grid), polyomino boards, cross/L-shaped boards. Also fix hex_6 adjacency which is declared but resolves to 8-direction vectors.",
+  "status": "closed",
+  "priority": 2,
+  "issue_type": "feature",
+  "assignee": "Mark Atwood",
+  "owner": "mark@wolfssl.com",
+  "created_at": "2026-06-12T03:04:52Z",
+  "created_by": "Mark Atwood",
+  "updated_at": "2026-06-26T19:56:29Z",
+  "closed_at": "2026-06-12T03:15:54Z",
+  "close_reason": "Implemented valid_cells mask on grid/hex_grid zones + hex_6 adjacency fix. 34 new tests across Rust and Python."
+}

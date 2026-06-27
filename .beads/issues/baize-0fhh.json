@@ -1,0 +1,40 @@
+{
+  "id": "baize-0fhh",
+  "title": "Test dictionary resource file and Scrabble integration",
+  "description": "Create registry/dictionaries/test-wordlist.txt with ~100 common words for testing. Update scrabble.json to add resources section referencing a dictionary. Write tests: (1) Rust: resource loading, word lookup, missing resource error. (2) Python: same. (3) Felt: word_valid type-checks. (4) Schema validation of scrabble.json with resources. (5) Cross-impl test vectors.",
+  "status": "closed",
+  "priority": 2,
+  "issue_type": "task",
+  "owner": "mark@wolfssl.com",
+  "created_at": "2026-06-13T05:36:27Z",
+  "created_by": "Mark Atwood",
+  "updated_at": "2026-06-13T05:42:21Z",
+  "closed_at": "2026-06-13T05:42:21Z",
+  "close_reason": "test-wordlist.txt (107 words), Scrabble resources section, 12 Python tests. All pass.",
+  "dependencies": [
+    {
+      "issue_id": "baize-0fhh",
+      "depends_on_id": "baize-accn",
+      "type": "blocks",
+      "created_at": "2026-06-12T22:36:36Z",
+      "created_by": "Mark Atwood",
+      "metadata": "{}"
+    },
+    {
+      "issue_id": "baize-0fhh",
+      "depends_on_id": "baize-pjfn",
+      "type": "blocks",
+      "created_at": "2026-06-12T22:36:35Z",
+      "created_by": "Mark Atwood",
+      "metadata": "{}"
+    },
+    {
+      "issue_id": "baize-0fhh",
+      "depends_on_id": "baize-0fjn",
+      "type": "blocks",
+      "created_at": "2026-06-12T22:36:36Z",
+      "created_by": "Mark Atwood",
+      "metadata": "{}"
+    }
+  ]
+}

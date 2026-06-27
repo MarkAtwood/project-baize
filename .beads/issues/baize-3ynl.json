@@ -1,0 +1,24 @@
+{
+  "id": "baize-3ynl",
+  "title": "Rust definition: parse triggers from game definition JSON",
+  "description": "Add Trigger and ClaimWindowDef structs to definition.rs. Parse triggers map from game definition JSON. Serde derives, defensive defaults, skip_serializing_if for backward compat.",
+  "status": "closed",
+  "priority": 2,
+  "issue_type": "task",
+  "owner": "mark@wolfssl.com",
+  "created_at": "2026-06-13T02:30:08Z",
+  "created_by": "Mark Atwood",
+  "updated_at": "2026-06-26T19:56:29Z",
+  "closed_at": "2026-06-13T02:40:22Z",
+  "close_reason": "Implemented in parallel subagents. All existing tests pass.",
+  "dependencies": [
+    {
+      "issue_id": "baize-3ynl",
+      "depends_on_id": "baize-c6ze",
+      "type": "blocks",
+      "created_at": "2026-06-12T19:30:35Z",
+      "created_by": "Mark Atwood",
+      "metadata": "{}"
+    }
+  ]
+}

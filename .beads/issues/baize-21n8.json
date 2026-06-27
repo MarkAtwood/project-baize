@@ -1,0 +1,34 @@
+{
+  "id": "baize-21n8",
+  "title": "Fog of war: per-cell per-player visibility with server-side terrain generation",
+  "description": "Support exploration-style games where terrain is generated server-side and revealed as players explore. Two sub-features:",
+  "design": "Pre-allocated large grid, per-cell per-player visibility bitmask, server holds full map, vision range computed from unit positions. No truly dynamic grid resize needed.",
+  "status": "closed",
+  "priority": 3,
+  "issue_type": "feature",
+  "assignee": "Mark Atwood",
+  "owner": "mark@wolfssl.com",
+  "created_at": "2026-06-12T19:11:54Z",
+  "created_by": "Mark Atwood",
+  "updated_at": "2026-06-26T19:56:29Z",
+  "closed_at": "2026-06-13T01:49:13Z",
+  "close_reason": "Fog of war implemented: per-cell per-player visibility (unexplored/visible/fogged), vision range, Manhattan distance computation, cell-level filtering in filter_for_viewer. Both Rust and Python engines.",
+  "dependencies": [
+    {
+      "issue_id": "baize-21n8",
+      "depends_on_id": "baize-ew83",
+      "type": "blocks",
+      "created_at": "2026-06-12T12:13:36Z",
+      "created_by": "Mark Atwood",
+      "metadata": "{}"
+    },
+    {
+      "issue_id": "baize-21n8",
+      "depends_on_id": "baize-8e3j",
+      "type": "blocks",
+      "created_at": "2026-06-12T12:11:58Z",
+      "created_by": "Mark Atwood",
+      "metadata": "{}"
+    }
+  ]
+}

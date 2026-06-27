@@ -1,0 +1,24 @@
+{
+  "id": "baize-aca",
+  "title": "Game server",
+  "description": "WebSocket game server (AGPL-3.0). Sequencer for move ordering, hidden state vault, cryptographic randomness, room/lobby management. Runs the same WASM engine as the client for move validation. Minimal — the server's irreducible role is hidden state, randomness, and sequencing. Option B WASM extensibility: server may host WASM modules that define new primitives for complex games.",
+  "status": "closed",
+  "priority": 1,
+  "issue_type": "epic",
+  "owner": "mark@reviewcommit.com",
+  "created_at": "2026-06-07T22:14:19Z",
+  "created_by": "Mark Atwood",
+  "updated_at": "2026-06-26T19:56:29Z",
+  "closed_at": "2026-06-08T00:26:15Z",
+  "close_reason": "all steps complete",
+  "dependencies": [
+    {
+      "issue_id": "baize-aca",
+      "depends_on_id": "baize-ah1",
+      "type": "blocks",
+      "created_at": "2026-06-07T15:16:34Z",
+      "created_by": "Mark Atwood",
+      "metadata": "{}"
+    }
+  ]
+}

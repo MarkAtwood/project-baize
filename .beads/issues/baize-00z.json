@@ -1,0 +1,15 @@
+{
+  "id": "baize-00z",
+  "title": "Liar's Dice (Perudo): hidden dice + bidding + bluffing",
+  "description": "Each player rolls dice hidden behind a cup. Players bid on total count of a face value across ALL players' dice. Each bid must raise quantity or face value. Challenge (dudo) reveals all dice — if bid was wrong, bidder loses a die; if correct, challenger loses a die. Last player with dice wins. Validates: imperfect information (per-player hidden dice), simultaneous reveal on challenge, player elimination, bidding as structured action, hidden state vault for dice values. Great complement to poker for hidden-info mechanics.",
+  "status": "closed",
+  "priority": 3,
+  "issue_type": "feature",
+  "assignee": "Mark Atwood",
+  "owner": "mark@wolfssl.com",
+  "created_at": "2026-06-12T00:04:59Z",
+  "created_by": "Mark Atwood",
+  "updated_at": "2026-06-12T02:36:20Z",
+  "closed_at": "2026-06-12T02:36:20Z",
+  "close_reason": "Liar's Dice playable with 23 tests. Covers: hidden per-player dice, escalating bids (quantity or face), challenge resolution with full reveal, correct/incorrect bid detection, die forfeiture, multi-round elimination, loser-starts-next, game end on elimination. Imperfect information complement to poker."
+}

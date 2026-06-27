@@ -1,0 +1,24 @@
+{
+  "id": "baize-uda4",
+  "title": "Deal protocol: selective decryption for private hands",
+  "description": "Implement card dealing via selective decryption. To deal card C to player P: all OTHER players send their decryption of C to P. P decrypts with their own key last, revealing the plaintext card. P now knows the card; no one else does (they only saw encrypted versions). For face-up community cards: all players decrypt cooperatively, everyone sees the result. Must handle: partial reveals (some cards face-up, some private), mid-game draws from the deck, and discard piles.",
+  "status": "closed",
+  "priority": 3,
+  "issue_type": "task",
+  "owner": "mark@wolfssl.com",
+  "created_at": "2026-06-13T05:15:12Z",
+  "created_by": "Mark Atwood",
+  "updated_at": "2026-06-26T19:56:29Z",
+  "closed_at": "2026-06-13T05:57:05Z",
+  "close_reason": "deal_card_with_keys: chained decryption through all non-recipient keys then recipient. Tests pass.",
+  "dependencies": [
+    {
+      "issue_id": "baize-uda4",
+      "depends_on_id": "baize-ijr0",
+      "type": "blocks",
+      "created_at": "2026-06-12T22:16:12Z",
+      "created_by": "Mark Atwood",
+      "metadata": "{}"
+    }
+  ]
+}

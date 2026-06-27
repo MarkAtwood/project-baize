@@ -1,0 +1,15 @@
+{
+  "id": "baize-c14a",
+  "title": "Rust: partnerships — parse, team win propagation, CEL functions",
+  "description": "Parse partnerships from game definitions, implement team-aware end conditions and win propagation, add CEL functions for partnership queries.",
+  "status": "closed",
+  "priority": 1,
+  "issue_type": "task",
+  "assignee": "Mark Atwood",
+  "owner": "mark@wolfssl.com",
+  "created_at": "2026-06-13T01:20:50Z",
+  "created_by": "Mark Atwood",
+  "updated_at": "2026-06-13T01:25:11Z",
+  "closed_at": "2026-06-13T01:25:11Z",
+  "close_reason": "Closed"
+}

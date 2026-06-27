@@ -1,0 +1,15 @@
+{
+  "id": "baize-9w6f",
+  "title": "Game definition: Global Thermonuclear War",
+  "description": "A playable implementation inspired by the movie WarGames. Asymmetric 2-player (USA/USSR) simultaneous nuclear strategy game. Players secretly allocate missiles to targets and ABM defenses, then launch simultaneously. Imperfect information: opponent targeting hidden until launch phase. The game demonstrates that optimal play always produces mutual destruction — the only winning move is not to play.\n\nFeatures exercised: simultaneous phases (commit-reveal), hidden visibility, fog of war, graph zone (world map), counter zones (missiles/ABM stockpiles), multiple phases (deploy/target/launch/resolve/assess), end conditions (survival threshold — if both sides destroyed, draw).\n\nDesign: ~20 target cities per side with population values. Missile types: ICBM (high damage, slow), SLBM (medium damage, fast), bomber (low damage, recallable). ABM defense: limited interceptors per city. Targeting is simultaneous sealed orders. Resolution: each missile vs ABM intercept probability, surviving missiles destroy target. Victory: side with more surviving population wins, but mutual destruction (both below threshold) is a draw with the message 'A strange game. The only winning move is not to play.'",
+  "status": "closed",
+  "priority": 3,
+  "issue_type": "feature",
+  "assignee": "Mark Atwood",
+  "owner": "mark@wolfssl.com",
+  "created_at": "2026-06-13T06:34:47Z",
+  "created_by": "Mark Atwood",
+  "updated_at": "2026-06-13T06:39:51Z",
+  "closed_at": "2026-06-13T06:39:51Z",
+  "close_reason": "59th game definition: 40 cities (20/side), simultaneous sealed orders, commit-reveal launch, ABM intercept resolution, mutual destruction draw. 52 Python tests. 'The only winning move is not to play.'"
+}

@@ -1,0 +1,15 @@
+{
+  "id": "baize-4xq",
+  "title": "Defensive programming: perturber bounds enforcement",
+  "description": "CRITICAL: Perturber language has unbounded iteration vectors.\n\n1. Python repeat count unbounded — range(billion) causes DoS\n2. for_each collection size unbounded (both Rust and Python) — nested for_each creates exponential blowup\n3. Rust counter addition uses unchecked i64 arithmetic — silent overflow corruption\n4. Python counter value unbounded — arbitrary precision int exhausts memory\n\nFix: Add MAX_REPEAT (10_000), MAX_FOREACH_ITEMS (10_000), checked_add for counters, bounds on counter values. Both engines.",
+  "status": "closed",
+  "priority": 0,
+  "issue_type": "bug",
+  "assignee": "Mark Atwood",
+  "owner": "mark@wolfssl.com",
+  "created_at": "2026-06-11T21:03:05Z",
+  "created_by": "Mark Atwood",
+  "updated_at": "2026-06-11T21:06:30Z",
+  "closed_at": "2026-06-11T21:06:30Z",
+  "close_reason": "MAX_REPEAT, MAX_FOREACH_ITEMS, MAX_COUNTER_VALUE, checked_add, MAX_CEL_LENGTH, MAX_CEL_GRID_CELLS. Both engines."
+}

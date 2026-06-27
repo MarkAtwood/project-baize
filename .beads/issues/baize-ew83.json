@@ -1,0 +1,16 @@
+{
+  "id": "baize-ew83",
+  "title": "Grid storage: dense array for fixed boards, sparse hashmap for large/growing boards",
+  "description": "Support both dense and sparse grid storage, selected per-zone based on the game definition. All grid types (grid, hex_grid) use the same interface.\n\n**Two backends, one interface:**\n\n```rust\nenum GridStorage {\n    Dense {\n        width: u32,\n        height: u32,\n        cells: Vec\u003cCellData\u003e,          // width * height entries\n    },\n    Sparse {\n        cells: HashMap\u003c(i32, i32), CellData\u003e,  // only populated cells\n        dimensions: Option\u003c(u32, u32)\u003e,         // rendering hint, not a constraint\n    },\n}\n```\n\n**Selection rule:**\n- If the game definition provides `dimensions` → dense (backward compatible, cache-friendly)\n- If the game definition omits dimensions or sets `\"storage\": \"sparse\"` → sparse hashmap\n- If dimensions are very large (\u003e1000 per axis) → auto-promote to sparse\n\n**Uniform API (both backends):**\n- cell_at(col, row) → Option\u003cCellData\u003e\n- cell_set(col, row, data)\n- cell_remove(col, row)\n- cell_top(col, row) → Option\u003cComponentId\u003e\n- cell_stack(col, row) → Vec\u003cComponentId\u003e\n- cells() → iterator over all occupied (col, row, data)\n- cell_count() → number of occupied cells\n- in_bounds(col, row) → bool (dense: checks dimensions, sparse: always true or checks optional bounds)\n- adjacent/diagonal/hex_6 → computed from coordinates, backend-agnostic\n\n**Works for all grid types:**\n- grid (orthogonal_4, orthogonal_8): dense or sparse\n- hex_grid (hex_6): dense or sparse\n- Any future grid topology\n\n**Signed coordinates for sparse:**\n- Sparse uses (i32, i32) — can grow in any direction including negative\n- Dense uses (u32, u32) — classic 0-based indexing\n\n**Backward compatibility:**\n- Every existing game defines dimensions → gets dense backend → identical behavior\n- No API changes visible to game definitions, tests, or Felt extensions\n- Performance: dense is faster for small fixed boards, sparse handles scale\n\nBoth Rust (Vec vs HashMap) and Python (list vs dict) engines.",
+  "design": "Two backends behind one interface. Dense when dimensions given, sparse when omitted or large. Signed coords for sparse. All grid types supported.",
+  "status": "closed",
+  "priority": 2,
+  "issue_type": "feature",
+  "assignee": "Mark Atwood",
+  "owner": "mark@wolfssl.com",
+  "created_at": "2026-06-12T19:13:28Z",
+  "created_by": "Mark Atwood",
+  "updated_at": "2026-06-26T19:56:29Z",
+  "closed_at": "2026-06-13T01:05:44Z",
+  "close_reason": "Sparse grid storage implemented in both Rust and Python engines. Dense auto-selected for dimensions \u003c= 1000, sparse for larger/unbounded grids. Backward compatible."
+}

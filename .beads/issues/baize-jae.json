@@ -1,0 +1,15 @@
+{
+  "id": "baize-jae",
+  "title": "Multi-cell span support in engine",
+  "description": "Add first-class multi-cell component spans to both Rust and Python engines. A component with span \u003e 1 occupies multiple contiguous grid cells. Same ComponentId stored in every occupied cell. ComponentData tracks span_cells. Placement validates bounds + no overlap. Removal clears all occupied cells. Grid iteration uses seen-set to avoid duplicate processing. Schema adds span property to component definition. Needed for Battleship ships and any future game with multi-cell pieces (Tetris, fleet games, etc.).",
+  "status": "closed",
+  "priority": 1,
+  "issue_type": "feature",
+  "assignee": "Mark Atwood",
+  "owner": "mark@wolfssl.com",
+  "created_at": "2026-06-11T22:15:32Z",
+  "created_by": "Mark Atwood",
+  "updated_at": "2026-06-26T19:56:29Z",
+  "closed_at": "2026-06-11T22:27:49Z",
+  "close_reason": "Multi-cell span support implemented in both Rust and Python engines. Schema, definition, runtime, transition, and moves all updated. 15 new tests across both engines."
+}

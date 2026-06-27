@@ -1,0 +1,96 @@
+{
+  "id": "baize-le7a",
+  "title": "Felt compiler: pure game logic language → WASM",
+  "description": "Epic for implementing the Felt language compiler. Felt is a pure, expression-oriented language for board game scoring/validation/end-detection that compiles to WASM. Spec: FELT.md. Alternative path: evaluate Roc (baize-sq8m) first — if Roc works, some of this may be unnecessary.",
+  "status": "closed",
+  "priority": 2,
+  "issue_type": "feature",
+  "owner": "mark@wolfssl.com",
+  "created_at": "2026-06-12T16:14:10Z",
+  "created_by": "Mark Atwood",
+  "updated_at": "2026-06-26T19:56:29Z",
+  "closed_at": "2026-06-13T01:15:23Z",
+  "close_reason": "All 8 sub-issues closed. Felt compiler fully implemented (123 tests). Only remaining Felt work is baize-za8t (WASM runtime library packaging).",
+  "dependencies": [
+    {
+      "issue_id": "baize-le7a",
+      "depends_on_id": "baize-le7a.2",
+      "type": "blocks",
+      "created_at": "2026-06-12T09:16:00Z",
+      "created_by": "Mark Atwood",
+      "metadata": "{}"
+    },
+    {
+      "issue_id": "baize-le7a",
+      "depends_on_id": "baize-gtms",
+      "type": "blocks",
+      "created_at": "2026-06-12T10:31:49Z",
+      "created_by": "Mark Atwood",
+      "metadata": "{}"
+    },
+    {
+      "issue_id": "baize-le7a",
+      "depends_on_id": "baize-le7a.3",
+      "type": "blocks",
+      "created_at": "2026-06-12T09:16:01Z",
+      "created_by": "Mark Atwood",
+      "metadata": "{}"
+    },
+    {
+      "issue_id": "baize-le7a",
+      "depends_on_id": "baize-le7a.7",
+      "type": "blocks",
+      "created_at": "2026-06-12T09:16:03Z",
+      "created_by": "Mark Atwood",
+      "metadata": "{}"
+    },
+    {
+      "issue_id": "baize-le7a",
+      "depends_on_id": "baize-le7a.1",
+      "type": "blocks",
+      "created_at": "2026-06-12T09:16:00Z",
+      "created_by": "Mark Atwood",
+      "metadata": "{}"
+    },
+    {
+      "issue_id": "baize-le7a",
+      "depends_on_id": "baize-za8t",
+      "type": "blocks",
+      "created_at": "2026-06-12T10:31:49Z",
+      "created_by": "Mark Atwood",
+      "metadata": "{}"
+    },
+    {
+      "issue_id": "baize-le7a",
+      "depends_on_id": "baize-le7a.5",
+      "type": "blocks",
+      "created_at": "2026-06-12T09:16:02Z",
+      "created_by": "Mark Atwood",
+      "metadata": "{}"
+    },
+    {
+      "issue_id": "baize-le7a",
+      "depends_on_id": "baize-le7a.4",
+      "type": "blocks",
+      "created_at": "2026-06-12T09:16:01Z",
+      "created_by": "Mark Atwood",
+      "metadata": "{}"
+    },
+    {
+      "issue_id": "baize-le7a",
+      "depends_on_id": "baize-le7a.8",
+      "type": "blocks",
+      "created_at": "2026-06-12T09:16:03Z",
+      "created_by": "Mark Atwood",
+      "metadata": "{}"
+    },
+    {
+      "issue_id": "baize-le7a",
+      "depends_on_id": "baize-le7a.6",
+      "type": "blocks",
+      "created_at": "2026-06-12T09:16:02Z",
+      "created_by": "Mark Atwood",
+      "metadata": "{}"
+    }
+  ]
+}

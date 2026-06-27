@@ -1,0 +1,25 @@
+{
+  "id": "baize-kg0",
+  "title": "Ogre: movement system with terrain costs",
+  "description": "Hex movement with movement points. Units spend MP to enter hexes — clear costs 1, crater costs 2, rubble costs 1. GEVs get two movement phases (move, attack, move again). Ogre movement: 3 MP base, reduced as treads are destroyed (tread_units/15 rounded up = current MP, minimum 0). Infantry move 2. Stacking: max 3 non-infantry per hex, infantry unlimited. No movement through enemy-occupied hexes.",
+  "status": "closed",
+  "priority": 2,
+  "issue_type": "task",
+  "assignee": "Mark Atwood",
+  "owner": "mark@wolfssl.com",
+  "created_at": "2026-06-12T04:57:27Z",
+  "created_by": "Mark Atwood",
+  "updated_at": "2026-06-26T19:56:29Z",
+  "closed_at": "2026-06-12T05:04:56Z",
+  "close_reason": "Movement points, terrain costs, stacking limits, Ogre multi-hex path movement, tread degradation. 11 tests.",
+  "dependencies": [
+    {
+      "issue_id": "baize-kg0",
+      "depends_on_id": "baize-5om",
+      "type": "blocks",
+      "created_at": "2026-06-11T21:57:35Z",
+      "created_by": "Mark Atwood",
+      "metadata": "{}"
+    }
+  ]
+}

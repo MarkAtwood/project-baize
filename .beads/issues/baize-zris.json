@@ -1,0 +1,15 @@
+{
+  "id": "baize-zris",
+  "title": "Engine invariant assertions: fail loud on impossible states",
+  "description": "Audit both Rust and Python engines for silent corruption paths. Add debug_assert!/assert on invariants: ComponentId validity, grid bounds, zone membership consistency, turn order integrity, phase transitions. Impossible states should panic (Rust) or raise AssertionError (Python), never silently produce wrong results. Catalog every unwrap() and index operation.",
+  "status": "closed",
+  "priority": 1,
+  "issue_type": "task",
+  "assignee": "Mark Atwood",
+  "owner": "mark@wolfssl.com",
+  "created_at": "2026-06-12T14:23:09Z",
+  "created_by": "Mark Atwood",
+  "updated_at": "2026-06-26T19:56:29Z",
+  "closed_at": "2026-06-12T15:33:53Z",
+  "close_reason": "Closed"
+}

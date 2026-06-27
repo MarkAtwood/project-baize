@@ -1,0 +1,24 @@
+{
+  "id": "baize-042",
+  "title": "Native mobile client (iOS/Android)",
+  "description": "Build a native mobile client using the Rust engine cross-compiled to iOS (via cargo-lipo/swift bridge) and Android (via JNI/cargo-ndk). MIT-licensed engine makes this viable for app store distribution. Needs: native UI layer for board rendering, WebSocket transport, touch interaction model (tap-to-select, tap-to-place). Depends on WebSocket capability negotiation being specced.",
+  "status": "closed",
+  "priority": 3,
+  "issue_type": "feature",
+  "owner": "mark@wolfssl.com",
+  "created_at": "2026-06-11T17:54:58Z",
+  "created_by": "Mark Atwood",
+  "updated_at": "2026-06-13T06:27:04Z",
+  "closed_at": "2026-06-13T06:27:04Z",
+  "close_reason": "Superseded by baize-6abh (Flutter epic). Flutter targets iOS/Android/desktop from one codebase.",
+  "dependencies": [
+    {
+      "issue_id": "baize-042",
+      "depends_on_id": "baize-7ce",
+      "type": "blocks",
+      "created_at": "2026-06-11T10:55:06Z",
+      "created_by": "Mark Atwood",
+      "metadata": "{}"
+    }
+  ]
+}

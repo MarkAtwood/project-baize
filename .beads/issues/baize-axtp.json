@@ -1,0 +1,14 @@
+{
+  "id": "baize-axtp",
+  "title": "Felt builtin: cell_property(zone, col, row, key) -\u003e String",
+  "description": "Add a cell_property builtin to Felt that reads cell properties from the game state. Signature: cell_property(zone: Zone, col: Int, row: Int, key: String) -\u003e String. Returns the string value of the property, or empty string if not set. Needed for wargame terrain queries (movement_cost, defense_bonus, terrain type). Requires: checker.rs type registration, codegen.rs host import, felt_host.rs implementation.",
+  "status": "closed",
+  "priority": 2,
+  "issue_type": "task",
+  "owner": "mark@wolfssl.com",
+  "created_at": "2026-06-13T02:56:04Z",
+  "created_by": "Mark Atwood",
+  "updated_at": "2026-06-26T19:56:29Z",
+  "closed_at": "2026-06-13T02:59:12Z",
+  "close_reason": "Added cell_property builtin to Felt checker, codegen, and server host. 127 Felt tests + 130 server tests pass."
+}

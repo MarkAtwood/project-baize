@@ -1,0 +1,24 @@
+{
+  "id": "baize-rkf",
+  "title": "Desktop standalone client",
+  "description": "Build a desktop client (Tauri or similar) for Windows/macOS/Linux. AGPL-licensed per the project license tier table. Reuses the WASM engine and Web Components from the browser client inside a native window. Adds: offline play, local game hosting, file-based game loading. Lower priority since the browser client covers most use cases.",
+  "status": "closed",
+  "priority": 4,
+  "issue_type": "feature",
+  "owner": "mark@wolfssl.com",
+  "created_at": "2026-06-11T17:54:58Z",
+  "created_by": "Mark Atwood",
+  "updated_at": "2026-06-13T06:27:04Z",
+  "closed_at": "2026-06-13T06:27:04Z",
+  "close_reason": "Superseded by baize-6abh (Flutter epic). Flutter targets Linux/macOS/Windows desktop natively.",
+  "dependencies": [
+    {
+      "issue_id": "baize-rkf",
+      "depends_on_id": "baize-7ce",
+      "type": "blocks",
+      "created_at": "2026-06-11T10:55:07Z",
+      "created_by": "Mark Atwood",
+      "metadata": "{}"
+    }
+  ]
+}

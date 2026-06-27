@@ -1,0 +1,33 @@
+{
+  "id": "baize-a0o",
+  "title": "Agent SDK (Rust + Python)",
+  "description": "Library for writing game-playing agents. Wraps the bot/headless client harness with ergonomic APIs: receive parsed GameState, enumerate legal moves, submit chosen move. Rust crate + Python package. Targets: AI researchers, game AI courses, tournament bot authors. Depends on the bot harness and AI agent framework being defined.",
+  "status": "closed",
+  "priority": 3,
+  "issue_type": "feature",
+  "assignee": "Mark Atwood",
+  "owner": "mark@wolfssl.com",
+  "created_at": "2026-06-11T17:55:53Z",
+  "created_by": "Mark Atwood",
+  "updated_at": "2026-06-26T19:56:29Z",
+  "closed_at": "2026-06-11T20:01:32Z",
+  "close_reason": "AgentSession bridges server state to local engine for move enumeration. AgentMove.to_action_dict() for submission. Python SDK complete; Rust crate deferred (Python is the natural agent language). 5 tests.",
+  "dependencies": [
+    {
+      "issue_id": "baize-a0o",
+      "depends_on_id": "baize-5vf",
+      "type": "blocks",
+      "created_at": "2026-06-11T10:56:01Z",
+      "created_by": "Mark Atwood",
+      "metadata": "{}"
+    },
+    {
+      "issue_id": "baize-a0o",
+      "depends_on_id": "baize-a9j",
+      "type": "blocks",
+      "created_at": "2026-06-11T10:56:02Z",
+      "created_by": "Mark Atwood",
+      "metadata": "{}"
+    }
+  ]
+}

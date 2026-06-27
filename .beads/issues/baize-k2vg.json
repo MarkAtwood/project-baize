@@ -1,0 +1,14 @@
+{
+  "id": "baize-k2vg",
+  "title": "Create games/shogi.json game definition and python/tests/test_shogi.py",
+  "status": "closed",
+  "priority": 2,
+  "issue_type": "task",
+  "assignee": "Mark Atwood",
+  "owner": "mark@wolfssl.com",
+  "created_at": "2026-06-12T18:48:51Z",
+  "created_by": "Mark Atwood",
+  "updated_at": "2026-06-12T18:58:27Z",
+  "closed_at": "2026-06-12T18:58:27Z",
+  "close_reason": "Closed"
+}

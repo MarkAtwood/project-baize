@@ -1,0 +1,15 @@
+{
+  "id": "baize-z6r",
+  "title": "Server persistence layer",
+  "description": "Server state is in-memory only; restart loses all games. Add a persistence layer so game state and event logs survive restart. The specific database is an implementation detail. Interface should be abstract (trait/protocol) so the backing store can be swapped. Must persist: room state, game state, event log. Should support: replay from event log for recovery.",
+  "status": "closed",
+  "priority": 2,
+  "issue_type": "feature",
+  "assignee": "Mark Atwood",
+  "owner": "mark@wolfssl.com",
+  "created_at": "2026-06-11T16:49:00Z",
+  "created_by": "Mark Atwood",
+  "updated_at": "2026-06-26T19:56:29Z",
+  "closed_at": "2026-06-11T19:25:31Z",
+  "close_reason": "Store trait + FileStore (JSON files) + MemoryStore (testing). Rooms persisted on create, restored on startup. Event log appending via persist_state(). Zero new deps."
+}

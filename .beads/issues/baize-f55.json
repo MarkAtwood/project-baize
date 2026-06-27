@@ -1,0 +1,15 @@
+{
+  "id": "baize-f55",
+  "title": "Adversarial input tests: hostile JSON, overflow, nil, flood",
+  "description": "Paranoid defensive tests exercising every input boundary. Malformed JSON, null/None in every field, zero-dimension grids, negative coordinates, huge numbers, empty strings, unicode garbage, duplicate keys, deeply nested structures, absurdly long player names, component IDs at max int, grid dimensions at overflow boundary. Validates that the engine rejects or handles gracefully — no panics, no silent corruption.",
+  "status": "closed",
+  "priority": 1,
+  "issue_type": "task",
+  "assignee": "Mark Atwood",
+  "owner": "mark@wolfssl.com",
+  "created_at": "2026-06-12T12:55:29Z",
+  "created_by": "Mark Atwood",
+  "updated_at": "2026-06-12T12:58:56Z",
+  "closed_at": "2026-06-12T12:58:56Z",
+  "close_reason": "40 adversarial tests: malformed JSON, hostile zones (negative/huge/zero dims), grid/graph boundary abuse, unicode garbage, overflow, empty inputs, ComponentId edge cases, 0/100-player sessions. No panics, no silent corruption."
+}

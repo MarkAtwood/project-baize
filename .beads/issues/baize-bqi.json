@@ -1,0 +1,25 @@
+{
+  "id": "baize-bqi",
+  "title": "Triangle Dominoes: triangular tile matching",
+  "description": "Like dominoes but with triangular tiles. Each triangle has numbers on its three corners. Placed so matching numbers touch adjacent tiles. Validates: triangular tile placement, edge matching constraints (similar to Tile Kingdoms but on triangles), scoring on placement. Could share infrastructure with Blokus Trigon's triangular grid.",
+  "status": "closed",
+  "priority": 4,
+  "issue_type": "feature",
+  "assignee": "Mark Atwood",
+  "owner": "mark@wolfssl.com",
+  "created_at": "2026-06-12T00:23:56Z",
+  "created_by": "Mark Atwood",
+  "updated_at": "2026-06-13T02:18:50Z",
+  "closed_at": "2026-06-13T02:18:50Z",
+  "close_reason": "Game definition created",
+  "dependencies": [
+    {
+      "issue_id": "baize-bqi",
+      "depends_on_id": "baize-hfe",
+      "type": "blocks",
+      "created_at": "2026-06-11T17:24:01Z",
+      "created_by": "Mark Atwood",
+      "metadata": "{}"
+    }
+  ]
+}

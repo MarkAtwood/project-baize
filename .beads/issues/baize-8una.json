@@ -1,0 +1,22 @@
+{
+  "id": "baize-8una",
+  "title": "Flutter: Rust engine FFI for offline/local play",
+  "description": "Compile Rust engine to shared library (.so/.dylib/.dll) via cargo. Use dart:ffi + ffigen to call engine functions from Dart. Wrap GameSession, apply_action, legal_moves, to_wire_state. Enables offline play against AI agents, local hot-seat multiplayer, and move validation without server round-trip. Flutter isolate for engine calls (no UI jank).",
+  "status": "open",
+  "priority": 3,
+  "issue_type": "task",
+  "owner": "mark@wolfssl.com",
+  "created_at": "2026-06-13T06:26:27Z",
+  "created_by": "Mark Atwood",
+  "updated_at": "2026-06-26T19:56:30Z",
+  "dependencies": [
+    {
+      "issue_id": "baize-8una",
+      "depends_on_id": "baize-u5jt",
+      "type": "blocks",
+      "created_at": "2026-06-12T23:26:54Z",
+      "created_by": "Mark Atwood",
+      "metadata": "{}"
+    }
+  ]
+}

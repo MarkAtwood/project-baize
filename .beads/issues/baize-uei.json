@@ -1,0 +1,40 @@
+{
+  "id": "baize-uei",
+  "title": "Game notation adapter: human-readable move input/output",
+  "description": "Support established game notations (chess algebraic, Go SGF coordinates, etc.) in the REPL and CLI. Declarative JSON for common patterns, WASM escape hatch for exotic notation.\n\n## Two layers\n\n### Layer 1: Generic label-based coordinates (automatic, zero config)\nGame definitions already declare grid labels:\n```json\n\"labels\": {\"files\": [\"a\",\"b\",\"c\",\"d\",\"e\",\"f\",\"g\",\"h\"], \"ranks\": [1,2,3,4,5,6,7,8]}\n```\nMap \"e4\" to \"4,3\" via label lookup. Works for any game with labeled grids.\n\n### Layer 2: Declarative notation spec (in game definition JSON)\nMost notation systems decompose into a template + symbols + disambiguation + special moves:\n```json\n\"notation\": {\n  \"piece_symbols\": {\"king\": \"K\", \"queen\": \"Q\", \"rook\": \"R\", \"bishop\": \"B\", \"knight\": \"N\", \"pawn\": \"\"},\n  \"capture_marker\": \"x\",\n  \"disambiguation\": \"file_then_rank\",\n  \"special_moves\": {\n    \"O-O\": {\"action_type\": \"castle\", \"side\": \"kingside\"},\n    \"O-O-O\": {\"action_type\": \"castle\", \"side\": \"queenside\"}\n  },\n  \"promotion_marker\": \"=\",\n  \"check_marker\": \"+\"\n}\n```\n\nDisambiguation is resolved against the legal move list — \"which legal move targeting this square matches the hint?\" The engine already enumerates legal moves, so disambiguation is just filtering.\n\nCovers: chess algebraic, shogi, xiangqi, and most piece-on-grid games without any code.\n\n### Layer 3: WASM escape hatch (for exotic notation)\nNotation that cannot be expressed declaratively (context-dependent parsing beyond disambiguation, non-grid games, etc.) can be implemented as a WASM module exporting:\n- parse(text, state_json) -\u003e action_json\n- format(action_json, state_json) -\u003e text\n\nSame WASM module runs in browser client, terminal client, and server. Uses the existing WASM infrastructure (wasm-bindgen, wasmtime).\n\n## Implementation options by platform\n\n| Layer | Where it runs | Implementation |\n|-------|--------------|----------------|\n| Label mapping | Everywhere | Read grid labels from definition |\n| Declarative spec | Everywhere | JSON in definition, engine parses |\n| Python plugin | REPL, CLI, bots | Dev convenience, mirrors declarative spec |\n| WASM module | Browser, server, native | Portable, same code all platforms |\n\n## Games covered by declarative spec (no code needed)\n- Chess: piece symbols + file_then_rank disambiguation + castling/promotion special moves\n- Go: label mapping only (letter coordinates, \"pass\" as special move)\n- Shogi: piece symbols + rank_then_file disambiguation + drop notation\n- Xiangqi: piece symbols + file-based disambiguation\n- Backgammon: point numbers as labels + bar/off special positions\n- Card games: component type names as notation (no grid, just names)\n\n## Games needing WASM escape hatch\n- Games with computed notation (e.g. notation depends on game-specific scoring)\n- Games with non-standard disambiguation rules\n- Historical notation formats (descriptive chess notation)\n\n## Schema additions\n- Optional \"notation\" object in game-definition.schema.json\n- piece_symbols: map of component type to display character\n- capture_marker, promotion_marker, check_marker: string\n- disambiguation: \"file_then_rank\" | \"rank_then_file\" | \"none\"\n- special_moves: map of notation string to action dict\n- wasm_notation: optional WASM module name for exotic notation",
+  "status": "closed",
+  "priority": 3,
+  "issue_type": "feature",
+  "owner": "mark@wolfssl.com",
+  "created_at": "2026-06-11T21:23:53Z",
+  "created_by": "Mark Atwood",
+  "updated_at": "2026-06-26T19:56:29Z",
+  "closed_at": "2026-06-12T06:11:47Z",
+  "close_reason": "Notation adapter complete: notation.py module, schema, Chess SAN, Go, TTT, Cube Singmaster, Backgammon, Carcassonne. 39 tests total.",
+  "dependencies": [
+    {
+      "issue_id": "baize-uei",
+      "depends_on_id": "baize-2z7",
+      "type": "blocks",
+      "created_at": "2026-06-11T23:03:08Z",
+      "created_by": "Mark Atwood",
+      "metadata": "{}"
+    },
+    {
+      "issue_id": "baize-uei",
+      "depends_on_id": "baize-z9d",
+      "type": "blocks",
+      "created_at": "2026-06-11T23:03:09Z",
+      "created_by": "Mark Atwood",
+      "metadata": "{}"
+    },
+    {
+      "issue_id": "baize-uei",
+      "depends_on_id": "baize-dqd",
+      "type": "blocks",
+      "created_at": "2026-06-11T23:03:09Z",
+      "created_by": "Mark Atwood",
+      "metadata": "{}"
+    }
+  ]
+}

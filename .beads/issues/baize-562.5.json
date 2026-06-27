@@ -1,0 +1,25 @@
+{
+  "id": "baize-562.5",
+  "title": "Cross-implementation CI",
+  "description": "CI pipeline that runs the same test vectors against Rust, TypeScript (via WASM), and Python. All three must agree on every test. A failing test in any implementation blocks the build.",
+  "status": "closed",
+  "priority": 2,
+  "issue_type": "task",
+  "assignee": "Mark Atwood",
+  "owner": "mark@reviewcommit.com",
+  "created_at": "2026-06-07T22:16:06Z",
+  "created_by": "Mark Atwood",
+  "updated_at": "2026-06-08T00:00:51Z",
+  "closed_at": "2026-06-08T00:00:51Z",
+  "close_reason": "CI pipeline at .github/workflows/ci.yml — Rust, Python, TypeScript jobs",
+  "dependencies": [
+    {
+      "issue_id": "baize-562.5",
+      "depends_on_id": "baize-562",
+      "type": "parent-child",
+      "created_at": "2026-06-07T15:16:06Z",
+      "created_by": "Mark Atwood",
+      "metadata": "{}"
+    }
+  ]
+}

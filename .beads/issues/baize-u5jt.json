@@ -1,0 +1,22 @@
+{
+  "id": "baize-u5jt",
+  "title": "Flutter project scaffold + WebSocket connection",
+  "description": "Create Flutter project in client-flutter/. Set up: pubspec.yaml with web_socket_channel, provider for state management. Implement BaizeConnection class mirroring the TypeScript client: WebSocket connect, Hello/Welcome handshake, SubmitMove/MoveConfirmed/MoveRejected message handling, auto-reconnect with token, sequence tracking. Unit tests for message serialization.",
+  "status": "open",
+  "priority": 3,
+  "issue_type": "task",
+  "owner": "mark@wolfssl.com",
+  "created_at": "2026-06-13T06:25:37Z",
+  "created_by": "Mark Atwood",
+  "updated_at": "2026-06-26T19:56:30Z",
+  "dependencies": [
+    {
+      "issue_id": "baize-u5jt",
+      "depends_on_id": "baize-a1j0",
+      "type": "blocks",
+      "created_at": "2026-06-12T23:26:50Z",
+      "created_by": "Mark Atwood",
+      "metadata": "{}"
+    }
+  ]
+}

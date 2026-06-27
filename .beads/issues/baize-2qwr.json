@@ -1,0 +1,22 @@
+{
+  "id": "baize-2qwr",
+  "title": "Flutter: graph zone widget — node map rendering for territory games",
+  "description": "BaizeGraph widget renders graph zones (Risk, Clue, Scotland Yard, Pandemic). Nodes positioned by layout algorithm or explicit coordinates from game definition. Edges drawn between connected nodes. Node fill/border indicates ownership/state. Component tokens drawn on nodes. Tap node to select, drag between nodes for movement. Supports node_properties for visual hints (continent color, city size).",
+  "status": "open",
+  "priority": 3,
+  "issue_type": "task",
+  "owner": "mark@wolfssl.com",
+  "created_at": "2026-06-13T06:28:40Z",
+  "created_by": "Mark Atwood",
+  "updated_at": "2026-06-26T19:56:30Z",
+  "dependencies": [
+    {
+      "issue_id": "baize-2qwr",
+      "depends_on_id": "baize-rr7l",
+      "type": "blocks",
+      "created_at": "2026-06-12T23:28:59Z",
+      "created_by": "Mark Atwood",
+      "metadata": "{}"
+    }
+  ]
+}

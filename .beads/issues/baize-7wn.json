@@ -1,0 +1,15 @@
+{
+  "id": "baize-7wn",
+  "title": "Fix TOCTOU race in room creation",
+  "description": "get_or_create_room reads then writes under separate locks. Two concurrent requests to the same nonexistent room can overwrite each other. Fix: use entry API under single write lock.",
+  "status": "closed",
+  "priority": 3,
+  "issue_type": "bug",
+  "assignee": "Mark Atwood",
+  "owner": "mark@reviewcommit.com",
+  "created_at": "2026-06-08T01:38:52Z",
+  "created_by": "Mark Atwood",
+  "updated_at": "2026-06-08T01:41:04Z",
+  "closed_at": "2026-06-08T01:41:04Z",
+  "close_reason": "Re-check under write lock before creating room, preventing TOCTOU overwrite."
+}

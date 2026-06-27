@@ -1,0 +1,33 @@
+{
+  "id": "baize-3a3",
+  "title": "Spec structured perturber language",
+  "description": "Design a structured effect/mutation language for game state transitions. Composes movement primitives (move, place, remove, flip, promote, swap, draw, shuffle, transfer, reveal) with control flow (sequence, if/then/else, for_each, choose, repeat, repeat_until_stable). CEL expressions for predicates/filters. repeat_until_stable provides bounded fixpoint iteration with fuel budget for chain reactions (Go captures, Candy Crush cascades, checkers multi-jump). Fuel is a CEL expression evaluated once against initial state. No while, no recursion, no computed gotos. Termination guaranteed by construction. WASM tier only needed for computed scoring and search-dependent predicates.",
+  "status": "closed",
+  "priority": 2,
+  "issue_type": "feature",
+  "assignee": "Mark Atwood",
+  "owner": "mark@wolfssl.com",
+  "created_at": "2026-06-11T16:39:05Z",
+  "created_by": "Mark Atwood",
+  "updated_at": "2026-06-11T20:50:09Z",
+  "closed_at": "2026-06-11T20:50:09Z",
+  "close_reason": "Perturber language: sequence, if/then/else, for_each, repeat(n), repeat_until_stable with fuel budget. Effect primitives delegate to transition engine. Termination guaranteed by construction. 12 tests (6 Rust + 6 Python).",
+  "dependencies": [
+    {
+      "issue_id": "baize-3a3",
+      "depends_on_id": "baize-olc",
+      "type": "blocks",
+      "created_at": "2026-06-11T09:49:10Z",
+      "created_by": "Mark Atwood",
+      "metadata": "{}"
+    },
+    {
+      "issue_id": "baize-3a3",
+      "depends_on_id": "baize-1ye",
+      "type": "blocks",
+      "created_at": "2026-06-11T09:39:08Z",
+      "created_by": "Mark Atwood",
+      "metadata": "{}"
+    }
+  ]
+}

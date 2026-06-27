@@ -1,0 +1,33 @@
+{
+  "id": "baize-7y3",
+  "title": "Cube: scramble generation and initial state",
+  "description": "How to set up a scrambled cube for solving.\n\n## Solved initial state\n54 stickers: 9 per face, each face one color.\nComponents: white, yellow, red, orange, blue, green (or W/Y/R/O/B/G)\nEach sticker is a component instance placed on its home face grid.\n\n## Scramble methods\n\n### Option A: Random move sequence\nApply N random moves from the 18-move set (WCA uses 20+ moves for competition scrambles). This is the standard approach and guarantees a reachable state.\n\n### Option B: Server-generated scramble\nServer uses its ChaCha20Rng to generate a scramble sequence at room creation. The scramble is applied as a series of perturber effects during setup phase.\n\n### Option C: Client-provided scramble\nClient sends a scramble string (e.g. \"R U R' F2 D'\") in the room creation request. Server applies it.\n\n## Recommendation\nOption B for competitive/server use (deterministic, auditable via RNG seed).\nOption C for practice (player enters a known scramble).\nOption A is what Option B does internally.\n\n## Initial setup\nThe game definition's setup phase:\n1. Place all 54 stickers in solved position\n2. Apply scramble (server action)\n3. Game begins\n\n## Move counter\nTrack move count for speedcubing. The engine already has move_count.\n\n## WCA compliance (stretch)\nWCA scrambles use specific algorithms (Kociemba's, random state). This is out of scope for initial implementation — random move sequences are sufficient.\n\n## Test\nGenerate a 20-move scramble, apply to solved cube, verify cube is scrambled (not solved). Apply the inverse sequence, verify cube is solved again.",
+  "status": "closed",
+  "priority": 3,
+  "issue_type": "task",
+  "assignee": "Mark Atwood",
+  "owner": "mark@wolfssl.com",
+  "created_at": "2026-06-11T21:34:03Z",
+  "created_by": "Mark Atwood",
+  "updated_at": "2026-06-11T23:33:37Z",
+  "closed_at": "2026-06-11T23:33:37Z",
+  "close_reason": "Closed",
+  "dependencies": [
+    {
+      "issue_id": "baize-7y3",
+      "depends_on_id": "baize-7df",
+      "type": "blocks",
+      "created_at": "2026-06-11T14:34:11Z",
+      "created_by": "Mark Atwood",
+      "metadata": "{}"
+    },
+    {
+      "issue_id": "baize-7y3",
+      "depends_on_id": "baize-wx3",
+      "type": "blocks",
+      "created_at": "2026-06-11T14:34:21Z",
+      "created_by": "Mark Atwood",
+      "metadata": "{}"
+    }
+  ]
+}

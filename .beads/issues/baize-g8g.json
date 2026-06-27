@@ -1,0 +1,15 @@
+{
+  "id": "baize-g8g",
+  "title": "Schema validation on game definition load",
+  "description": "The Rust and Python engines must validate game definitions against the JSON Schema at load time, not just trust the JSON structure. Use jsonschema validation in Python. For Rust, add schema validation via the jsonschema crate or equivalent. Reject definitions that fail schema validation with a clear error listing all violations.",
+  "status": "closed",
+  "priority": 1,
+  "issue_type": "task",
+  "assignee": "Mark Atwood",
+  "owner": "mark@reviewcommit.com",
+  "created_at": "2026-06-08T00:28:57Z",
+  "created_by": "Mark Atwood",
+  "updated_at": "2026-06-08T00:43:43Z",
+  "closed_at": "2026-06-08T00:43:43Z",
+  "close_reason": "Schema validation implemented in both Rust (semantic checks) and Python (JSON Schema). Tests pass."
+}

@@ -1,0 +1,25 @@
+{
+  "id": "baize-a9j",
+  "title": "AI player agent framework",
+  "description": "Define how non-human players participate in games. Needs: schema-level player type distinction (human vs agent), server-side agent seat allocation at room creation, agent move submission interface (same WebSocket protocol, different auth). Agents must be indistinguishable from humans at the protocol level to preserve the trust model. Start with a simple random-move agent as proof of concept.",
+  "status": "closed",
+  "priority": 3,
+  "issue_type": "feature",
+  "assignee": "Mark Atwood",
+  "owner": "mark@wolfssl.com",
+  "created_at": "2026-06-11T17:55:49Z",
+  "created_by": "Mark Atwood",
+  "updated_at": "2026-06-26T19:56:29Z",
+  "closed_at": "2026-06-11T19:58:43Z",
+  "close_reason": "Agent ABC + RandomAgent. choose_action(state)-\u003eaction interface, auto-connect/poll/submit loop, bot client_type, token reconnection. 8 tests.",
+  "dependencies": [
+    {
+      "issue_id": "baize-a9j",
+      "depends_on_id": "baize-7ce",
+      "type": "blocks",
+      "created_at": "2026-06-11T10:56:01Z",
+      "created_by": "Mark Atwood",
+      "metadata": "{}"
+    }
+  ]
+}

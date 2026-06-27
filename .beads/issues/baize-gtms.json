@@ -1,0 +1,15 @@
+{
+  "id": "baize-gtms",
+  "title": "Felt host imports: native game state access for WASM extensions",
+  "description": "Implement ~30 WASM import functions in the Baize server (wasmtime Linker) that provide direct native access to GameState structs. Felt extensions call these instead of parsing JSON. Imports cover: zone access (by name/index, type, dimensions, cell/component counts), cell access (by index, by coords, occupant), component properties (type, owner, rank, suit, id, arbitrary property), player access, state metadata (turn, phase, counters, finished), grid adjacency (adjacent/diagonal cell enumeration, bounds check). All use i32 opaque handles with -1 for null. String-returning imports write to caller buffer and return length. ~100 lines of Rust registering functions with wasmtime Linker. See FELT.md 'Layer 1: Host Imports' for complete import list.",
+  "status": "closed",
+  "priority": 2,
+  "issue_type": "task",
+  "assignee": "Mark Atwood",
+  "owner": "mark@wolfssl.com",
+  "created_at": "2026-06-12T17:31:32Z",
+  "created_by": "Mark Atwood",
+  "updated_at": "2026-06-26T19:56:29Z",
+  "closed_at": "2026-06-12T18:18:13Z",
+  "close_reason": "felt_host.rs compiles and passes tests with wasmtime 45. Registers ~30 host imports (zone/cell/component/player/game-state access) with wasmtime Linker\u003cHostState\u003e. HostState built from GameState with handle tables."
+}

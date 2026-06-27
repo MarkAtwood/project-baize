@@ -1,0 +1,22 @@
+{
+  "id": "baize-6229",
+  "title": "GitHub Actions: build + push container image to ghcr.io",
+  "description": "GitHub Actions workflow: on tag push (v*), build Docker image, push to ghcr.io/markatwood/baize:latest and ghcr.io/markatwood/baize:{tag}. Multi-arch: linux/amd64 + linux/arm64 (for M-series Macs). Uses docker/build-push-action. GITHUB_TOKEN for auth. Also builds on PR for validation (no push). README badge for latest image.",
+  "status": "open",
+  "priority": 2,
+  "issue_type": "task",
+  "owner": "mark@wolfssl.com",
+  "created_at": "2026-06-13T07:04:31Z",
+  "created_by": "Mark Atwood",
+  "updated_at": "2026-06-26T19:56:30Z",
+  "dependencies": [
+    {
+      "issue_id": "baize-6229",
+      "depends_on_id": "baize-fsgi",
+      "type": "blocks",
+      "created_at": "2026-06-13T00:04:59Z",
+      "created_by": "Mark Atwood",
+      "metadata": "{}"
+    }
+  ]
+}

@@ -1,0 +1,25 @@
+{
+  "id": "baize-562.1",
+  "title": "Legal move test vectors",
+  "description": "For each reference game: known board positions with the complete set of legal moves. All three implementations must produce identical results. These are the spec's teeth.",
+  "status": "closed",
+  "priority": 1,
+  "issue_type": "task",
+  "assignee": "Mark Atwood",
+  "owner": "mark@reviewcommit.com",
+  "created_at": "2026-06-07T22:16:04Z",
+  "created_by": "Mark Atwood",
+  "updated_at": "2026-06-07T23:58:12Z",
+  "closed_at": "2026-06-07T23:58:12Z",
+  "close_reason": "tests/vectors/legal-moves.json + Rust and Python runners, all passing",
+  "dependencies": [
+    {
+      "issue_id": "baize-562.1",
+      "depends_on_id": "baize-562",
+      "type": "parent-child",
+      "created_at": "2026-06-07T15:16:04Z",
+      "created_by": "Mark Atwood",
+      "metadata": "{}"
+    }
+  ]
+}

@@ -1,0 +1,25 @@
+{
+  "id": "baize-sm4",
+  "title": "Graph zone: Rust RuntimeZone::Graph variant",
+  "description": "Add Graph variant to RuntimeZone in runtime.rs with adjacency list, node-to-index mapping, and per-node occupant storage. Implement from_definition() to build adjacency from edges. Add graph_get/graph_set/graph_neighbors methods.",
+  "status": "closed",
+  "priority": 2,
+  "issue_type": "task",
+  "assignee": "Mark Atwood",
+  "owner": "mark@wolfssl.com",
+  "created_at": "2026-06-12T04:42:11Z",
+  "created_by": "Mark Atwood",
+  "updated_at": "2026-06-26T19:56:29Z",
+  "closed_at": "2026-06-12T04:45:42Z",
+  "close_reason": "RuntimeZone::Graph variant with adjacency list, occupants, node_properties. graph_get/graph_set/graph_neighbors helpers. Wire serialization.",
+  "dependencies": [
+    {
+      "issue_id": "baize-sm4",
+      "depends_on_id": "baize-056",
+      "type": "blocks",
+      "created_at": "2026-06-11T21:42:17Z",
+      "created_by": "Mark Atwood",
+      "metadata": "{}"
+    }
+  ]
+}

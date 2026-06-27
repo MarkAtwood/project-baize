@@ -1,0 +1,25 @@
+{
+  "id": "baize-4gz",
+  "title": "Risk: territory control with dice combat",
+  "description": "42 territories with irregular adjacency, army placement and reinforcement, dice combat (attacker rolls up to 3, defender up to 2), continent bonuses. 2-6 players. Requires graph zone for territory map. Classic territory control game.",
+  "status": "closed",
+  "priority": 3,
+  "issue_type": "feature",
+  "assignee": "Mark Atwood",
+  "owner": "mark@wolfssl.com",
+  "created_at": "2026-06-12T04:39:17Z",
+  "created_by": "Mark Atwood",
+  "updated_at": "2026-06-12T18:07:20Z",
+  "closed_at": "2026-06-12T18:07:20Z",
+  "close_reason": "Closed",
+  "dependencies": [
+    {
+      "issue_id": "baize-4gz",
+      "depends_on_id": "baize-j2b",
+      "type": "blocks",
+      "created_at": "2026-06-11T21:39:25Z",
+      "created_by": "Mark Atwood",
+      "metadata": "{}"
+    }
+  ]
+}

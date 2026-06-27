@@ -1,0 +1,26 @@
+{
+  "id": "baize-avu",
+  "title": "Interactive Fiction on Baize: Z-machine in WASM (Path A)",
+  "description": "Compile a Rust Z-machine interpreter to WASM, run as Tier 2 extension. Feed published .z3/.z5 story files. Baize provides graph zone for map visualization, event logging, multiplayer spectating. Game logic is opaque to Baize — the Z-machine is a black box. First real Tier 2 WASM game. Proves the extension model works. Speculative/crazy project.",
+  "status": "open",
+  "priority": 4,
+  "issue_type": "feature",
+  "owner": "mark@wolfssl.com",
+  "created_at": "2026-06-12T04:53:00Z",
+  "created_by": "Mark Atwood",
+  "updated_at": "2026-06-26T19:56:30Z",
+  "labels": [
+    "baize-1md",
+    "speculative"
+  ],
+  "dependencies": [
+    {
+      "issue_id": "baize-avu",
+      "depends_on_id": "baize-1md",
+      "type": "blocks",
+      "created_at": "2026-06-11T21:53:15Z",
+      "created_by": "Mark Atwood",
+      "metadata": "{}"
+    }
+  ]
+}

@@ -1,0 +1,16 @@
+{
+  "id": "baize-4htd",
+  "title": "Partnership model: team declarations in game definitions",
+  "description": "Add partnerships field to game schema. Minimal: array of player arrays declaring teams.\n\n```json\n\"partnerships\": [\n  [\"North\", \"South\"],\n  [\"East\", \"West\"]\n]\n```\n\nEngine uses it for:\n- End conditions: winning entity is a team, not individual\n- Shared counters: per_partnership counter zones (shared trick count, shared score)\n- Win/loss propagation: one partner's win triggers whole team\n\nHandles all team structures:\n- Fixed 2v2: Bridge, Euchre, Spades, Tichu\n- Asymmetric: Scotland Yard ([[\"Mr_X\"], [\"D1\",\"D2\"]])\n- Full cooperative: Pandemic ([[\"medic\",\"scientist\"]])\n- 3+ teams: [[\"A\",\"B\"], [\"C\",\"D\"], [\"E\",\"F\"]]\n\nPartnerships are a declaration, not a mechanic. Cross-partner actions (declarer plays dummy, pass to partner) are game-specific logic in rules/phases/Felt. The engine just needs to know who's on whose team.\n\nDeliverables: (1) Schema: partnerships field. (2) Engine: partnership-aware end conditions. (3) Engine: per_partnership counter zones. (4) Update Bridge definition to use partnerships. (5) Tests.",
+  "design": "Minimal: array of player arrays. Engine uses for win propagation and shared counters. Everything else is game-specific.",
+  "status": "closed",
+  "priority": 2,
+  "issue_type": "feature",
+  "assignee": "Mark Atwood",
+  "owner": "mark@wolfssl.com",
+  "created_at": "2026-06-12T19:06:12Z",
+  "created_by": "Mark Atwood",
+  "updated_at": "2026-06-13T01:27:42Z",
+  "closed_at": "2026-06-13T01:27:42Z",
+  "close_reason": "Partnerships implemented: schema field, parsed in both engines, team_of/is_partner/team_name helpers, team win propagation in end conditions, CEL partnership variables."
+}

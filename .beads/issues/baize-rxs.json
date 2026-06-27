@@ -1,0 +1,15 @@
+{
+  "id": "baize-rxs",
+  "title": "Cell/position properties: arbitrary attributes on grid cells",
+  "description": "Grid cells should support arbitrary key-value properties (terrain type, elevation, road, fortification, etc.) that CEL expressions and WASM modules can query. Instead of hardcoding terrain_cost or stacking_limit per cell, each cell carries a property map. CEL can query: cell_property(zone, col, row, 'terrain') == 'forest'. WASM receives cell properties as part of state. This is more general than per-mechanic schema extensions — games declare what properties their cells have, the engine just stores and exposes them. Properties can be set in initial setup (static terrain) or modified by perturber effects (fortification built, bridge destroyed).",
+  "status": "closed",
+  "priority": 2,
+  "issue_type": "feature",
+  "assignee": "Mark Atwood",
+  "owner": "mark@wolfssl.com",
+  "created_at": "2026-06-12T00:17:47Z",
+  "created_by": "Mark Atwood",
+  "updated_at": "2026-06-12T01:18:51Z",
+  "closed_at": "2026-06-12T01:18:51Z",
+  "close_reason": "Cell properties implemented in both engines: schema, definition parsing, runtime storage with get/set accessors, wire format serialization, state hash inclusion, set_cell_property perturber effect, prop_{key} CEL exposure as 2D arrays. Also added string literal support to the Python CEL evaluator. 19 tests cover init, mutation, wire round-trip, hash, and CEL queries."
+}

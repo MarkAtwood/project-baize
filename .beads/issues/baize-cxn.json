@@ -1,0 +1,15 @@
+{
+  "id": "baize-cxn",
+  "title": "State hash collision resistance",
+  "description": "The state hash (compute_state_hash) must be collision-resistant. Audit the hash computation: ensure it includes ALL game state (zone contents, counters, turn, phase, status). Two different states must never produce the same hash. Add tests with near-identical states that differ by one bit.",
+  "status": "closed",
+  "priority": 2,
+  "issue_type": "task",
+  "assignee": "Mark Atwood",
+  "owner": "mark@reviewcommit.com",
+  "created_at": "2026-06-08T00:28:58Z",
+  "created_by": "Mark Atwood",
+  "updated_at": "2026-06-08T00:38:16Z",
+  "closed_at": "2026-06-08T00:38:16Z",
+  "close_reason": "All security hardening committed and tests passing"
+}

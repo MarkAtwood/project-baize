@@ -1,0 +1,14 @@
+{
+  "id": "baize-xgf6",
+  "title": "TypeScript client catch-up epic",
+  "description": "Get the TypeScript client fully aligned with the Rust engine, Python reference, and JSON schemas. Four phases: types, validation, elements, tests.",
+  "status": "closed",
+  "priority": 1,
+  "issue_type": "feature",
+  "owner": "mark@wolfssl.com",
+  "created_at": "2026-06-12T19:27:28Z",
+  "created_by": "Mark Atwood",
+  "updated_at": "2026-06-12T19:36:51Z",
+  "closed_at": "2026-06-12T19:36:51Z",
+  "close_reason": "All 4 phases complete: types aligned, validation updated, elements enhanced, 86 tests passing"
+}

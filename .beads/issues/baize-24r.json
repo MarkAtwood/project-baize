@@ -1,0 +1,33 @@
+{
+  "id": "baize-24r",
+  "title": "Ogre: integration tests — full game scenarios",
+  "description": "Play through complete Ogre scenarios: Ogre advance on CP, conventional defense, targeting Ogre subsystems, GEV hit-and-run, overrun combat. Verify CRT results against known test vectors from the rulebook. Test Ogre degradation as treads/weapons are destroyed. Test endgame detection.",
+  "status": "closed",
+  "priority": 2,
+  "issue_type": "task",
+  "assignee": "Mark Atwood",
+  "owner": "mark@wolfssl.com",
+  "created_at": "2026-06-12T04:57:29Z",
+  "created_by": "Mark Atwood",
+  "updated_at": "2026-06-26T19:56:29Z",
+  "closed_at": "2026-06-12T05:10:55Z",
+  "close_reason": "5 integration tests: Ogre advance/destroy CP, defenders destroy Ogre, overrun, combined fire, GEV hit-and-run.",
+  "dependencies": [
+    {
+      "issue_id": "baize-24r",
+      "depends_on_id": "baize-9sw",
+      "type": "blocks",
+      "created_at": "2026-06-11T21:57:37Z",
+      "created_by": "Mark Atwood",
+      "metadata": "{}"
+    },
+    {
+      "issue_id": "baize-24r",
+      "depends_on_id": "baize-plr",
+      "type": "blocks",
+      "created_at": "2026-06-11T21:57:38Z",
+      "created_by": "Mark Atwood",
+      "metadata": "{}"
+    }
+  ]
+}

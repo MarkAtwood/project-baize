@@ -1,0 +1,24 @@
+{
+  "id": "baize-rhd.1",
+  "title": "Card deck definitions",
+  "description": "JSON definitions for all standard card decks: French 52/54/32/36, German 36, Swiss-German 36, Spanish 40/48, Italian 40, Tarot 78, Tarock 54, Hanafuda 48, Hwatu 48, Karuta 100, Chinese money cards, Four-color cards. Historical decks: Mamluk, Ganjifa, Minchiate, Ceki, Tujeon.",
+  "status": "closed",
+  "priority": 2,
+  "issue_type": "task",
+  "owner": "mark@reviewcommit.com",
+  "created_at": "2026-06-07T22:15:50Z",
+  "created_by": "Mark Atwood",
+  "updated_at": "2026-06-07T23:36:01Z",
+  "closed_at": "2026-06-07T23:36:01Z",
+  "close_reason": "JSON registry files created: french-52, french-54, d6, d20, chess pieces, go stones, chess board, go board, dominoes",
+  "dependencies": [
+    {
+      "issue_id": "baize-rhd.1",
+      "depends_on_id": "baize-rhd",
+      "type": "parent-child",
+      "created_at": "2026-06-07T15:15:49Z",
+      "created_by": "Mark Atwood",
+      "metadata": "{}"
+    }
+  ]
+}

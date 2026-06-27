@@ -1,0 +1,24 @@
+{
+  "id": "baize-accn",
+  "title": "Python resource loader: load word lists",
+  "description": "Add ResourceStore to Python engine. Mirror Rust: loads word_list resources into set[str]. word_valid(resource_name, word) -\u003e bool. Attached to GameSession. Defensive: missing file raises at load time.",
+  "status": "closed",
+  "priority": 2,
+  "issue_type": "task",
+  "owner": "mark@wolfssl.com",
+  "created_at": "2026-06-13T05:36:15Z",
+  "created_by": "Mark Atwood",
+  "updated_at": "2026-06-26T19:56:29Z",
+  "closed_at": "2026-06-13T05:42:20Z",
+  "close_reason": "Python ResourceStore mirroring Rust. word_valid(), load(), defensive limits. All tests pass.",
+  "dependencies": [
+    {
+      "issue_id": "baize-accn",
+      "depends_on_id": "baize-uwgy",
+      "type": "blocks",
+      "created_at": "2026-06-12T22:36:34Z",
+      "created_by": "Mark Atwood",
+      "metadata": "{}"
+    }
+  ]
+}

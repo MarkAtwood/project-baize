@@ -1,0 +1,15 @@
+{
+  "id": "baize-jd8m",
+  "title": "Dependency supply chain audit: cargo audit, pip audit, npm audit in CI",
+  "description": "Add automated dependency vulnerability scanning to CI. cargo audit for Rust, pip audit for Python, npm audit for TypeScript client. Fail the build on known CVEs above a severity threshold. Run on every PR and on a weekly schedule for new advisories against existing lockfiles. Include transitive dependencies.",
+  "status": "closed",
+  "priority": 2,
+  "issue_type": "task",
+  "assignee": "Mark Atwood",
+  "owner": "mark@wolfssl.com",
+  "created_at": "2026-06-12T14:36:57Z",
+  "created_by": "Mark Atwood",
+  "updated_at": "2026-06-26T19:56:29Z",
+  "closed_at": "2026-06-12T15:12:49Z",
+  "close_reason": "Closed"
+}

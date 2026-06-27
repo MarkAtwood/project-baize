@@ -1,0 +1,33 @@
+{
+  "id": "baize-xhp",
+  "title": "Reference game definitions",
+  "description": "Playable game definitions proving the spec works end-to-end. Minimum set: Tic-Tac-Toe (minimal), Chess (perfect info, complex movement), Poker: Texas Hold'em (hidden info, betting), Carcassonne (WASM scoring escape hatch), Go (territory scoring), Backgammon (dice + strategy). Each game exercises different spec features.",
+  "status": "closed",
+  "priority": 2,
+  "issue_type": "epic",
+  "assignee": "Mark Atwood",
+  "owner": "mark@reviewcommit.com",
+  "created_at": "2026-06-07T22:14:20Z",
+  "created_by": "Mark Atwood",
+  "updated_at": "2026-06-26T19:56:29Z",
+  "closed_at": "2026-06-07T23:54:47Z",
+  "close_reason": "all steps complete",
+  "dependencies": [
+    {
+      "issue_id": "baize-xhp",
+      "depends_on_id": "baize-0a0",
+      "type": "blocks",
+      "created_at": "2026-06-07T15:16:35Z",
+      "created_by": "Mark Atwood",
+      "metadata": "{}"
+    },
+    {
+      "issue_id": "baize-xhp",
+      "depends_on_id": "baize-rhd",
+      "type": "blocks",
+      "created_at": "2026-06-07T15:16:36Z",
+      "created_by": "Mark Atwood",
+      "metadata": "{}"
+    }
+  ]
+}

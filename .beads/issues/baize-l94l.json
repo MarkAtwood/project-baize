@@ -1,0 +1,15 @@
+{
+  "id": "baize-l94l",
+  "title": "Crypto audit: constant-time comparisons, nonce discipline, RustCrypto alignment",
+  "description": "Audit all cryptographic code in both engines and the server for correctness and best practices. Specific items: (1) Constant-time hash comparison — commit-reveal SHA-256 verification in transition.rs and transition.py must use constant-time comparison (Rust: subtle crate ConstantTimeEq, Python: hmac.compare_digest), not == which leaks timing. (2) Nonce reuse prevention — verify commit-reveal rejects reused nonces across rounds. (3) RustCrypto alignment — sha2 is already RustCrypto, blake3 is maintained by BLAKE3 team (no RustCrypto alternative, acceptable). Ensure Digest trait usage follows RustCrypto conventions. (4) ChaCha20Rng seeding — verify server always uses from_os_rng() in production, seed_from_u64 only in tests. (5) BLAKE3 event log — verify canonical JSON serialization is deterministic (key ordering, no floating point, no trailing whitespace). (6) No secret material in logs or error messages. (7) Python secrets module usage for nonce generation, not random module.",
+  "status": "closed",
+  "priority": 1,
+  "issue_type": "task",
+  "assignee": "Mark Atwood",
+  "owner": "mark@wolfssl.com",
+  "created_at": "2026-06-12T14:31:24Z",
+  "created_by": "Mark Atwood",
+  "updated_at": "2026-06-26T19:56:29Z",
+  "closed_at": "2026-06-12T15:12:49Z",
+  "close_reason": "Closed"
+}

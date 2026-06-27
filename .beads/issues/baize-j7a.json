@@ -1,0 +1,41 @@
+{
+  "id": "baize-j7a",
+  "title": "Minimal playable client",
+  "description": "Build the minimum viable Web Components client that can play tic-tac-toe. Needs: baize-game element that connects to WebSocket, baize-board element that renders a grid zone as SVG, click-to-place interaction, turn indicator, game result display. No drag/drop, no hand rendering, no clock. Just enough to demo one game end-to-end.",
+  "status": "closed",
+  "priority": 1,
+  "issue_type": "feature",
+  "assignee": "Mark Atwood",
+  "owner": "mark@wolfssl.com",
+  "created_at": "2026-06-11T16:48:59Z",
+  "created_by": "Mark Atwood",
+  "updated_at": "2026-06-11T18:06:45Z",
+  "closed_at": "2026-06-11T18:06:45Z",
+  "close_reason": "Wired cell-click→submitMove bridge, fixed coord mismatch, added CORS + demo page",
+  "dependencies": [
+    {
+      "issue_id": "baize-j7a",
+      "depends_on_id": "baize-f9t",
+      "type": "blocks",
+      "created_at": "2026-06-11T09:49:09Z",
+      "created_by": "Mark Atwood",
+      "metadata": "{}"
+    },
+    {
+      "issue_id": "baize-j7a",
+      "depends_on_id": "baize-8ct",
+      "type": "blocks",
+      "created_at": "2026-06-11T09:49:09Z",
+      "created_by": "Mark Atwood",
+      "metadata": "{}"
+    },
+    {
+      "issue_id": "baize-j7a",
+      "depends_on_id": "baize-f1l",
+      "type": "blocks",
+      "created_at": "2026-06-11T09:49:09Z",
+      "created_by": "Mark Atwood",
+      "metadata": "{}"
+    }
+  ]
+}

@@ -1,0 +1,33 @@
+{
+  "id": "baize-sb1",
+  "title": "Battleship: sunk detection and end condition",
+  "description": "Detect when all segments of a ship are damaged (sunk), and when all ships of a player are sunk (game over).\n\n## Sunk detection\nAfter each hit, check: are all components with the same ship property now damaged?\nCEL expression per ship: components.filter(c, c.ship == \"carrier\").all(c, c.damaged == true)\nOr simpler: count damaged segments == ship length\n\n## Sunk announcement\nWhen a ship is sunk, server broadcasts which ship type was sunk. This reveals the ship TYPE but not the positions of remaining ships.\n\n## End condition\nAll 5 ships of one player are sunk → opponent wins.\nCEL: all_ships_sunk (precomputed boolean) or compose from per-ship sunk checks.\n\n## Implementation\nCould be a perturber effect triggered after each attack:\n```json\n{\"if\": \"ship_sunk\", \"then\": {\"sequence\": [\n  {\"set_counter\": {\"counter\": \"ships_remaining_player2\", \"value\": -1}}\n]}}\n```\nEnd condition: ships_remaining == 0\n\nOr simpler: count unsunk ship segments after each attack.\n\n## Test\nSink all 5 ships of player 2 (17 hits total). Verify game ends with player 1 winning. Verify sunk announcements for each ship.",
+  "status": "closed",
+  "priority": 3,
+  "issue_type": "task",
+  "assignee": "Mark Atwood",
+  "owner": "mark@wolfssl.com",
+  "created_at": "2026-06-11T22:01:47Z",
+  "created_by": "Mark Atwood",
+  "updated_at": "2026-06-11T22:36:14Z",
+  "closed_at": "2026-06-11T22:36:14Z",
+  "close_reason": "Sunk detection implemented in Fire handler. Compares hit_count to span length after each hit. When ship sunk: emits Sunk event and decrements opponent ships_remaining counter. End condition (ships_remaining == 0) evaluable via existing CEL. Tested with sunk detection test.",
+  "dependencies": [
+    {
+      "issue_id": "baize-sb1",
+      "depends_on_id": "baize-v2j",
+      "type": "blocks",
+      "created_at": "2026-06-11T15:01:56Z",
+      "created_by": "Mark Atwood",
+      "metadata": "{}"
+    },
+    {
+      "issue_id": "baize-sb1",
+      "depends_on_id": "baize-qg5",
+      "type": "blocks",
+      "created_at": "2026-06-11T15:01:55Z",
+      "created_by": "Mark Atwood",
+      "metadata": "{}"
+    }
+  ]
+}

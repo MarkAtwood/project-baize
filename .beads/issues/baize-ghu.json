@@ -1,0 +1,25 @@
+{
+  "id": "baize-ghu",
+  "title": "Ticket to Ride: route claiming on city network",
+  "description": "City network with colored routes between cities. Players collect train cards and claim routes to connect destination cities. Scoring: route length + completed destinations - failed destinations. 2-5 players. Requires graph zone + card collection.",
+  "status": "closed",
+  "priority": 3,
+  "issue_type": "feature",
+  "assignee": "Mark Atwood",
+  "owner": "mark@wolfssl.com",
+  "created_at": "2026-06-12T04:39:18Z",
+  "created_by": "Mark Atwood",
+  "updated_at": "2026-06-12T18:07:20Z",
+  "closed_at": "2026-06-12T18:07:20Z",
+  "close_reason": "Closed",
+  "dependencies": [
+    {
+      "issue_id": "baize-ghu",
+      "depends_on_id": "baize-j2b",
+      "type": "blocks",
+      "created_at": "2026-06-11T21:39:27Z",
+      "created_by": "Mark Atwood",
+      "metadata": "{}"
+    }
+  ]
+}

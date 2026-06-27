@@ -1,0 +1,25 @@
+{
+  "id": "baize-wk1",
+  "title": "Pandemic: cooperative network disease control",
+  "description": "48 cities connected by flight routes, 4 diseases spreading via infection deck. 2-4 players cooperate to cure all diseases before outbreaks cascade. Hidden infection deck, player roles with special abilities. Requires graph zone + cooperative victory condition.",
+  "status": "closed",
+  "priority": 3,
+  "issue_type": "feature",
+  "assignee": "Mark Atwood",
+  "owner": "mark@wolfssl.com",
+  "created_at": "2026-06-12T04:39:17Z",
+  "created_by": "Mark Atwood",
+  "updated_at": "2026-06-12T18:07:20Z",
+  "closed_at": "2026-06-12T18:07:20Z",
+  "close_reason": "Closed",
+  "dependencies": [
+    {
+      "issue_id": "baize-wk1",
+      "depends_on_id": "baize-j2b",
+      "type": "blocks",
+      "created_at": "2026-06-11T21:39:26Z",
+      "created_by": "Mark Atwood",
+      "metadata": "{}"
+    }
+  ]
+}

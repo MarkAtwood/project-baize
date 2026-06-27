@@ -1,0 +1,33 @@
+{
+  "id": "baize-le7a.4",
+  "title": "Felt termination checker: reject non-total programs",
+  "description": "Verify all recursion is structural (argument is a strict sub-part of input: sub-list via pattern match, subset via filter). Reject recursion on computed values. All built-in iteration (map, filter, fold, comprehensions) is over finite collections from game state — automatically total. Reject any program that cannot be proven terminating.",
+  "status": "closed",
+  "priority": 2,
+  "issue_type": "task",
+  "assignee": "Mark Atwood",
+  "owner": "mark@wolfssl.com",
+  "created_at": "2026-06-12T16:15:27Z",
+  "created_by": "Mark Atwood",
+  "updated_at": "2026-06-26T19:56:29Z",
+  "closed_at": "2026-06-12T18:03:29Z",
+  "close_reason": "Closed",
+  "dependencies": [
+    {
+      "issue_id": "baize-le7a.4",
+      "depends_on_id": "baize-le7a",
+      "type": "parent-child",
+      "created_at": "2026-06-12T09:15:27Z",
+      "created_by": "Mark Atwood",
+      "metadata": "{}"
+    },
+    {
+      "issue_id": "baize-le7a.4",
+      "depends_on_id": "baize-le7a.3",
+      "type": "blocks",
+      "created_at": "2026-06-12T09:15:27Z",
+      "created_by": "Mark Atwood",
+      "metadata": "{}"
+    }
+  ]
+}

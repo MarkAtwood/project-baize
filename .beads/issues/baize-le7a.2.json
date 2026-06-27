@@ -1,0 +1,33 @@
+{
+  "id": "baize-le7a.2",
+  "title": "Felt parser: source tokens → AST",
+  "description": "Recursive descent parser using the chumsky crate with logos-chumsky zero-copy adapter. Produce typed AST nodes: FnDef, Let, If, Match, Lambda, Pipe, Apply, Literal (Int/Float/Bool/String), List, Set, Record, ListComp, BinOp, UnOp. Operator precedence: pipe (lowest) → or → and → comparison → additive → multiplicative → unary (highest). Where clauses desugar to nested lets. Pipe a |\u003e f desugars to f(a). Use chumsky's error recovery for good diagnostics. Dependencies: chumsky, logos (via adapter).",
+  "status": "closed",
+  "priority": 2,
+  "issue_type": "task",
+  "assignee": "Mark Atwood",
+  "owner": "mark@wolfssl.com",
+  "created_at": "2026-06-12T16:15:15Z",
+  "created_by": "Mark Atwood",
+  "updated_at": "2026-06-26T19:56:29Z",
+  "closed_at": "2026-06-12T18:00:19Z",
+  "close_reason": "Closed",
+  "dependencies": [
+    {
+      "issue_id": "baize-le7a.2",
+      "depends_on_id": "baize-le7a.1",
+      "type": "blocks",
+      "created_at": "2026-06-12T09:15:15Z",
+      "created_by": "Mark Atwood",
+      "metadata": "{}"
+    },
+    {
+      "issue_id": "baize-le7a.2",
+      "depends_on_id": "baize-le7a",
+      "type": "parent-child",
+      "created_at": "2026-06-12T09:15:15Z",
+      "created_by": "Mark Atwood",
+      "metadata": "{}"
+    }
+  ]
+}

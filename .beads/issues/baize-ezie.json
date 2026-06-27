@@ -1,0 +1,23 @@
+{
+  "id": "baize-ezie",
+  "title": "WASM extension authoring: Rust for devs, simple language for game designers",
+  "description": "Define the supported languages for writing Tier 2 WASM game extensions. Two tiers of authoring:\n\n**Rust (power users):** Same toolchain as engine. GameExtension trait, compile to wasm32-wasi, smallest binaries. Template project with cargo-generate. For programmers contributing complex game logic (mental poker, Go scoring, chain reactions).\n\n**Simple language (game designers):** Need a pure, expression-oriented language that compiles to WASM. Candidates: AssemblyScript (TS-like, npm toolchain), a Lisp-like DSL (s-expressions, pure functions, no mutation — fits the declarative philosophy), or a purpose-built functional DSL. Requirements: no side effects, no mutation, no loops (recursion with fuel instead), JSON-in/JSON-out interface, small binaries, easy to learn for non-programmers who understand game rules but not systems programming. The language should feel like writing game rules, not writing code.\n\nDeliverables: (1) Decide on the simple language. (2) Extension interface spec (WIT or exported functions). (3) Rust template project. (4) Simple-language template project. (5) Documentation for both paths.",
+  "status": "closed",
+  "priority": 2,
+  "issue_type": "feature",
+  "owner": "mark@wolfssl.com",
+  "created_at": "2026-06-12T16:01:56Z",
+  "created_by": "Mark Atwood",
+  "updated_at": "2026-06-12T16:09:48Z",
+  "closed_at": "2026-06-12T16:09:48Z",
+  "dependencies": [
+    {
+      "issue_id": "baize-ezie",
+      "depends_on_id": "baize-l8ai",
+      "type": "supersedes",
+      "created_at": "2026-06-12T09:09:47Z",
+      "created_by": "Mark Atwood",
+      "metadata": "{}"
+    }
+  ]
+}

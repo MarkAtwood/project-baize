@@ -1,0 +1,46 @@
+{
+  "id": "baize-d8yd",
+  "title": "Flutter: auto-layout compositor — assemble widgets from game definition",
+  "description": "BaizeGameView reads the game definition's zones and automatically composes the right widget layout. Grid/hex zones → BaizeBoard. Ordered stacks with private visibility → BaizeHand. Graph zones → BaizeGraph. Track zones → BaizeTrack. Counters → BaizeScore. Arranges them in a responsive layout: board centered, hand at bottom, scores at top, side zones in panels. No per-game custom code needed — the game definition drives the layout.",
+  "status": "open",
+  "priority": 3,
+  "issue_type": "task",
+  "owner": "mark@wolfssl.com",
+  "created_at": "2026-06-13T06:28:53Z",
+  "created_by": "Mark Atwood",
+  "updated_at": "2026-06-26T19:56:30Z",
+  "dependencies": [
+    {
+      "issue_id": "baize-d8yd",
+      "depends_on_id": "baize-g6t7",
+      "type": "blocks",
+      "created_at": "2026-06-12T23:29:00Z",
+      "created_by": "Mark Atwood",
+      "metadata": "{}"
+    },
+    {
+      "issue_id": "baize-d8yd",
+      "depends_on_id": "baize-2qwr",
+      "type": "blocks",
+      "created_at": "2026-06-12T23:29:01Z",
+      "created_by": "Mark Atwood",
+      "metadata": "{}"
+    },
+    {
+      "issue_id": "baize-d8yd",
+      "depends_on_id": "baize-63dt",
+      "type": "blocks",
+      "created_at": "2026-06-12T23:29:00Z",
+      "created_by": "Mark Atwood",
+      "metadata": "{}"
+    },
+    {
+      "issue_id": "baize-d8yd",
+      "depends_on_id": "baize-ly3v",
+      "type": "blocks",
+      "created_at": "2026-06-12T23:29:01Z",
+      "created_by": "Mark Atwood",
+      "metadata": "{}"
+    }
+  ]
+}

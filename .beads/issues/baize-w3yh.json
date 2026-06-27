@@ -1,0 +1,40 @@
+{
+  "id": "baize-w3yh",
+  "title": "Generic hex wargame definition with terrain, CRT, and ZOC",
+  "description": "Create games/hex-wargame.json — a reference hex wargame using all three Felt extensions. 15x10 hex grid with mixed terrain (clear/forest/hills/mountains/road/town). Two sides (Blue/Red) with infantry, armor, artillery units. Turn structure: movement then combat phases. Cell properties for terrain costs and defense bonuses. References wargame.wasm. Includes Ogre-style CRT. Validates against schema.",
+  "status": "closed",
+  "priority": 2,
+  "issue_type": "task",
+  "owner": "mark@wolfssl.com",
+  "created_at": "2026-06-13T02:56:17Z",
+  "created_by": "Mark Atwood",
+  "updated_at": "2026-06-26T19:56:29Z",
+  "closed_at": "2026-06-13T03:14:12Z",
+  "close_reason": "hex-wargame.json created: 15-hex grid, mixed terrain, 10 units/side, IGOUGO phases, CRT combat, ZOC rules. Validates against schema.",
+  "dependencies": [
+    {
+      "issue_id": "baize-w3yh",
+      "depends_on_id": "baize-7w61",
+      "type": "blocks",
+      "created_at": "2026-06-12T19:56:29Z",
+      "created_by": "Mark Atwood",
+      "metadata": "{}"
+    },
+    {
+      "issue_id": "baize-w3yh",
+      "depends_on_id": "baize-nta0",
+      "type": "blocks",
+      "created_at": "2026-06-12T19:56:28Z",
+      "created_by": "Mark Atwood",
+      "metadata": "{}"
+    },
+    {
+      "issue_id": "baize-w3yh",
+      "depends_on_id": "baize-52rl",
+      "type": "blocks",
+      "created_at": "2026-06-12T19:56:28Z",
+      "created_by": "Mark Atwood",
+      "metadata": "{}"
+    }
+  ]
+}

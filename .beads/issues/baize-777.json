@@ -1,0 +1,72 @@
+{
+  "id": "baize-777",
+  "title": "Ogre: hex wargame reference game",
+  "description": "Steve Jackson's Ogre (1977) — asymmetric hex wargame. One player controls a single giant cybertank (the Ogre), the other controls conventional forces (infantry, armor, howitzers, missile tanks). Simple CRT, no supply lines, no terrain costs beyond basic movement. Good first hex wargame because: small map (hex grid), few unit types, simple combat, no facing, no supply. The game is available as free print-and-play. Exercises: hex_grid zone, stacking, CRT combat, asymmetric forces, unit damage tracking (Ogre treads/weapons degrade).",
+  "status": "closed",
+  "priority": 3,
+  "issue_type": "feature",
+  "owner": "mark@wolfssl.com",
+  "created_at": "2026-06-12T00:17:26Z",
+  "created_by": "Mark Atwood",
+  "updated_at": "2026-06-12T05:11:04Z",
+  "closed_at": "2026-06-12T05:11:04Z",
+  "close_reason": "Ogre fully playable: hex map, terrain, 6 unit types, Ogre Mk III with subsystem targeting, CRT combat, movement with terrain costs, GEV second movement, overrun, win conditions. 60 tests.",
+  "dependencies": [
+    {
+      "issue_id": "baize-777",
+      "depends_on_id": "baize-kg0",
+      "type": "blocks",
+      "created_at": "2026-06-11T21:57:38Z",
+      "created_by": "Mark Atwood",
+      "metadata": "{}"
+    },
+    {
+      "issue_id": "baize-777",
+      "depends_on_id": "baize-24r",
+      "type": "blocks",
+      "created_at": "2026-06-11T21:57:40Z",
+      "created_by": "Mark Atwood",
+      "metadata": "{}"
+    },
+    {
+      "issue_id": "baize-777",
+      "depends_on_id": "baize-9sw",
+      "type": "blocks",
+      "created_at": "2026-06-11T21:57:39Z",
+      "created_by": "Mark Atwood",
+      "metadata": "{}"
+    },
+    {
+      "issue_id": "baize-777",
+      "depends_on_id": "baize-2du",
+      "type": "blocks",
+      "created_at": "2026-06-11T21:57:39Z",
+      "created_by": "Mark Atwood",
+      "metadata": "{}"
+    },
+    {
+      "issue_id": "baize-777",
+      "depends_on_id": "baize-nr9",
+      "type": "blocks",
+      "created_at": "2026-06-11T17:17:34Z",
+      "created_by": "Mark Atwood",
+      "metadata": "{}"
+    },
+    {
+      "issue_id": "baize-777",
+      "depends_on_id": "baize-plr",
+      "type": "blocks",
+      "created_at": "2026-06-11T21:57:40Z",
+      "created_by": "Mark Atwood",
+      "metadata": "{}"
+    },
+    {
+      "issue_id": "baize-777",
+      "depends_on_id": "baize-5om",
+      "type": "blocks",
+      "created_at": "2026-06-11T21:57:38Z",
+      "created_by": "Mark Atwood",
+      "metadata": "{}"
+    }
+  ]
+}

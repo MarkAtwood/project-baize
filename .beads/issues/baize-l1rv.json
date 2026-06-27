@@ -1,0 +1,15 @@
+{
+  "id": "baize-l1rv",
+  "title": "SRA commutative encryption primitives",
+  "description": "Implement SRA commutative encryption using num-bigint + num-integer crates for modular exponentiation. Use a well-known RFC 3526 2048-bit MODP group (no safe prime generation needed). Keypair: random e coprime to p-1, d = modular inverse of e mod (p-1). Encrypt: c = m^e mod p. Decrypt: m = c^d mod p. NOT constant-time (acceptable for game context — not protecting state secrets). When WASI-Crypto stabilizes (baize-jspg), swap num-bigint backend for WASI-Crypto host calls. Protocol layer unchanged.",
+  "status": "closed",
+  "priority": 3,
+  "issue_type": "task",
+  "assignee": "Mark Atwood",
+  "owner": "mark@wolfssl.com",
+  "created_at": "2026-06-13T05:15:19Z",
+  "created_by": "Mark Atwood",
+  "updated_at": "2026-06-26T19:56:29Z",
+  "closed_at": "2026-06-13T05:56:56Z",
+  "close_reason": "SRA commutative encryption with num-bigint, RFC 3526 2048-bit MODP group. generate_keypair, sra_encrypt, sra_decrypt, mod_inverse. 12 tests pass including commutativity proofs."
+}

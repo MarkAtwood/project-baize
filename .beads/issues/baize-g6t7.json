@@ -1,0 +1,22 @@
+{
+  "id": "baize-g6t7",
+  "title": "Flutter: hand widget — card fan + tile rack display",
+  "description": "BaizeHand widget renders per-player card/tile zones. Fan layout for card games (poker, hearts, bridge). Rack layout for tile games (Scrabble, Mahjong). Tap to select, drag to play. Hidden cards show card backs. Supports private visibility (only owner sees face). Animates card draw/play transitions.",
+  "status": "open",
+  "priority": 3,
+  "issue_type": "task",
+  "owner": "mark@wolfssl.com",
+  "created_at": "2026-06-13T06:25:58Z",
+  "created_by": "Mark Atwood",
+  "updated_at": "2026-06-26T19:56:30Z",
+  "dependencies": [
+    {
+      "issue_id": "baize-g6t7",
+      "depends_on_id": "baize-rr7l",
+      "type": "blocks",
+      "created_at": "2026-06-12T23:26:52Z",
+      "created_by": "Mark Atwood",
+      "metadata": "{}"
+    }
+  ]
+}

@@ -1,0 +1,26 @@
+{
+  "id": "baize-562.6",
+  "title": "Structured event log format",
+  "description": "Define a JSONL event log format that both Rust and Python implementations emit during game execution. Events: move_validated, state_transition, legal_moves_generated, game_over, visibility_check, random_value, hidden_state_revealed. Each event includes game ID, turn number, player, state hash, and operation-specific fields. Purpose: mechanical diffing between implementations (first divergence = bug), test vector generation, game replay/recording, spec compliance auditing, AI training data. Both implementations must emit identical events for identical inputs.",
+  "notes": "Event log format must support hash chaining: each entry includes a hash of the previous entry, forming a Merkle chain (same structure as git commits). This enables tamper-evident game records for tournament play. The spec defines the chain format; where the log lives (signed object store, CT-style log, third-party notary) is a deployment decision. Tournament deployments SHOULD write the log to an append-only store.",
+  "status": "closed",
+  "priority": 1,
+  "issue_type": "task",
+  "assignee": "Mark Atwood",
+  "owner": "mark@reviewcommit.com",
+  "created_at": "2026-06-07T22:21:18Z",
+  "created_by": "Mark Atwood",
+  "updated_at": "2026-06-07T23:58:16Z",
+  "closed_at": "2026-06-07T23:58:16Z",
+  "close_reason": "schema/event-log.schema.json + example JSONL, discrepancies documented",
+  "dependencies": [
+    {
+      "issue_id": "baize-562.6",
+      "depends_on_id": "baize-562",
+      "type": "parent-child",
+      "created_at": "2026-06-07T15:21:18Z",
+      "created_by": "Mark Atwood",
+      "metadata": "{}"
+    }
+  ]
+}

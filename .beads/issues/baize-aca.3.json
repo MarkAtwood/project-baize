@@ -1,0 +1,24 @@
+{
+  "id": "baize-aca.3",
+  "title": "Cryptographic randomness",
+  "description": "Fair dice rolls, card shuffles, random selection. Cryptographically secure RNG. Optional commit-reveal scheme for competitive play (see baize-mms).",
+  "status": "closed",
+  "priority": 1,
+  "issue_type": "task",
+  "owner": "mark@reviewcommit.com",
+  "created_at": "2026-06-07T22:15:33Z",
+  "created_by": "Mark Atwood",
+  "updated_at": "2026-06-07T23:49:44Z",
+  "closed_at": "2026-06-07T23:49:44Z",
+  "close_reason": "Implemented in vault.rs: ChaCha20Rng, roll_dice, draw_cards, shuffle_zone (Fisher-Yates)",
+  "dependencies": [
+    {
+      "issue_id": "baize-aca.3",
+      "depends_on_id": "baize-aca",
+      "type": "parent-child",
+      "created_at": "2026-06-07T15:15:33Z",
+      "created_by": "Mark Atwood",
+      "metadata": "{}"
+    }
+  ]
+}

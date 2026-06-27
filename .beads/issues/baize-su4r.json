@@ -1,0 +1,24 @@
+{
+  "id": "baize-su4r",
+  "title": "Felt wargame: supply line tracing via flood_fill",
+  "description": "Add supply line logic to wargame.felt. A unit is in supply if a path of max 10 hexes exists from the unit to a friendly HQ or friendly map edge, not passing through enemy ZOC (unless friendly-occupied). Use flood_fill or iterative neighbor expansion. Out-of-supply effects: halved attack, no advance after combat. Return supply status per unit for score/check_end.",
+  "status": "closed",
+  "priority": 2,
+  "issue_type": "task",
+  "owner": "mark@wolfssl.com",
+  "created_at": "2026-06-13T05:19:13Z",
+  "created_by": "Mark Atwood",
+  "updated_at": "2026-06-26T19:56:29Z",
+  "closed_at": "2026-06-13T05:24:46Z",
+  "close_reason": "Supply line functions added to wargame.felt using flood_fill. is_in_supply, supply_reachable, count_out_of_supply. Type-checks clean (only pre-existing Score alias issue).",
+  "dependencies": [
+    {
+      "issue_id": "baize-su4r",
+      "depends_on_id": "baize-t5e5",
+      "type": "blocks",
+      "created_at": "2026-06-12T22:19:32Z",
+      "created_by": "Mark Atwood",
+      "metadata": "{}"
+    }
+  ]
+}

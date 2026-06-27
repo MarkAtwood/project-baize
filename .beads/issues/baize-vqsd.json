@@ -1,0 +1,15 @@
+{
+  "id": "baize-vqsd",
+  "title": "Nine Men's Morris: place-then-slide with mill capture",
+  "description": "2 players, 9 pieces each, 24-intersection board. Two phases: placement then movement (slide to adjacent). Forming a mill (3 in a line) triggers capture. When reduced to 3 pieces: flying. Win: reduce opponent to 2 pieces. Demonstrates phase transition that changes movement rules.",
+  "status": "closed",
+  "priority": 3,
+  "issue_type": "task",
+  "assignee": "Mark Atwood",
+  "owner": "mark@wolfssl.com",
+  "created_at": "2026-06-12T18:37:28Z",
+  "created_by": "Mark Atwood",
+  "updated_at": "2026-06-12T18:52:34Z",
+  "closed_at": "2026-06-12T18:52:34Z",
+  "close_reason": "Closed"
+}

@@ -1,0 +1,48 @@
+{
+  "id": "baize-j2b",
+  "title": "Graph zone type with real topology",
+  "description": "Promote graph zone from Set (unordered bag) to real topology. Add nodes (named positions), edges (pairs of node names), node_properties. Runtime: RuntimeZone::Graph with adjacency list and occupants. Movement: step to adjacent node, hop over occupied neighbor. No direction vectors — movement constrained by neighbor list or CEL. Unblocks Risk, Pandemic, Scotland Yard, and other territory/network games.",
+  "status": "closed",
+  "priority": 3,
+  "issue_type": "feature",
+  "owner": "mark@wolfssl.com",
+  "created_at": "2026-06-12T03:05:01Z",
+  "created_by": "Mark Atwood",
+  "updated_at": "2026-06-26T19:56:29Z",
+  "closed_at": "2026-06-12T04:48:56Z",
+  "close_reason": "Graph zone fully implemented: schema, Rust RuntimeZone::Graph, Python GraphZone, 23 tests. Unblocks 9 territory/network games.",
+  "dependencies": [
+    {
+      "issue_id": "baize-j2b",
+      "depends_on_id": "baize-sm4",
+      "type": "blocks",
+      "created_at": "2026-06-11T21:42:19Z",
+      "created_by": "Mark Atwood",
+      "metadata": "{}"
+    },
+    {
+      "issue_id": "baize-j2b",
+      "depends_on_id": "baize-nyo",
+      "type": "blocks",
+      "created_at": "2026-06-11T21:42:19Z",
+      "created_by": "Mark Atwood",
+      "metadata": "{}"
+    },
+    {
+      "issue_id": "baize-j2b",
+      "depends_on_id": "baize-056",
+      "type": "blocks",
+      "created_at": "2026-06-11T21:42:18Z",
+      "created_by": "Mark Atwood",
+      "metadata": "{}"
+    },
+    {
+      "issue_id": "baize-j2b",
+      "depends_on_id": "baize-3nd",
+      "type": "blocks",
+      "created_at": "2026-06-11T21:42:19Z",
+      "created_by": "Mark Atwood",
+      "metadata": "{}"
+    }
+  ]
+}

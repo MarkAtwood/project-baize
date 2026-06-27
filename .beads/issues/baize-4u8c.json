@@ -1,0 +1,15 @@
+{
+  "id": "baize-4u8c",
+  "title": "Pervasive assert/precondition/postcondition/invariant guards across all code",
+  "description": "Add systematic Design-by-Contract guards throughout the entire codebase — Rust engine, Python engine, server, and client. Every public function gets precondition checks on its inputs. Every function that mutates state gets postcondition checks on its outputs. Every struct/class with representational invariants gets validation methods called at construction and after mutation. Specific targets: (1) Rust engine: debug_assert! on every index, every unwrap replaced with expect or checked access, pre/post on GameState transitions, ComponentId arena bounds, grid dimension consistency. (2) Python engine: assert statements on function entry/exit, __post_init__ validators on all dataclasses, type narrowing assertions. (3) Server: request validation before dispatch, room state invariants after every mutation, WebSocket message schema check before processing. (4) Client: runtime type checks on server messages, DOM state consistency after renders. Goal: any programming mistake — off-by-one, wrong enum variant, stale reference, dimension mismatch — triggers an immediate loud failure with a descriptive message, never silent corruption.",
+  "status": "closed",
+  "priority": 1,
+  "issue_type": "task",
+  "assignee": "Mark Atwood",
+  "owner": "mark@wolfssl.com",
+  "created_at": "2026-06-12T14:25:07Z",
+  "created_by": "Mark Atwood",
+  "updated_at": "2026-06-26T19:56:29Z",
+  "closed_at": "2026-06-12T15:44:41Z",
+  "close_reason": "Closed"
+}

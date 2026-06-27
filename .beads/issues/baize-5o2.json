@@ -1,0 +1,15 @@
+{
+  "id": "baize-5o2",
+  "title": "Backgammon: full playability",
+  "description": "Backgammon definition parses but has zero gameplay tests. Need: dice rolling (server authority), checker movement along track, bar entry rules, bearing off rules, doubling cube (optional). Track zone type exists in the engine but movement along tracks hasn't been validated with actual gameplay. Start with basic move + bear off, defer doubling cube.",
+  "status": "closed",
+  "priority": 3,
+  "issue_type": "feature",
+  "assignee": "Mark Atwood",
+  "owner": "mark@wolfssl.com",
+  "created_at": "2026-06-12T00:01:13Z",
+  "created_by": "Mark Atwood",
+  "updated_at": "2026-06-12T02:41:11Z",
+  "closed_at": "2026-06-12T02:41:11Z",
+  "close_reason": "Backgammon playable with 25 tests. Covers: 24-point track, initial position (15 checkers per side), directional movement (White 24→1, Black 1→24), die usage tracking, doubles (4 moves), blocked point rejection, hitting lone opponents to bar, bar re-entry (must enter first), bearing off (all in home required), win on 15 borne off."
+}
