@@ -190,7 +190,7 @@ the games whose rules are implemented.
 | Checkers | Perfect | Hop captures, multi-jump chains, mandatory captures, king promotion |
 | Chess | Perfect | All pieces, castling, en passant, promotion, check/checkmate/stalemate, repetition, 50-move, insufficient material |
 | Chickenfoot Dominoes | Imperfect | Dynamic graph branching layout, double-nine set, chickenfoot fork rule |
-| Chinese Checkers | Perfect | 121-position hexagram via valid_cells mask, hex_6 adjacency, step/hop, multi-hop chains |
+| Sternhalma / Chinese Checkers | Perfect | 121-position hexagram via valid_cells mask, hex_6 adjacency, step/hop, multi-hop chains |
 | Clue™ | Imperfect | 9 rooms + hallways graph, hidden envelope, deduction, secret passages |
 | Colossal Cave Adventure | Perfect | 17-room graph text adventure, obstacles, treasures, single player |
 | Colossal Cave Adventure (350) | Perfect | 46-room expanded version, lamp battery, darkness, 10 treasures, 350 points |
@@ -201,7 +201,7 @@ the games whose rules are implemented.
 | Dots and Boxes | Perfect | Dot grid, edges as playable positions, box completion, chain reactions |
 | Fury of Dracula™ | Imperfect | Hidden movement on European map, asymmetric teams, trail mechanic, day/night cycle |
 | Gin Rummy | Imperfect | Deadwood optimization, knocking, undercut, layoff |
-| Go | Perfect | 9×9/19×19, flood-fill captures, ko rule, suicide, territory scoring |
+| 囲碁 / igo / Go | Perfect | 9×9/19×19, flood-fill captures, ko rule, suicide, territory scoring |
 | Hanabi™ | Imperfect | Cooperative, reverse hidden info (see others not yourself), constrained clues |
 | Hearts | Imperfect | 4-player trick avoidance, shoot-the-moon gambit, card passing |
 | Hex | Perfect | Hex grid, 6-neighbor adjacency, BFS edge-to-edge connectivity win |
@@ -210,7 +210,7 @@ the games whose rules are implemented.
 | Hive™ | Perfect | Boardless — pieces form the board, insect movement, one-hive rule |
 | Infinite Go | Perfect | Unbounded sparse board, superko rule, capture-only scoring |
 | Liar's Dice | Imperfect | Hidden per-player dice, escalating bids, challenge/reveal, elimination |
-| Mahjong™ | Imperfect | 4-player, 136 tiles, interrupt claiming (chi/pon/ron), yaku scoring |
+| 麻雀 / mājan / Mahjong™ | Imperfect | 4-player, 136 tiles, interrupt claiming (chi/pon/ron), yaku scoring |
 | Mancala | Perfect | 14 pits, seed-sowing distribution, captures, extra turns |
 | Mastermind™ | Imperfect | Code-breaking, structured feedback (black/white pegs), information-theoretic deduction |
 | Nim | Perfect | Multiple heaps, Sprague-Grundy theory, mathematically solved |
@@ -228,9 +228,9 @@ the games whose rules are implemented.
 | Rubik's Cube™ | Perfect | Single-player puzzle, 6-zone cycle perturbers, solved-state CEL |
 | Scotland Yard™ | Imperfect | 20-location transit network, hidden Mr. X movement, reveal turns |
 | Scrabble™ | Imperfect | 15×15 premium grid, dictionary validation, cross-word formation |
-| Senet | Perfect + random | 30-square S-track, casting sticks, 5 special squares, swap capture, bearing off — ancient Egypt (~3100 BCE) |
+| 𓊃𓈖𓏏𓏠 / znt / Senet | Perfect + random | 30-square S-track, casting sticks, 5 special squares, swap capture, bearing off — ancient Egypt (~3100 BCE) |
 | Settlers of Catan™ | Imperfect | 7-hex resource map, graph settlement placement, dice production, bank trading |
-| Shogi | Perfect | 9×9, piece drops (captured pieces return to play), directional movement, promotion |
+| 将棋 / shōgi / Japanese Chess | Perfect | 9×9, piece drops (captured pieces return to play), directional movement, promotion |
 | Skip-Bo™ | Imperfect | 162-card sequential building piles, stockpile race, wild cards, 4 personal discard stacks, 2-6 players |
 | Snakes & Ladders | Perfect + random | TrackZone, d6 dice, snake/ladder triggered effects, bounce-back |
 | Stratego™ | Imperfect | 10×10, hidden piece ranks, simultaneous placement, combat reveal |
@@ -239,7 +239,7 @@ the games whose rules are implemented.
 | Tile Kingdoms | Imperfect | Tile placement with edge matching, meeple followers, field scoring via WASM extension |
 | Triangle Dominoes | Imperfect | Triangular tiles on sparse hex grid, edge matching, region scoring |
 | Uno™ | Imperfect | 108-card color-matching, Skip/Reverse/Draw Two/Wild effects, direction reversal, 2-10 players |
-| Xiangqi | Perfect | 9×10, river/palace constraints, cannon jump-capture, flying general |
+| 象棋 / xiàngqí / Chinese Chess | Perfect | 9×10, river/palace constraints, cannon jump-capture, flying general |
 | Yahtzee™ | Perfect + random | 5d6, keep/re-roll, 13 scoring categories, upper bonus |
 | Global Thermonuclear War | Imperfect | 40 cities (20/side), ICBM/SLBM/bomber allocation, ABM defense, simultaneous sealed orders, commit-reveal launch, mutual destruction. A strange game. |
 
