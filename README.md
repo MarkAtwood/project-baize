@@ -171,7 +171,8 @@ in external tools.
 
 ## Game Catalog
 
-Sixty-four reference game definitions spanning the complexity spectrum.
+Sixty-four reference game definitions spanning the complexity spectrum,
+plus two planned entries marked below.
 Game rules are not subject to intellectual property protection. All
 trademarked names are used here in their descriptive sense to identify
 the games whose rules are implemented.
@@ -191,7 +192,7 @@ the games whose rules are implemented.
 | Chess | Perfect | All pieces, castling, en passant, promotion, check/checkmate/stalemate, repetition, 50-move, insufficient material |
 | Chickenfoot Dominoes | Imperfect | Dynamic graph branching layout, double-nine set, chickenfoot fork rule |
 | Sternhalma / Chinese Checkers | Perfect | 121-position hexagram via valid_cells mask, hex_6 adjacency, step/hop, multi-hop chains |
-| Clue™ | Imperfect | 9 rooms + hallways graph, hidden envelope, deduction, secret passages |
+| Cluedo / Clue™ | Imperfect | 9 rooms + hallways graph, hidden envelope, deduction, secret passages |
 | Colossal Cave Adventure | Perfect | 17-room graph text adventure, obstacles, treasures, single player |
 | Colossal Cave Adventure (350) | Perfect | 46-room expanded version, lamp battery, darkness, 10 treasures, 350 points |
 | Connect Four™ | Perfect | 7×6 grid, gravity drop placement, CEL `lines_4` window detection |
@@ -199,6 +200,7 @@ the games whose rules are implemented.
 | Diplomacy™ | Imperfect | 12 territories, simultaneous secret orders, support/strength resolution |
 | Dominoes | Imperfect | 28 tiles (double-six), chain topology, end matching |
 | Dots and Boxes | Perfect | Dot grid, edges as playable positions, box completion, chain reactions |
+| Dudo | Imperfect | *Planned ([#4](https://github.com/MarkAtwood/project-baize/issues/4))* — ancestor of Liar's Dice; aces wild, palifico rounds, calza (exact) calls |
 | Fury of Dracula™ | Imperfect | Hidden movement on European map, asymmetric teams, trail mechanic, day/night cycle |
 | Gin Rummy | Imperfect | Deadwood optimization, knocking, undercut, layoff |
 | 囲碁 / igo / Go | Perfect | 9×9/19×19, flood-fill captures, ko rule, suicide, territory scoring |
@@ -213,6 +215,7 @@ the games whose rules are implemented.
 | 麻雀 / mājan / Mahjong™ | Imperfect | 4-player, 136 tiles, interrupt claiming (chi/pon/ron), yaku scoring |
 | Mancala | Perfect | 14 pits, seed-sowing distribution, captures, extra turns |
 | Mastermind™ | Imperfect | Code-breaking, structured feedback (black/white pegs), information-theoretic deduction |
+| मोक्षपट / mokṣapaṭa / Moksha Patam | Perfect + random | *Planned ([#5](https://github.com/MarkAtwood/project-baize/issues/5))* — ancestor of Snakes & Ladders; named virtue/vice squares, 72/84/100-square traditional boards, moksha goal |
 | Nim | Perfect | Multiple heaps, Sprague-Grundy theory, mathematically solved |
 | Nine Men's Morris | Perfect | 24 intersections, phase transition (place → slide), mill captures, flying |
 | Ogre™ | Perfect | 22×15 hex wargame, Ogre Mk III subsystem targeting, CRT combat, GEV hit-and-run, overrun |
@@ -221,15 +224,15 @@ the games whose rules are implemented.
 | Pandemic™ | Imperfect | Cooperative, 12 cities, disease cubes, outbreaks, cure mechanics |
 | Pig | Perfect + random | Push-your-luck dice, multi-action turns, counter-based scoring |
 | Polyiamond Placement | Perfect | 486-cell hex triangular grid, D6 symmetry, 22 polyiamond pieces |
-| Power Grid™ | Imperfect | City network graph, auction economy, resource market, Dijkstra path costs |
+| Funkenschlag / Power Grid™ | Imperfect | City network graph, auction economy, resource market, Dijkstra path costs |
 | Quarto™ | Perfect | 4×4, opponent chooses your piece, 4-in-a-row by shared property |
-| Risk™ | Imperfect | 12 territories, 3 continents, dice combat, reinforcement/fortification phases |
+| La Conquête du Monde / Risk™ | Imperfect | 12 territories, 3 continents, dice combat, reinforcement/fortification phases |
 | Rock Paper Scissors | Imperfect | Simultaneous phases, commit-reveal (SHA-256), best-of-3 |
-| Rubik's Cube™ | Perfect | Single-player puzzle, 6-zone cycle perturbers, solved-state CEL |
+| Bűvös kocka / Rubik's Cube™ | Perfect | Single-player puzzle, 6-zone cycle perturbers, solved-state CEL |
 | Scotland Yard™ | Imperfect | 20-location transit network, hidden Mr. X movement, reveal turns |
 | Scrabble™ | Imperfect | 15×15 premium grid, dictionary validation, cross-word formation |
 | 𓊃𓈖𓏏𓏠 / znt / Senet | Perfect + random | 30-square S-track, casting sticks, 5 special squares, swap capture, bearing off — ancient Egypt (~3100 BCE) |
-| Settlers of Catan™ | Imperfect | 7-hex resource map, graph settlement placement, dice production, bank trading |
+| Die Siedler von Catan / Settlers of Catan™ | Imperfect | 7-hex resource map, graph settlement placement, dice production, bank trading |
 | 将棋 / shōgi / Japanese Chess | Perfect | 9×9, piece drops (captured pieces return to play), directional movement, promotion |
 | Skip-Bo™ | Imperfect | 162-card sequential building piles, stockpile race, wild cards, 4 personal discard stacks, 2-6 players |
 | Snakes & Ladders | Perfect + random | TrackZone, d6 dice, snake/ladder triggered effects, bounce-back |
