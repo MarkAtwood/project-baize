@@ -21,4 +21,4 @@ ariadne = "0.5"
 clap = { version = "4", features = ["derive"] }
 
 [dev-dependencies]
-wasmtime = "29"
+wasmtime = "45"
