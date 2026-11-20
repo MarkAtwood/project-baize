@@ -155,8 +155,8 @@ fn event_count_accumulates() {
 
 #[test]
 fn limits_are_generous() {
-    assert!(MAX_COMPONENTS_PER_GAME >= 10_000);
-    assert!(MAX_EVENTS_PER_GAME >= 100_000);
+    const { assert!(MAX_COMPONENTS_PER_GAME >= 10_000) };
+    const { assert!(MAX_EVENTS_PER_GAME >= 100_000) };
 }
 
 #[test]

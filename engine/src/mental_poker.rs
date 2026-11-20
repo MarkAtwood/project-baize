@@ -51,7 +51,7 @@ fn gen_biguint_range<R: Rng>(rng: &mut R, low: &BigUint, high: &BigUint) -> BigU
     assert!(high > low, "high must be > low");
     let range = high - low;
     let bit_len = range.bits() as usize;
-    let byte_len = (bit_len + 7) / 8;
+    let byte_len = bit_len.div_ceil(8);
     if byte_len == 0 {
         return low.clone();
     }

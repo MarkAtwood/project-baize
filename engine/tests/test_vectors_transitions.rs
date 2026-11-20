@@ -84,8 +84,8 @@ fn build_action(v: &Value) -> Action {
         other => panic!("unsupported action_type in vector: {other}"),
     };
 
-    let from = v.get("from").map(|p| parse_position(p));
-    let to = v.get("to").map(|p| parse_position(p));
+    let from = v.get("from").map(parse_position);
+    let to = v.get("to").map(parse_position);
     let component_type = v.get("component_type").and_then(|v| v.as_str()).map(String::from);
     let component_id = v.get("component_id").and_then(|v| v.as_str()).map(String::from);
 

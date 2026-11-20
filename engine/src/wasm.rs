@@ -23,6 +23,13 @@ pub struct BaizeEngine {
 }
 
 #[cfg(feature = "wasm")]
+impl Default for BaizeEngine {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+#[cfg(feature = "wasm")]
 #[wasm_bindgen]
 impl BaizeEngine {
     /// Create a new engine instance.

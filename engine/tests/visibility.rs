@@ -373,7 +373,7 @@ fn public_counter_visible_to_all() {
                 .players
                 .get(*player_name)
                 .and_then(|p| p.zones.get("score"))
-                .expect(&format!("{player_name}'s score zone"));
+                .unwrap_or_else(|| panic!("{player_name}'s score zone"));
 
             // Counter zones are always visible when public — they hold a value, not components
             if let ZoneState::Counter { .. } = score_zone {

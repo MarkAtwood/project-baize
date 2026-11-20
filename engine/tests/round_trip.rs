@@ -251,10 +251,8 @@ fn setup_session(tc: &TestCase) -> GameSession {
 
     // Set pot zone value if specified
     if let Some(pot_val) = tc.setup.pot_zone_value {
-        if let Some(zone) = session.runtime.zones.get_mut("pot_zone") {
-            if let RuntimeZone::Counter { value } = zone {
-                *value = pot_val;
-            }
+        if let Some(RuntimeZone::Counter { value }) = session.runtime.zones.get_mut("pot_zone") {
+            *value = pot_val;
         }
     }
 

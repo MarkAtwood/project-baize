@@ -14,19 +14,15 @@ use crate::state::{
 };
 
 /// How hidden-state trust is provided for this session.
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub enum TrustMode {
     /// Trusted server provides randomness and hides state (default).
+    #[default]
     TrustedServer,
     /// Mental poker: peer-to-peer cryptographic shuffle/deal.
     MentalPoker,
 }
 
-impl Default for TrustMode {
-    fn default() -> Self {
-        TrustMode::TrustedServer
-    }
-}
 
 // ---------------------------------------------------------------------------
 // Resource budget defaults
@@ -237,10 +233,7 @@ impl GridStorage {
                 let idx = (row as usize)
                     .checked_mul(*width as usize)
                     .and_then(|v| v.checked_add(col as usize));
-                let idx = match idx {
-                    Some(i) => i,
-                    None => return None,
-                };
+                let idx = idx?;
                 debug_assert_eq!(cells.len(), (*width as usize) * (*height as usize));
                 let prev = cells.get(idx).copied().flatten();
                 if let Some(cell) = cells.get_mut(idx) {
@@ -295,6 +288,10 @@ impl GridStorage {
 
 }
 
+/// Fog state of every tracked cell of a grid zone, keyed by `(col, row)`
+/// and then by player name.
+pub type CellFog = IndexMap<(i32, i32), IndexMap<String, FogState>>;
+
 /// Per-cell per-player fog of war state.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
@@ -332,7 +329,7 @@ pub enum RuntimeZone {
         valid_cells: Option<HashSet<(i32, i32)>>,
         /// Per-cell per-player fog state. Only present when fog_of_war is configured.
         /// Key: (col, row), Value: player_name -> FogState.
-        cell_fog: Option<IndexMap<(i32, i32), IndexMap<String, FogState>>>,
+        cell_fog: Option<CellFog>,
         /// Fog of war configuration from the zone definition.
         fog_config: Option<FogOfWarConfig>,
     },
@@ -1043,7 +1040,7 @@ impl RuntimeZone {
     }
 
     /// Get the cell_fog map reference for this zone, if any.
-    pub fn cell_fog(&self) -> Option<&IndexMap<(i32, i32), IndexMap<String, FogState>>> {
+    pub fn cell_fog(&self) -> Option<&CellFog> {
         match self {
             RuntimeZone::Grid { cell_fog, .. } => cell_fog.as_ref(),
             _ => None,

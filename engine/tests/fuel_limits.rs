@@ -141,7 +141,7 @@ fn all_reference_games_within_limits() {
     for entry in std::fs::read_dir(&games_dir).unwrap() {
         let entry = entry.unwrap();
         let path = entry.path();
-        if path.extension().map_or(false, |e| e == "json") {
+        if path.extension().is_some_and(|e| e == "json") {
             let json = std::fs::read_to_string(&path).unwrap();
             let result = GameDefinition::from_json(&json);
             assert!(

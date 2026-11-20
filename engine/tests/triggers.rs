@@ -594,7 +594,7 @@ fn verify_step_expected(
         for exp_ev in exp_events {
             let exp_type = exp_ev["event_type"].as_str().unwrap();
             let matching = events.iter().find(|e| {
-                let type_str = serde_json::to_value(&e.event_type)
+                let type_str = serde_json::to_value(e.event_type)
                     .unwrap()
                     .as_str()
                     .unwrap()
@@ -629,7 +629,7 @@ fn verify_step_expected(
         for excl in excluded {
             let excl_type = excl.as_str().unwrap();
             let found = events.iter().any(|e| {
-                let type_str = serde_json::to_value(&e.event_type)
+                let type_str = serde_json::to_value(e.event_type)
                     .unwrap()
                     .as_str()
                     .unwrap()

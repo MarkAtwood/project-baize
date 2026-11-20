@@ -1320,7 +1320,7 @@ fn find_matching_trigger<'a>(
     }
 
     // Serialize the action_type to its snake_case form for matching
-    let action_type_str = serde_json::to_value(&action.action_type)
+    let action_type_str = serde_json::to_value(action.action_type)
         .ok()
         .and_then(|v| v.as_str().map(String::from))?;
 

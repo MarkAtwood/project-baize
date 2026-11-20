@@ -299,9 +299,8 @@ fn execute_effect_inner(session: &mut GameSession, effect: &Effect, depth: u32) 
                 .collect();
             // Write shifted: pos[i] receives what was at pos[i-1]
             let n = parsed.len();
-            for i in 0..n {
+            for (i, &(zone, col, row)) in parsed.iter().enumerate() {
                 let src_idx = if i == 0 { n - 1 } else { i - 1 };
-                let (zone, col, row) = parsed[i];
                 session
                     .runtime
                     .zones

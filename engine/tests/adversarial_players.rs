@@ -295,12 +295,9 @@ fn place_out_of_bounds_row() {
     let mut session = tic_tac_toe_session();
 
     let result = apply_action(&mut session, &place_action(0, 100));
-    match result {
-        Ok(_) => {
-            let board = session.runtime.zones.get("board").unwrap();
-            assert!(board.grid_get(0, 100).is_none());
-        }
-        Err(_) => {}
+    if result.is_ok() {
+        let board = session.runtime.zones.get("board").unwrap();
+        assert!(board.grid_get(0, 100).is_none());
     }
 }
 
