@@ -162,22 +162,39 @@ const MAX_DECK_SIZE: usize = 256;
 
 /// Encode card indices as group elements.
 ///
-/// Uses sequential assignment: card i -> (i + 2) as a BigUint.
-/// Values 0 and 1 are reserved (0 = identity, 1 = trivial).
-/// This is deterministic and reversible.
+/// Card i maps to (i + 2)², a quadratic residue mod p. Squaring matters:
+/// SRA keys are odd (coprime to the even p − 1), so encryption preserves
+/// the Legendre symbol of the plaintext. With plain i + 2, about half the
+/// cards would be non-residues, and anyone could sort an encrypted deck
+/// into those two halves (Lipton's attack on SRA mental poker). With
+/// every card a residue, that bit says nothing.
+///
+/// Values 0 and 1 are never produced (0 = identity, 1 = trivial).
+/// (i + 2)² < p for every allowed index, so the square is taken over the
+/// integers and decoding is an integer square root.
 pub fn encode_card(card_index: usize) -> Result<BigUint> {
     if card_index >= MAX_DECK_SIZE {
         return Err(BaizeError::IllegalAction(format!(
             "card index {card_index} exceeds max deck size {MAX_DECK_SIZE}"
         )));
     }
-    Ok(BigUint::from(card_index + 2))
+    let root = BigUint::from(card_index + 2);
+    Ok(&root * &root)
 }
 
 /// Decode a group element back to a card index.
+///
+/// Inverts [`encode_card`]: the element must be the exact square of a
+/// value in `2..MAX_DECK_SIZE + 2`.
 pub fn decode_card(element: &BigUint) -> Result<usize> {
+    let root = element.sqrt();
+    if &(&root * &root) != element {
+        return Err(BaizeError::IllegalAction(
+            "invalid card encoding: not a perfect square".into(),
+        ));
+    }
     // to_u64_digits returns little-endian u64 limbs; empty vec means zero.
-    let digits = element.to_u64_digits();
+    let digits = root.to_u64_digits();
     if digits.len() > 1 {
         return Err(BaizeError::IllegalAction(
             "card element too large to decode".into(),
@@ -187,7 +204,7 @@ pub fn decode_card(element: &BigUint) -> Result<usize> {
 
     if val < 2 {
         return Err(BaizeError::IllegalAction(
-            "invalid card encoding: value < 2".into(),
+            "invalid card encoding: value < 4".into(),
         ));
     }
     let index = val - 2;
@@ -624,6 +641,26 @@ mod tests {
             let decoded = decode_card(&encoded).unwrap();
             assert_eq!(decoded, i);
         }
+    }
+
+    #[test]
+    fn test_card_encodings_are_quadratic_residues() {
+        // Euler's criterion: m is a residue mod p iff m^((p-1)/2) ≡ 1.
+        // SRA encryption preserves this bit, so every card must share it.
+        let p = modp_2048_prime();
+        let half = (&p - BigUint::one()) >> 1;
+        for i in 0..MAX_DECK_SIZE {
+            let m = encode_card(i).unwrap();
+            assert!(m < p);
+            assert_eq!(m.modpow(&half, &p), BigUint::one(), "card {i}");
+        }
+    }
+
+    #[test]
+    fn test_decode_rejects_non_squares() {
+        assert!(decode_card(&BigUint::from(5u32)).is_err());
+        assert!(decode_card(&(encode_card(3).unwrap() + BigUint::one())).is_err());
+        assert!(decode_card(&BigUint::from(1u32)).is_err());
     }
 
     #[test]
