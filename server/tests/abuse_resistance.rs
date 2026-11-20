@@ -9,7 +9,7 @@ use std::time::{Duration, Instant};
 use baize_engine::GameDefinition;
 use baize_engine::GameSession;
 use baize_server::config;
-use baize_server::protocol::{handle_client_message, HandleResult};
+use baize_server::protocol::{HandleResult, handle_client_message};
 use baize_server::rate_limiter::RateLimiter;
 use baize_server::room::{self, Room, RoomRegistry};
 use baize_server::vault::Vault;
@@ -78,7 +78,9 @@ fn extract_error_code(result: &HandleResult) -> Option<String> {
     match result {
         HandleResult::Error(json) => {
             let v: serde_json::Value = serde_json::from_str(json).ok()?;
-            v.get("error_code").and_then(|c| c.as_str()).map(String::from)
+            v.get("error_code")
+                .and_then(|c| c.as_str())
+                .map(String::from)
         }
         _ => None,
     }
@@ -98,7 +100,10 @@ fn rate_limiter_allows_first_message() {
 fn rate_limiter_allows_up_to_limit() {
     let mut limiter = RateLimiter::new(5);
     for i in 0..5 {
-        assert!(limiter.check(), "message {i} should be allowed (limit is 5)");
+        assert!(
+            limiter.check(),
+            "message {i} should be allowed (limit is 5)"
+        );
     }
 }
 
@@ -269,7 +274,10 @@ async fn different_ips_have_independent_limits() {
     for _ in 0..config::MAX_CONNECTIONS_PER_IP {
         guards.push(registry.acquire_ip_slot(ip1).await.unwrap());
     }
-    assert!(registry.acquire_ip_slot(ip1).await.is_err(), "IP1 at capacity");
+    assert!(
+        registry.acquire_ip_slot(ip1).await.is_err(),
+        "IP1 at capacity"
+    );
 
     // IP2 should still be able to connect
     let guard2 = registry

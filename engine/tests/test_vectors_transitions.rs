@@ -7,11 +7,11 @@
 //! Both this runner and the Python counterpart must produce identical results
 //! for every vector.
 
+use baize_engine::GameDefinition;
 use baize_engine::action::{Action, ActionType, Position};
 use baize_engine::runtime::*;
 use baize_engine::state::{Facing, GameStatus};
-use baize_engine::transition::{apply_action, EventType};
-use baize_engine::GameDefinition;
+use baize_engine::transition::{EventType, apply_action};
 use indexmap::IndexMap;
 use serde_json::Value;
 
@@ -42,23 +42,30 @@ fn setup_session(def: GameDefinition, setup: &[Value]) -> GameSession {
         let string_id = item["string_id"].as_str().unwrap().to_string();
         let component_type = item["component_type"].as_str().unwrap().to_string();
         let owner = item.get("owner").and_then(|v| v.as_str()).map(String::from);
-        let facing = item.get("facing").and_then(|v| v.as_str()).map(|f| match f {
-            "face_up" => Facing::FaceUp,
-            "face_down" => Facing::FaceDown,
-            other => panic!("unknown facing: {other}"),
-        });
+        let facing = item
+            .get("facing")
+            .and_then(|v| v.as_str())
+            .map(|f| match f {
+                "face_up" => Facing::FaceUp,
+                "face_down" => Facing::FaceDown,
+                other => panic!("unknown facing: {other}"),
+            });
 
-        let cid = session.runtime.components.insert(ComponentData {
-            id: ComponentId(0),
-            string_id,
-            component_type,
-            owner,
-            facing,
-            state: None,
-            properties: IndexMap::new(),
-            span_cells: Vec::new(),
+        let cid = session
+            .runtime
+            .components
+            .insert(ComponentData {
+                id: ComponentId(0),
+                string_id,
+                component_type,
+                owner,
+                facing,
+                state: None,
+                properties: IndexMap::new(),
+                span_cells: Vec::new(),
                 orientation: None,
-        }).unwrap();
+            })
+            .unwrap();
 
         if let Some(zone_name) = item.get("zone").and_then(|v| v.as_str()) {
             let col = item["col"].as_u64().unwrap() as u32;
@@ -86,8 +93,14 @@ fn build_action(v: &Value) -> Action {
 
     let from = v.get("from").map(parse_position);
     let to = v.get("to").map(parse_position);
-    let component_type = v.get("component_type").and_then(|v| v.as_str()).map(String::from);
-    let component_id = v.get("component_id").and_then(|v| v.as_str()).map(String::from);
+    let component_type = v
+        .get("component_type")
+        .and_then(|v| v.as_str())
+        .map(String::from);
+    let component_id = v
+        .get("component_id")
+        .and_then(|v| v.as_str())
+        .map(String::from);
 
     Action {
         action_type,
@@ -255,7 +268,11 @@ fn assert_board_cells(session: &GameSession, expected: &Value, test_name: &str, 
 }
 
 fn assert_empty_cells(session: &GameSession, cells: &[Value], test_name: &str, step: usize) {
-    let board = session.runtime.zones.get("board").expect("board zone missing");
+    let board = session
+        .runtime
+        .zones
+        .get("board")
+        .expect("board zone missing");
     for cell_val in cells {
         let coord = cell_val.as_str().unwrap();
         let parts: Vec<&str> = coord.split(',').collect();
@@ -291,7 +308,10 @@ fn assert_hash_chain(
         );
     }
 
-    if let Some(prev_null) = hash_chain.get("prev_hash_is_null").and_then(|v| v.as_bool()) {
+    if let Some(prev_null) = hash_chain
+        .get("prev_hash_is_null")
+        .and_then(|v| v.as_bool())
+    {
         // Check the first event's prev_hash
         if let Some(first_event) = events.first() {
             if prev_null {
@@ -308,7 +328,10 @@ fn assert_hash_chain(
         }
     }
 
-    if let Some(true) = hash_chain.get("hashes_are_distinct").and_then(|v| v.as_bool()) {
+    if let Some(true) = hash_chain
+        .get("hashes_are_distinct")
+        .and_then(|v| v.as_bool())
+    {
         let hashes = &session.runtime.history_hashes;
         if hashes.len() >= 2 {
             let last = &hashes[hashes.len() - 1];
@@ -320,7 +343,10 @@ fn assert_hash_chain(
         }
     }
 
-    if let Some(true) = hash_chain.get("all_hashes_unique").and_then(|v| v.as_bool()) {
+    if let Some(true) = hash_chain
+        .get("all_hashes_unique")
+        .and_then(|v| v.as_bool())
+    {
         let hashes = &session.runtime.history_hashes;
         let mut seen = std::collections::HashSet::new();
         for h in hashes {
@@ -332,12 +358,7 @@ fn assert_hash_chain(
     }
 }
 
-fn assert_component_state(
-    session: &GameSession,
-    expected: &Value,
-    test_name: &str,
-    step: usize,
-) {
+fn assert_component_state(session: &GameSession, expected: &Value, test_name: &str, step: usize) {
     if let Some(components) = expected.as_object() {
         for (string_id, exp_state) in components {
             let comp = session
@@ -371,15 +392,14 @@ fn assert_component_state(
 #[test]
 fn run_all_state_transition_vectors() {
     let vectors = load_vectors();
-    let test_cases = vectors["test_cases"].as_array().expect("test_cases is not an array");
+    let test_cases = vectors["test_cases"]
+        .as_array()
+        .expect("test_cases is not an array");
 
     for tc in test_cases {
         let name = tc["name"].as_str().unwrap();
         let def = parse_game_definition(&tc["game_definition"]);
-        let setup: Vec<Value> = tc["initial_setup"]
-            .as_array()
-            .cloned()
-            .unwrap_or_default();
+        let setup: Vec<Value> = tc["initial_setup"].as_array().cloned().unwrap_or_default();
         let actions = tc["actions"].as_array().expect("actions is not an array");
 
         let mut session = setup_session(def, &setup);

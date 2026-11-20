@@ -6,10 +6,10 @@
 //!
 //! Convention: each face viewed from outside the cube. (0,0) = top-left.
 
-use baize_engine::end_conditions::check_end_conditions;
-use baize_engine::perturber::{execute_effect, Effect};
-use baize_engine::runtime::{ComponentData, ComponentId, GameSession};
 use baize_engine::GameDefinition;
+use baize_engine::end_conditions::check_end_conditions;
+use baize_engine::perturber::{Effect, execute_effect};
+use baize_engine::runtime::{ComponentData, ComponentId, GameSession};
 use indexmap::IndexMap;
 use serde_json::json;
 use std::collections::HashMap;
@@ -60,7 +60,7 @@ fn cube_session() -> GameSession {
                         state: None,
                         properties: IndexMap::new(),
                         span_cells: Vec::new(),
-                orientation: None,
+                        orientation: None,
                     })
                     .unwrap();
                 session
@@ -137,51 +137,159 @@ fn reverse_move(cw: &Effect) -> Effect {
 // -- Move definitions --
 
 fn u_cw() -> Effect {
-    face_move("up", &[
-        vec![("front", 0, 0), ("right", 0, 0), ("back", 0, 0), ("left", 0, 0)],
-        vec![("front", 1, 0), ("right", 1, 0), ("back", 1, 0), ("left", 1, 0)],
-        vec![("front", 2, 0), ("right", 2, 0), ("back", 2, 0), ("left", 2, 0)],
-    ])
+    face_move(
+        "up",
+        &[
+            vec![
+                ("front", 0, 0),
+                ("right", 0, 0),
+                ("back", 0, 0),
+                ("left", 0, 0),
+            ],
+            vec![
+                ("front", 1, 0),
+                ("right", 1, 0),
+                ("back", 1, 0),
+                ("left", 1, 0),
+            ],
+            vec![
+                ("front", 2, 0),
+                ("right", 2, 0),
+                ("back", 2, 0),
+                ("left", 2, 0),
+            ],
+        ],
+    )
 }
 
 fn d_cw() -> Effect {
-    face_move("down", &[
-        vec![("front", 0, 2), ("left", 0, 2), ("back", 0, 2), ("right", 0, 2)],
-        vec![("front", 1, 2), ("left", 1, 2), ("back", 1, 2), ("right", 1, 2)],
-        vec![("front", 2, 2), ("left", 2, 2), ("back", 2, 2), ("right", 2, 2)],
-    ])
+    face_move(
+        "down",
+        &[
+            vec![
+                ("front", 0, 2),
+                ("left", 0, 2),
+                ("back", 0, 2),
+                ("right", 0, 2),
+            ],
+            vec![
+                ("front", 1, 2),
+                ("left", 1, 2),
+                ("back", 1, 2),
+                ("right", 1, 2),
+            ],
+            vec![
+                ("front", 2, 2),
+                ("left", 2, 2),
+                ("back", 2, 2),
+                ("right", 2, 2),
+            ],
+        ],
+    )
 }
 
 fn f_cw() -> Effect {
-    face_move("front", &[
-        vec![("up", 0, 2), ("right", 0, 0), ("down", 2, 0), ("left", 2, 2)],
-        vec![("up", 1, 2), ("right", 0, 1), ("down", 1, 0), ("left", 2, 1)],
-        vec![("up", 2, 2), ("right", 0, 2), ("down", 0, 0), ("left", 2, 0)],
-    ])
+    face_move(
+        "front",
+        &[
+            vec![
+                ("up", 0, 2),
+                ("right", 0, 0),
+                ("down", 2, 0),
+                ("left", 2, 2),
+            ],
+            vec![
+                ("up", 1, 2),
+                ("right", 0, 1),
+                ("down", 1, 0),
+                ("left", 2, 1),
+            ],
+            vec![
+                ("up", 2, 2),
+                ("right", 0, 2),
+                ("down", 0, 0),
+                ("left", 2, 0),
+            ],
+        ],
+    )
 }
 
 fn b_cw() -> Effect {
-    face_move("back", &[
-        vec![("up", 2, 0), ("left", 0, 0), ("down", 0, 2), ("right", 2, 2)],
-        vec![("up", 1, 0), ("left", 0, 1), ("down", 1, 2), ("right", 2, 1)],
-        vec![("up", 0, 0), ("left", 0, 2), ("down", 2, 2), ("right", 2, 0)],
-    ])
+    face_move(
+        "back",
+        &[
+            vec![
+                ("up", 2, 0),
+                ("left", 0, 0),
+                ("down", 0, 2),
+                ("right", 2, 2),
+            ],
+            vec![
+                ("up", 1, 0),
+                ("left", 0, 1),
+                ("down", 1, 2),
+                ("right", 2, 1),
+            ],
+            vec![
+                ("up", 0, 0),
+                ("left", 0, 2),
+                ("down", 2, 2),
+                ("right", 2, 0),
+            ],
+        ],
+    )
 }
 
 fn r_cw() -> Effect {
-    face_move("right", &[
-        vec![("up", 2, 0), ("front", 2, 0), ("down", 2, 0), ("back", 0, 2)],
-        vec![("up", 2, 1), ("front", 2, 1), ("down", 2, 1), ("back", 0, 1)],
-        vec![("up", 2, 2), ("front", 2, 2), ("down", 2, 2), ("back", 0, 0)],
-    ])
+    face_move(
+        "right",
+        &[
+            vec![
+                ("up", 2, 0),
+                ("front", 2, 0),
+                ("down", 2, 0),
+                ("back", 0, 2),
+            ],
+            vec![
+                ("up", 2, 1),
+                ("front", 2, 1),
+                ("down", 2, 1),
+                ("back", 0, 1),
+            ],
+            vec![
+                ("up", 2, 2),
+                ("front", 2, 2),
+                ("down", 2, 2),
+                ("back", 0, 0),
+            ],
+        ],
+    )
 }
 
 fn l_cw() -> Effect {
-    face_move("left", &[
-        vec![("up", 0, 0), ("back", 2, 2), ("down", 0, 0), ("front", 0, 0)],
-        vec![("up", 0, 1), ("back", 2, 1), ("down", 0, 1), ("front", 0, 1)],
-        vec![("up", 0, 2), ("back", 2, 0), ("down", 0, 2), ("front", 0, 2)],
-    ])
+    face_move(
+        "left",
+        &[
+            vec![
+                ("up", 0, 0),
+                ("back", 2, 2),
+                ("down", 0, 0),
+                ("front", 0, 0),
+            ],
+            vec![
+                ("up", 0, 1),
+                ("back", 2, 1),
+                ("down", 0, 1),
+                ("front", 0, 1),
+            ],
+            vec![
+                ("up", 0, 2),
+                ("back", 2, 0),
+                ("down", 0, 2),
+                ("front", 0, 2),
+            ],
+        ],
+    )
 }
 
 // -- Tests --
@@ -281,14 +389,13 @@ fn sexy_move_6x_identity() {
     let u = u_cw();
     let r_prime = reverse_move(&r);
     let u_prime = reverse_move(&u);
-    let sexy: Effect =
-        serde_json::from_value(json!({"sequence": [
-            serde_json::to_value(&r).unwrap(),
-            serde_json::to_value(&u).unwrap(),
-            serde_json::to_value(&r_prime).unwrap(),
-            serde_json::to_value(&u_prime).unwrap(),
-        ]}))
-        .unwrap();
+    let sexy: Effect = serde_json::from_value(json!({"sequence": [
+        serde_json::to_value(&r).unwrap(),
+        serde_json::to_value(&u).unwrap(),
+        serde_json::to_value(&r_prime).unwrap(),
+        serde_json::to_value(&u_prime).unwrap(),
+    ]}))
+    .unwrap();
     for _ in 0..6 {
         execute_effect(&mut session, &sexy).unwrap();
     }
@@ -361,7 +468,7 @@ fn solved_cube_session() -> GameSession {
                         state: None,
                         properties: IndexMap::new(),
                         span_cells: Vec::new(),
-                orientation: None,
+                        orientation: None,
                     })
                     .unwrap();
                 session

@@ -1,6 +1,6 @@
+use baize_engine::GameDefinition;
 use baize_engine::moves::legal_moves;
 use baize_engine::runtime::*;
-use baize_engine::GameDefinition;
 use indexmap::IndexMap;
 use serde::Deserialize;
 
@@ -59,8 +59,7 @@ fn setup_session(tc: &TestCase) -> GameSession {
         if session.current_player() == Some(&tc.current_player) {
             break;
         }
-        session.runtime.turn_index =
-            (session.runtime.turn_index + 1) % max_players;
+        session.runtime.turn_index = (session.runtime.turn_index + 1) % max_players;
     }
     assert_eq!(
         session.current_player(),
@@ -70,17 +69,21 @@ fn setup_session(tc: &TestCase) -> GameSession {
     );
 
     for p in &tc.setup {
-        let cid = session.runtime.components.insert(ComponentData {
-            id: ComponentId(0),
-            string_id: p.string_id.clone(),
-            component_type: p.component_type.clone(),
-            owner: Some(p.owner.clone()),
-            facing: None,
-            state: None,
-            properties: IndexMap::new(),
-            span_cells: Vec::new(),
+        let cid = session
+            .runtime
+            .components
+            .insert(ComponentData {
+                id: ComponentId(0),
+                string_id: p.string_id.clone(),
+                component_type: p.component_type.clone(),
+                owner: Some(p.owner.clone()),
+                facing: None,
+                state: None,
+                properties: IndexMap::new(),
+                span_cells: Vec::new(),
                 orientation: None,
-        }).unwrap();
+            })
+            .unwrap();
         session
             .runtime
             .zones

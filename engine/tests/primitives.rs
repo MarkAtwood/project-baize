@@ -1,7 +1,7 @@
+use baize_engine::GameDefinition;
 use baize_engine::action::{Action, ActionType};
 use baize_engine::runtime::*;
-use baize_engine::transition::{apply_action, EventType};
-use baize_engine::GameDefinition;
+use baize_engine::transition::{EventType, apply_action};
 use indexmap::IndexMap;
 
 /// Helper: create a chess-like session with a few pieces for testing movement primitives.
@@ -36,7 +36,12 @@ fn place_component(
     col: u32,
     row: u32,
 ) -> String {
-    let instance_id = format!("{}-{}-{}", comp_type, owner, session.runtime.components.len());
+    let instance_id = format!(
+        "{}-{}-{}",
+        comp_type,
+        owner,
+        session.runtime.components.len()
+    );
     let cid = session
         .runtime
         .components
@@ -49,7 +54,7 @@ fn place_component(
             state: None,
             properties: IndexMap::new(),
             span_cells: Vec::new(),
-                orientation: None,
+            orientation: None,
         })
         .unwrap();
     if let Some(zone) = session.runtime.zones.get_mut("board") {
@@ -89,7 +94,15 @@ fn remove_piece_from_grid() {
     let pawn_id = place_component(&mut session, "pawn", "white", 3, 1);
 
     // Verify piece is on the board
-    assert!(session.runtime.zones.get("board").unwrap().grid_get(3, 1).is_some());
+    assert!(
+        session
+            .runtime
+            .zones
+            .get("board")
+            .unwrap()
+            .grid_get(3, 1)
+            .is_some()
+    );
 
     let action = Action {
         component_id: Some(pawn_id.clone()),
@@ -98,7 +111,15 @@ fn remove_piece_from_grid() {
     let events = apply_action(&mut session, &action).unwrap();
 
     // Piece should be gone
-    assert!(session.runtime.zones.get("board").unwrap().grid_get(3, 1).is_none());
+    assert!(
+        session
+            .runtime
+            .zones
+            .get("board")
+            .unwrap()
+            .grid_get(3, 1)
+            .is_none()
+    );
 
     // Should have a remove event
     assert!(events.iter().any(|e| e.event_type == EventType::Remove));
@@ -188,7 +209,7 @@ fn swap_different_zones_fails() {
             state: None,
             properties: IndexMap::new(),
             span_cells: Vec::new(),
-                orientation: None,
+            orientation: None,
         })
         .unwrap();
 

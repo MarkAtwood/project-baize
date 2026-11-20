@@ -3,7 +3,7 @@ use std::collections::HashMap;
 use baize_engine::GameDefinition;
 use baize_engine::GameSession;
 use baize_server::config;
-use baize_server::protocol::{handle_client_message, HandleResult};
+use baize_server::protocol::{HandleResult, handle_client_message};
 use baize_server::room::Room;
 use baize_server::vault::Vault;
 
@@ -66,7 +66,9 @@ fn extract_error_code(result: &HandleResult) -> Option<String> {
     match result {
         HandleResult::Error(json) => {
             let v: serde_json::Value = serde_json::from_str(json).ok()?;
-            v.get("error_code").and_then(|c| c.as_str()).map(String::from)
+            v.get("error_code")
+                .and_then(|c| c.as_str())
+                .map(String::from)
         }
         _ => None,
     }

@@ -4,9 +4,7 @@ use std::sync::Mutex;
 use wasmtime::{Engine, Instance, Linker, Memory, Module, Store};
 
 use baize_engine::action::Action;
-use baize_engine::extension::{
-    EndCheckResult, ExtensionError, GameExtension, PlayerScore,
-};
+use baize_engine::extension::{EndCheckResult, ExtensionError, GameExtension, PlayerScore};
 use baize_engine::state::GameState;
 
 /// Maximum fuel (instruction count) per WASM extension call.
@@ -81,9 +79,7 @@ impl WasmHost {
         let memory_type = wasmtime::MemoryType::new(1, Some(max_pages));
         let host_memory = wasmtime::Memory::new(&mut Store::new(&engine, ()), memory_type)
             .map_err(|e| {
-                ExtensionError::ComputationFailed(format!(
-                    "failed to create capped memory: {e}"
-                ))
+                ExtensionError::ComputationFailed(format!("failed to create capped memory: {e}"))
             })?;
         // Only define a host memory if the module does not export its own.
         // We try to link it; if the module exports "memory", instantiation
@@ -91,21 +87,17 @@ impl WasmHost {
         let _ = linker.define(&mut Store::new(&engine, ()), "env", "memory", host_memory);
 
         let mut store = Store::new(&engine, ());
-        store.set_fuel(WASM_FUEL_PER_CALL).map_err(|e| {
-            ExtensionError::ComputationFailed(format!("failed to set fuel: {e}"))
-        })?;
+        store
+            .set_fuel(WASM_FUEL_PER_CALL)
+            .map_err(|e| ExtensionError::ComputationFailed(format!("failed to set fuel: {e}")))?;
 
         let instance = linker.instantiate(&mut store, &module).map_err(|e| {
             ExtensionError::ComputationFailed(format!("failed to instantiate WASM module: {e}"))
         })?;
 
-        let memory = instance
-            .get_memory(&mut store, "memory")
-            .ok_or_else(|| {
-                ExtensionError::ComputationFailed(
-                    "WASM module does not export 'memory'".to_string(),
-                )
-            })?;
+        let memory = instance.get_memory(&mut store, "memory").ok_or_else(|| {
+            ExtensionError::ComputationFailed("WASM module does not export 'memory'".to_string())
+        })?;
 
         Ok(Self {
             inner: Mutex::new(WasmHostInner {
@@ -134,9 +126,9 @@ impl WasmHost {
                 ExtensionError::ComputationFailed(format!("missing 'alloc' export: {e}"))
             })?;
 
-        let ptr = alloc.call(&mut inner.store, len).map_err(|e| {
-            ExtensionError::ComputationFailed(format!("alloc call failed: {e}"))
-        })?;
+        let ptr = alloc
+            .call(&mut inner.store, len)
+            .map_err(|e| ExtensionError::ComputationFailed(format!("alloc call failed: {e}")))?;
 
         inner
             .memory
@@ -187,10 +179,9 @@ impl WasmHost {
         if ptr == NULL_PTR {
             return;
         }
-        if let Ok(dealloc_fn) =
-            inner
-                .instance
-                .get_typed_func::<(i32, i32), ()>(&mut inner.store, "dealloc")
+        if let Ok(dealloc_fn) = inner
+            .instance
+            .get_typed_func::<(i32, i32), ()>(&mut inner.store, "dealloc")
         {
             let _ = dealloc_fn.call(&mut inner.store, (ptr, len));
         }
@@ -246,10 +237,10 @@ impl GameExtension for WasmHost {
         };
 
         let inner_ref = &mut *inner;
-        let func = match inner_ref.instance.get_typed_func::<(i32, i32, i32, i32, i32, i32), i32>(
-            &mut inner_ref.store,
-            "is_legal",
-        ) {
+        let func = match inner_ref
+            .instance
+            .get_typed_func::<(i32, i32, i32, i32, i32, i32), i32>(&mut inner_ref.store, "is_legal")
+        {
             Ok(f) => f,
             Err(e) => {
                 eprintln!("wasm_host: missing 'is_legal' export: {e}");
@@ -259,7 +250,9 @@ impl GameExtension for WasmHost {
 
         let result_ptr = match func.call(
             &mut inner.store,
-            (state_ptr, state_len, player_ptr, player_len, action_ptr, action_len),
+            (
+                state_ptr, state_len, player_ptr, player_len, action_ptr, action_len,
+            ),
         ) {
             Ok(p) => p,
             Err(e) => {
@@ -375,19 +368,14 @@ impl GameExtension for WasmHost {
         }
     }
 
-    fn apply_effect(
-        &self,
-        state: &GameState,
-        trigger: &str,
-    ) -> Result<GameState, ExtensionError> {
+    fn apply_effect(&self, state: &GameState, trigger: &str) -> Result<GameState, ExtensionError> {
         let mut inner = self.inner.lock().map_err(|e| {
             ExtensionError::ComputationFailed(format!("mutex poisoned in apply_effect: {e}"))
         })?;
         Self::refuel(&mut inner);
 
-        let state_json = serde_json::to_string(state).map_err(|e| {
-            ExtensionError::InvalidState(format!("failed to serialize state: {e}"))
-        })?;
+        let state_json = serde_json::to_string(state)
+            .map_err(|e| ExtensionError::InvalidState(format!("failed to serialize state: {e}")))?;
 
         let (state_ptr, state_len) = Self::write_string(&mut inner, &state_json)?;
         let (trigger_ptr, trigger_len) = Self::write_string(&mut inner, trigger)?;
@@ -430,9 +418,8 @@ impl GameExtension for WasmHost {
         })?;
         Self::refuel(&mut inner);
 
-        let state_json = serde_json::to_string(state).map_err(|e| {
-            ExtensionError::InvalidState(format!("failed to serialize state: {e}"))
-        })?;
+        let state_json = serde_json::to_string(state)
+            .map_err(|e| ExtensionError::InvalidState(format!("failed to serialize state: {e}")))?;
 
         let (state_ptr, state_len) = Self::write_string(&mut inner, &state_json)?;
 
@@ -446,9 +433,7 @@ impl GameExtension for WasmHost {
 
         let result_ptr = func
             .call(&mut inner.store, (state_ptr, state_len))
-            .map_err(|e| {
-                ExtensionError::ComputationFailed(format!("score call failed: {e}"))
-            })?;
+            .map_err(|e| ExtensionError::ComputationFailed(format!("score call failed: {e}")))?;
 
         if result_ptr == NULL_PTR {
             return Ok(Vec::new());

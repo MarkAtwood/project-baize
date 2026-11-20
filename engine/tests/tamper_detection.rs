@@ -35,8 +35,7 @@ fn recompute_hash(event: &serde_json::Value) -> String {
             canonical.insert(key.to_string(), val.clone());
         }
     }
-    let payload =
-        serde_json::to_string(&serde_json::Value::Object(canonical)).unwrap();
+    let payload = serde_json::to_string(&serde_json::Value::Object(canonical)).unwrap();
     blake3::hash(payload.as_bytes()).to_hex().to_string()
 }
 
@@ -89,7 +88,13 @@ fn test_modifying_payload_breaks_chain() {
     let result = verify_event_log(reader).unwrap();
     assert!(!result.valid);
     assert_eq!(result.divergence_index, Some(3));
-    assert!(result.error.as_ref().unwrap().contains("event_hash mismatch"));
+    assert!(
+        result
+            .error
+            .as_ref()
+            .unwrap()
+            .contains("event_hash mismatch")
+    );
 }
 
 #[test]
@@ -127,13 +132,10 @@ fn test_deleting_event_breaks_chain() {
 fn test_wrong_genesis_hash_detected() {
     let mut events = load_events();
     // Set a non-zero genesis prev_hash
-    events[0]
-        .as_object_mut()
-        .unwrap()
-        .insert(
-            "prev_hash".to_string(),
-            serde_json::json!("ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"),
-        );
+    events[0].as_object_mut().unwrap().insert(
+        "prev_hash".to_string(),
+        serde_json::json!("ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"),
+    );
     // Recompute event_hash so only the genesis check catches it
     let new_hash = recompute_hash(&events[0]);
     events[0]

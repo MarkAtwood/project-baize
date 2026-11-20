@@ -58,9 +58,7 @@ pub async fn ws_handler(
 ) -> impl IntoResponse {
     // Validate room ID before doing anything else
     if let Err(e) = validate_room_id(&room_id) {
-        eprintln!(
-            "[security] rejected invalid room ID '{room_id}' from {addr}: {e}"
-        );
+        eprintln!("[security] rejected invalid room ID '{room_id}' from {addr}: {e}");
         return (
             axum::http::StatusCode::BAD_REQUEST,
             format!("invalid room ID: {e}"),
@@ -172,9 +170,7 @@ async fn handle_socket(
         let (seat, token) = if let Some(ref client_token) = hello.token {
             if let Some(existing_seat) = room::seat_for_token(&room_guard, client_token) {
                 // Reconnection: reclaim the seat, reuse token
-                eprintln!(
-                    "player '{existing_seat}' reconnecting to room '{room_id}'"
-                );
+                eprintln!("player '{existing_seat}' reconnecting to room '{room_id}'");
                 (existing_seat, client_token.clone())
             } else {
                 // Unknown token — treat as new connection
@@ -183,7 +179,13 @@ async fn handle_socket(
                     let _ = socket.send(Message::Text(err.into())).await;
                     return;
                 }
-                let seat = match pick_seat_with_preference(&room_guard, &hello.preferred_seat, &mut socket).await {
+                let seat = match pick_seat_with_preference(
+                    &room_guard,
+                    &hello.preferred_seat,
+                    &mut socket,
+                )
+                .await
+                {
                     Some(s) => s,
                     None => return,
                 };
@@ -201,10 +203,13 @@ async fn handle_socket(
                 let _ = socket.send(Message::Text(err.into())).await;
                 return;
             }
-            let seat = match pick_seat_with_preference(&room_guard, &hello.preferred_seat, &mut socket).await {
-                Some(s) => s,
-                None => return,
-            };
+            let seat =
+                match pick_seat_with_preference(&room_guard, &hello.preferred_seat, &mut socket)
+                    .await
+                {
+                    Some(s) => s,
+                    None => return,
+                };
             let token = room::register_token(&mut room_guard, &seat);
             (seat, token)
         };
@@ -438,32 +443,30 @@ pub async fn list_games_handler() -> impl IntoResponse {
                 continue;
             }
             match std::fs::read_to_string(&path) {
-                Ok(content) => {
-                    match serde_json::from_str::<serde_json::Value>(&content) {
-                        Ok(val) => {
-                            let name = val.get("game")
-                                .and_then(|g| g.get("name"))
-                                .and_then(|n| n.as_str())
-                                .unwrap_or("unknown")
-                                .to_string();
-                            let players = val.get("game")
-                                .and_then(|g| g.get("players"))
-                                .cloned();
-                            let file = path.file_name()
-                                .and_then(|f| f.to_str())
-                                .unwrap_or("")
-                                .to_string();
-                            catalog.push(serde_json::json!({
-                                "name": name,
-                                "file": file,
-                                "players": players,
-                            }));
-                        }
-                        Err(e) => {
-                            eprintln!("[warning] skipping invalid game file {:?}: {e}", path);
-                        }
+                Ok(content) => match serde_json::from_str::<serde_json::Value>(&content) {
+                    Ok(val) => {
+                        let name = val
+                            .get("game")
+                            .and_then(|g| g.get("name"))
+                            .and_then(|n| n.as_str())
+                            .unwrap_or("unknown")
+                            .to_string();
+                        let players = val.get("game").and_then(|g| g.get("players")).cloned();
+                        let file = path
+                            .file_name()
+                            .and_then(|f| f.to_str())
+                            .unwrap_or("")
+                            .to_string();
+                        catalog.push(serde_json::json!({
+                            "name": name,
+                            "file": file,
+                            "players": players,
+                        }));
                     }
-                }
+                    Err(e) => {
+                        eprintln!("[warning] skipping invalid game file {:?}: {e}", path);
+                    }
+                },
                 Err(e) => {
                     eprintln!("[warning] cannot read game file {:?}: {e}", path);
                 }
@@ -549,7 +552,10 @@ pub async fn create_room_handler(
         baize_engine::definition::Players::Range { max, .. } => *max as usize,
     };
 
-    match registry.create_room(room_id.clone(), &definition_json).await {
+    match registry
+        .create_room(room_id.clone(), &definition_json)
+        .await
+    {
         Ok(_) => (
             axum::http::StatusCode::CREATED,
             Json(serde_json::json!(CreateRoomResponse {
@@ -568,9 +574,7 @@ pub async fn create_room_handler(
 }
 
 /// Axum handler: list active rooms.
-pub async fn list_rooms_handler(
-    State(registry): State<Arc<RoomRegistry>>,
-) -> impl IntoResponse {
+pub async fn list_rooms_handler(State(registry): State<Arc<RoomRegistry>>) -> impl IntoResponse {
     let room_ids = registry.list_rooms().await;
     let mut rooms = Vec::new();
 
@@ -613,7 +617,11 @@ fn handle_claim_timeout(room: &mut Room) {
     // Collect non-respondent players and the default claim
     let (pending_players, default_claim) = {
         // claim_window verified present by caller
-        let window = room.session.runtime.claim_window.as_ref()
+        let window = room
+            .session
+            .runtime
+            .claim_window
+            .as_ref()
             .expect("handle_claim_timeout called without active claim window");
         let pending: Vec<String> = window
             .eligible_players
@@ -688,13 +696,7 @@ async fn pick_seat_with_preference(
     socket: &mut WebSocket,
 ) -> Option<String> {
     if let Some(preferred) = preferred {
-        let defined_players: Vec<String> = room
-            .session
-            .runtime
-            .players
-            .keys()
-            .cloned()
-            .collect();
+        let defined_players: Vec<String> = room.session.runtime.players.keys().cloned().collect();
         if !defined_players.contains(preferred) {
             let err = ws_error_json(
                 "invalid_seat",
@@ -726,13 +728,7 @@ async fn pick_seat_with_preference(
 /// Precondition: room must have at least one defined player in the game definition.
 /// Postcondition: returned seat name is never empty.
 fn pick_seat(room: &Room) -> String {
-    let defined_players: Vec<String> = room
-        .session
-        .runtime
-        .players
-        .keys()
-        .cloned()
-        .collect();
+    let defined_players: Vec<String> = room.session.runtime.players.keys().cloned().collect();
 
     debug_assert!(
         !defined_players.is_empty(),

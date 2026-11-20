@@ -1,8 +1,8 @@
 use std::collections::HashSet;
 
+use baize_engine::GameDefinition;
 use baize_engine::runtime::*;
 use baize_engine::state::*;
-use baize_engine::GameDefinition;
 
 fn tic_tac_toe_def() -> GameDefinition {
     serde_json::from_str(
@@ -57,17 +57,21 @@ fn grid_operations() {
     let mut session = GameSession::new(def).unwrap();
 
     // Place a component at (1, 1) — center
-    let cid = session.runtime.components.insert(ComponentData {
-        id: ComponentId(0),
-        string_id: "mark-x-0".into(),
-        component_type: "mark".into(),
-        owner: Some("X".into()),
-        facing: None,
-        state: None,
-        properties: Default::default(),
-        span_cells: Vec::new(),
-                orientation: None,
-    }).unwrap();
+    let cid = session
+        .runtime
+        .components
+        .insert(ComponentData {
+            id: ComponentId(0),
+            string_id: "mark-x-0".into(),
+            component_type: "mark".into(),
+            owner: Some("X".into()),
+            facing: None,
+            state: None,
+            properties: Default::default(),
+            span_cells: Vec::new(),
+            orientation: None,
+        })
+        .unwrap();
 
     let board = session.runtime.zones.get_mut("board").unwrap();
     assert!(board.grid_get(1, 1).is_none());
@@ -124,17 +128,21 @@ fn wire_round_trip() {
     session.runtime.status = GameStatus::InProgress;
 
     // Place a mark
-    let cid = session.runtime.components.insert(ComponentData {
-        id: ComponentId(0),
-        string_id: "mark-x-0".into(),
-        component_type: "mark".into(),
-        owner: Some("X".into()),
-        facing: None,
-        state: None,
-        properties: Default::default(),
-        span_cells: Vec::new(),
-                orientation: None,
-    }).unwrap();
+    let cid = session
+        .runtime
+        .components
+        .insert(ComponentData {
+            id: ComponentId(0),
+            string_id: "mark-x-0".into(),
+            component_type: "mark".into(),
+            owner: Some("X".into()),
+            facing: None,
+            state: None,
+            properties: Default::default(),
+            span_cells: Vec::new(),
+            orientation: None,
+        })
+        .unwrap();
     session
         .runtime
         .zones
@@ -231,17 +239,21 @@ fn grid_place_span_horizontal() {
     let def = grid_10x10_def();
     let mut session = GameSession::new(def).unwrap();
 
-    let cid = session.runtime.components.insert(ComponentData {
-        id: ComponentId(0),
-        string_id: "carrier-A-0".into(),
-        component_type: "carrier".into(),
-        owner: Some("A".into()),
-        facing: None,
-        state: None,
-        properties: Default::default(),
-        span_cells: Vec::new(),
-                orientation: None,
-    }).unwrap();
+    let cid = session
+        .runtime
+        .components
+        .insert(ComponentData {
+            id: ComponentId(0),
+            string_id: "carrier-A-0".into(),
+            component_type: "carrier".into(),
+            owner: Some("A".into()),
+            facing: None,
+            state: None,
+            properties: Default::default(),
+            span_cells: Vec::new(),
+            orientation: None,
+        })
+        .unwrap();
 
     let zone = session.runtime.zones.get_mut("board").unwrap();
     let cells = zone.grid_place_span(2, 3, true, 5, cid).unwrap();
@@ -264,17 +276,21 @@ fn grid_place_span_vertical() {
     let def = grid_10x10_def();
     let mut session = GameSession::new(def).unwrap();
 
-    let cid = session.runtime.components.insert(ComponentData {
-        id: ComponentId(0),
-        string_id: "destroyer-A-0".into(),
-        component_type: "destroyer".into(),
-        owner: Some("A".into()),
-        facing: None,
-        state: None,
-        properties: Default::default(),
-        span_cells: Vec::new(),
-                orientation: None,
-    }).unwrap();
+    let cid = session
+        .runtime
+        .components
+        .insert(ComponentData {
+            id: ComponentId(0),
+            string_id: "destroyer-A-0".into(),
+            component_type: "destroyer".into(),
+            owner: Some("A".into()),
+            facing: None,
+            state: None,
+            properties: Default::default(),
+            span_cells: Vec::new(),
+            orientation: None,
+        })
+        .unwrap();
 
     let zone = session.runtime.zones.get_mut("board").unwrap();
     let cells = zone.grid_place_span(0, 0, false, 2, cid).unwrap();
@@ -289,17 +305,21 @@ fn grid_place_span_out_of_bounds() {
     let def = grid_10x10_def();
     let mut session = GameSession::new(def).unwrap();
 
-    let cid = session.runtime.components.insert(ComponentData {
-        id: ComponentId(0),
-        string_id: "carrier-A-0".into(),
-        component_type: "carrier".into(),
-        owner: Some("A".into()),
-        facing: None,
-        state: None,
-        properties: Default::default(),
-        span_cells: Vec::new(),
-                orientation: None,
-    }).unwrap();
+    let cid = session
+        .runtime
+        .components
+        .insert(ComponentData {
+            id: ComponentId(0),
+            string_id: "carrier-A-0".into(),
+            component_type: "carrier".into(),
+            owner: Some("A".into()),
+            facing: None,
+            state: None,
+            properties: Default::default(),
+            span_cells: Vec::new(),
+            orientation: None,
+        })
+        .unwrap();
 
     let zone = session.runtime.zones.get_mut("board").unwrap();
     // Span of 5 starting at col 8 would go to col 12 — out of bounds
@@ -312,29 +332,37 @@ fn grid_place_span_overlap() {
     let def = grid_10x10_def();
     let mut session = GameSession::new(def).unwrap();
 
-    let cid1 = session.runtime.components.insert(ComponentData {
-        id: ComponentId(0),
-        string_id: "carrier-A-0".into(),
-        component_type: "carrier".into(),
-        owner: Some("A".into()),
-        facing: None,
-        state: None,
-        properties: Default::default(),
-        span_cells: Vec::new(),
-                orientation: None,
-    }).unwrap();
+    let cid1 = session
+        .runtime
+        .components
+        .insert(ComponentData {
+            id: ComponentId(0),
+            string_id: "carrier-A-0".into(),
+            component_type: "carrier".into(),
+            owner: Some("A".into()),
+            facing: None,
+            state: None,
+            properties: Default::default(),
+            span_cells: Vec::new(),
+            orientation: None,
+        })
+        .unwrap();
 
-    let cid2 = session.runtime.components.insert(ComponentData {
-        id: ComponentId(0),
-        string_id: "destroyer-A-0".into(),
-        component_type: "destroyer".into(),
-        owner: Some("A".into()),
-        facing: None,
-        state: None,
-        properties: Default::default(),
-        span_cells: Vec::new(),
-                orientation: None,
-    }).unwrap();
+    let cid2 = session
+        .runtime
+        .components
+        .insert(ComponentData {
+            id: ComponentId(0),
+            string_id: "destroyer-A-0".into(),
+            component_type: "destroyer".into(),
+            owner: Some("A".into()),
+            facing: None,
+            state: None,
+            properties: Default::default(),
+            span_cells: Vec::new(),
+            orientation: None,
+        })
+        .unwrap();
 
     let zone = session.runtime.zones.get_mut("board").unwrap();
     // Place carrier at (0,0) horizontal, spanning cols 0-4
@@ -350,17 +378,21 @@ fn grid_remove_span() {
     let def = grid_10x10_def();
     let mut session = GameSession::new(def).unwrap();
 
-    let cid = session.runtime.components.insert(ComponentData {
-        id: ComponentId(0),
-        string_id: "carrier-A-0".into(),
-        component_type: "carrier".into(),
-        owner: Some("A".into()),
-        facing: None,
-        state: None,
-        properties: Default::default(),
-        span_cells: Vec::new(),
-                orientation: None,
-    }).unwrap();
+    let cid = session
+        .runtime
+        .components
+        .insert(ComponentData {
+            id: ComponentId(0),
+            string_id: "carrier-A-0".into(),
+            component_type: "carrier".into(),
+            owner: Some("A".into()),
+            facing: None,
+            state: None,
+            properties: Default::default(),
+            span_cells: Vec::new(),
+            orientation: None,
+        })
+        .unwrap();
 
     let zone = session.runtime.zones.get_mut("board").unwrap();
     let cells = zone.grid_place_span(0, 0, true, 5, cid).unwrap();
@@ -414,7 +446,10 @@ fn grid_cell_valid_no_mask() {
     // All in-bounds cells are valid
     for row in 0..3u32 {
         for col in 0..3u32 {
-            assert!(grid.grid_cell_valid(col, row), "({col},{row}) should be valid");
+            assert!(
+                grid.grid_cell_valid(col, row),
+                "({col},{row}) should be valid"
+            );
         }
     }
 
@@ -448,7 +483,9 @@ fn grid_cell_valid_with_mask() {
 
 #[test]
 fn grid_cell_valid_non_grid_zone() {
-    let zone = RuntimeZone::Set { components: Vec::new() };
+    let zone = RuntimeZone::Set {
+        components: Vec::new(),
+    };
     // grid_cell_valid on a non-grid zone always returns false
     assert!(!zone.grid_cell_valid(0, 0));
 }
@@ -585,7 +622,12 @@ fn from_definition_valid_cells_populated() {
     let board = session.runtime.zones.get("board").unwrap();
 
     // Check that valid_cells is correctly populated
-    if let RuntimeZone::Grid { valid_cells, storage, .. } = board {
+    if let RuntimeZone::Grid {
+        valid_cells,
+        storage,
+        ..
+    } = board
+    {
         let vc = valid_cells.as_ref().expect("valid_cells should be Some");
         assert_eq!(storage.dimensions(), Some((3, 3)));
         assert_eq!(vc.len(), 3);
@@ -672,7 +714,12 @@ fn graph_construction_from_definition() {
     let session = GameSession::new(def).unwrap();
     let zone = session.runtime.zones.get("map").unwrap();
 
-    if let RuntimeZone::Graph { node_names, adjacency, .. } = zone {
+    if let RuntimeZone::Graph {
+        node_names,
+        adjacency,
+        ..
+    } = zone
+    {
         assert_eq!(node_names.len(), 5);
         assert_eq!(node_names, &["A", "B", "C", "D", "E"]);
         // A (0) adjacent to B (1), C (2)
@@ -705,17 +752,21 @@ fn graph_set_and_get() {
     let def = graph_zone_def();
     let mut session = GameSession::new(def).unwrap();
 
-    let cid = session.runtime.components.insert(ComponentData {
-        id: ComponentId(0),
-        string_id: "token-0".into(),
-        component_type: "token".into(),
-        owner: None,
-        facing: None,
-        state: None,
-        properties: Default::default(),
-        span_cells: Vec::new(),
-        orientation: None,
-    }).unwrap();
+    let cid = session
+        .runtime
+        .components
+        .insert(ComponentData {
+            id: ComponentId(0),
+            string_id: "token-0".into(),
+            component_type: "token".into(),
+            owner: None,
+            facing: None,
+            state: None,
+            properties: Default::default(),
+            span_cells: Vec::new(),
+            orientation: None,
+        })
+        .unwrap();
 
     let zone = session.runtime.zones.get_mut("map").unwrap();
     zone.graph_set("B", Some(cid));
@@ -727,29 +778,37 @@ fn graph_set_returns_previous() {
     let def = graph_zone_def();
     let mut session = GameSession::new(def).unwrap();
 
-    let c1 = session.runtime.components.insert(ComponentData {
-        id: ComponentId(0),
-        string_id: "token-0".into(),
-        component_type: "token".into(),
-        owner: None,
-        facing: None,
-        state: None,
-        properties: Default::default(),
-        span_cells: Vec::new(),
-        orientation: None,
-    }).unwrap();
+    let c1 = session
+        .runtime
+        .components
+        .insert(ComponentData {
+            id: ComponentId(0),
+            string_id: "token-0".into(),
+            component_type: "token".into(),
+            owner: None,
+            facing: None,
+            state: None,
+            properties: Default::default(),
+            span_cells: Vec::new(),
+            orientation: None,
+        })
+        .unwrap();
 
-    let c2 = session.runtime.components.insert(ComponentData {
-        id: ComponentId(0),
-        string_id: "token-1".into(),
-        component_type: "token".into(),
-        owner: None,
-        facing: None,
-        state: None,
-        properties: Default::default(),
-        span_cells: Vec::new(),
-        orientation: None,
-    }).unwrap();
+    let c2 = session
+        .runtime
+        .components
+        .insert(ComponentData {
+            id: ComponentId(0),
+            string_id: "token-1".into(),
+            component_type: "token".into(),
+            owner: None,
+            facing: None,
+            state: None,
+            properties: Default::default(),
+            span_cells: Vec::new(),
+            orientation: None,
+        })
+        .unwrap();
 
     let zone = session.runtime.zones.get_mut("map").unwrap();
     let prev1 = zone.graph_set("A", Some(c1));
@@ -798,41 +857,53 @@ fn graph_count() {
     // Empty graph
     assert_eq!(session.runtime.zones.get("map").unwrap().count(), 0);
 
-    let c1 = session.runtime.components.insert(ComponentData {
-        id: ComponentId(0),
-        string_id: "token-0".into(),
-        component_type: "token".into(),
-        owner: None,
-        facing: None,
-        state: None,
-        properties: Default::default(),
-        span_cells: Vec::new(),
-        orientation: None,
-    }).unwrap();
+    let c1 = session
+        .runtime
+        .components
+        .insert(ComponentData {
+            id: ComponentId(0),
+            string_id: "token-0".into(),
+            component_type: "token".into(),
+            owner: None,
+            facing: None,
+            state: None,
+            properties: Default::default(),
+            span_cells: Vec::new(),
+            orientation: None,
+        })
+        .unwrap();
 
-    let c2 = session.runtime.components.insert(ComponentData {
-        id: ComponentId(0),
-        string_id: "token-1".into(),
-        component_type: "token".into(),
-        owner: None,
-        facing: None,
-        state: None,
-        properties: Default::default(),
-        span_cells: Vec::new(),
-        orientation: None,
-    }).unwrap();
+    let c2 = session
+        .runtime
+        .components
+        .insert(ComponentData {
+            id: ComponentId(0),
+            string_id: "token-1".into(),
+            component_type: "token".into(),
+            owner: None,
+            facing: None,
+            state: None,
+            properties: Default::default(),
+            span_cells: Vec::new(),
+            orientation: None,
+        })
+        .unwrap();
 
-    let c3 = session.runtime.components.insert(ComponentData {
-        id: ComponentId(0),
-        string_id: "token-2".into(),
-        component_type: "token".into(),
-        owner: None,
-        facing: None,
-        state: None,
-        properties: Default::default(),
-        span_cells: Vec::new(),
-        orientation: None,
-    }).unwrap();
+    let c3 = session
+        .runtime
+        .components
+        .insert(ComponentData {
+            id: ComponentId(0),
+            string_id: "token-2".into(),
+            component_type: "token".into(),
+            owner: None,
+            facing: None,
+            state: None,
+            properties: Default::default(),
+            span_cells: Vec::new(),
+            orientation: None,
+        })
+        .unwrap();
 
     let zone = session.runtime.zones.get_mut("map").unwrap();
     zone.graph_set("A", Some(c1));
@@ -869,7 +940,12 @@ fn graph_node_properties() {
     let session = GameSession::new(def).unwrap();
     let zone = session.runtime.zones.get("map").unwrap();
 
-    if let RuntimeZone::Graph { node_properties, name_to_index, .. } = zone {
+    if let RuntimeZone::Graph {
+        node_properties,
+        name_to_index,
+        ..
+    } = zone
+    {
         // A (index 0) has color=red, value=10
         let a_idx = name_to_index.get("A").unwrap();
         let a_props = node_properties.get(a_idx).unwrap();
@@ -911,7 +987,10 @@ fn graph_missing_nodes_errors() {
     match result {
         Ok(def) => {
             let session_result = GameSession::new(def);
-            assert!(session_result.is_err(), "should fail: graph zone requires nodes");
+            assert!(
+                session_result.is_err(),
+                "should fail: graph zone requires nodes"
+            );
         }
         Err(_) => {
             // Also acceptable: deserialization itself failed

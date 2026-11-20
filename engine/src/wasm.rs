@@ -44,8 +44,7 @@ impl BaizeEngine {
     pub fn load_definition(&mut self, json: &str) -> Result<(), JsError> {
         let def: GameDefinition =
             serde_json::from_str(json).map_err(|e| JsError::new(&e.to_string()))?;
-        let session =
-            GameSession::new(def).map_err(|e| JsError::new(&e.to_string()))?;
+        let session = GameSession::new(def).map_err(|e| JsError::new(&e.to_string()))?;
         self.session = Some(session);
         Ok(())
     }
@@ -71,15 +70,11 @@ impl BaizeEngine {
             .ok_or_else(|| JsError::new("no game loaded"))?;
         let action: Action =
             serde_json::from_str(action_json).map_err(|e| JsError::new(&e.to_string()))?;
-        let events =
-            apply_action(session, &action).map_err(|e| JsError::new(&e.to_string()))?;
+        let events = apply_action(session, &action).map_err(|e| JsError::new(&e.to_string()))?;
         // Return events as JSONL (one JSON object per line)
         let lines: Vec<String> = events
             .iter()
-            .map(|e| {
-                serde_json::to_string(e)
-                    .map_err(|e| JsError::new(&e.to_string()))
-            })
+            .map(|e| serde_json::to_string(e).map_err(|e| JsError::new(&e.to_string())))
             .collect::<std::result::Result<Vec<_>, _>>()?;
         Ok(lines.join("\n"))
     }
@@ -102,10 +97,7 @@ impl BaizeEngine {
             .session
             .as_ref()
             .ok_or_else(|| JsError::new("no game loaded"))?;
-        Ok(session
-            .current_player()
-            .unwrap_or("")
-            .to_string())
+        Ok(session.current_player().unwrap_or("").to_string())
     }
 
     /// Compute a BLAKE3 hash of the current state.

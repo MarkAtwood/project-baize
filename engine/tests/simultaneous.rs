@@ -7,10 +7,10 @@
 //! Uses the Rock-Paper-Scissors game definition which declares a simultaneous
 //! "choose" phase.
 
+use baize_engine::GameDefinition;
 use baize_engine::action::{Action, ActionType, Position};
 use baize_engine::runtime::GameSession;
-use baize_engine::transition::{apply_action_for_player, EventType};
-use baize_engine::GameDefinition;
+use baize_engine::transition::{EventType, apply_action_for_player};
 
 fn rps_session() -> GameSession {
     let json = std::fs::read_to_string(
@@ -123,8 +123,7 @@ fn rps_has_simultaneous_phase() {
 #[test]
 fn first_submit_buffers_action() {
     let mut session = rps_session();
-    let events =
-        apply_action_for_player(&mut session, &place_gesture("rock"), Some("P1")).unwrap();
+    let events = apply_action_for_player(&mut session, &place_gesture("rock"), Some("P1")).unwrap();
 
     // Action is buffered, not applied
     assert!(session.runtime.simultaneous_actions.contains_key("P1"));
@@ -156,8 +155,7 @@ fn second_submit_triggers_resolution() {
 fn duplicate_submit_rejected() {
     let mut session = rps_session();
     apply_action_for_player(&mut session, &place_gesture("rock"), Some("P1")).unwrap();
-    let result =
-        apply_action_for_player(&mut session, &place_gesture("paper"), Some("P1"));
+    let result = apply_action_for_player(&mut session, &place_gesture("paper"), Some("P1"));
     assert!(result.is_err());
     let msg = result.unwrap_err().to_string();
     assert!(
@@ -169,8 +167,7 @@ fn duplicate_submit_rejected() {
 #[test]
 fn unknown_player_rejected() {
     let mut session = rps_session();
-    let result =
-        apply_action_for_player(&mut session, &place_gesture("rock"), Some("P3"));
+    let result = apply_action_for_player(&mut session, &place_gesture("rock"), Some("P3"));
     assert!(result.is_err());
     let msg = result.unwrap_err().to_string();
     assert!(
@@ -188,8 +185,7 @@ fn p2_submits_first_p1_resolves_first() {
     let mut session = rps_session();
     // P2 submits first
     apply_action_for_player(&mut session, &place_gesture("scissors"), Some("P2")).unwrap();
-    let events =
-        apply_action_for_player(&mut session, &place_gesture("rock"), Some("P1")).unwrap();
+    let events = apply_action_for_player(&mut session, &place_gesture("rock"), Some("P1")).unwrap();
 
     // Place events should be in player order (P1 first)
     let place_events: Vec<_> = events
@@ -211,10 +207,10 @@ fn buffer_changes_state_hash() {
     session.runtime.status = baize_engine::state::GameStatus::InProgress;
     let h1 = session.compute_state_hash();
 
-    session.runtime.simultaneous_actions.insert(
-        "P1".into(),
-        serde_json::json!({"action_type": "place"}),
-    );
+    session
+        .runtime
+        .simultaneous_actions
+        .insert("P1".into(), serde_json::json!({"action_type": "place"}));
     let h2 = session.compute_state_hash();
     assert_ne!(h1, h2);
 }

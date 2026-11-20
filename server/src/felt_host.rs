@@ -26,7 +26,7 @@ pub struct ZoneHandle {
     pub cell_count: i32,
     pub comp_count: i32,
     pub counter_val: i64,
-    pub cells: Vec<i32>,       // flat grid cells: component handle or -1
+    pub cells: Vec<i32>,        // flat grid cells: component handle or -1
     pub comp_indices: Vec<i32>, // indices into components array
     pub cell_properties: Vec<((i32, i32), Vec<(String, String)>)>,
 }
@@ -74,7 +74,9 @@ impl HostState {
 
         // Build counters
         for (name, val) in &state.counters {
-            let v = val.as_i64().unwrap_or_else(|| val.as_f64().map(|f| f as i64).unwrap_or(0));
+            let v = val
+                .as_i64()
+                .unwrap_or_else(|| val.as_f64().map(|f| f as i64).unwrap_or(0));
             host.counters.push((name.clone(), v));
         }
 
@@ -111,7 +113,11 @@ impl HostState {
         players: &[PlayerHandle],
     ) -> ZoneHandle {
         match zone_state {
-            ZoneState::Grid { cells, cell_properties, .. } => {
+            ZoneState::Grid {
+                cells,
+                cell_properties,
+                ..
+            } => {
                 let mut zone_cells = Vec::new();
                 let mut zone_comps = Vec::new();
                 let mut max_col = 0i32;
@@ -121,8 +127,7 @@ impl HostState {
                     // Parse cell key (e.g., "0,0")
                     let parts: Vec<&str> = key.split(',').collect();
                     if parts.len() == 2 {
-                        if let (Ok(c), Ok(r)) = (parts[0].parse::<i32>(), parts[1].parse::<i32>())
-                        {
+                        if let (Ok(c), Ok(r)) = (parts[0].parse::<i32>(), parts[1].parse::<i32>()) {
                             max_col = max_col.max(c + 1);
                             max_row = max_row.max(r + 1);
                         }
@@ -151,7 +156,9 @@ impl HostState {
                     for (coord_key, props) in cp {
                         let parts: Vec<&str> = coord_key.split(',').collect();
                         if parts.len() == 2 {
-                            if let (Ok(c), Ok(r)) = (parts[0].parse::<i32>(), parts[1].parse::<i32>()) {
+                            if let (Ok(c), Ok(r)) =
+                                (parts[0].parse::<i32>(), parts[1].parse::<i32>())
+                            {
                                 let kvs: Vec<(String, String)> = props
                                     .iter()
                                     .map(|(k, v)| {
@@ -181,8 +188,12 @@ impl HostState {
                     cell_properties: cell_props,
                 }
             }
-            ZoneState::OrderedStack { components: comps, .. }
-            | ZoneState::Set { components: comps, .. } => {
+            ZoneState::OrderedStack {
+                components: comps, ..
+            }
+            | ZoneState::Set {
+                components: comps, ..
+            } => {
                 let mut zone_comps = Vec::new();
                 for comp in comps {
                     let comp_idx = components.len() as i32;
@@ -323,11 +334,7 @@ pub fn register_felt_imports(linker: &mut Linker<HostState>) -> Result<(), Exten
         .func_wrap(
             "baize",
             "zone_by_name",
-            |mut caller: Caller<'_, HostState>,
-             _state: i32,
-             name_ptr: i32,
-             name_len: i32|
-             -> i32 {
+            |mut caller: Caller<'_, HostState>, _state: i32, name_ptr: i32, name_len: i32| -> i32 {
                 let name = read_string_from_memory(&mut caller, name_ptr, name_len);
                 match name {
                     Some(n) => caller
@@ -640,7 +647,12 @@ pub fn register_felt_imports(linker: &mut Linker<HostState>) -> Result<(), Exten
                     .data()
                     .components
                     .get(comp as usize)
-                    .and_then(|c| c.properties.iter().find(|(k, _)| k == &key).map(|(_, v)| v.clone()))
+                    .and_then(|c| {
+                        c.properties
+                            .iter()
+                            .find(|(k, _)| k == &key)
+                            .map(|(_, v)| v.clone())
+                    })
                     .unwrap_or_default();
                 write_string_to_memory(&mut caller, buf, &val)
             },
@@ -703,9 +715,7 @@ pub fn register_felt_imports(linker: &mut Linker<HostState>) -> Result<(), Exten
         .func_wrap(
             "baize",
             "turn_number",
-            |caller: Caller<'_, HostState>, _state: i32| -> i32 {
-                caller.data().turn_number
-            },
+            |caller: Caller<'_, HostState>, _state: i32| -> i32 { caller.data().turn_number },
         )
         .map_err(wrap_err)?;
 
@@ -734,11 +744,7 @@ pub fn register_felt_imports(linker: &mut Linker<HostState>) -> Result<(), Exten
         .func_wrap(
             "baize",
             "counter_value",
-            |mut caller: Caller<'_, HostState>,
-             _state: i32,
-             name_ptr: i32,
-             name_len: i32|
-             -> i64 {
+            |mut caller: Caller<'_, HostState>, _state: i32, name_ptr: i32, name_len: i32| -> i64 {
                 let name =
                     read_string_from_memory(&mut caller, name_ptr, name_len).unwrap_or_default();
                 caller
@@ -914,7 +920,10 @@ pub fn register_felt_imports(linker: &mut Linker<HostState>) -> Result<(), Exten
                             .iter()
                             .find(|((c, r), _)| *c == col && *r == row)
                             .and_then(|(_, props)| {
-                                props.iter().find(|(k, _)| k == &key).map(|(_, v)| v.clone())
+                                props
+                                    .iter()
+                                    .find(|(k, _)| k == &key)
+                                    .map(|(_, v)| v.clone())
                             })
                     })
                     .unwrap_or_default();

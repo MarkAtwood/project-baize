@@ -1,5 +1,7 @@
 mod config;
 mod connection;
+#[cfg(feature = "wasm-host")]
+mod felt_host;
 mod protocol;
 mod room;
 mod store;
@@ -7,8 +9,6 @@ mod store;
 mod vault;
 #[cfg(feature = "wasm-host")]
 mod wasm_host;
-#[cfg(feature = "wasm-host")]
-mod felt_host;
 
 use std::net::SocketAddr;
 use std::sync::Arc;

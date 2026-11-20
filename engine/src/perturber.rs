@@ -177,8 +177,7 @@ fn execute_effect_inner(session: &mut GameSession, effect: &Effect, depth: u32) 
                     .iter()
                     .filter(|item| {
                         let expr = filter_expr.replace(&format!("${}", for_each.var_name), item);
-                        crate::cel::try_eval_end_condition(session, &expr, &player)
-                            == Some(true)
+                        crate::cel::try_eval_end_condition(session, &expr, &player) == Some(true)
                     })
                     .cloned()
                     .collect()
@@ -318,7 +317,9 @@ fn execute_effect_inner(session: &mut GameSession, effect: &Effect, depth: u32) 
                     crate::error::BaizeError::UnknownZone(set_cell_property.zone.clone())
                 })?;
             if let RuntimeZone::Grid {
-                storage, cell_properties, ..
+                storage,
+                cell_properties,
+                ..
             } = zone
             {
                 let col = set_cell_property.col;
@@ -374,14 +375,12 @@ fn execute_effect_inner(session: &mut GameSession, effect: &Effect, depth: u32) 
 fn parse_cycle_pos(s: &str) -> Result<(u32, u32)> {
     let parts: Vec<&str> = s.split(',').collect();
     if parts.len() == 2 {
-        let col = parts[0]
-            .trim()
-            .parse::<u32>()
-            .map_err(|_| crate::error::BaizeError::IllegalAction(format!("invalid cycle position: {s}")))?;
-        let row = parts[1]
-            .trim()
-            .parse::<u32>()
-            .map_err(|_| crate::error::BaizeError::IllegalAction(format!("invalid cycle position: {s}")))?;
+        let col = parts[0].trim().parse::<u32>().map_err(|_| {
+            crate::error::BaizeError::IllegalAction(format!("invalid cycle position: {s}"))
+        })?;
+        let row = parts[1].trim().parse::<u32>().map_err(|_| {
+            crate::error::BaizeError::IllegalAction(format!("invalid cycle position: {s}"))
+        })?;
         Ok((col, row))
     } else {
         Err(crate::error::BaizeError::IllegalAction(format!(
@@ -418,8 +417,8 @@ fn empty_action() -> Action {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::runtime::{ComponentData, ComponentId, GameSession};
     use crate::GameDefinition;
+    use crate::runtime::{ComponentData, ComponentId, GameSession};
     use indexmap::IndexMap;
 
     fn test_session() -> GameSession {
@@ -524,12 +523,28 @@ mod tests {
     fn remove_via_perturber() {
         let mut session = test_session();
         place_piece(&mut session, "target-piece", "A", 1, 1);
-        assert!(session.runtime.zones.get("board").unwrap().grid_get(1, 1).is_some());
+        assert!(
+            session
+                .runtime
+                .zones
+                .get("board")
+                .unwrap()
+                .grid_get(1, 1)
+                .is_some()
+        );
 
         let effect: Effect =
             serde_json::from_str(r#"{"remove": {"target": "target-piece"}}"#).unwrap();
         execute_effect(&mut session, &effect).unwrap();
-        assert!(session.runtime.zones.get("board").unwrap().grid_get(1, 1).is_none());
+        assert!(
+            session
+                .runtime
+                .zones
+                .get("board")
+                .unwrap()
+                .grid_get(1, 1)
+                .is_none()
+        );
     }
 
     fn multi_zone_session() -> GameSession {
@@ -626,9 +641,18 @@ mod tests {
         .unwrap();
         execute_effect(&mut session, &effect).unwrap();
 
-        assert_eq!(session.runtime.zones.get("board").unwrap().grid_get(0, 0), Some(c));
-        assert_eq!(session.runtime.zones.get("front").unwrap().grid_get(0, 0), Some(a));
-        assert_eq!(session.runtime.zones.get("right").unwrap().grid_get(0, 0), Some(b));
+        assert_eq!(
+            session.runtime.zones.get("board").unwrap().grid_get(0, 0),
+            Some(c)
+        );
+        assert_eq!(
+            session.runtime.zones.get("front").unwrap().grid_get(0, 0),
+            Some(a)
+        );
+        assert_eq!(
+            session.runtime.zones.get("right").unwrap().grid_get(0, 0),
+            Some(b)
+        );
     }
 
     #[test]
@@ -647,8 +671,8 @@ mod tests {
         execute_effect(&mut session, &effect).unwrap();
 
         let z = session.runtime.zones.get("board").unwrap();
-        assert_eq!(z.grid_get(0, 0), None);    // source emptied
-        assert_eq!(z.grid_get(1, 0), Some(a));  // component transferred
+        assert_eq!(z.grid_get(0, 0), None); // source emptied
+        assert_eq!(z.grid_get(1, 0), Some(a)); // component transferred
     }
 
     #[test]
@@ -685,13 +709,14 @@ mod tests {
         let mut session = test_session();
         let a = place_piece_in(&mut session, "a", "A", "board", 0, 0);
 
-        let effect: Effect = serde_json::from_str(
-            r#"{"cycle": [{"zone": "board", "pos": "0,0"}]}"#,
-        )
-        .unwrap();
+        let effect: Effect =
+            serde_json::from_str(r#"{"cycle": [{"zone": "board", "pos": "0,0"}]}"#).unwrap();
         execute_effect(&mut session, &effect).unwrap();
 
-        assert_eq!(session.runtime.zones.get("board").unwrap().grid_get(0, 0), Some(a));
+        assert_eq!(
+            session.runtime.zones.get("board").unwrap().grid_get(0, 0),
+            Some(a)
+        );
     }
 
     #[test]

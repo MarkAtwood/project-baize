@@ -1,8 +1,8 @@
+use baize_engine::GameDefinition;
 use baize_engine::action::{Action, ActionType, Position};
 use baize_engine::runtime::*;
 use baize_engine::state::GameStatus;
 use baize_engine::transition::apply_action;
-use baize_engine::GameDefinition;
 
 fn place(col: u32, row: u32) -> Action {
     Action {
@@ -139,10 +139,7 @@ fn draw_tic_tac_toe() {
         baize_engine::state::GameOutcome::Draw,
         "expected a draw outcome"
     );
-    assert!(
-        result.winner.is_none(),
-        "draw should have no winner"
-    );
+    assert!(result.winner.is_none(), "draw should have no winner");
     assert_eq!(
         result.condition.as_deref(),
         Some("board_full"),

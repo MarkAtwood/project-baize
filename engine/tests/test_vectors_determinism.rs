@@ -8,11 +8,11 @@
 //! (`python/tests/test_cross_engine.py`), so agreement constitutes
 //! cross-engine determinism verification.
 
+use baize_engine::GameDefinition;
 use baize_engine::action::Action;
 use baize_engine::runtime::GameSession;
 use baize_engine::state::{GameOutcome, GameStatus};
 use baize_engine::transition::apply_action;
-use baize_engine::GameDefinition;
 use serde_json::Value;
 use std::path::PathBuf;
 
@@ -45,8 +45,7 @@ fn discover_vectors() -> Vec<PathBuf> {
 fn load_vector(path: &std::path::Path) -> Value {
     let raw = std::fs::read_to_string(path)
         .unwrap_or_else(|e| panic!("cannot read {}: {e}", path.display()));
-    serde_json::from_str(&raw)
-        .unwrap_or_else(|e| panic!("invalid JSON in {}: {e}", path.display()))
+    serde_json::from_str(&raw).unwrap_or_else(|e| panic!("invalid JSON in {}: {e}", path.display()))
 }
 
 /// Load the game definition referenced by the vector.
@@ -79,7 +78,9 @@ fn determinism_final_status() {
         let name = path.file_stem().unwrap().to_string_lossy();
         let vector = load_vector(&path);
         let definition = load_definition(&vector);
-        let actions = vector["actions"].as_array().expect("actions is not an array");
+        let actions = vector["actions"]
+            .as_array()
+            .expect("actions is not an array");
         let session = replay_game(definition, actions);
 
         let expected_status = vector["expected_final_status"]
@@ -103,7 +104,9 @@ fn determinism_result() {
         let name = path.file_stem().unwrap().to_string_lossy();
         let vector = load_vector(&path);
         let definition = load_definition(&vector);
-        let actions = vector["actions"].as_array().expect("actions is not an array");
+        let actions = vector["actions"]
+            .as_array()
+            .expect("actions is not an array");
         let session = replay_game(definition, actions);
 
         let expected = &vector["expected_result"];
@@ -126,10 +129,7 @@ fn determinism_result() {
 
         let expected_winner = expected.get("winner").and_then(|v| v.as_str());
         let actual_winner = result.winner.as_deref();
-        assert_eq!(
-            actual_winner, expected_winner,
-            "[{name}] winner mismatch"
-        );
+        assert_eq!(actual_winner, expected_winner, "[{name}] winner mismatch");
 
         let expected_condition = expected.get("condition").and_then(|v| v.as_str());
         let actual_condition = result.condition.as_deref();
@@ -146,7 +146,9 @@ fn determinism_board_state() {
         let name = path.file_stem().unwrap().to_string_lossy();
         let vector = load_vector(&path);
         let definition = load_definition(&vector);
-        let actions = vector["actions"].as_array().expect("actions is not an array");
+        let actions = vector["actions"]
+            .as_array()
+            .expect("actions is not an array");
         let session = replay_game(definition, actions);
 
         let expected_board = match vector.get("expected_board").and_then(|v| v.as_object()) {
@@ -213,7 +215,9 @@ fn determinism_move_count() {
         let name = path.file_stem().unwrap().to_string_lossy();
         let vector = load_vector(&path);
         let definition = load_definition(&vector);
-        let actions = vector["actions"].as_array().expect("actions is not an array");
+        let actions = vector["actions"]
+            .as_array()
+            .expect("actions is not an array");
         let session = replay_game(definition, actions);
 
         if let Some(expected_mc) = vector.get("expected_move_count").and_then(|v| v.as_u64()) {

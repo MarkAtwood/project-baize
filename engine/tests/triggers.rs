@@ -8,10 +8,10 @@
 //!
 //! Uses an inline 3-player game definition with a trigger on "place" actions.
 
+use baize_engine::GameDefinition;
 use baize_engine::action::{Action, ActionType, Position};
 use baize_engine::runtime::GameSession;
-use baize_engine::transition::{apply_action_for_player, apply_claim, EventType};
-use baize_engine::GameDefinition;
+use baize_engine::transition::{EventType, apply_action_for_player, apply_claim};
 
 // ---------------------------------------------------------------------------
 // Game definition JSON — 3-player game with a trigger on "place"
@@ -120,8 +120,7 @@ fn test_trigger_fires_on_matching_action() {
     let mut session = trigger_session();
     assert_eq!(session.current_player(), Some("Alice"));
 
-    let events =
-        apply_action_for_player(&mut session, &place_mark(1, 1), Some("Alice")).unwrap();
+    let events = apply_action_for_player(&mut session, &place_mark(1, 1), Some("Alice")).unwrap();
 
     // Must contain trigger_activated event with detail "on_place"
     let trigger_event = events
@@ -194,10 +193,7 @@ fn test_claim_submit_valid() {
     let submitted = events
         .iter()
         .find(|e| e.event_type == EventType::ClaimSubmitted);
-    assert!(
-        submitted.is_some(),
-        "expected claim_submitted event"
-    );
+    assert!(submitted.is_some(), "expected claim_submitted event");
     let submitted = submitted.unwrap();
     assert_eq!(submitted.player, "Bob");
     assert_eq!(submitted.detail.as_deref(), Some("claim"));
@@ -205,7 +201,10 @@ fn test_claim_submit_valid() {
     // Window still active (Carol hasn't responded yet)
     assert!(session.runtime.claim_window.is_some());
     let cw = session.runtime.claim_window.as_ref().unwrap();
-    assert_eq!(cw.submitted_claims.get("Bob").map(|s| s.as_str()), Some("claim"));
+    assert_eq!(
+        cw.submitted_claims.get("Bob").map(|s| s.as_str()),
+        Some("claim")
+    );
 }
 
 // ---------------------------------------------------------------------------
@@ -379,8 +378,7 @@ fn test_no_trigger_without_match() {
     let def = GameDefinition::from_json(no_trigger_json).unwrap();
     let mut session = GameSession::new(def).unwrap();
 
-    let events =
-        apply_action_for_player(&mut session, &place_mark(1, 1), None).unwrap();
+    let events = apply_action_for_player(&mut session, &place_mark(1, 1), None).unwrap();
 
     // No trigger_activated event
     let has_trigger = events
@@ -437,8 +435,7 @@ fn test_next_in_order_eligible() {
     assert_eq!(session.current_player(), Some("Alice"));
 
     // Alice places — next_in_order means only Bob (index 1) is eligible
-    let events =
-        apply_action_for_player(&mut session, &place_mark(1, 1), Some("Alice")).unwrap();
+    let events = apply_action_for_player(&mut session, &place_mark(1, 1), Some("Alice")).unwrap();
 
     let has_trigger = events
         .iter()
@@ -482,9 +479,8 @@ fn run_trigger_test_vectors() {
     let vectors: serde_json::Value =
         serde_json::from_str(&raw).expect("invalid JSON in trigger test vectors");
 
-    let game_def: GameDefinition =
-        serde_json::from_value(vectors["game_definition"].clone())
-            .expect("failed to parse game_definition from vector");
+    let game_def: GameDefinition = serde_json::from_value(vectors["game_definition"].clone())
+        .expect("failed to parse game_definition from vector");
 
     let test_cases = vectors["test_cases"]
         .as_array()
@@ -540,11 +536,8 @@ fn run_trigger_test_vectors() {
                         mental_poker_data: None,
                     };
 
-                    let events =
-                        apply_action_for_player(&mut session, &action, Some(player))
-                            .unwrap_or_else(|e| {
-                                panic!("[{name}] step {step_idx}: action failed: {e}")
-                            });
+                    let events = apply_action_for_player(&mut session, &action, Some(player))
+                        .unwrap_or_else(|e| panic!("[{name}] step {step_idx}: action failed: {e}"));
 
                     verify_step_expected(&session, &events, expected, name, step_idx);
                 }
@@ -552,9 +545,7 @@ fn run_trigger_test_vectors() {
                     let player = step["player"].as_str().unwrap();
                     let claim = step["claim"].as_str().unwrap();
                     let events = apply_claim(&mut session, player, claim)
-                        .unwrap_or_else(|e| {
-                            panic!("[{name}] step {step_idx}: claim failed: {e}")
-                        });
+                        .unwrap_or_else(|e| panic!("[{name}] step {step_idx}: claim failed: {e}"));
 
                     verify_step_expected(&session, &events, expected, name, step_idx);
                 }
@@ -572,7 +563,10 @@ fn verify_step_expected(
     step: usize,
 ) {
     // Check claim_window_active
-    if let Some(active) = expected.get("claim_window_active").and_then(|v| v.as_bool()) {
+    if let Some(active) = expected
+        .get("claim_window_active")
+        .and_then(|v| v.as_bool())
+    {
         assert_eq!(
             session.runtime.claim_window.is_some(),
             active,
@@ -664,10 +658,8 @@ fn verify_step_expected(
             );
         }
         if let Some(ep) = exp_cw.get("eligible_players").and_then(|v| v.as_array()) {
-            let expected_eligible: Vec<String> = ep
-                .iter()
-                .map(|v| v.as_str().unwrap().to_string())
-                .collect();
+            let expected_eligible: Vec<String> =
+                ep.iter().map(|v| v.as_str().unwrap().to_string()).collect();
             assert_eq!(
                 cw.eligible_players, expected_eligible,
                 "[{test_name}] step {step}: eligible_players mismatch"

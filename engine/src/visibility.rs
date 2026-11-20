@@ -137,12 +137,13 @@ pub fn filter_for_viewer_with_fog(
 /// - Visible cells: everything kept
 /// - Fogged cells: components removed, cell_properties kept if remember_terrain
 /// - cell_fog populated with the viewer's fog data
-fn apply_fog_filter(
-    zone_state: &ZoneState,
-    rt_zone: &RuntimeZone,
-    viewer: &str,
-) -> ZoneState {
-    let ZoneState::Grid { cells, cell_properties, .. } = zone_state else {
+fn apply_fog_filter(zone_state: &ZoneState, rt_zone: &RuntimeZone, viewer: &str) -> ZoneState {
+    let ZoneState::Grid {
+        cells,
+        cell_properties,
+        ..
+    } = zone_state
+    else {
         return zone_state.clone();
     };
 
@@ -237,7 +238,11 @@ fn apply_fog_filter(
     ZoneState::Grid {
         cells: filtered_cells,
         cell_properties: filtered_props,
-        cell_fog: if wire_fog.is_empty() { None } else { Some(wire_fog) },
+        cell_fog: if wire_fog.is_empty() {
+            None
+        } else {
+            Some(wire_fog)
+        },
     }
 }
 

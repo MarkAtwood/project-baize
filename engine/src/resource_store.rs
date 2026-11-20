@@ -29,7 +29,10 @@ impl ResourceStore {
     ///
     /// `base_dir` is the directory containing the registry/ subdirectory.
     /// Each resource is resolved to a file path and loaded.
-    pub fn load(resources: &indexmap::IndexMap<String, ResourceDef>, base_dir: &Path) -> Result<Self> {
+    pub fn load(
+        resources: &indexmap::IndexMap<String, ResourceDef>,
+        base_dir: &Path,
+    ) -> Result<Self> {
         let mut store = Self::empty();
 
         for (key, resource) in resources {
@@ -56,9 +59,7 @@ impl ResourceStore {
     /// Check if a word is valid in the named word list.
     pub fn word_valid(&self, resource_name: &str, word: &str) -> Result<bool> {
         let list = self.word_lists.get(resource_name).ok_or_else(|| {
-            BaizeError::IllegalAction(format!(
-                "word list resource {resource_name:?} not loaded"
-            ))
+            BaizeError::IllegalAction(format!("word list resource {resource_name:?} not loaded"))
         })?;
         // Normalize to uppercase for case-insensitive lookup
         Ok(list.contains(&word.to_uppercase()))
@@ -76,10 +77,7 @@ impl ResourceStore {
 
         // Check file size
         let metadata = std::fs::metadata(path).map_err(|e| {
-            BaizeError::IllegalAction(format!(
-                "cannot read resource file {}: {e}",
-                path.display()
-            ))
+            BaizeError::IllegalAction(format!("cannot read resource file {}: {e}", path.display()))
         })?;
         if metadata.len() > MAX_RESOURCE_FILE_BYTES {
             return Err(BaizeError::ResourceBudget(format!(
@@ -92,10 +90,7 @@ impl ResourceStore {
 
         // Read and parse
         let content = std::fs::read_to_string(path).map_err(|e| {
-            BaizeError::IllegalAction(format!(
-                "cannot read resource file {}: {e}",
-                path.display()
-            ))
+            BaizeError::IllegalAction(format!("cannot read resource file {}: {e}", path.display()))
         })?;
 
         let mut words = HashSet::new();

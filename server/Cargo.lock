@@ -149,7 +149,6 @@ dependencies = [
 name = "baize-engine"
 version = "0.1.0"
 dependencies = [
- "bitflags",
  "blake3",
  "cel-interpreter",
  "indexmap",

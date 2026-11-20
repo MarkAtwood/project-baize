@@ -97,7 +97,10 @@ fn atomic_write(path: &std::path::Path, data: &str) -> Result<(), std::io::Error
     use std::io::Write;
 
     let dir = path.parent().ok_or_else(|| {
-        std::io::Error::new(std::io::ErrorKind::InvalidInput, "path has no parent directory")
+        std::io::Error::new(
+            std::io::ErrorKind::InvalidInput,
+            "path has no parent directory",
+        )
     })?;
     let file_name = path.file_name().ok_or_else(|| {
         std::io::Error::new(std::io::ErrorKind::InvalidInput, "path has no file name")
@@ -234,7 +237,10 @@ impl Store for MemoryStore {
         definition_json: &str,
         state_json: &str,
     ) -> Result<(), StoreError> {
-        let mut rooms = self.rooms.lock().expect("MemoryStore mutex poisoned in save_room");
+        let mut rooms = self
+            .rooms
+            .lock()
+            .expect("MemoryStore mutex poisoned in save_room");
         rooms.insert(
             room_id.to_string(),
             MemoryRoom {
@@ -247,7 +253,10 @@ impl Store for MemoryStore {
     }
 
     fn update_state(&self, room_id: &str, state_json: &str) -> Result<(), StoreError> {
-        let mut rooms = self.rooms.lock().expect("MemoryStore mutex poisoned in update_state");
+        let mut rooms = self
+            .rooms
+            .lock()
+            .expect("MemoryStore mutex poisoned in update_state");
         match rooms.get_mut(room_id) {
             Some(room) => {
                 room.state_json = state_json.to_string();
@@ -261,7 +270,10 @@ impl Store for MemoryStore {
     }
 
     fn append_events(&self, room_id: &str, events: &[String]) -> Result<(), StoreError> {
-        let mut rooms = self.rooms.lock().expect("MemoryStore mutex poisoned in append_events");
+        let mut rooms = self
+            .rooms
+            .lock()
+            .expect("MemoryStore mutex poisoned in append_events");
         if let Some(room) = rooms.get_mut(room_id) {
             room.events.extend(events.iter().cloned());
         }
@@ -269,7 +281,10 @@ impl Store for MemoryStore {
     }
 
     fn load_room(&self, room_id: &str) -> Result<Option<RoomData>, StoreError> {
-        let rooms = self.rooms.lock().expect("MemoryStore mutex poisoned in load_room");
+        let rooms = self
+            .rooms
+            .lock()
+            .expect("MemoryStore mutex poisoned in load_room");
         Ok(rooms.get(room_id).map(|r| RoomData {
             definition_json: r.definition_json.clone(),
             state_json: r.state_json.clone(),
@@ -277,12 +292,18 @@ impl Store for MemoryStore {
     }
 
     fn list_rooms(&self) -> Result<Vec<String>, StoreError> {
-        let rooms = self.rooms.lock().expect("MemoryStore mutex poisoned in list_rooms");
+        let rooms = self
+            .rooms
+            .lock()
+            .expect("MemoryStore mutex poisoned in list_rooms");
         Ok(rooms.keys().cloned().collect())
     }
 
     fn delete_room(&self, room_id: &str) -> Result<(), StoreError> {
-        let mut rooms = self.rooms.lock().expect("MemoryStore mutex poisoned in delete_room");
+        let mut rooms = self
+            .rooms
+            .lock()
+            .expect("MemoryStore mutex poisoned in delete_room");
         rooms.remove(room_id);
         Ok(())
     }
@@ -303,7 +324,9 @@ mod tests {
         assert_eq!(data.definition_json, r#"{"game":{}}"#);
         assert_eq!(data.state_json, r#"{"status":"setup"}"#);
 
-        store.update_state("test-1", r#"{"status":"in_progress"}"#).unwrap();
+        store
+            .update_state("test-1", r#"{"status":"in_progress"}"#)
+            .unwrap();
         let data = store.load_room("test-1").unwrap().unwrap();
         assert_eq!(data.state_json, r#"{"status":"in_progress"}"#);
     }

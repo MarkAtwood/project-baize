@@ -4,9 +4,9 @@
 
 use std::collections::HashSet;
 
+use baize_engine::GameDefinition;
 use baize_engine::error::BaizeError;
 use baize_engine::runtime::*;
-use baize_engine::GameDefinition;
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -101,8 +101,8 @@ fn grid_get_out_of_bounds_returns_none() {
         stacking_limit: 1,
         cell_properties: Default::default(),
         valid_cells: None,
-    cell_fog: None,
-    fog_config: None,
+        cell_fog: None,
+        fog_config: None,
     };
 
     assert!(zone.grid_get(3, 0).is_none());
@@ -119,8 +119,8 @@ fn grid_set_out_of_bounds_is_noop() {
         stacking_limit: 1,
         cell_properties: Default::default(),
         valid_cells: None,
-    cell_fog: None,
-    fog_config: None,
+        cell_fog: None,
+        fog_config: None,
     };
 
     let cid = ComponentId(0);
@@ -138,8 +138,8 @@ fn grid_push_out_of_bounds_is_noop() {
         stacking_limit: 1,
         cell_properties: Default::default(),
         valid_cells: None,
-    cell_fog: None,
-    fog_config: None,
+        cell_fog: None,
+        fog_config: None,
     };
 
     assert!(zone.grid_push(5, 5, ComponentId(0)).is_err());
@@ -154,8 +154,8 @@ fn grid_pop_out_of_bounds_returns_none() {
         stacking_limit: 1,
         cell_properties: Default::default(),
         valid_cells: None,
-    cell_fog: None,
-    fog_config: None,
+        cell_fog: None,
+        fog_config: None,
     };
 
     assert!(zone.grid_pop(5, 5).is_none());
@@ -169,8 +169,8 @@ fn grid_stack_out_of_bounds_returns_empty() {
         stacking_limit: 1,
         cell_properties: Default::default(),
         valid_cells: None,
-    cell_fog: None,
-    fog_config: None,
+        cell_fog: None,
+        fog_config: None,
     };
 
     assert!(zone.grid_stack(5, 5).is_empty());
@@ -184,8 +184,8 @@ fn grid_cell_valid_rejects_u32_max() {
         stacking_limit: 1,
         cell_properties: Default::default(),
         valid_cells: None,
-    cell_fog: None,
-    fog_config: None,
+        cell_fog: None,
+        fog_config: None,
     };
 
     assert!(!zone.grid_cell_valid(u32::MAX, 0));
@@ -257,8 +257,8 @@ fn grid_place_span_zero_span_succeeds_with_empty_result() {
         stacking_limit: 1,
         cell_properties: Default::default(),
         valid_cells: None,
-    cell_fog: None,
-    fog_config: None,
+        cell_fog: None,
+        fog_config: None,
     };
 
     let cid = ComponentId(0);
@@ -275,8 +275,8 @@ fn grid_place_span_exceeds_grid_boundary() {
         stacking_limit: 1,
         cell_properties: Default::default(),
         valid_cells: None,
-    cell_fog: None,
-    fog_config: None,
+        cell_fog: None,
+        fog_config: None,
     };
 
     let cid = ComponentId(0);
@@ -374,8 +374,8 @@ fn grid_with_empty_valid_cells_mask() {
         stacking_limit: 1,
         cell_properties: Default::default(),
         valid_cells: Some(HashSet::new()),
-    cell_fog: None,
-    fog_config: None,
+        cell_fog: None,
+        fog_config: None,
     };
 
     // Every cell should be invalid

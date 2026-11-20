@@ -3,7 +3,10 @@ use std::path::PathBuf;
 use clap::{Parser, Subcommand};
 
 #[derive(Parser)]
-#[command(name = "felt", about = "Felt language compiler — pure game logic to WASM")]
+#[command(
+    name = "felt",
+    about = "Felt language compiler — pure game logic to WASM"
+)]
 struct Cli {
     #[command(subcommand)]
     command: Command,
@@ -99,8 +102,7 @@ fn parse_and_check(source: &str) -> Result<felt::ast::Program, String> {
             .join("\n")
     })?;
 
-    felt::callgraph::check_no_cycles(&program)
-        .map_err(|e| format!("error: {e}"))?;
+    felt::callgraph::check_no_cycles(&program).map_err(|e| format!("error: {e}"))?;
 
     Ok(program)
 }

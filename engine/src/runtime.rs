@@ -23,7 +23,6 @@ pub enum TrustMode {
     MentalPoker,
 }
 
-
 // ---------------------------------------------------------------------------
 // Resource budget defaults
 // ---------------------------------------------------------------------------
@@ -171,7 +170,11 @@ impl GridStorage {
             .expect("grid dimensions overflow cell count");
         let cells = vec![None; cell_count];
         debug_assert_eq!(cells.len(), (width as usize) * (height as usize));
-        GridStorage::Dense { width, height, cells }
+        GridStorage::Dense {
+            width,
+            height,
+            cells,
+        }
     }
 
     /// Create a sparse grid with optional dimension hint.
@@ -209,7 +212,11 @@ impl GridStorage {
     /// Get the component at a coordinate.
     pub fn get(&self, col: i32, row: i32) -> Option<ComponentId> {
         match self {
-            GridStorage::Dense { width, height, cells } => {
+            GridStorage::Dense {
+                width,
+                height,
+                cells,
+            } => {
                 if col < 0 || row < 0 || (col as u32) >= *width || (row as u32) >= *height {
                     return None;
                 }
@@ -224,9 +231,18 @@ impl GridStorage {
     }
 
     /// Set a component at a coordinate. Returns the previous occupant.
-    pub fn set(&mut self, col: i32, row: i32, component: Option<ComponentId>) -> Option<ComponentId> {
+    pub fn set(
+        &mut self,
+        col: i32,
+        row: i32,
+        component: Option<ComponentId>,
+    ) -> Option<ComponentId> {
         match self {
-            GridStorage::Dense { width, height, cells } => {
+            GridStorage::Dense {
+                width,
+                height,
+                cells,
+            } => {
                 if col < 0 || row < 0 || (col as u32) >= *width || (row as u32) >= *height {
                     return None;
                 }
@@ -285,7 +301,6 @@ impl GridStorage {
                 .collect(),
         }
     }
-
 }
 
 /// Fog state of every tracked cell of a grid zone, keyed by `(col, row)`
@@ -382,7 +397,9 @@ impl Default for ComponentTable {
 
 impl ComponentTable {
     pub fn new() -> Self {
-        Self { entries: Vec::new() }
+        Self {
+            entries: Vec::new(),
+        }
     }
 
     pub fn insert(&mut self, data: ComponentData) -> Result<ComponentId> {
@@ -393,9 +410,10 @@ impl ComponentTable {
                 MAX_COMPONENTS_PER_GAME
             )));
         }
-        let len: u32 = self.entries.len().try_into().map_err(|_| {
-            BaizeError::Overflow("component table exceeds u32::MAX entries".into())
-        })?;
+        let len: u32 =
+            self.entries.len().try_into().map_err(|_| {
+                BaizeError::Overflow("component table exceeds u32::MAX entries".into())
+            })?;
         let id = ComponentId(len);
         self.entries.push(data);
         self.entries
@@ -445,7 +463,7 @@ impl RuntimeZone {
                     None => {
                         return Err(BaizeError::Validation(
                             "grid zone requires dimensions".into(),
-                        ))
+                        ));
                     }
                 };
 
@@ -464,12 +482,9 @@ impl RuntimeZone {
                     GridStorage::new_sparse(dims)
                 } else {
                     // Validate cell count for dense allocation
-                    let _cell_count =
-                        (w as usize).checked_mul(h as usize).ok_or_else(|| {
-                            BaizeError::Overflow(format!(
-                                "grid dimensions {w}x{h} overflow cell count"
-                            ))
-                        })?;
+                    let _cell_count = (w as usize).checked_mul(h as usize).ok_or_else(|| {
+                        BaizeError::Overflow(format!("grid dimensions {w}x{h} overflow cell count"))
+                    })?;
                     GridStorage::new_dense(w, h)
                 };
 
@@ -483,8 +498,7 @@ impl RuntimeZone {
                                 parts[1].trim().parse::<u32>(),
                             ) {
                                 if w == 0 || (c < w && r < h) {
-                                    cell_props
-                                        .insert((c as i32, r as i32), props.clone());
+                                    cell_props.insert((c as i32, r as i32), props.clone());
                                 }
                             }
                         }
@@ -541,9 +555,10 @@ impl RuntimeZone {
                 })
             }
             ZoneType::Graph => {
-                let nodes = zone_def.nodes.as_ref().ok_or_else(|| {
-                    BaizeError::Validation("graph zone requires nodes".into())
-                })?;
+                let nodes = zone_def
+                    .nodes
+                    .as_ref()
+                    .ok_or_else(|| BaizeError::Validation("graph zone requires nodes".into()))?;
                 let mut name_to_index = IndexMap::new();
                 for (i, name) in nodes.iter().enumerate() {
                     name_to_index.insert(name.clone(), i);
@@ -590,7 +605,9 @@ impl RuntimeZone {
             RuntimeZone::SingleSlot { component } => usize::from(component.is_some()),
             RuntimeZone::Counter { .. } => 0,
             RuntimeZone::Track { positions } => positions.iter().map(|p| p.len()).sum(),
-            RuntimeZone::Graph { occupants, .. } => occupants.iter().filter(|o| o.is_some()).count(),
+            RuntimeZone::Graph { occupants, .. } => {
+                occupants.iter().filter(|o| o.is_some()).count()
+            }
         }
     }
 
@@ -618,7 +635,11 @@ impl RuntimeZone {
     /// Check if a grid cell is valid (in bounds and in the valid_cells mask if present).
     pub fn grid_cell_valid(&self, col: u32, row: u32) -> bool {
         match self {
-            RuntimeZone::Grid { storage, valid_cells, .. } => {
+            RuntimeZone::Grid {
+                storage,
+                valid_cells,
+                ..
+            } => {
                 let c = col as i32;
                 let r = row as i32;
                 if !storage.cell_valid(c, r) {
@@ -637,7 +658,11 @@ impl RuntimeZone {
     /// Get component at grid coordinate. Returns None if out of bounds, masked out, or empty.
     pub fn grid_get(&self, col: u32, row: u32) -> Option<ComponentId> {
         match self {
-            RuntimeZone::Grid { storage, valid_cells, .. } => {
+            RuntimeZone::Grid {
+                storage,
+                valid_cells,
+                ..
+            } => {
                 let c = col as i32;
                 let r = row as i32;
                 if let Some(vc) = valid_cells {
@@ -659,7 +684,11 @@ impl RuntimeZone {
         component: Option<ComponentId>,
     ) -> Option<ComponentId> {
         match self {
-            RuntimeZone::Grid { storage, valid_cells, .. } => {
+            RuntimeZone::Grid {
+                storage,
+                valid_cells,
+                ..
+            } => {
                 let c = col as i32;
                 let r = row as i32;
                 if let Some(vc) = valid_cells {
@@ -678,7 +707,14 @@ impl RuntimeZone {
     /// Returns `Err` if the push would exceed the zone's `stacking_limit`.
     /// A `stacking_limit` of 0 means unlimited stacking.
     pub fn grid_push(&mut self, col: u32, row: u32, component: ComponentId) -> Result<()> {
-        if let RuntimeZone::Grid { storage, stacks, stacking_limit, valid_cells, .. } = self {
+        if let RuntimeZone::Grid {
+            storage,
+            stacks,
+            stacking_limit,
+            valid_cells,
+            ..
+        } = self
+        {
             let c = col as i32;
             let r = row as i32;
             if !storage.cell_valid(c, r) {
@@ -694,10 +730,7 @@ impl RuntimeZone {
                 }
             }
             // Compute current stack depth (stack below + top occupant)
-            let current_depth = stacks
-                .get(&(c, r))
-                .map(|s| s.len())
-                .unwrap_or(0)
+            let current_depth = stacks.get(&(c, r)).map(|s| s.len()).unwrap_or(0)
                 + if storage.get(c, r).is_some() { 1 } else { 0 };
             // Enforce stacking limit (0 = unlimited)
             if *stacking_limit > 0 && current_depth + 1 > *stacking_limit as usize {
@@ -723,7 +756,13 @@ impl RuntimeZone {
 
     /// Pop the top component from a cell's stack.
     pub fn grid_pop(&mut self, col: u32, row: u32) -> Option<ComponentId> {
-        if let RuntimeZone::Grid { storage, stacks, valid_cells, .. } = self {
+        if let RuntimeZone::Grid {
+            storage,
+            stacks,
+            valid_cells,
+            ..
+        } = self
+        {
             let c = col as i32;
             let r = row as i32;
             if !storage.cell_valid(c, r) {
@@ -755,7 +794,13 @@ impl RuntimeZone {
 
     /// Get all components at a grid position (bottom to top).
     pub fn grid_stack(&self, col: u32, row: u32) -> Vec<ComponentId> {
-        if let RuntimeZone::Grid { storage, stacks, valid_cells, .. } = self {
+        if let RuntimeZone::Grid {
+            storage,
+            stacks,
+            valid_cells,
+            ..
+        } = self
+        {
             let c = col as i32;
             let r = row as i32;
             if !storage.cell_valid(c, r) {
@@ -874,7 +919,11 @@ impl RuntimeZone {
     /// Get occupant at a named graph node.
     pub fn graph_get(&self, node: &str) -> Option<ComponentId> {
         match self {
-            RuntimeZone::Graph { name_to_index, occupants, .. } => {
+            RuntimeZone::Graph {
+                name_to_index,
+                occupants,
+                ..
+            } => {
                 let idx = *name_to_index.get(node)?;
                 occupants.get(idx).copied().flatten()
             }
@@ -883,13 +932,13 @@ impl RuntimeZone {
     }
 
     /// Set occupant at a named graph node. Returns previous occupant.
-    pub fn graph_set(
-        &mut self,
-        node: &str,
-        component: Option<ComponentId>,
-    ) -> Option<ComponentId> {
+    pub fn graph_set(&mut self, node: &str, component: Option<ComponentId>) -> Option<ComponentId> {
         match self {
-            RuntimeZone::Graph { name_to_index, occupants, .. } => {
+            RuntimeZone::Graph {
+                name_to_index,
+                occupants,
+                ..
+            } => {
                 let idx = *name_to_index.get(node)?;
                 let prev = occupants.get(idx).copied().flatten();
                 if let Some(slot) = occupants.get_mut(idx) {
@@ -904,9 +953,17 @@ impl RuntimeZone {
     /// Get neighbor node names for a graph node.
     pub fn graph_neighbors(&self, node: &str) -> Vec<&str> {
         match self {
-            RuntimeZone::Graph { name_to_index, adjacency, node_names, .. } => {
+            RuntimeZone::Graph {
+                name_to_index,
+                adjacency,
+                node_names,
+                ..
+            } => {
                 if let Some(&idx) = name_to_index.get(node) {
-                    adjacency[idx].iter().map(|&i| node_names[i].as_str()).collect()
+                    adjacency[idx]
+                        .iter()
+                        .map(|&i| node_names[i].as_str())
+                        .collect()
                 } else {
                     Vec::new()
                 }
@@ -923,7 +980,11 @@ impl RuntimeZone {
     /// exists. For non-fog zones, returns `FogState::Visible`.
     pub fn cell_fog_state(&self, col: i32, row: i32, player: &str) -> FogState {
         match self {
-            RuntimeZone::Grid { cell_fog: Some(fog), fog_config, .. } => {
+            RuntimeZone::Grid {
+                cell_fog: Some(fog),
+                fog_config,
+                ..
+            } => {
                 let default = fog_config
                     .as_ref()
                     .map(|c| FogState::from_str_default(&c.default_state))
@@ -941,7 +1002,11 @@ impl RuntimeZone {
     ///
     /// No-op for non-fog zones.
     pub fn set_cell_fog(&mut self, col: i32, row: i32, player: &str, state: FogState) {
-        if let RuntimeZone::Grid { cell_fog: Some(fog), .. } = self {
+        if let RuntimeZone::Grid {
+            cell_fog: Some(fog),
+            ..
+        } = self
+        {
             fog.entry((col, row))
                 .or_default()
                 .insert(player.to_string(), state);
@@ -1119,8 +1184,7 @@ impl GameSession {
     /// The name of the player whose turn it is.
     pub fn current_player(&self) -> Option<&str> {
         debug_assert!(
-            self.runtime.players.is_empty()
-                || self.runtime.turn_index < self.runtime.players.len(),
+            self.runtime.players.is_empty() || self.runtime.turn_index < self.runtime.players.len(),
             "turn_index {} out of range for {} players",
             self.runtime.turn_index,
             self.runtime.players.len()
@@ -1154,9 +1218,7 @@ impl GameSession {
         self.runtime
             .partnerships
             .iter()
-            .any(|team| {
-                team.iter().any(|p| p == player_a) && team.iter().any(|p| p == player_b)
-            })
+            .any(|team| team.iter().any(|p| p == player_a) && team.iter().any(|p| p == player_b))
     }
 
     /// Get all players on the same team as the given player (including self).
@@ -1306,13 +1368,16 @@ impl GameSession {
 
     fn zone_to_wire(&self, zone: &RuntimeZone) -> ZoneState {
         match zone {
-            RuntimeZone::Grid { storage, cell_properties, .. } => {
+            RuntimeZone::Grid {
+                storage,
+                cell_properties,
+                ..
+            } => {
                 let mut wire_cells = IndexMap::new();
                 for (col, row, cid) in storage.occupied_cells() {
                     let coord = format!("{},{}", col, row);
                     if let Some(data) = self.runtime.components.get(cid) {
-                        wire_cells
-                            .insert(coord, CellContents::Single(data.to_wire_instance()));
+                        wire_cells.insert(coord, CellContents::Single(data.to_wire_instance()));
                     }
                 }
                 let wire_props = if cell_properties.is_empty() {
@@ -1324,7 +1389,11 @@ impl GameSession {
                     }
                     Some(props_map)
                 };
-                ZoneState::Grid { cells: wire_cells, cell_properties: wire_props, cell_fog: None }
+                ZoneState::Grid {
+                    cells: wire_cells,
+                    cell_properties: wire_props,
+                    cell_fog: None,
+                }
             }
             RuntimeZone::OrderedStack { components } => ZoneState::OrderedStack {
                 components: components
@@ -1367,17 +1436,27 @@ impl GameSession {
                     positions: wire_positions,
                 }
             }
-            RuntimeZone::Graph { node_names, occupants, .. } => {
+            RuntimeZone::Graph {
+                node_names,
+                occupants,
+                ..
+            } => {
                 let mut wire_cells = IndexMap::new();
                 for (i, name) in node_names.iter().enumerate() {
                     if let Some(Some(cid)) = occupants.get(i) {
                         if let Some(data) = self.runtime.components.get(*cid) {
-                            wire_cells
-                                .insert(name.clone(), CellContents::Single(data.to_wire_instance()));
+                            wire_cells.insert(
+                                name.clone(),
+                                CellContents::Single(data.to_wire_instance()),
+                            );
                         }
                     }
                 }
-                ZoneState::Grid { cells: wire_cells, cell_properties: None, cell_fog: None }
+                ZoneState::Grid {
+                    cells: wire_cells,
+                    cell_properties: None,
+                    cell_fog: None,
+                }
             }
         }
     }

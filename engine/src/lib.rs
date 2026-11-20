@@ -1,10 +1,10 @@
 pub mod action;
-pub mod mental_poker;
 pub mod cel;
 pub mod definition;
 pub mod end_conditions;
 pub mod error;
 pub mod extension;
+pub mod mental_poker;
 pub mod moves;
 pub mod perturber;
 pub mod registry;

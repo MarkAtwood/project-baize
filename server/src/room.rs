@@ -124,7 +124,10 @@ impl RoomRegistry {
         for room_id in &room_ids {
             match store.load_room(room_id) {
                 Ok(Some(data)) => {
-                    if let Err(e) = self.create_room(room_id.clone(), &data.definition_json).await {
+                    if let Err(e) = self
+                        .create_room(room_id.clone(), &data.definition_json)
+                        .await
+                    {
                         eprintln!("[store] failed to restore room {room_id}: {e}");
                     } else {
                         restored += 1;
@@ -198,7 +201,10 @@ impl RoomRegistry {
         room_id: String,
         definition_json: &str,
     ) -> Result<String, String> {
-        debug_assert!(!room_id.is_empty(), "room: create_room room_id must not be empty");
+        debug_assert!(
+            !room_id.is_empty(),
+            "room: create_room room_id must not be empty"
+        );
         debug_assert!(
             !definition_json.is_empty(),
             "room: create_room definition_json must not be empty"
@@ -213,8 +219,7 @@ impl RoomRegistry {
             }
         }
 
-        let definition =
-            GameDefinition::from_json(definition_json).map_err(|e| e.to_string())?;
+        let definition = GameDefinition::from_json(definition_json).map_err(|e| e.to_string())?;
         let max_players = match &definition.game.players {
             baize_engine::definition::Players::Named(names) => names.len(),
             baize_engine::definition::Players::Range { max, .. } => *max as usize,
@@ -361,7 +366,10 @@ pub fn seat_for_token(room: &Room, token: &str) -> Option<String> {
 ///
 /// Precondition: seat must not be empty.
 pub fn register_token(room: &mut Room, seat: &str) -> String {
-    debug_assert!(!seat.is_empty(), "room: seat name must not be empty for token registration");
+    debug_assert!(
+        !seat.is_empty(),
+        "room: seat name must not be empty for token registration"
+    );
     let token = generate_player_token();
     room.player_tokens.insert(token.clone(), seat.to_string());
     token
@@ -380,23 +388,12 @@ pub fn room_has_capacity(room: &Room) -> bool {
 /// before calling this for non-reconnection joins.
 ///
 /// Postcondition: player count does not exceed max_players + reasonable spectator headroom.
-pub fn join_room(
-    room: &mut Room,
-    seat: String,
-) -> tokio::sync::mpsc::Receiver<String> {
-    debug_assert!(
-        !seat.is_empty(),
-        "room: seat name must not be empty"
-    );
+pub fn join_room(room: &mut Room, seat: String) -> tokio::sync::mpsc::Receiver<String> {
+    debug_assert!(!seat.is_empty(), "room: seat name must not be empty");
 
     let (tx, rx) = tokio::sync::mpsc::channel(config::MAX_OUTBOUND_QUEUE);
-    room.players.insert(
-        seat.clone(),
-        PlayerConnection {
-            seat,
-            tx,
-        },
-    );
+    room.players
+        .insert(seat.clone(), PlayerConnection { seat, tx });
 
     // Postcondition: player count sanity check.
     // We allow max_players + spectators, but cap at a generous upper bound
@@ -419,7 +416,10 @@ pub fn join_room(
 ///
 /// Precondition: message must not be empty (empty broadcasts are always bugs).
 pub fn broadcast(room: &Room, message: &str) {
-    debug_assert!(!message.is_empty(), "room: broadcast message must not be empty");
+    debug_assert!(
+        !message.is_empty(),
+        "room: broadcast message must not be empty"
+    );
     for conn in room.players.values() {
         if conn.tx.try_send(message.to_string()).is_err() {
             eprintln!(
@@ -436,14 +436,17 @@ pub fn broadcast(room: &Room, message: &str) {
 /// - seat must not be empty
 /// - message must not be empty
 pub fn send_to_player(room: &Room, seat: &str, message: &str) {
-    debug_assert!(!seat.is_empty(), "room: send_to_player seat must not be empty");
-    debug_assert!(!message.is_empty(), "room: send_to_player message must not be empty");
+    debug_assert!(
+        !seat.is_empty(),
+        "room: send_to_player seat must not be empty"
+    );
+    debug_assert!(
+        !message.is_empty(),
+        "room: send_to_player message must not be empty"
+    );
     if let Some(conn) = room.players.get(seat) {
         if conn.tx.try_send(message.to_string()).is_err() {
-            eprintln!(
-                "[warning] outbound queue full for player '{seat}', message dropped"
-            );
+            eprintln!("[warning] outbound queue full for player '{seat}', message dropped");
         }
     }
 }
-

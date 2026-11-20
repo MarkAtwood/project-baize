@@ -1,8 +1,8 @@
+use baize_engine::GameDefinition;
 use baize_engine::action::{Action, ActionType, Orientation, Position};
 use baize_engine::runtime::*;
 use baize_engine::state::GameStatus;
-use baize_engine::transition::{apply_action, EventType};
-use baize_engine::GameDefinition;
+use baize_engine::transition::{EventType, apply_action};
 use indexmap::IndexMap;
 use sha2::{Digest, Sha256};
 
@@ -97,9 +97,11 @@ fn place_marks_alternating() {
 
     let events = apply_action(&mut session, &place_action(1, 1)).unwrap();
     assert!(events.iter().any(|e| e.event_type == EventType::Place));
-    assert!(events
-        .iter()
-        .any(|e| e.event_type == EventType::TurnAdvance));
+    assert!(
+        events
+            .iter()
+            .any(|e| e.event_type == EventType::TurnAdvance)
+    );
     assert_eq!(session.current_player(), Some("O"));
 
     // Board should have a mark at (1,1)
@@ -109,13 +111,15 @@ fn place_marks_alternating() {
     // O places
     let _events = apply_action(&mut session, &place_action(0, 0)).unwrap();
     assert_eq!(session.current_player(), Some("X"));
-    assert!(session
-        .runtime
-        .zones
-        .get("board")
-        .unwrap()
-        .grid_get(0, 0)
-        .is_some());
+    assert!(
+        session
+            .runtime
+            .zones
+            .get("board")
+            .unwrap()
+            .grid_get(0, 0)
+            .is_some()
+    );
 
     // Sequence should advance
     assert_eq!(session.runtime.sequence, 2);
@@ -138,17 +142,21 @@ fn move_piece_on_grid() {
     let mut session = GameSession::new(def).unwrap();
 
     // Manually place a rook
-    let cid = session.runtime.components.insert(ComponentData {
-        id: ComponentId(0),
-        string_id: "wr1".into(),
-        component_type: "rook".into(),
-        owner: Some("white".into()),
-        facing: None,
-        state: None,
-        properties: IndexMap::new(),
+    let cid = session
+        .runtime
+        .components
+        .insert(ComponentData {
+            id: ComponentId(0),
+            string_id: "wr1".into(),
+            component_type: "rook".into(),
+            owner: Some("white".into()),
+            facing: None,
+            state: None,
+            properties: IndexMap::new(),
             span_cells: Vec::new(),
-                orientation: None,
-    }).unwrap();
+            orientation: None,
+        })
+        .unwrap();
     session
         .runtime
         .zones
@@ -158,9 +166,7 @@ fn move_piece_on_grid() {
 
     // Move rook from (0,0) to (0,5)
     let events = apply_action(&mut session, &move_action(0, 0, 0, 5)).unwrap();
-    assert!(events
-        .iter()
-        .any(|e| e.event_type == EventType::MovePiece));
+    assert!(events.iter().any(|e| e.event_type == EventType::MovePiece));
 
     let board = session.runtime.zones.get("board").unwrap();
     assert!(board.grid_get(0, 0).is_none());
@@ -182,28 +188,36 @@ fn capture_enemy_piece() {
     .unwrap();
     let mut session = GameSession::new(def).unwrap();
 
-    let wr = session.runtime.components.insert(ComponentData {
-        id: ComponentId(0),
-        string_id: "wr1".into(),
-        component_type: "rook".into(),
-        owner: Some("white".into()),
-        facing: None,
-        state: None,
-        properties: IndexMap::new(),
+    let wr = session
+        .runtime
+        .components
+        .insert(ComponentData {
+            id: ComponentId(0),
+            string_id: "wr1".into(),
+            component_type: "rook".into(),
+            owner: Some("white".into()),
+            facing: None,
+            state: None,
+            properties: IndexMap::new(),
             span_cells: Vec::new(),
-                orientation: None,
-    }).unwrap();
-    let br = session.runtime.components.insert(ComponentData {
-        id: ComponentId(0),
-        string_id: "br1".into(),
-        component_type: "rook".into(),
-        owner: Some("black".into()),
-        facing: None,
-        state: None,
-        properties: IndexMap::new(),
+            orientation: None,
+        })
+        .unwrap();
+    let br = session
+        .runtime
+        .components
+        .insert(ComponentData {
+            id: ComponentId(0),
+            string_id: "br1".into(),
+            component_type: "rook".into(),
+            owner: Some("black".into()),
+            facing: None,
+            state: None,
+            properties: IndexMap::new(),
             span_cells: Vec::new(),
-                orientation: None,
-    }).unwrap();
+            orientation: None,
+        })
+        .unwrap();
 
     let board = session.runtime.zones.get_mut("board").unwrap();
     board.grid_set(0, 0, Some(wr));
@@ -212,9 +226,7 @@ fn capture_enemy_piece() {
     // White rook captures black rook
     let events = apply_action(&mut session, &move_action(0, 0, 0, 5)).unwrap();
     assert!(events.iter().any(|e| e.event_type == EventType::Capture));
-    assert!(events
-        .iter()
-        .any(|e| e.event_type == EventType::MovePiece));
+    assert!(events.iter().any(|e| e.event_type == EventType::MovePiece));
 
     let board = session.runtime.zones.get("board").unwrap();
     assert!(board.grid_get(0, 0).is_none());
@@ -396,7 +408,14 @@ fn place_ship_horizontal() {
     assert!(events.iter().any(|e| e.event_type == EventType::Place));
 
     // Component should occupy 5 cells on player A's ocean
-    let ocean = session.runtime.players.get("A").unwrap().zones.get("ocean").unwrap();
+    let ocean = session
+        .runtime
+        .players
+        .get("A")
+        .unwrap()
+        .zones
+        .get("ocean")
+        .unwrap();
     let cid = ocean.grid_get(0, 0).expect("cell 0,0 should be occupied");
     for col in 0..5u32 {
         assert_eq!(ocean.grid_get(col, 0), Some(cid));
@@ -421,7 +440,14 @@ fn place_ship_vertical() {
 
     assert!(events.iter().any(|e| e.event_type == EventType::Place));
 
-    let ocean = session.runtime.players.get("A").unwrap().zones.get("ocean").unwrap();
+    let ocean = session
+        .runtime
+        .players
+        .get("A")
+        .unwrap()
+        .zones
+        .get("ocean")
+        .unwrap();
     let cid = ocean.grid_get(9, 8).unwrap();
     assert_eq!(ocean.grid_get(9, 9), Some(cid));
     assert!(ocean.grid_get(9, 7).is_none());
@@ -479,7 +505,14 @@ fn fire_miss() {
     assert!(!events.iter().any(|e| e.event_type == EventType::Hit));
 
     // A's target grid should have a miss peg at (0,0)
-    let target = session.runtime.players.get("A").unwrap().zones.get("target").unwrap();
+    let target = session
+        .runtime
+        .players
+        .get("A")
+        .unwrap()
+        .zones
+        .get("target")
+        .unwrap();
     let peg = target.grid_get(0, 0);
     assert!(peg.is_some());
     let peg_comp = session.runtime.components.get(peg.unwrap()).unwrap();
@@ -507,7 +540,14 @@ fn fire_hit() {
     assert!(!events.iter().any(|e| e.event_type == EventType::Miss));
 
     // A's target grid should have a hit peg at (5,5)
-    let target = session.runtime.players.get("A").unwrap().zones.get("target").unwrap();
+    let target = session
+        .runtime
+        .players
+        .get("A")
+        .unwrap()
+        .zones
+        .get("target")
+        .unwrap();
     let peg = target.grid_get(5, 5);
     assert!(peg.is_some());
     let peg_comp = session.runtime.components.get(peg.unwrap()).unwrap();
@@ -540,7 +580,14 @@ fn fire_sunk() {
     assert!(events2.iter().any(|e| e.event_type == EventType::Sunk));
 
     // B's ships_remaining should be decremented
-    let b_ships = session.runtime.players.get("B").unwrap().counters.get("ships_remaining").unwrap();
+    let b_ships = session
+        .runtime
+        .players
+        .get("B")
+        .unwrap()
+        .counters
+        .get("ships_remaining")
+        .unwrap();
     assert_eq!(*b_ships, 1); // was 2, now 1
 }
 
@@ -564,7 +611,10 @@ fn fire_duplicate_rejected() {
 // ---------------------------------------------------------------------------
 
 fn make_commitment(choice: &str, nonce: &str) -> String {
-    format!("{:x}", Sha256::digest(format!("{choice}|{nonce}").as_bytes()))
+    format!(
+        "{:x}",
+        Sha256::digest(format!("{choice}|{nonce}").as_bytes())
+    )
 }
 
 fn commit_action(hash: &str) -> Action {
@@ -654,10 +704,12 @@ fn commit_reveal_wrong_value_rejected() {
     // Wrong choice — must be rejected
     let result = apply_action(&mut session, &reveal_action("paper", nonce));
     assert!(result.is_err());
-    assert!(result
-        .unwrap_err()
-        .to_string()
-        .contains("commitment verification failed"));
+    assert!(
+        result
+            .unwrap_err()
+            .to_string()
+            .contains("commitment verification failed")
+    );
 }
 
 #[test]
@@ -673,10 +725,12 @@ fn commit_reveal_wrong_nonce_rejected() {
 
     let result = apply_action(&mut session, &reveal_action("scissors", "wrong_nonce"));
     assert!(result.is_err());
-    assert!(result
-        .unwrap_err()
-        .to_string()
-        .contains("commitment verification failed"));
+    assert!(
+        result
+            .unwrap_err()
+            .to_string()
+            .contains("commitment verification failed")
+    );
 }
 
 #[test]
@@ -714,8 +768,10 @@ fn commit_reveal_near_miss_hash_rejected() {
 
     let result = apply_action(&mut session, &reveal_action("rock", nonce));
     assert!(result.is_err());
-    assert!(result
-        .unwrap_err()
-        .to_string()
-        .contains("commitment verification failed"));
+    assert!(
+        result
+            .unwrap_err()
+            .to_string()
+            .contains("commitment verification failed")
+    );
 }

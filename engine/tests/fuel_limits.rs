@@ -86,10 +86,7 @@ fn reject_too_many_components() {
     let mut v = minimal_json();
     let mut components = serde_json::Map::new();
     for i in 0..10001 {
-        components.insert(
-            format!("c{i}"),
-            serde_json::json!({"count": 1}),
-        );
+        components.insert(format!("c{i}"), serde_json::json!({"count": 1}));
     }
     v["components"] = serde_json::Value::Object(components);
     let err = parse_value(v).unwrap_err();
@@ -101,10 +98,7 @@ fn accept_many_components_within_limit() {
     let mut v = minimal_json();
     let mut components = serde_json::Map::new();
     for i in 0..100 {
-        components.insert(
-            format!("c{i}"),
-            serde_json::json!({"count": 1}),
-        );
+        components.insert(format!("c{i}"), serde_json::json!({"count": 1}));
     }
     v["components"] = serde_json::Value::Object(components);
     parse_value(v).expect("100 components should parse");

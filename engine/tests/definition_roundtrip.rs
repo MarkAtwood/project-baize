@@ -9,11 +9,7 @@ fn game_files() -> Vec<(String, String)> {
             let entry = entry.ok()?;
             let path = entry.path();
             if path.extension().and_then(|e| e.to_str()) == Some("json") {
-                let name = path
-                    .file_stem()
-                    .unwrap()
-                    .to_string_lossy()
-                    .into_owned();
+                let name = path.file_stem().unwrap().to_string_lossy().into_owned();
                 let content = std::fs::read_to_string(&path)
                     .unwrap_or_else(|e| panic!("failed to read {}: {e}", path.display()));
                 Some((name, content))
@@ -84,9 +80,7 @@ fn definition_roundtrip_via_value_all_games() {
         let def2: GameDefinition = serde_json::from_value(val1.clone())
             .unwrap_or_else(|e| panic!("[{name}] second Value->Definition parse failed: {e}"));
         let val2: serde_json::Value = serde_json::to_value(&def2)
-            .unwrap_or_else(|e| {
-                panic!("[{name}] second Definition->Value serialize failed: {e}")
-            });
+            .unwrap_or_else(|e| panic!("[{name}] second Definition->Value serialize failed: {e}"));
 
         // Structural equality (Value implements PartialEq)
         assert_eq!(

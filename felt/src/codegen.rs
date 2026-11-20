@@ -1,9 +1,9 @@
 use std::collections::{HashMap, HashSet};
 
 use wasm_encoder::{
-    CodeSection, ConstExpr, EntityType, ExportKind, ExportSection, Function, FunctionSection,
-    GlobalSection, GlobalType, ImportSection, Instruction, MemorySection, MemoryType, Module,
-    TypeSection, ValType, DataSection, DataSegment, DataSegmentMode,
+    CodeSection, ConstExpr, DataSection, DataSegment, DataSegmentMode, EntityType, ExportKind,
+    ExportSection, Function, FunctionSection, GlobalSection, GlobalType, ImportSection,
+    Instruction, MemorySection, MemoryType, Module, TypeSection, ValType,
 };
 
 use crate::ast::{BinOp, Expr, FnDef, Pattern, Program, Type, UnOp};
@@ -49,7 +49,6 @@ impl BuiltinImport {
         }
         params
     }
-
 }
 
 /// All builtins that have matching host imports in felt_host.rs.
@@ -58,55 +57,245 @@ fn builtin_imports() -> Vec<BuiltinImport> {
     use ValType::{I32, I64};
     vec![
         // Zone access
-        BuiltinImport { felt_name: "zone", wasm_name: "zone_by_name", felt_args: &[Handle(I32), StringIn], result: I32 },
-        BuiltinImport { felt_name: "zone_for", wasm_name: "zone_for_player", felt_args: &[Handle(I32), StringIn, Handle(I32)], result: I32 },
-        BuiltinImport { felt_name: "count", wasm_name: "zone_comp_count", felt_args: &[Handle(I32)], result: I32 },
-        BuiltinImport { felt_name: "counter_value", wasm_name: "zone_counter_val", felt_args: &[Handle(I32)], result: I64 },
+        BuiltinImport {
+            felt_name: "zone",
+            wasm_name: "zone_by_name",
+            felt_args: &[Handle(I32), StringIn],
+            result: I32,
+        },
+        BuiltinImport {
+            felt_name: "zone_for",
+            wasm_name: "zone_for_player",
+            felt_args: &[Handle(I32), StringIn, Handle(I32)],
+            result: I32,
+        },
+        BuiltinImport {
+            felt_name: "count",
+            wasm_name: "zone_comp_count",
+            felt_args: &[Handle(I32)],
+            result: I32,
+        },
+        BuiltinImport {
+            felt_name: "counter_value",
+            wasm_name: "zone_counter_val",
+            felt_args: &[Handle(I32)],
+            result: I64,
+        },
         // Cell access
-        BuiltinImport { felt_name: "cell_at", wasm_name: "cell_at", felt_args: &[Handle(I32), Handle(I32), Handle(I32)], result: I32 },
-        BuiltinImport { felt_name: "col", wasm_name: "cell_col", felt_args: &[Handle(I32)], result: I32 },
-        BuiltinImport { felt_name: "row", wasm_name: "cell_row", felt_args: &[Handle(I32)], result: I32 },
+        BuiltinImport {
+            felt_name: "cell_at",
+            wasm_name: "cell_at",
+            felt_args: &[Handle(I32), Handle(I32), Handle(I32)],
+            result: I32,
+        },
+        BuiltinImport {
+            felt_name: "col",
+            wasm_name: "cell_col",
+            felt_args: &[Handle(I32)],
+            result: I32,
+        },
+        BuiltinImport {
+            felt_name: "row",
+            wasm_name: "cell_row",
+            felt_args: &[Handle(I32)],
+            result: I32,
+        },
         // Component access
-        BuiltinImport { felt_name: "type_of", wasm_name: "comp_type", felt_args: &[Handle(I32), StringOut], result: I32 },
-        BuiltinImport { felt_name: "owner", wasm_name: "comp_owner", felt_args: &[Handle(I32)], result: I32 },
-        BuiltinImport { felt_name: "rank", wasm_name: "comp_rank", felt_args: &[Handle(I32)], result: I64 },
-        BuiltinImport { felt_name: "suit", wasm_name: "comp_suit", felt_args: &[Handle(I32), StringOut], result: I32 },
-        BuiltinImport { felt_name: "property", wasm_name: "comp_property", felt_args: &[Handle(I32), StringIn, StringOut], result: I32 },
+        BuiltinImport {
+            felt_name: "type_of",
+            wasm_name: "comp_type",
+            felt_args: &[Handle(I32), StringOut],
+            result: I32,
+        },
+        BuiltinImport {
+            felt_name: "owner",
+            wasm_name: "comp_owner",
+            felt_args: &[Handle(I32)],
+            result: I32,
+        },
+        BuiltinImport {
+            felt_name: "rank",
+            wasm_name: "comp_rank",
+            felt_args: &[Handle(I32)],
+            result: I64,
+        },
+        BuiltinImport {
+            felt_name: "suit",
+            wasm_name: "comp_suit",
+            felt_args: &[Handle(I32), StringOut],
+            result: I32,
+        },
+        BuiltinImport {
+            felt_name: "property",
+            wasm_name: "comp_property",
+            felt_args: &[Handle(I32), StringIn, StringOut],
+            result: I32,
+        },
         // Player access
-        BuiltinImport { felt_name: "current_player", wasm_name: "current_player", felt_args: &[Handle(I32)], result: I32 },
-        BuiltinImport { felt_name: "turn", wasm_name: "turn_number", felt_args: &[Handle(I32)], result: I32 },
-        BuiltinImport { felt_name: "phase", wasm_name: "phase_name", felt_args: &[Handle(I32), StringOut], result: I32 },
-        BuiltinImport { felt_name: "is_finished", wasm_name: "is_finished", felt_args: &[Handle(I32)], result: I32 },
-        BuiltinImport { felt_name: "name", wasm_name: "player_name", felt_args: &[Handle(I32), StringOut], result: I32 },
+        BuiltinImport {
+            felt_name: "current_player",
+            wasm_name: "current_player",
+            felt_args: &[Handle(I32)],
+            result: I32,
+        },
+        BuiltinImport {
+            felt_name: "turn",
+            wasm_name: "turn_number",
+            felt_args: &[Handle(I32)],
+            result: I32,
+        },
+        BuiltinImport {
+            felt_name: "phase",
+            wasm_name: "phase_name",
+            felt_args: &[Handle(I32), StringOut],
+            result: I32,
+        },
+        BuiltinImport {
+            felt_name: "is_finished",
+            wasm_name: "is_finished",
+            felt_args: &[Handle(I32)],
+            result: I32,
+        },
+        BuiltinImport {
+            felt_name: "name",
+            wasm_name: "player_name",
+            felt_args: &[Handle(I32), StringOut],
+            result: I32,
+        },
         // Zone info
-        BuiltinImport { felt_name: "zone_count", wasm_name: "zone_count", felt_args: &[Handle(I32)], result: I32 },
-        BuiltinImport { felt_name: "zone_type", wasm_name: "zone_type", felt_args: &[Handle(I32)], result: I32 },
-        BuiltinImport { felt_name: "zone_width", wasm_name: "zone_width", felt_args: &[Handle(I32)], result: I32 },
-        BuiltinImport { felt_name: "zone_height", wasm_name: "zone_height", felt_args: &[Handle(I32)], result: I32 },
-        BuiltinImport { felt_name: "zone_cell_count", wasm_name: "zone_cell_count", felt_args: &[Handle(I32)], result: I32 },
-        BuiltinImport { felt_name: "zone_comp_count", wasm_name: "zone_comp_count", felt_args: &[Handle(I32)], result: I32 },
+        BuiltinImport {
+            felt_name: "zone_count",
+            wasm_name: "zone_count",
+            felt_args: &[Handle(I32)],
+            result: I32,
+        },
+        BuiltinImport {
+            felt_name: "zone_type",
+            wasm_name: "zone_type",
+            felt_args: &[Handle(I32)],
+            result: I32,
+        },
+        BuiltinImport {
+            felt_name: "zone_width",
+            wasm_name: "zone_width",
+            felt_args: &[Handle(I32)],
+            result: I32,
+        },
+        BuiltinImport {
+            felt_name: "zone_height",
+            wasm_name: "zone_height",
+            felt_args: &[Handle(I32)],
+            result: I32,
+        },
+        BuiltinImport {
+            felt_name: "zone_cell_count",
+            wasm_name: "zone_cell_count",
+            felt_args: &[Handle(I32)],
+            result: I32,
+        },
+        BuiltinImport {
+            felt_name: "zone_comp_count",
+            wasm_name: "zone_comp_count",
+            felt_args: &[Handle(I32)],
+            result: I32,
+        },
         // Cell properties
-        BuiltinImport { felt_name: "cell_property", wasm_name: "cell_property", felt_args: &[Handle(I32), Handle(I32), Handle(I32), StringIn, StringOut], result: I32 },
+        BuiltinImport {
+            felt_name: "cell_property",
+            wasm_name: "cell_property",
+            felt_args: &[Handle(I32), Handle(I32), Handle(I32), StringIn, StringOut],
+            result: I32,
+        },
         // Grid adjacency
-        BuiltinImport { felt_name: "adjacent_count", wasm_name: "adjacent_count", felt_args: &[Handle(I32), Handle(I32)], result: I32 },
-        BuiltinImport { felt_name: "adjacent_at", wasm_name: "adjacent_at", felt_args: &[Handle(I32), Handle(I32), Handle(I32)], result: I32 },
-        BuiltinImport { felt_name: "in_bounds", wasm_name: "in_bounds", felt_args: &[Handle(I32), Handle(I32), Handle(I32)], result: I32 },
+        BuiltinImport {
+            felt_name: "adjacent_count",
+            wasm_name: "adjacent_count",
+            felt_args: &[Handle(I32), Handle(I32)],
+            result: I32,
+        },
+        BuiltinImport {
+            felt_name: "adjacent_at",
+            wasm_name: "adjacent_at",
+            felt_args: &[Handle(I32), Handle(I32), Handle(I32)],
+            result: I32,
+        },
+        BuiltinImport {
+            felt_name: "in_bounds",
+            wasm_name: "in_bounds",
+            felt_args: &[Handle(I32), Handle(I32), Handle(I32)],
+            result: I32,
+        },
         // Player enumeration
-        BuiltinImport { felt_name: "player_count", wasm_name: "player_count", felt_args: &[Handle(I32)], result: I32 },
-        BuiltinImport { felt_name: "player_by_index", wasm_name: "player_by_index", felt_args: &[Handle(I32), Handle(I32)], result: I32 },
+        BuiltinImport {
+            felt_name: "player_count",
+            wasm_name: "player_count",
+            felt_args: &[Handle(I32)],
+            result: I32,
+        },
+        BuiltinImport {
+            felt_name: "player_by_index",
+            wasm_name: "player_by_index",
+            felt_args: &[Handle(I32), Handle(I32)],
+            result: I32,
+        },
         // Cell/component by index
-        BuiltinImport { felt_name: "cell_by_index", wasm_name: "cell_by_index", felt_args: &[Handle(I32), Handle(I32)], result: I32 },
-        BuiltinImport { felt_name: "comp_by_index", wasm_name: "comp_by_index", felt_args: &[Handle(I32), Handle(I32)], result: I32 },
-        BuiltinImport { felt_name: "cell_occupant", wasm_name: "cell_occupant", felt_args: &[Handle(I32)], result: I32 },
-        BuiltinImport { felt_name: "comp_id", wasm_name: "comp_id", felt_args: &[Handle(I32), StringOut], result: I32 },
-        BuiltinImport { felt_name: "zone_by_index", wasm_name: "zone_by_index", felt_args: &[Handle(I32), Handle(I32)], result: I32 },
+        BuiltinImport {
+            felt_name: "cell_by_index",
+            wasm_name: "cell_by_index",
+            felt_args: &[Handle(I32), Handle(I32)],
+            result: I32,
+        },
+        BuiltinImport {
+            felt_name: "comp_by_index",
+            wasm_name: "comp_by_index",
+            felt_args: &[Handle(I32), Handle(I32)],
+            result: I32,
+        },
+        BuiltinImport {
+            felt_name: "cell_occupant",
+            wasm_name: "cell_occupant",
+            felt_args: &[Handle(I32)],
+            result: I32,
+        },
+        BuiltinImport {
+            felt_name: "comp_id",
+            wasm_name: "comp_id",
+            felt_args: &[Handle(I32), StringOut],
+            result: I32,
+        },
+        BuiltinImport {
+            felt_name: "zone_by_index",
+            wasm_name: "zone_by_index",
+            felt_args: &[Handle(I32), Handle(I32)],
+            result: I32,
+        },
         // Diagonal adjacency
-        BuiltinImport { felt_name: "diagonal_count", wasm_name: "diagonal_count", felt_args: &[Handle(I32), Handle(I32)], result: I32 },
-        BuiltinImport { felt_name: "diagonal_at", wasm_name: "diagonal_at", felt_args: &[Handle(I32), Handle(I32), Handle(I32)], result: I32 },
+        BuiltinImport {
+            felt_name: "diagonal_count",
+            wasm_name: "diagonal_count",
+            felt_args: &[Handle(I32), Handle(I32)],
+            result: I32,
+        },
+        BuiltinImport {
+            felt_name: "diagonal_at",
+            wasm_name: "diagonal_at",
+            felt_args: &[Handle(I32), Handle(I32), Handle(I32)],
+            result: I32,
+        },
         // Counter by name (state-level)
-        BuiltinImport { felt_name: "counter_by_name", wasm_name: "counter_value", felt_args: &[Handle(I32), StringIn], result: I64 },
+        BuiltinImport {
+            felt_name: "counter_by_name",
+            wasm_name: "counter_value",
+            felt_args: &[Handle(I32), StringIn],
+            result: I64,
+        },
         // Resource queries
-        BuiltinImport { felt_name: "word_valid", wasm_name: "word_valid", felt_args: &[Handle(I32), StringIn, StringIn], result: I32 },
+        BuiltinImport {
+            felt_name: "word_valid",
+            wasm_name: "word_valid",
+            felt_args: &[Handle(I32), StringIn, StringIn],
+            result: I32,
+        },
     ]
 }
 
@@ -195,12 +384,17 @@ impl Compiler {
 
         for bi in &all_builtins {
             if used_names.contains(bi.felt_name) {
-                compiler.builtin_indices.insert(bi.felt_name.to_string(), import_idx);
-                compiler.builtin_info.insert(bi.felt_name.to_string(), BuiltinImportInfo {
-                    felt_args: bi.felt_args.to_vec(),
-                    result: bi.result,
-                    wasm_fn_idx: import_idx,
-                });
+                compiler
+                    .builtin_indices
+                    .insert(bi.felt_name.to_string(), import_idx);
+                compiler.builtin_info.insert(
+                    bi.felt_name.to_string(),
+                    BuiltinImportInfo {
+                        felt_args: bi.felt_args.to_vec(),
+                        result: bi.result,
+                        wasm_fn_idx: import_idx,
+                    },
+                );
                 import_idx += 1;
             }
         }
@@ -209,10 +403,16 @@ impl Compiler {
         // alloc and dealloc are internal functions, placed right after imports
         // but before user functions. We'll add them as the first two user functions.
         let has_string_builtins = compiler.builtin_info.values().any(|bi| {
-            bi.felt_args.iter().any(|a| matches!(a, FeltArg::StringIn | FeltArg::StringOut))
+            bi.felt_args
+                .iter()
+                .any(|a| matches!(a, FeltArg::StringIn | FeltArg::StringOut))
         });
 
-        let internal_fn_count = if has_string_builtins || !compiler.string_data.is_empty() { 2 } else { 0 }; // alloc + dealloc
+        let internal_fn_count = if has_string_builtins || !compiler.string_data.is_empty() {
+            2
+        } else {
+            0
+        }; // alloc + dealloc
         let user_fn_base = compiler.import_count + internal_fn_count as u32;
 
         if internal_fn_count > 0 {
@@ -221,17 +421,24 @@ impl Compiler {
 
         // Assign function indices for user-defined functions
         for (i, f) in program.functions.iter().enumerate() {
-            compiler.fn_indices.insert(f.name.clone(), user_fn_base + i as u32);
+            compiler
+                .fn_indices
+                .insert(f.name.clone(), user_fn_base + i as u32);
         }
 
-        compiler.emit_module(program, has_string_builtins || !compiler.string_data.is_empty())
+        compiler.emit_module(
+            program,
+            has_string_builtins || !compiler.string_data.is_empty(),
+        )
     }
 
     /// Scan the AST to find all builtin names that appear in function positions
     /// of Apply expressions.
     fn collect_used_builtins(&self, program: &Program) -> HashSet<String> {
-        let all_builtin_names: HashSet<&str> = builtin_imports().iter().map(|b| b.felt_name).collect();
-        let user_fn_names: HashSet<&str> = program.functions.iter().map(|f| f.name.as_str()).collect();
+        let all_builtin_names: HashSet<&str> =
+            builtin_imports().iter().map(|b| b.felt_name).collect();
+        let user_fn_names: HashSet<&str> =
+            program.functions.iter().map(|f| f.name.as_str()).collect();
         let mut used = HashSet::new();
         for f in &program.functions {
             self.scan_builtins(&f.body, &all_builtin_names, &user_fn_names, &mut used);
@@ -297,7 +504,10 @@ impl Compiler {
                     self.scan_builtins(v, builtin_names, user_fn_names, used);
                 }
             }
-            Expr::IntLit(_) | Expr::FloatLit(_) | Expr::BoolLit(_) | Expr::StringLit(_)
+            Expr::IntLit(_)
+            | Expr::FloatLit(_)
+            | Expr::BoolLit(_)
+            | Expr::StringLit(_)
             | Expr::NoneLit => {}
         }
     }
@@ -349,7 +559,10 @@ impl Compiler {
                     self.collect_strings(v);
                 }
             }
-            Expr::IntLit(_) | Expr::FloatLit(_) | Expr::BoolLit(_) | Expr::Ident(_)
+            Expr::IntLit(_)
+            | Expr::FloatLit(_)
+            | Expr::BoolLit(_)
+            | Expr::Ident(_)
             | Expr::NoneLit => {}
         }
     }
@@ -381,7 +594,9 @@ impl Compiler {
             types.ty().function(vec![ValType::I32], vec![ValType::I32]);
             type_idx += 1;
             // dealloc: (ptr: i32, size: i32) -> ()
-            types.ty().function(vec![ValType::I32, ValType::I32], vec![]);
+            types
+                .ty()
+                .function(vec![ValType::I32, ValType::I32], vec![]);
             type_idx += 1;
         }
 
@@ -451,7 +666,13 @@ impl Compiler {
             exports.export("dealloc", ExportKind::Func, self.alloc_fn_idx + 1);
         }
 
-        let extension_fns = ["is_legal", "legal_moves", "apply_effect", "score", "check_end"];
+        let extension_fns = [
+            "is_legal",
+            "legal_moves",
+            "apply_effect",
+            "score",
+            "check_end",
+        ];
         for f in &program.functions {
             if extension_fns.contains(&f.name.as_str()) {
                 exports.export(&f.name, ExportKind::Func, self.fn_indices[&f.name]);
@@ -508,16 +729,16 @@ impl Compiler {
         let mut func = Function::new(vec![]);
         // local 0 = size param
         // result = old heap ptr
-        func.instruction(&Instruction::GlobalGet(0));        // [old_ptr]
-        func.instruction(&Instruction::GlobalGet(0));        // [old_ptr, old_ptr]
-        func.instruction(&Instruction::LocalGet(0));         // [old_ptr, old_ptr, size]
+        func.instruction(&Instruction::GlobalGet(0)); // [old_ptr]
+        func.instruction(&Instruction::GlobalGet(0)); // [old_ptr, old_ptr]
+        func.instruction(&Instruction::LocalGet(0)); // [old_ptr, old_ptr, size]
         // Align size up to 8 bytes: (size + 7) & ~7
-        func.instruction(&Instruction::I32Const(7));         // [old_ptr, old_ptr, size, 7]
-        func.instruction(&Instruction::I32Add);              // [old_ptr, old_ptr, size+7]
-        func.instruction(&Instruction::I32Const(-8));        // [old_ptr, old_ptr, size+7, ~7]
-        func.instruction(&Instruction::I32And);              // [old_ptr, old_ptr, aligned_size]
-        func.instruction(&Instruction::I32Add);              // [old_ptr, new_ptr]
-        func.instruction(&Instruction::GlobalSet(0));        // [old_ptr]  (global updated)
+        func.instruction(&Instruction::I32Const(7)); // [old_ptr, old_ptr, size, 7]
+        func.instruction(&Instruction::I32Add); // [old_ptr, old_ptr, size+7]
+        func.instruction(&Instruction::I32Const(-8)); // [old_ptr, old_ptr, size+7, ~7]
+        func.instruction(&Instruction::I32And); // [old_ptr, old_ptr, aligned_size]
+        func.instruction(&Instruction::I32Add); // [old_ptr, new_ptr]
+        func.instruction(&Instruction::GlobalSet(0)); // [old_ptr]  (global updated)
         func.instruction(&Instruction::End);
         func
     }
@@ -585,7 +806,8 @@ impl<'a> FnCompiler<'a> {
             Expr::Match(scrutinee, arms) => {
                 if !self.locals.contains_key("__match") {
                     let vt = self.infer_valtype(scrutinee);
-                    self.locals.insert("__match".to_string(), (self.next_local, vt));
+                    self.locals
+                        .insert("__match".to_string(), (self.next_local, vt));
                     self.extra_locals.push(vt);
                     self.next_local += 1;
                 }
@@ -628,8 +850,12 @@ impl<'a> FnCompiler<'a> {
                     self.prescan_locals(v);
                 }
             }
-            Expr::IntLit(_) | Expr::FloatLit(_) | Expr::BoolLit(_) | Expr::StringLit(_)
-            | Expr::Ident(_) | Expr::NoneLit => {}
+            Expr::IntLit(_)
+            | Expr::FloatLit(_)
+            | Expr::BoolLit(_)
+            | Expr::StringLit(_)
+            | Expr::Ident(_)
+            | Expr::NoneLit => {}
         }
     }
 
@@ -641,8 +867,14 @@ impl<'a> FnCompiler<'a> {
             Expr::StringLit(_) => ValType::I32,
             Expr::BinOp(op, _, _) => match op {
                 BinOp::Add | BinOp::Sub | BinOp::Mul | BinOp::Div | BinOp::Mod => ValType::I64,
-                BinOp::Eq | BinOp::Neq | BinOp::Lt | BinOp::Gt | BinOp::Lte | BinOp::Gte
-                | BinOp::And | BinOp::Or => ValType::I32,
+                BinOp::Eq
+                | BinOp::Neq
+                | BinOp::Lt
+                | BinOp::Gt
+                | BinOp::Lte
+                | BinOp::Gte
+                | BinOp::And
+                | BinOp::Or => ValType::I32,
                 BinOp::Concat => ValType::I32,
             },
             Expr::UnOp(UnOp::Not, _) => ValType::I32,
@@ -799,19 +1031,45 @@ impl<'a> FnCompiler<'a> {
                 self.compile_expr(lhs, func);
                 self.compile_expr(rhs, func);
                 match op {
-                    BinOp::Add => { func.instruction(&Instruction::I64Add); }
-                    BinOp::Sub => { func.instruction(&Instruction::I64Sub); }
-                    BinOp::Mul => { func.instruction(&Instruction::I64Mul); }
-                    BinOp::Div => { func.instruction(&Instruction::I64DivS); }
-                    BinOp::Mod => { func.instruction(&Instruction::I64RemS); }
-                    BinOp::Eq => { func.instruction(&Instruction::I64Eq); }
-                    BinOp::Neq => { func.instruction(&Instruction::I64Ne); }
-                    BinOp::Lt => { func.instruction(&Instruction::I64LtS); }
-                    BinOp::Gt => { func.instruction(&Instruction::I64GtS); }
-                    BinOp::Lte => { func.instruction(&Instruction::I64LeS); }
-                    BinOp::Gte => { func.instruction(&Instruction::I64GeS); }
-                    BinOp::And => { func.instruction(&Instruction::I32And); }
-                    BinOp::Or => { func.instruction(&Instruction::I32Or); }
+                    BinOp::Add => {
+                        func.instruction(&Instruction::I64Add);
+                    }
+                    BinOp::Sub => {
+                        func.instruction(&Instruction::I64Sub);
+                    }
+                    BinOp::Mul => {
+                        func.instruction(&Instruction::I64Mul);
+                    }
+                    BinOp::Div => {
+                        func.instruction(&Instruction::I64DivS);
+                    }
+                    BinOp::Mod => {
+                        func.instruction(&Instruction::I64RemS);
+                    }
+                    BinOp::Eq => {
+                        func.instruction(&Instruction::I64Eq);
+                    }
+                    BinOp::Neq => {
+                        func.instruction(&Instruction::I64Ne);
+                    }
+                    BinOp::Lt => {
+                        func.instruction(&Instruction::I64LtS);
+                    }
+                    BinOp::Gt => {
+                        func.instruction(&Instruction::I64GtS);
+                    }
+                    BinOp::Lte => {
+                        func.instruction(&Instruction::I64LeS);
+                    }
+                    BinOp::Gte => {
+                        func.instruction(&Instruction::I64GeS);
+                    }
+                    BinOp::And => {
+                        func.instruction(&Instruction::I32And);
+                    }
+                    BinOp::Or => {
+                        func.instruction(&Instruction::I32Or);
+                    }
                     BinOp::Concat => {
                         func.instruction(&Instruction::I32Add);
                     }
@@ -843,7 +1101,9 @@ impl<'a> FnCompiler<'a> {
             Expr::If(cond, then_br, else_br) => {
                 self.compile_expr(cond, func);
                 let result_type = self.infer_valtype(then_br);
-                func.instruction(&Instruction::If(wasm_encoder::BlockType::Result(result_type)));
+                func.instruction(&Instruction::If(wasm_encoder::BlockType::Result(
+                    result_type,
+                )));
                 self.compile_expr(then_br, func);
                 func.instruction(&Instruction::Else);
                 self.compile_expr(else_br, func);
@@ -949,7 +1209,9 @@ impl<'a> FnCompiler<'a> {
                 func.instruction(&Instruction::LocalGet(match_local));
                 func.instruction(&Instruction::I64Const(*n));
                 func.instruction(&Instruction::I64Eq);
-                func.instruction(&Instruction::If(wasm_encoder::BlockType::Result(result_type)));
+                func.instruction(&Instruction::If(wasm_encoder::BlockType::Result(
+                    result_type,
+                )));
                 self.bind_pattern(pat, match_local, func);
                 self.compile_expr(body, func);
                 func.instruction(&Instruction::Else);
@@ -960,7 +1222,9 @@ impl<'a> FnCompiler<'a> {
                 func.instruction(&Instruction::LocalGet(match_local));
                 func.instruction(&Instruction::I32Const(if *b { 1 } else { 0 }));
                 func.instruction(&Instruction::I32Eq);
-                func.instruction(&Instruction::If(wasm_encoder::BlockType::Result(result_type)));
+                func.instruction(&Instruction::If(wasm_encoder::BlockType::Result(
+                    result_type,
+                )));
                 self.compile_expr(body, func);
                 func.instruction(&Instruction::Else);
                 self.compile_match_arms(rest, match_local, func);
@@ -969,7 +1233,9 @@ impl<'a> FnCompiler<'a> {
             Pattern::NonePat => {
                 func.instruction(&Instruction::LocalGet(match_local));
                 func.instruction(&Instruction::I64Eqz);
-                func.instruction(&Instruction::If(wasm_encoder::BlockType::Result(result_type)));
+                func.instruction(&Instruction::If(wasm_encoder::BlockType::Result(
+                    result_type,
+                )));
                 self.compile_expr(body, func);
                 func.instruction(&Instruction::Else);
                 self.compile_match_arms(rest, match_local, func);
@@ -979,7 +1245,9 @@ impl<'a> FnCompiler<'a> {
                 func.instruction(&Instruction::LocalGet(match_local));
                 func.instruction(&Instruction::I64Const(0));
                 func.instruction(&Instruction::I64Ne);
-                func.instruction(&Instruction::If(wasm_encoder::BlockType::Result(result_type)));
+                func.instruction(&Instruction::If(wasm_encoder::BlockType::Result(
+                    result_type,
+                )));
                 if let Some((idx, _)) = self.locals.get(name) {
                     func.instruction(&Instruction::LocalGet(match_local));
                     func.instruction(&Instruction::LocalSet(*idx));
@@ -1072,9 +1340,8 @@ mod tests {
 
     #[test]
     fn test_compile_match() {
-        let wasm = compile_to_wasm(
-            "fn f(x: Int) -> Int = match x with | 1 -> 100 | 2 -> 200 | _ -> 0",
-        );
+        let wasm =
+            compile_to_wasm("fn f(x: Int) -> Int = match x with | 1 -> 100 | 2 -> 200 | _ -> 0");
         assert!(wasm.starts_with(&[0x00, 0x61, 0x73, 0x6d]));
     }
 
@@ -1086,9 +1353,7 @@ mod tests {
 
     #[test]
     fn test_compile_multiple_fns() {
-        let wasm = compile_to_wasm(
-            "fn f(x: Int) -> Int = x + 1\nfn g(x: Int) -> Int = f x * 2",
-        );
+        let wasm = compile_to_wasm("fn f(x: Int) -> Int = x + 1\nfn g(x: Int) -> Int = f x * 2");
         assert!(wasm.starts_with(&[0x00, 0x61, 0x73, 0x6d]));
     }
 
@@ -1107,7 +1372,10 @@ mod tests {
         assert!(wasm.starts_with(&[0x00, 0x61, 0x73, 0x6d]));
         // The WASM should contain "baize" as the import module name
         let wasm_str = String::from_utf8_lossy(&wasm);
-        assert!(wasm_str.contains("baize"), "WASM should contain 'baize' import module");
+        assert!(
+            wasm_str.contains("baize"),
+            "WASM should contain 'baize' import module"
+        );
     }
 
     #[test]
@@ -1116,7 +1384,10 @@ mod tests {
         let wasm = compile_to_wasm("fn f(x: Int) -> Int = x + 1");
         // Check that "baize" does NOT appear as a raw string in the WASM
         let has_baize = wasm.windows(5).any(|w| w == b"baize");
-        assert!(!has_baize, "WASM without builtins should not contain 'baize'");
+        assert!(
+            !has_baize,
+            "WASM without builtins should not contain 'baize'"
+        );
     }
 
     #[test]
@@ -1130,9 +1401,8 @@ mod tests {
 
     #[test]
     fn test_compile_multiple_builtins() {
-        let wasm = compile_to_wasm(
-            "fn f(s: State) -> Int = turn s\nfn g(c: Component) -> Int = rank c",
-        );
+        let wasm =
+            compile_to_wasm("fn f(s: State) -> Int = turn s\nfn g(c: Component) -> Int = rank c");
         assert!(wasm.starts_with(&[0x00, 0x61, 0x73, 0x6d]));
     }
 }

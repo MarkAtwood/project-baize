@@ -3,9 +3,9 @@
 //! Each test creates two near-identical states that differ by exactly one field
 //! and asserts the hashes are different.
 
+use baize_engine::GameDefinition;
 use baize_engine::runtime::*;
 use baize_engine::state::*;
-use baize_engine::GameDefinition;
 
 fn tic_tac_toe_def() -> GameDefinition {
     serde_json::from_str(
@@ -34,17 +34,21 @@ fn session_with_mark_at(col: u32, row: u32) -> GameSession {
     let mut session = GameSession::new(def).unwrap();
     session.runtime.status = GameStatus::InProgress;
 
-    let cid = session.runtime.components.insert(ComponentData {
-        id: ComponentId(0),
-        string_id: "mark-x-0".into(),
-        component_type: "mark".into(),
-        owner: Some("X".into()),
-        facing: None,
-        state: None,
-        properties: Default::default(),
-        span_cells: Vec::new(),
-                orientation: None,
-    }).unwrap();
+    let cid = session
+        .runtime
+        .components
+        .insert(ComponentData {
+            id: ComponentId(0),
+            string_id: "mark-x-0".into(),
+            component_type: "mark".into(),
+            owner: Some("X".into()),
+            facing: None,
+            state: None,
+            properties: Default::default(),
+            span_cells: Vec::new(),
+            orientation: None,
+        })
+        .unwrap();
 
     session
         .runtime
@@ -63,7 +67,10 @@ fn different_component_position_produces_different_hash() {
 
     let h1 = s1.compute_state_hash();
     let h2 = s2.compute_state_hash();
-    assert_ne!(h1, h2, "states differing by component position must hash differently");
+    assert_ne!(
+        h1, h2,
+        "states differing by component position must hash differently"
+    );
 }
 
 #[test]
@@ -73,7 +80,10 @@ fn different_component_position_row_produces_different_hash() {
 
     let h1 = s1.compute_state_hash();
     let h2 = s2.compute_state_hash();
-    assert_ne!(h1, h2, "states differing by component row must hash differently");
+    assert_ne!(
+        h1, h2,
+        "states differing by component row must hash differently"
+    );
 }
 
 #[test]
@@ -90,7 +100,10 @@ fn different_turn_produces_different_hash() {
 
     let h1 = s1.compute_state_hash();
     let h2 = s2.compute_state_hash();
-    assert_ne!(h1, h2, "states differing only by whose turn it is must hash differently");
+    assert_ne!(
+        h1, h2,
+        "states differing only by whose turn it is must hash differently"
+    );
 }
 
 #[test]
@@ -105,7 +118,10 @@ fn different_game_status_produces_different_hash() {
 
     let h1 = s1.compute_state_hash();
     let h2 = s2.compute_state_hash();
-    assert_ne!(h1, h2, "states differing only by game status must hash differently");
+    assert_ne!(
+        h1, h2,
+        "states differing only by game status must hash differently"
+    );
 }
 
 #[test]
@@ -120,7 +136,10 @@ fn different_counter_produces_different_hash() {
 
     let h1 = s1.compute_state_hash();
     let h2 = s2.compute_state_hash();
-    assert_ne!(h1, h2, "states differing only by counter value must hash differently");
+    assert_ne!(
+        h1, h2,
+        "states differing only by counter value must hash differently"
+    );
 }
 
 #[test]
@@ -142,7 +161,10 @@ fn different_phase_produces_different_hash() {
 
     let h1 = state1.compute_hash();
     let h2 = state2.compute_hash();
-    assert_ne!(h1, h2, "states differing only by phase must hash differently");
+    assert_ne!(
+        h1, h2,
+        "states differing only by phase must hash differently"
+    );
 }
 
 #[test]
@@ -156,7 +178,10 @@ fn different_player_score_produces_different_hash() {
 
     let h1 = s1.compute_state_hash();
     let h2 = s2.compute_state_hash();
-    assert_ne!(h1, h2, "states differing only by player score must hash differently");
+    assert_ne!(
+        h1, h2,
+        "states differing only by player score must hash differently"
+    );
 }
 
 #[test]
@@ -170,7 +195,10 @@ fn different_player_active_produces_different_hash() {
 
     let h1 = s1.compute_state_hash();
     let h2 = s2.compute_state_hash();
-    assert_ne!(h1, h2, "states differing only by player active status must hash differently");
+    assert_ne!(
+        h1, h2,
+        "states differing only by player active status must hash differently"
+    );
 }
 
 #[test]
@@ -237,7 +265,10 @@ fn different_sequence_produces_different_hash() {
 
     let h1 = s1.compute_state_hash();
     let h2 = s2.compute_state_hash();
-    assert_ne!(h1, h2, "states differing only by sequence must hash differently");
+    assert_ne!(
+        h1, h2,
+        "states differing only by sequence must hash differently"
+    );
 }
 
 #[test]
@@ -263,17 +294,21 @@ fn different_component_facing_produces_different_hash() {
     let def = tic_tac_toe_def();
     let mut s1 = GameSession::new(def).unwrap();
     s1.runtime.status = GameStatus::InProgress;
-    let cid1 = s1.runtime.components.insert(ComponentData {
-        id: ComponentId(0),
-        string_id: "card-0".into(),
-        component_type: "card".into(),
-        owner: None,
-        facing: Some(Facing::FaceUp),
-        state: None,
-        properties: Default::default(),
-        span_cells: Vec::new(),
-                orientation: None,
-    }).unwrap();
+    let cid1 = s1
+        .runtime
+        .components
+        .insert(ComponentData {
+            id: ComponentId(0),
+            string_id: "card-0".into(),
+            component_type: "card".into(),
+            owner: None,
+            facing: Some(Facing::FaceUp),
+            state: None,
+            properties: Default::default(),
+            span_cells: Vec::new(),
+            orientation: None,
+        })
+        .unwrap();
     s1.runtime
         .zones
         .get_mut("board")
@@ -283,17 +318,21 @@ fn different_component_facing_produces_different_hash() {
     let def2 = tic_tac_toe_def();
     let mut s2 = GameSession::new(def2).unwrap();
     s2.runtime.status = GameStatus::InProgress;
-    let cid2 = s2.runtime.components.insert(ComponentData {
-        id: ComponentId(0),
-        string_id: "card-0".into(),
-        component_type: "card".into(),
-        owner: None,
-        facing: Some(Facing::FaceDown),
-        state: None,
-        properties: Default::default(),
-        span_cells: Vec::new(),
-                orientation: None,
-    }).unwrap();
+    let cid2 = s2
+        .runtime
+        .components
+        .insert(ComponentData {
+            id: ComponentId(0),
+            string_id: "card-0".into(),
+            component_type: "card".into(),
+            owner: None,
+            facing: Some(Facing::FaceDown),
+            state: None,
+            properties: Default::default(),
+            span_cells: Vec::new(),
+            orientation: None,
+        })
+        .unwrap();
     s2.runtime
         .zones
         .get_mut("board")
@@ -316,8 +355,7 @@ fn cross_implementation_empty_state_hash() {
     let session = GameSession::new(def).unwrap();
     let hash = session.compute_state_hash();
     assert_eq!(
-        hash,
-        "2bb4c6638cd5658d3331b062d2c183dc889a915144b279b87647807c6214d903",
+        hash, "2bb4c6638cd5658d3331b062d2c183dc889a915144b279b87647807c6214d903",
         "pinned hash for initial tic-tac-toe state changed unexpectedly"
     );
 }

@@ -28,7 +28,10 @@ pub struct Vault {
 impl fmt::Debug for Vault {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.debug_struct("Vault")
-            .field("decks", &format_args!("<{} zones redacted>", self.decks.len()))
+            .field(
+                "decks",
+                &format_args!("<{} zones redacted>", self.decks.len()),
+            )
             .field(
                 "hidden_facts",
                 &format_args!("<{} players redacted>", self.hidden_facts.len()),
@@ -99,7 +102,10 @@ impl Vault {
     ///
     /// Precondition: player name must not be empty.
     pub fn add_hidden_fact(&mut self, player: &str, fact: HiddenFact) {
-        debug_assert!(!player.is_empty(), "vault: add_hidden_fact player must not be empty");
+        debug_assert!(
+            !player.is_empty(),
+            "vault: add_hidden_fact player must not be empty"
+        );
         self.hidden_facts
             .entry(player.to_string())
             .or_default()

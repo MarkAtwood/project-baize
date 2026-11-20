@@ -4,7 +4,7 @@ use std::fmt::Write as _;
 use baize_engine::GameDefinition;
 use baize_engine::GameSession;
 use baize_server::config;
-use baize_server::protocol::{handle_client_message, HandleResult};
+use baize_server::protocol::{HandleResult, handle_client_message};
 use baize_server::room::Room;
 use baize_server::vault::{HiddenFact, Vault};
 
@@ -68,7 +68,9 @@ fn extract_error_code(result: &HandleResult) -> Option<String> {
     match result {
         HandleResult::Error(json) => {
             let v: serde_json::Value = serde_json::from_str(json).ok()?;
-            v.get("error_code").and_then(|c| c.as_str()).map(String::from)
+            v.get("error_code")
+                .and_then(|c| c.as_str())
+                .map(String::from)
         }
         _ => None,
     }
@@ -397,10 +399,8 @@ fn room_debug_does_not_leak_hidden_state() {
     let mut room = make_test_room("redact_test");
 
     // Populate the vault with secret deck contents
-    room.vault.register_deck(
-        "draw_pile",
-        vec!["ace_spades".into(), "king_hearts".into()],
-    );
+    room.vault
+        .register_deck("draw_pile", vec!["ace_spades".into(), "king_hearts".into()]);
     room.vault.add_hidden_fact(
         "alice",
         HiddenFact {

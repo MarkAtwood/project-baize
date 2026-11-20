@@ -1,6 +1,6 @@
+use baize_engine::GameDefinition;
 use baize_engine::runtime::*;
 use baize_engine::state::*;
-use baize_engine::GameDefinition;
 use indexmap::IndexMap;
 use serde::Deserialize;
 
@@ -120,17 +120,21 @@ fn setup_session(tc: &TestCase) -> GameSession {
     for comp in &tc.setup.components {
         let facing = comp.facing.as_deref().and_then(parse_facing);
         let properties = comp.properties.clone().unwrap_or_default();
-        let cid = session.runtime.components.insert(ComponentData {
-            id: ComponentId(0),
-            string_id: comp.string_id.clone(),
-            component_type: comp.component_type.clone(),
-            owner: comp.owner.clone(),
-            facing,
-            state: comp.state.clone(),
-            properties,
-            span_cells: Vec::new(),
+        let cid = session
+            .runtime
+            .components
+            .insert(ComponentData {
+                id: ComponentId(0),
+                string_id: comp.string_id.clone(),
+                component_type: comp.component_type.clone(),
+                owner: comp.owner.clone(),
+                facing,
+                state: comp.state.clone(),
+                properties,
+                span_cells: Vec::new(),
                 orientation: None,
-        }).unwrap();
+            })
+            .unwrap();
         cids.push(cid);
     }
 
@@ -277,8 +281,8 @@ fn assert_round_trip(wire: &GameState, test_name: &str) {
         .unwrap_or_else(|e| panic!("[{test_name}] first serialization failed: {e}"));
 
     // Parse back
-    let parsed: GameState = GameState::from_json(&json1)
-        .unwrap_or_else(|e| panic!("[{test_name}] parse failed: {e}"));
+    let parsed: GameState =
+        GameState::from_json(&json1).unwrap_or_else(|e| panic!("[{test_name}] parse failed: {e}"));
 
     // Second serialization
     let json2 = serde_json::to_string(&parsed)

@@ -151,10 +151,7 @@ fn rng_seed_reproducibility() {
     let mut v3 = Vault::with_seed(99999);
     let r1 = vault::roll_dice(&mut Vault::with_seed(12345), 20, 6);
     let r3 = vault::roll_dice(&mut v3, 20, 6);
-    assert_ne!(
-        r1, r3,
-        "different seeds should produce different sequences"
-    );
+    assert_ne!(r1, r3, "different seeds should produce different sequences");
 }
 
 #[test]
@@ -180,9 +177,15 @@ fn hidden_facts_round_trip() {
     assert_eq!(facts.len(), 2, "should have 2 hidden facts");
     assert_eq!(facts[0].component_id, "card_7");
     assert_eq!(facts[0].zone, "hand");
-    assert_eq!(facts[0].properties, serde_json::json!({"suit": "hearts", "rank": 7}));
+    assert_eq!(
+        facts[0].properties,
+        serde_json::json!({"suit": "hearts", "rank": 7})
+    );
     assert_eq!(facts[1].component_id, "card_12");
-    assert_eq!(facts[1].properties, serde_json::json!({"suit": "spades", "rank": 12}));
+    assert_eq!(
+        facts[1].properties,
+        serde_json::json!({"suit": "spades", "rank": 12})
+    );
 
     // Take again — should be empty (facts were consumed)
     let facts_again = v.take_hidden_facts("alice");
@@ -193,7 +196,10 @@ fn hidden_facts_round_trip() {
 
     // Taking from a player who never had facts should also be empty
     let facts_bob = v.take_hidden_facts("bob");
-    assert!(facts_bob.is_empty(), "unknown player should return empty vec");
+    assert!(
+        facts_bob.is_empty(),
+        "unknown player should return empty vec"
+    );
 }
 
 // ---- Debug redaction tests ----
@@ -203,7 +209,11 @@ fn vault_debug_does_not_leak_deck_contents() {
     let mut v = Vault::with_seed(42);
     v.register_deck(
         "draw_pile",
-        vec!["ace_spades".into(), "king_hearts".into(), "queen_diamonds".into()],
+        vec![
+            "ace_spades".into(),
+            "king_hearts".into(),
+            "queen_diamonds".into(),
+        ],
     );
 
     let mut debug_output = String::new();

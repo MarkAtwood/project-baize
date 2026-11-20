@@ -40,67 +40,286 @@ impl TypeChecker {
         use Type::*;
 
         // Zone access
-        self.env.insert("zone".into(), Fn(Box::new(State), Box::new(Fn(Box::new(String), Box::new(Zone)))));
-        self.env.insert("zone_for".into(), Fn(Box::new(State), Box::new(Fn(Box::new(String), Box::new(Fn(Box::new(Player), Box::new(Zone)))))));
-        self.env.insert("components".into(), Fn(Box::new(Zone), Box::new(List(Box::new(Component)))));
-        self.env.insert("cells".into(), Fn(Box::new(Zone), Box::new(List(Box::new(Cell)))));
-        self.env.insert("cell_at".into(), Fn(Box::new(Zone), Box::new(Fn(Box::new(Int), Box::new(Fn(Box::new(Int), Box::new(Option(Box::new(Component)))))))));
-        self.env.insert("count".into(), Fn(Box::new(Zone), Box::new(Int)));
-        self.env.insert("counter_value".into(), Fn(Box::new(Zone), Box::new(Int)));
+        self.env.insert(
+            "zone".into(),
+            Fn(
+                Box::new(State),
+                Box::new(Fn(Box::new(String), Box::new(Zone))),
+            ),
+        );
+        self.env.insert(
+            "zone_for".into(),
+            Fn(
+                Box::new(State),
+                Box::new(Fn(
+                    Box::new(String),
+                    Box::new(Fn(Box::new(Player), Box::new(Zone))),
+                )),
+            ),
+        );
+        self.env.insert(
+            "components".into(),
+            Fn(Box::new(Zone), Box::new(List(Box::new(Component)))),
+        );
+        self.env.insert(
+            "cells".into(),
+            Fn(Box::new(Zone), Box::new(List(Box::new(Cell)))),
+        );
+        self.env.insert(
+            "cell_at".into(),
+            Fn(
+                Box::new(Zone),
+                Box::new(Fn(
+                    Box::new(Int),
+                    Box::new(Fn(Box::new(Int), Box::new(Option(Box::new(Component))))),
+                )),
+            ),
+        );
+        self.env
+            .insert("count".into(), Fn(Box::new(Zone), Box::new(Int)));
+        self.env
+            .insert("counter_value".into(), Fn(Box::new(Zone), Box::new(Int)));
 
         // Component properties
-        self.env.insert("type_of".into(), Fn(Box::new(Component), Box::new(String)));
-        self.env.insert("owner".into(), Fn(Box::new(Component), Box::new(Option(Box::new(Player)))));
-        self.env.insert("rank".into(), Fn(Box::new(Component), Box::new(Int)));
-        self.env.insert("suit".into(), Fn(Box::new(Component), Box::new(String)));
-        self.env.insert("property".into(), Fn(Box::new(Component), Box::new(Fn(Box::new(String), Box::new(String)))));
-        self.env.insert("position".into(), Fn(Box::new(Component), Box::new(Option(Box::new(Cell)))));
-        self.env.insert("col".into(), Fn(Box::new(Cell), Box::new(Int)));
-        self.env.insert("row".into(), Fn(Box::new(Cell), Box::new(Int)));
+        self.env
+            .insert("type_of".into(), Fn(Box::new(Component), Box::new(String)));
+        self.env.insert(
+            "owner".into(),
+            Fn(Box::new(Component), Box::new(Option(Box::new(Player)))),
+        );
+        self.env
+            .insert("rank".into(), Fn(Box::new(Component), Box::new(Int)));
+        self.env
+            .insert("suit".into(), Fn(Box::new(Component), Box::new(String)));
+        self.env.insert(
+            "property".into(),
+            Fn(
+                Box::new(Component),
+                Box::new(Fn(Box::new(String), Box::new(String))),
+            ),
+        );
+        self.env.insert(
+            "position".into(),
+            Fn(Box::new(Component), Box::new(Option(Box::new(Cell)))),
+        );
+        self.env
+            .insert("col".into(), Fn(Box::new(Cell), Box::new(Int)));
+        self.env
+            .insert("row".into(), Fn(Box::new(Cell), Box::new(Int)));
 
         // Grid operations
-        self.env.insert("adjacent".into(), Fn(Box::new(Zone), Box::new(Fn(Box::new(Cell), Box::new(List(Box::new(Cell)))))));
-        self.env.insert("diagonal".into(), Fn(Box::new(Zone), Box::new(Fn(Box::new(Cell), Box::new(List(Box::new(Cell)))))));
-        self.env.insert("neighbors".into(), Fn(Box::new(Zone), Box::new(Fn(Box::new(Cell), Box::new(List(Box::new(Cell)))))));
-        self.env.insert("in_bounds".into(), Fn(Box::new(Zone), Box::new(Fn(Box::new(Int), Box::new(Fn(Box::new(Int), Box::new(Bool)))))));
-        self.env.insert("dimensions".into(), Fn(Box::new(Zone), Box::new(Tuple(vec![Int, Int]))));
-        self.env.insert("row_cells".into(), Fn(Box::new(Zone), Box::new(Fn(Box::new(Int), Box::new(List(Box::new(Cell)))))));
-        self.env.insert("col_cells".into(), Fn(Box::new(Zone), Box::new(Fn(Box::new(Int), Box::new(List(Box::new(Cell)))))));
-        self.env.insert("line_cells".into(), Fn(Box::new(Zone), Box::new(Fn(Box::new(Cell), Box::new(Fn(Box::new(Int), Box::new(Fn(Box::new(Int), Box::new(List(Box::new(Cell)))))))))));
+        self.env.insert(
+            "adjacent".into(),
+            Fn(
+                Box::new(Zone),
+                Box::new(Fn(Box::new(Cell), Box::new(List(Box::new(Cell))))),
+            ),
+        );
+        self.env.insert(
+            "diagonal".into(),
+            Fn(
+                Box::new(Zone),
+                Box::new(Fn(Box::new(Cell), Box::new(List(Box::new(Cell))))),
+            ),
+        );
+        self.env.insert(
+            "neighbors".into(),
+            Fn(
+                Box::new(Zone),
+                Box::new(Fn(Box::new(Cell), Box::new(List(Box::new(Cell))))),
+            ),
+        );
+        self.env.insert(
+            "in_bounds".into(),
+            Fn(
+                Box::new(Zone),
+                Box::new(Fn(
+                    Box::new(Int),
+                    Box::new(Fn(Box::new(Int), Box::new(Bool))),
+                )),
+            ),
+        );
+        self.env.insert(
+            "dimensions".into(),
+            Fn(Box::new(Zone), Box::new(Tuple(vec![Int, Int]))),
+        );
+        self.env.insert(
+            "row_cells".into(),
+            Fn(
+                Box::new(Zone),
+                Box::new(Fn(Box::new(Int), Box::new(List(Box::new(Cell))))),
+            ),
+        );
+        self.env.insert(
+            "col_cells".into(),
+            Fn(
+                Box::new(Zone),
+                Box::new(Fn(Box::new(Int), Box::new(List(Box::new(Cell))))),
+            ),
+        );
+        self.env.insert(
+            "line_cells".into(),
+            Fn(
+                Box::new(Zone),
+                Box::new(Fn(
+                    Box::new(Cell),
+                    Box::new(Fn(
+                        Box::new(Int),
+                        Box::new(Fn(Box::new(Int), Box::new(List(Box::new(Cell))))),
+                    )),
+                )),
+            ),
+        );
 
         // Cell properties
-        self.env.insert("cell_property".into(), Fn(Box::new(Zone), Box::new(Fn(Box::new(Int), Box::new(Fn(Box::new(Int), Box::new(Fn(Box::new(String), Box::new(String)))))))));
+        self.env.insert(
+            "cell_property".into(),
+            Fn(
+                Box::new(Zone),
+                Box::new(Fn(
+                    Box::new(Int),
+                    Box::new(Fn(
+                        Box::new(Int),
+                        Box::new(Fn(Box::new(String), Box::new(String))),
+                    )),
+                )),
+            ),
+        );
 
         // Graph operations
-        self.env.insert("flood_fill".into(), Fn(Box::new(Zone), Box::new(Fn(Box::new(Cell), Box::new(Fn(Box::new(Fn(Box::new(Cell), Box::new(Bool))), Box::new(Set(Box::new(Cell)))))))));
-        self.env.insert("flood_groups".into(), Fn(Box::new(Zone), Box::new(Fn(Box::new(Fn(Box::new(Cell), Box::new(Bool))), Box::new(List(Box::new(Set(Box::new(Cell)))))))));
-        self.env.insert("connected".into(), Fn(Box::new(Zone), Box::new(Fn(Box::new(Cell), Box::new(Fn(Box::new(Cell), Box::new(Fn(Box::new(Fn(Box::new(Cell), Box::new(Bool))), Box::new(Bool)))))))));
-        self.env.insert("border".into(), Fn(Box::new(Zone), Box::new(Fn(Box::new(Set(Box::new(Cell))), Box::new(Set(Box::new(Cell)))))));
-        self.env.insert("border_owners".into(), Fn(Box::new(Zone), Box::new(Fn(Box::new(Set(Box::new(Cell))), Box::new(Set(Box::new(Player)))))));
-        self.env.insert("liberties".into(), Fn(Box::new(Zone), Box::new(Fn(Box::new(Set(Box::new(Cell))), Box::new(Int)))));
+        self.env.insert(
+            "flood_fill".into(),
+            Fn(
+                Box::new(Zone),
+                Box::new(Fn(
+                    Box::new(Cell),
+                    Box::new(Fn(
+                        Box::new(Fn(Box::new(Cell), Box::new(Bool))),
+                        Box::new(Set(Box::new(Cell))),
+                    )),
+                )),
+            ),
+        );
+        self.env.insert(
+            "flood_groups".into(),
+            Fn(
+                Box::new(Zone),
+                Box::new(Fn(
+                    Box::new(Fn(Box::new(Cell), Box::new(Bool))),
+                    Box::new(List(Box::new(Set(Box::new(Cell))))),
+                )),
+            ),
+        );
+        self.env.insert(
+            "connected".into(),
+            Fn(
+                Box::new(Zone),
+                Box::new(Fn(
+                    Box::new(Cell),
+                    Box::new(Fn(
+                        Box::new(Cell),
+                        Box::new(Fn(
+                            Box::new(Fn(Box::new(Cell), Box::new(Bool))),
+                            Box::new(Bool),
+                        )),
+                    )),
+                )),
+            ),
+        );
+        self.env.insert(
+            "border".into(),
+            Fn(
+                Box::new(Zone),
+                Box::new(Fn(
+                    Box::new(Set(Box::new(Cell))),
+                    Box::new(Set(Box::new(Cell))),
+                )),
+            ),
+        );
+        self.env.insert(
+            "border_owners".into(),
+            Fn(
+                Box::new(Zone),
+                Box::new(Fn(
+                    Box::new(Set(Box::new(Cell))),
+                    Box::new(Set(Box::new(Player))),
+                )),
+            ),
+        );
+        self.env.insert(
+            "liberties".into(),
+            Fn(
+                Box::new(Zone),
+                Box::new(Fn(Box::new(Set(Box::new(Cell))), Box::new(Int))),
+            ),
+        );
 
         // Game state
-        self.env.insert("players".into(), Fn(Box::new(State), Box::new(List(Box::new(Player)))));
-        self.env.insert("current_player".into(), Fn(Box::new(State), Box::new(Player)));
-        self.env.insert("other_player".into(), Fn(Box::new(State), Box::new(Fn(Box::new(Player), Box::new(Player)))));
-        self.env.insert("turn".into(), Fn(Box::new(State), Box::new(Int)));
-        self.env.insert("phase".into(), Fn(Box::new(State), Box::new(String)));
-        self.env.insert("counters".into(), Fn(Box::new(State), Box::new(Map(Box::new(String), Box::new(Int)))));
-        self.env.insert("is_finished".into(), Fn(Box::new(State), Box::new(Bool)));
+        self.env.insert(
+            "players".into(),
+            Fn(Box::new(State), Box::new(List(Box::new(Player)))),
+        );
+        self.env.insert(
+            "current_player".into(),
+            Fn(Box::new(State), Box::new(Player)),
+        );
+        self.env.insert(
+            "other_player".into(),
+            Fn(
+                Box::new(State),
+                Box::new(Fn(Box::new(Player), Box::new(Player))),
+            ),
+        );
+        self.env
+            .insert("turn".into(), Fn(Box::new(State), Box::new(Int)));
+        self.env
+            .insert("phase".into(), Fn(Box::new(State), Box::new(String)));
+        self.env.insert(
+            "counters".into(),
+            Fn(
+                Box::new(State),
+                Box::new(Map(Box::new(String), Box::new(Int))),
+            ),
+        );
+        self.env
+            .insert("is_finished".into(), Fn(Box::new(State), Box::new(Bool)));
 
         // Resource queries
-        self.env.insert("word_valid".into(), Fn(Box::new(State), Box::new(Fn(Box::new(String), Box::new(Fn(Box::new(String), Box::new(Bool)))))));
+        self.env.insert(
+            "word_valid".into(),
+            Fn(
+                Box::new(State),
+                Box::new(Fn(
+                    Box::new(String),
+                    Box::new(Fn(Box::new(String), Box::new(Bool))),
+                )),
+            ),
+        );
 
-        self.env.insert("name".into(), Fn(Box::new(Player), Box::new(String)));
+        self.env
+            .insert("name".into(), Fn(Box::new(Player), Box::new(String)));
 
         // Tuple operations
-        self.env.insert("fst".into(), Fn(Box::new(Tuple(vec![Int, Int])), Box::new(Int)));
-        self.env.insert("snd".into(), Fn(Box::new(Tuple(vec![Int, Int])), Box::new(Int)));
+        self.env.insert(
+            "fst".into(),
+            Fn(Box::new(Tuple(vec![Int, Int])), Box::new(Int)),
+        );
+        self.env.insert(
+            "snd".into(),
+            Fn(Box::new(Tuple(vec![Int, Int])), Box::new(Int)),
+        );
 
         // Arithmetic
-        self.env.insert("abs".into(), Fn(Box::new(Int), Box::new(Int)));
-        self.env.insert("max_of".into(), Fn(Box::new(Int), Box::new(Fn(Box::new(Int), Box::new(Int)))));
-        self.env.insert("min_of".into(), Fn(Box::new(Int), Box::new(Fn(Box::new(Int), Box::new(Int)))));
+        self.env
+            .insert("abs".into(), Fn(Box::new(Int), Box::new(Int)));
+        self.env.insert(
+            "max_of".into(),
+            Fn(Box::new(Int), Box::new(Fn(Box::new(Int), Box::new(Int)))),
+        );
+        self.env.insert(
+            "min_of".into(),
+            Fn(Box::new(Int), Box::new(Fn(Box::new(Int), Box::new(Int)))),
+        );
 
         // Polymorphic list operations using Var(0)=a, Var(1)=b as type variables
         let a = || Box::new(Var(0));
@@ -114,25 +333,55 @@ impl TypeChecker {
         let bool_ = || Box::new(Bool);
 
         // map : (a -> b) -> List a -> List b
-        self.env.insert("map".into(), Fn(Box::new(Fn(a(), b())), Box::new(Fn(la(), lb()))));
+        self.env.insert(
+            "map".into(),
+            Fn(Box::new(Fn(a(), b())), Box::new(Fn(la(), lb()))),
+        );
         // filter : (a -> Bool) -> List a -> List a
-        self.env.insert("filter".into(), Fn(Box::new(Fn(a(), bool_())), Box::new(Fn(la(), la()))));
+        self.env.insert(
+            "filter".into(),
+            Fn(Box::new(Fn(a(), bool_())), Box::new(Fn(la(), la()))),
+        );
         // fold : (b -> a -> b) -> b -> List a -> b
-        self.env.insert("fold".into(), Fn(Box::new(Fn(b(), Box::new(Fn(a(), b())))), Box::new(Fn(b(), Box::new(Fn(la(), b()))))));
+        self.env.insert(
+            "fold".into(),
+            Fn(
+                Box::new(Fn(b(), Box::new(Fn(a(), b())))),
+                Box::new(Fn(b(), Box::new(Fn(la(), b())))),
+            ),
+        );
         // flat_map : (a -> List b) -> List a -> List b
-        self.env.insert("flat_map".into(), Fn(Box::new(Fn(a(), lb())), Box::new(Fn(la(), lb()))));
+        self.env.insert(
+            "flat_map".into(),
+            Fn(Box::new(Fn(a(), lb())), Box::new(Fn(la(), lb()))),
+        );
         // any : (a -> Bool) -> List a -> Bool
-        self.env.insert("any".into(), Fn(Box::new(Fn(a(), bool_())), Box::new(Fn(la(), bool_()))));
+        self.env.insert(
+            "any".into(),
+            Fn(Box::new(Fn(a(), bool_())), Box::new(Fn(la(), bool_()))),
+        );
         // all : (a -> Bool) -> List a -> Bool
-        self.env.insert("all".into(), Fn(Box::new(Fn(a(), bool_())), Box::new(Fn(la(), bool_()))));
+        self.env.insert(
+            "all".into(),
+            Fn(Box::new(Fn(a(), bool_())), Box::new(Fn(la(), bool_()))),
+        );
         // sum/max/min : List Int -> Int (concrete, not polymorphic)
-        self.env.insert("sum".into(), Fn(Box::new(List(int())), int()));
-        self.env.insert("max".into(), Fn(Box::new(List(int())), int()));
-        self.env.insert("min".into(), Fn(Box::new(List(int())), int()));
+        self.env
+            .insert("sum".into(), Fn(Box::new(List(int())), int()));
+        self.env
+            .insert("max".into(), Fn(Box::new(List(int())), int()));
+        self.env
+            .insert("min".into(), Fn(Box::new(List(int())), int()));
         // sort : List Int -> List Int (concrete)
-        self.env.insert("sort".into(), Fn(Box::new(List(int())), Box::new(List(int()))));
+        self.env.insert(
+            "sort".into(),
+            Fn(Box::new(List(int())), Box::new(List(int()))),
+        );
         // sort_by : (a -> Int) -> List a -> List a
-        self.env.insert("sort_by".into(), Fn(Box::new(Fn(a(), int())), Box::new(Fn(la(), la()))));
+        self.env.insert(
+            "sort_by".into(),
+            Fn(Box::new(Fn(a(), int())), Box::new(Fn(la(), la()))),
+        );
         // reverse : List a -> List a
         self.env.insert("reverse".into(), Fn(la(), la()));
         // length : List a -> Int
@@ -142,23 +391,47 @@ impl TypeChecker {
         // tail : List a -> List a
         self.env.insert("tail".into(), Fn(la(), la()));
         // flatten : List (List a) -> List a
-        self.env.insert("flatten".into(), Fn(Box::new(List(la())), la()));
+        self.env
+            .insert("flatten".into(), Fn(Box::new(List(la())), la()));
         // unique : List a -> Set a
         self.env.insert("unique".into(), Fn(la(), sa()));
         // contains : List a -> a -> Bool
-        self.env.insert("contains".into(), Fn(la(), Box::new(Fn(a(), bool_()))));
+        self.env
+            .insert("contains".into(), Fn(la(), Box::new(Fn(a(), bool_()))));
         // all_same : List a -> Bool
         self.env.insert("all_same".into(), Fn(la(), bool_()));
         // consecutive : List Int -> Bool (concrete)
-        self.env.insert("consecutive".into(), Fn(Box::new(List(int())), bool_()));
+        self.env
+            .insert("consecutive".into(), Fn(Box::new(List(int())), bool_()));
         // combinations : List a -> Int -> List (List a)
-        self.env.insert("combinations".into(), Fn(la(), Box::new(Fn(int(), Box::new(List(la()))))));
-        self.env.insert("concat".into(), Fn(Box::new(String), Box::new(Fn(Box::new(String), Box::new(String)))));
-        self.env.insert("range".into(), Fn(int(), Box::new(Fn(int(), Box::new(List(int()))))));
+        self.env.insert(
+            "combinations".into(),
+            Fn(la(), Box::new(Fn(int(), Box::new(List(la()))))),
+        );
+        self.env.insert(
+            "concat".into(),
+            Fn(
+                Box::new(String),
+                Box::new(Fn(Box::new(String), Box::new(String))),
+            ),
+        );
+        self.env.insert(
+            "range".into(),
+            Fn(int(), Box::new(Fn(int(), Box::new(List(int()))))),
+        );
         // enumerate : List a -> List (Int, a)
-        self.env.insert("enumerate".into(), Fn(la(), Box::new(List(Box::new(Tuple(vec![Int, *a()]))))));
+        self.env.insert(
+            "enumerate".into(),
+            Fn(la(), Box::new(List(Box::new(Tuple(vec![Int, *a()]))))),
+        );
         // zip : List a -> List b -> List (a, b)
-        self.env.insert("zip".into(), Fn(la(), Box::new(Fn(lb(), Box::new(List(Box::new(Tuple(vec![*a(), *b()]))))))));
+        self.env.insert(
+            "zip".into(),
+            Fn(
+                la(),
+                Box::new(Fn(lb(), Box::new(List(Box::new(Tuple(vec![*a(), *b()])))))),
+            ),
+        );
         // size : Set a -> Int
         self.env.insert("size".into(), Fn(sa(), int()));
 
@@ -166,15 +439,19 @@ impl TypeChecker {
         // from_list : List a -> Set a
         self.env.insert("from_list".into(), Fn(la(), sa()));
         // union : Set a -> Set a -> Set a
-        self.env.insert("union".into(), Fn(sa(), Box::new(Fn(sa(), sa()))));
+        self.env
+            .insert("union".into(), Fn(sa(), Box::new(Fn(sa(), sa()))));
         // intersect : Set a -> Set a -> Set a
-        self.env.insert("intersect".into(), Fn(sa(), Box::new(Fn(sa(), sa()))));
+        self.env
+            .insert("intersect".into(), Fn(sa(), Box::new(Fn(sa(), sa()))));
         // difference : Set a -> Set a -> Set a
-        self.env.insert("difference".into(), Fn(sa(), Box::new(Fn(sa(), sa()))));
+        self.env
+            .insert("difference".into(), Fn(sa(), Box::new(Fn(sa(), sa()))));
         // to_list : Set a -> List a
         self.env.insert("to_list".into(), Fn(sa(), la()));
         // member : Set a -> a -> Bool
-        self.env.insert("member".into(), Fn(sa(), Box::new(Fn(a(), bool_()))));
+        self.env
+            .insert("member".into(), Fn(sa(), Box::new(Fn(a(), bool_()))));
 
         // Option operations
         // is_some : Option a -> Bool
@@ -182,16 +459,38 @@ impl TypeChecker {
         // is_none : Option a -> Bool
         self.env.insert("is_none".into(), Fn(oa(), bool_()));
         // unwrap_or : a -> Option a -> a
-        self.env.insert("unwrap_or".into(), Fn(a(), Box::new(Fn(oa(), a()))));
+        self.env
+            .insert("unwrap_or".into(), Fn(a(), Box::new(Fn(oa(), a()))));
         // unwrap_or_default : Option a -> a
         self.env.insert("unwrap_or_default".into(), Fn(oa(), a()));
         // map_opt : (a -> b) -> Option a -> Option b
-        self.env.insert("map_opt".into(), Fn(Box::new(Fn(a(), b())), Box::new(Fn(oa(), ob()))));
+        self.env.insert(
+            "map_opt".into(),
+            Fn(Box::new(Fn(a(), b())), Box::new(Fn(oa(), ob()))),
+        );
 
         // Grouping
-        self.env.insert("count_groups".into(), Fn(Box::new(List(Box::new(Int))), Box::new(Fn(Box::new(Int), Box::new(Int)))));
-        self.env.insert("has_group".into(), Fn(Box::new(List(Box::new(Int))), Box::new(Fn(Box::new(Int), Box::new(Bool)))));
-        self.env.insert("group_value".into(), Fn(Box::new(List(Box::new(Int))), Box::new(Fn(Box::new(Int), Box::new(Int)))));
+        self.env.insert(
+            "count_groups".into(),
+            Fn(
+                Box::new(List(Box::new(Int))),
+                Box::new(Fn(Box::new(Int), Box::new(Int))),
+            ),
+        );
+        self.env.insert(
+            "has_group".into(),
+            Fn(
+                Box::new(List(Box::new(Int))),
+                Box::new(Fn(Box::new(Int), Box::new(Bool))),
+            ),
+        );
+        self.env.insert(
+            "group_value".into(),
+            Fn(
+                Box::new(List(Box::new(Int))),
+                Box::new(Fn(Box::new(Int), Box::new(Int))),
+            ),
+        );
     }
 
     pub fn check_program(&mut self, program: &Program) -> Result<(), Vec<TypeError>> {
@@ -253,10 +552,13 @@ impl TypeChecker {
         let score_type = Record(vec![
             ("player".into(), String),
             ("points".into(), Int),
-            ("breakdown".into(), List(Box::new(Record(vec![
-                ("category".into(), String),
-                ("points".into(), Int),
-            ])))),
+            (
+                "breakdown".into(),
+                List(Box::new(Record(vec![
+                    ("category".into(), String),
+                    ("points".into(), Int),
+                ]))),
+            ),
         ]);
         let end_result_type = Record(vec![
             ("game_over".into(), Bool),
@@ -265,11 +567,38 @@ impl TypeChecker {
         ]);
 
         let mut sigs = HashMap::new();
-        sigs.insert("is_legal", Fn(Box::new(State), Box::new(Fn(Box::new(Player), Box::new(Fn(Box::new(Action), Box::new(Option(Box::new(Bool)))))))));
-        sigs.insert("legal_moves", Fn(Box::new(State), Box::new(Fn(Box::new(Player), Box::new(List(Box::new(Action)))))));
-        sigs.insert("apply_effect", Fn(Box::new(State), Box::new(Fn(Box::new(String), Box::new(State)))));
-        sigs.insert("score", Fn(Box::new(State), Box::new(List(Box::new(score_type)))));
-        sigs.insert("check_end", Fn(Box::new(State), Box::new(Option(Box::new(end_result_type)))));
+        sigs.insert(
+            "is_legal",
+            Fn(
+                Box::new(State),
+                Box::new(Fn(
+                    Box::new(Player),
+                    Box::new(Fn(Box::new(Action), Box::new(Option(Box::new(Bool))))),
+                )),
+            ),
+        );
+        sigs.insert(
+            "legal_moves",
+            Fn(
+                Box::new(State),
+                Box::new(Fn(Box::new(Player), Box::new(List(Box::new(Action))))),
+            ),
+        );
+        sigs.insert(
+            "apply_effect",
+            Fn(
+                Box::new(State),
+                Box::new(Fn(Box::new(String), Box::new(State))),
+            ),
+        );
+        sigs.insert(
+            "score",
+            Fn(Box::new(State), Box::new(List(Box::new(score_type)))),
+        );
+        sigs.insert(
+            "check_end",
+            Fn(Box::new(State), Box::new(Option(Box::new(end_result_type)))),
+        );
         sigs
     }
 
@@ -281,7 +610,12 @@ impl TypeChecker {
         t
     }
 
-    fn check_expr(&self, expr: &Expr, expected: &Type, env: &HashMap<String, Type>) -> Result<(), TypeError> {
+    fn check_expr(
+        &self,
+        expr: &Expr,
+        expected: &Type,
+        env: &HashMap<String, Type>,
+    ) -> Result<(), TypeError> {
         let inferred = self.infer_expr(expr, env)?;
         if self.types_compatible(&inferred, expected) {
             Ok(())
@@ -418,7 +752,8 @@ impl TypeChecker {
             }
 
             Expr::Tuple(items) => {
-                let types: Result<Vec<_>, _> = items.iter().map(|e| self.infer_expr(e, env)).collect();
+                let types: Result<Vec<_>, _> =
+                    items.iter().map(|e| self.infer_expr(e, env)).collect();
                 Ok(Type::Tuple(types?))
             }
 
@@ -481,7 +816,12 @@ impl TypeChecker {
         }
     }
 
-    fn bind_pattern(&self, pattern: &Pattern, scrutinee_type: &Type, env: &mut HashMap<String, Type>) {
+    fn bind_pattern(
+        &self,
+        pattern: &Pattern,
+        scrutinee_type: &Type,
+        env: &mut HashMap<String, Type>,
+    ) {
         match pattern {
             Pattern::VarPat(name) => {
                 env.insert(name.clone(), scrutinee_type.clone());
@@ -499,37 +839,42 @@ impl TypeChecker {
 
     fn check_binop(&self, op: BinOp, lt: &Type, rt: &Type) -> Result<Type, TypeError> {
         match op {
-            BinOp::Add | BinOp::Sub | BinOp::Mul | BinOp::Div | BinOp::Mod => {
-                match (lt, rt) {
-                    (Type::Int, Type::Int) => Ok(Type::Int),
-                    (Type::Float, Type::Float) => Ok(Type::Float),
-                    _ => Err(TypeError {
-                        message: format!("arithmetic requires matching numeric types, found {lt:?} and {rt:?}"),
-                        span: 0..0,
-                    }),
-                }
-            }
+            BinOp::Add | BinOp::Sub | BinOp::Mul | BinOp::Div | BinOp::Mod => match (lt, rt) {
+                (Type::Int, Type::Int) => Ok(Type::Int),
+                (Type::Float, Type::Float) => Ok(Type::Float),
+                _ => Err(TypeError {
+                    message: format!(
+                        "arithmetic requires matching numeric types, found {lt:?} and {rt:?}"
+                    ),
+                    span: 0..0,
+                }),
+            },
             BinOp::Eq | BinOp::Neq => {
                 if self.types_compatible(lt, rt) {
                     Ok(Type::Bool)
                 } else {
                     Err(TypeError {
-                        message: format!("comparison requires matching types, found {lt:?} and {rt:?}"),
+                        message: format!(
+                            "comparison requires matching types, found {lt:?} and {rt:?}"
+                        ),
                         span: 0..0,
                     })
                 }
             }
-            BinOp::Lt | BinOp::Gt | BinOp::Lte | BinOp::Gte => {
-                match (lt, rt) {
-                    (Type::Int, Type::Int) | (Type::Float, Type::Float) | (Type::String, Type::String) => Ok(Type::Bool),
-                    _ => Err(TypeError {
-                        message: format!("ordering requires matching ordered types, found {lt:?} and {rt:?}"),
-                        span: 0..0,
-                    }),
-                }
-            }
+            BinOp::Lt | BinOp::Gt | BinOp::Lte | BinOp::Gte => match (lt, rt) {
+                (Type::Int, Type::Int)
+                | (Type::Float, Type::Float)
+                | (Type::String, Type::String) => Ok(Type::Bool),
+                _ => Err(TypeError {
+                    message: format!(
+                        "ordering requires matching ordered types, found {lt:?} and {rt:?}"
+                    ),
+                    span: 0..0,
+                }),
+            },
             BinOp::And | BinOp::Or => {
-                if self.types_compatible(lt, &Type::Bool) && self.types_compatible(rt, &Type::Bool) {
+                if self.types_compatible(lt, &Type::Bool) && self.types_compatible(rt, &Type::Bool)
+                {
                     Ok(Type::Bool)
                 } else {
                     Err(TypeError {
@@ -544,7 +889,9 @@ impl TypeChecker {
                     (Type::String, Type::String) => Ok(Type::String),
                     (Type::List(a), Type::List(_)) => Ok(Type::List(a.clone())),
                     _ => Err(TypeError {
-                        message: format!("++ requires matching List or String types, found {lt:?} and {rt:?}"),
+                        message: format!(
+                            "++ requires matching List or String types, found {lt:?} and {rt:?}"
+                        ),
                         span: 0..0,
                     }),
                 }
@@ -607,9 +954,9 @@ impl TypeChecker {
                 Box::new(self.apply_subst(k, subst)),
                 Box::new(self.apply_subst(v, subst)),
             ),
-            Type::Tuple(items) => Type::Tuple(
-                items.iter().map(|t| self.apply_subst(t, subst)).collect(),
-            ),
+            Type::Tuple(items) => {
+                Type::Tuple(items.iter().map(|t| self.apply_subst(t, subst)).collect())
+            }
             other => other.clone(),
         }
     }
@@ -633,14 +980,17 @@ impl TypeChecker {
             }
             (Type::Option(a), Type::Option(b)) => self.types_compatible(a, b),
             (Type::Tuple(a), Type::Tuple(b)) => {
-                a.len() == b.len() && a.iter().zip(b.iter()).all(|(x, y)| self.types_compatible(x, y))
+                a.len() == b.len()
+                    && a.iter()
+                        .zip(b.iter())
+                        .all(|(x, y)| self.types_compatible(x, y))
             }
             (Type::Record(a), Type::Record(b)) => {
                 // Structural compatibility: same field names and types
                 a.len() == b.len()
-                    && a.iter().zip(b.iter()).all(|((an, at), (bn, bt))| {
-                        an == bn && self.types_compatible(at, bt)
-                    })
+                    && a.iter()
+                        .zip(b.iter())
+                        .all(|((an, at), (bn, bt))| an == bn && self.types_compatible(at, bt))
             }
             (Type::Fn(a1, a2), Type::Fn(b1, b2)) => {
                 self.types_compatible(a1, b1) && self.types_compatible(a2, b2)
@@ -758,16 +1108,12 @@ mod tests {
 
     #[test]
     fn test_match_int() {
-        check_ok(
-            r#"fn f(x: Int) -> String = match x with | 1 -> "one" | _ -> "other""#,
-        );
+        check_ok(r#"fn f(x: Int) -> String = match x with | 1 -> "one" | _ -> "other""#);
     }
 
     #[test]
     fn test_option_match_types() {
-        check_ok(
-            "fn f(x: Option Int) -> Int = match x with | Some v -> v | None -> 0",
-        );
+        check_ok("fn f(x: Option Int) -> Int = match x with | Some v -> v | None -> 0");
     }
 
     #[test]

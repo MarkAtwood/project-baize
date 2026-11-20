@@ -88,10 +88,7 @@ impl Parser {
                 Some(Token::Fn) => functions.push(self.parse_fn_def()?),
                 _ => {
                     return Err(ParseError {
-                        message: format!(
-                            "expected 'fn' or 'type', found {:?}",
-                            self.peek()
-                        ),
+                        message: format!("expected 'fn' or 'type', found {:?}", self.peek()),
                         span: self.peek_span(),
                     });
                 }
@@ -1052,10 +1049,7 @@ mod tests {
     fn test_field_access() {
         assert_eq!(
             expr("score.points"),
-            Expr::FieldAccess(
-                Box::new(Expr::Ident("score".into())),
-                "points".into(),
-            )
+            Expr::FieldAccess(Box::new(Expr::Ident("score".into())), "points".into(),)
         );
     }
 
@@ -1070,10 +1064,7 @@ mod tests {
     #[test]
     fn test_none_some() {
         assert_eq!(expr("None"), Expr::NoneLit);
-        assert_eq!(
-            expr("Some 42"),
-            Expr::SomeWrap(Box::new(Expr::IntLit(42))),
-        );
+        assert_eq!(expr("Some 42"), Expr::SomeWrap(Box::new(Expr::IntLit(42))),);
     }
 
     #[test]
@@ -1250,9 +1241,7 @@ mod tests {
 
     #[test]
     fn test_where_clause() {
-        let prog = program(
-            "fn f(s: State) -> Int = x + 1 where x = 42",
-        );
+        let prog = program("fn f(s: State) -> Int = x + 1 where x = 42");
         let f = &prog.functions[0];
         match &f.body {
             Expr::Let(binds, body) => {
@@ -1266,9 +1255,7 @@ mod tests {
 
     #[test]
     fn test_where_with_params() {
-        let prog = program(
-            "fn f(s: State) -> Int = g 1 where g x = x + 1",
-        );
+        let prog = program("fn f(s: State) -> Int = g 1 where g x = x + 1");
         let f = &prog.functions[0];
         match &f.body {
             Expr::Let(binds, _) => {
@@ -1349,9 +1336,7 @@ mod tests {
 
     #[test]
     fn test_multiple_fn_defs() {
-        let prog = program(
-            "fn f(x: Int) -> Int = x + 1\nfn g(x: Int) -> Int = x * 2",
-        );
+        let prog = program("fn f(x: Int) -> Int = x + 1\nfn g(x: Int) -> Int = x * 2");
         assert_eq!(prog.functions.len(), 2);
         assert_eq!(prog.functions[0].name, "f");
         assert_eq!(prog.functions[1].name, "g");

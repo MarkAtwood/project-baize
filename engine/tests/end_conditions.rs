@@ -1,8 +1,8 @@
+use baize_engine::GameDefinition;
 use baize_engine::action::{Action, ActionType, Position};
 use baize_engine::runtime::GameSession;
 use baize_engine::state::{GameOutcome, GameStatus};
-use baize_engine::transition::{apply_action, EventType};
-use baize_engine::GameDefinition;
+use baize_engine::transition::{EventType, apply_action};
 
 fn tic_tac_toe_session() -> GameSession {
     let def: GameDefinition = serde_json::from_str(
@@ -68,7 +68,11 @@ fn x_wins_top_row() {
 
     assert_eq!(session.runtime.status, GameStatus::Finished);
     assert!(events.iter().any(|e| e.event_type == EventType::GameEnd));
-    assert!(!events.iter().any(|e| e.event_type == EventType::TurnAdvance));
+    assert!(
+        !events
+            .iter()
+            .any(|e| e.event_type == EventType::TurnAdvance)
+    );
 
     let result = session.runtime.result.as_ref().unwrap();
     assert_eq!(result.outcome, GameOutcome::Win);

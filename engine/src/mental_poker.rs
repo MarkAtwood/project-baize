@@ -147,7 +147,10 @@ fn mod_inverse(a: &BigUint, m: &BigUint) -> Option<BigUint> {
 
     // Normalize to positive
     let inv = ((gcd_result.x % &m_signed) + &m_signed) % &m_signed;
-    Some(inv.to_biguint().expect("modular inverse should be non-negative"))
+    Some(
+        inv.to_biguint()
+            .expect("modular inverse should be non-negative"),
+    )
 }
 
 // ---------------------------------------------------------------------------
@@ -245,7 +248,9 @@ pub fn encrypt_and_shuffle<R: Rng>(
     player: &str,
 ) -> Result<ShuffleStep> {
     if deck.is_empty() {
-        return Err(BaizeError::IllegalAction("cannot shuffle empty deck".into()));
+        return Err(BaizeError::IllegalAction(
+            "cannot shuffle empty deck".into(),
+        ));
     }
     if deck.len() > MAX_DECK_SIZE {
         return Err(BaizeError::IllegalAction(format!(
@@ -296,13 +301,7 @@ pub fn full_shuffle<R: Rng>(
     let mut history = Vec::new();
 
     for (player_name, keypair) in players {
-        let step = encrypt_and_shuffle(
-            rng,
-            &current_deck,
-            &keypair.encrypt_key,
-            p,
-            player_name,
-        )?;
+        let step = encrypt_and_shuffle(rng, &current_deck, &keypair.encrypt_key, p, player_name)?;
         current_deck = step.deck.clone();
         history.push(step);
     }
@@ -552,8 +551,8 @@ impl MentalPokerSession {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use rand::rngs::StdRng;
     use rand::SeedableRng;
+    use rand::rngs::StdRng;
 
     fn test_rng() -> StdRng {
         StdRng::seed_from_u64(42)
@@ -678,12 +677,8 @@ mod tests {
         );
 
         // Deal to player A: B decrypts first, then A
-        let plaintext = deal_card_with_keys(
-            &encrypted,
-            &[&kp_b.decrypt_key],
-            &kp_a.decrypt_key,
-            &p,
-        );
+        let plaintext =
+            deal_card_with_keys(&encrypted, &[&kp_b.decrypt_key], &kp_a.decrypt_key, &p);
 
         assert_eq!(decode_card(&plaintext).unwrap(), 7);
     }
@@ -699,22 +694,14 @@ mod tests {
         let (final_deck, history) = full_shuffle(&mut rng, 5, &players, &p).unwrap();
 
         // Deal card 0 to Alice: Bob decrypts, then Alice
-        let card_0_plaintext = deal_card_with_keys(
-            &final_deck[0],
-            &[&kp_b.decrypt_key],
-            &kp_a.decrypt_key,
-            &p,
-        );
+        let card_0_plaintext =
+            deal_card_with_keys(&final_deck[0], &[&kp_b.decrypt_key], &kp_a.decrypt_key, &p);
         let card_0_index = decode_card(&card_0_plaintext).unwrap();
         assert!(card_0_index < 5);
 
         // Deal card 1 to Bob: Alice decrypts, then Bob
-        let card_1_plaintext = deal_card_with_keys(
-            &final_deck[1],
-            &[&kp_a.decrypt_key],
-            &kp_b.decrypt_key,
-            &p,
-        );
+        let card_1_plaintext =
+            deal_card_with_keys(&final_deck[1], &[&kp_a.decrypt_key], &kp_b.decrypt_key, &p);
         let card_1_index = decode_card(&card_1_plaintext).unwrap();
         assert!(card_1_index < 5);
 
@@ -735,8 +722,7 @@ mod tests {
         let kp_a = generate_keypair(&mut rng, &p).unwrap();
         let kp_b = generate_keypair(&mut rng, &p).unwrap();
 
-        let mut session =
-            MentalPokerSession::new(5, vec!["Alice".into(), "Bob".into()]).unwrap();
+        let mut session = MentalPokerSession::new(5, vec!["Alice".into(), "Bob".into()]).unwrap();
 
         assert_eq!(session.phase, MentalPokerPhase::Setup);
 

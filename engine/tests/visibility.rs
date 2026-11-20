@@ -50,17 +50,21 @@ fn build_session(vectors: &Value) -> GameSession {
             }
         }
 
-        let cid = session.runtime.components.insert(ComponentData {
-            id: ComponentId(0),
-            string_id: id_str,
-            component_type: comp_type,
-            owner: owner.clone(),
-            facing: None,
-            state: None,
-            properties,
-            span_cells: Vec::new(),
+        let cid = session
+            .runtime
+            .components
+            .insert(ComponentData {
+                id: ComponentId(0),
+                string_id: id_str,
+                component_type: comp_type,
+                owner: owner.clone(),
+                facing: None,
+                state: None,
+                properties,
+                span_cells: Vec::new(),
                 orientation: None,
-        }).unwrap();
+            })
+            .unwrap();
 
         // Place into the correct zone.
         // Per-player zones live under player.zones; shared zones under session.runtime.zones.
@@ -108,9 +112,7 @@ fn zone_component_ids(zone: &ZoneState) -> Vec<String> {
             }
             ids
         }
-        ZoneState::SingleSlot { component } => {
-            component.iter().map(|c| c.id.clone()).collect()
-        }
+        ZoneState::SingleSlot { component } => component.iter().map(|c| c.id.clone()).collect(),
         ZoneState::Counter { .. } => Vec::new(),
         ZoneState::Track { positions } => positions
             .values()
@@ -138,7 +140,11 @@ fn public_zone_visible_to_all() {
         assert!(ids.contains("card-AH"), "{viewer} must see card-AH");
         assert!(ids.contains("card-KH"), "{viewer} must see card-KH");
         assert!(ids.contains("card-QS"), "{viewer} must see card-QS");
-        assert_eq!(ids.len(), 3, "{viewer} should see exactly 3 community cards");
+        assert_eq!(
+            ids.len(),
+            3,
+            "{viewer} should see exactly 3 community cards"
+        );
     }
 }
 
@@ -229,10 +235,7 @@ fn private_zone_visible_to_owner() {
     let bob_hand_ids: HashSet<String> = zone_component_ids(bob_hand).into_iter().collect();
     assert!(bob_hand_ids.contains("card-5C"), "bob must see his card-5C");
     assert!(bob_hand_ids.contains("card-9H"), "bob must see his card-9H");
-    assert!(
-        bob_hand_ids.contains("card-KD"),
-        "bob must see his card-KD"
-    );
+    assert!(bob_hand_ids.contains("card-KD"), "bob must see his card-KD");
     assert_eq!(bob_hand_ids.len(), 3, "bob should see exactly 3 cards");
 }
 
@@ -435,8 +438,5 @@ fn filtered_view_never_leaks_hidden_component_properties() {
         json.contains("card-10S"),
         "alice should see her own card-10S"
     );
-    assert!(
-        json.contains("card-AH"),
-        "alice should see public card-AH"
-    );
+    assert!(json.contains("card-AH"), "alice should see public card-AH");
 }

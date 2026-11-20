@@ -142,8 +142,7 @@ fn test_match_int() {
 
 #[test]
 fn test_nested_if() {
-    let source =
-        "fn classify(x: Int) -> Int = if x > 0 then 1 else if x == 0 then 0 else -1";
+    let source = "fn classify(x: Int) -> Int = if x > 0 then 1 else if x == 0 then 0 else -1";
     assert_eq!(call_i64(source, "classify", &[Val::I64(5)]), 1);
     assert_eq!(call_i64(source, "classify", &[Val::I64(0)]), 0);
     assert_eq!(call_i64(source, "classify", &[Val::I64(-3)]), -1);
@@ -188,5 +187,9 @@ fn test_where_clause() {
 fn test_wasm_module_size() {
     let wasm = compile_and_validate("fn f(x: Int) -> Int = x + 1");
     // Should be small — under 200 bytes for a trivial function
-    assert!(wasm.len() < 200, "trivial function produced {} bytes", wasm.len());
+    assert!(
+        wasm.len() < 200,
+        "trivial function produced {} bytes",
+        wasm.len()
+    );
 }

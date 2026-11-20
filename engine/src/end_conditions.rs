@@ -104,9 +104,8 @@ fn has_complete_line(
     // Check rows
     for row in 0..h {
         if w > 0
-            && (0..w).all(|col| {
-                grid_cell_owned_by(session, storage, col as i32, row as i32, player)
-            })
+            && (0..w)
+                .all(|col| grid_cell_owned_by(session, storage, col as i32, row as i32, player))
         {
             return true;
         }
@@ -115,9 +114,8 @@ fn has_complete_line(
     // Check columns
     for col in 0..w {
         if h > 0
-            && (0..h).all(|row| {
-                grid_cell_owned_by(session, storage, col as i32, row as i32, player)
-            })
+            && (0..h)
+                .all(|row| grid_cell_owned_by(session, storage, col as i32, row as i32, player))
         {
             return true;
         }
@@ -128,9 +126,9 @@ fn has_complete_line(
         if (0..w).all(|i| grid_cell_owned_by(session, storage, i as i32, i as i32, player)) {
             return true;
         }
-        if (0..w).all(|i| {
-            grid_cell_owned_by(session, storage, (w - 1 - i) as i32, i as i32, player)
-        }) {
+        if (0..w)
+            .all(|i| grid_cell_owned_by(session, storage, (w - 1 - i) as i32, i as i32, player))
+        {
             return true;
         }
     }

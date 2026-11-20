@@ -140,10 +140,7 @@ pub fn lex(source: &str) -> Result<Vec<Spanned>, Vec<LexError>> {
             }),
             Err(()) => errors.push(LexError {
                 span: span.clone(),
-                message: format!(
-                    "unexpected character '{}'",
-                    &source[span.start..span.end]
-                ),
+                message: format!("unexpected character '{}'", &source[span.start..span.end]),
             }),
         }
     }
@@ -166,7 +163,11 @@ mod tests {
     use super::*;
 
     fn tok(input: &str) -> Vec<Token> {
-        lex(input).expect("lexer error").into_iter().map(|s| s.token).collect()
+        lex(input)
+            .expect("lexer error")
+            .into_iter()
+            .map(|s| s.token)
+            .collect()
     }
 
     #[test]
@@ -270,10 +271,7 @@ mod tests {
 
     #[test]
     fn test_adjacent_pipes() {
-        assert_eq!(
-            tok("|>|>"),
-            vec![Token::Pipe, Token::Pipe]
-        );
+        assert_eq!(tok("|>|>"), vec![Token::Pipe, Token::Pipe]);
     }
 
     #[test]
@@ -297,7 +295,14 @@ mod tests {
     fn test_all_comparison_ops() {
         assert_eq!(
             tok("== != < > <= >="),
-            vec![Token::Eq, Token::Neq, Token::Lt, Token::Gt, Token::Lte, Token::Gte]
+            vec![
+                Token::Eq,
+                Token::Neq,
+                Token::Lt,
+                Token::Gt,
+                Token::Lte,
+                Token::Gte
+            ]
         );
     }
 
@@ -310,7 +315,11 @@ mod tests {
     fn test_left_arrow() {
         assert_eq!(
             tok("x <- xs"),
-            vec![Token::Ident("x".into()), Token::LeftArrow, Token::Ident("xs".into())]
+            vec![
+                Token::Ident("x".into()),
+                Token::LeftArrow,
+                Token::Ident("xs".into())
+            ]
         );
     }
 
@@ -397,10 +406,7 @@ mod tests {
     #[test]
     fn test_negative_number() {
         // Minus is a separate token; parser handles negation
-        assert_eq!(
-            tok("-42"),
-            vec![Token::Minus, Token::IntLit(42)]
-        );
+        assert_eq!(tok("-42"), vec![Token::Minus, Token::IntLit(42)]);
     }
 
     #[test]

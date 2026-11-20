@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
-use cel_interpreter::{Context, Program, Value};
 use crate::runtime::{GameSession, RuntimeZone};
+use cel_interpreter::{Context, Program, Value};
 
 /// Maximum CEL expression length (bytes). Prevents ReDoS-style attacks
 /// on the CEL compiler.
@@ -57,11 +57,7 @@ pub fn try_eval_end_condition(
 ///
 /// Cell occupancy state is injected as boolean variables (`empty`, `enemy`).
 /// Returns `None` if the expression fails to parse.
-pub fn try_eval_move_condition(
-    is_empty: bool,
-    is_enemy: bool,
-    condition: &str,
-) -> Option<bool> {
+pub fn try_eval_move_condition(is_empty: bool, is_enemy: bool, condition: &str) -> Option<bool> {
     if condition.len() > MAX_CEL_LENGTH || !check_cel_nesting(condition) {
         return None;
     }
@@ -119,45 +115,31 @@ fn build_end_condition_context(session: &GameSession, current_player: &str) -> C
 /// - `team_of_<player>`: team name for each player
 /// - `is_partner_<a>_<b>`: true if players a and b are partners
 /// - `team_score_<player>`: team score for each player
-fn populate_partnership_context(ctx: &mut Context<'_>, session: &GameSession, current_player: &str) {
+fn populate_partnership_context(
+    ctx: &mut Context<'_>,
+    session: &GameSession,
+    current_player: &str,
+) {
     let has_partnerships = !session.runtime.partnerships.is_empty();
     ctx.add_variable_from_value("has_partnerships", has_partnerships);
 
     // Current player's team info
-    ctx.add_variable_from_value(
-        "team_of_current",
-        session.team_name(current_player),
-    );
-    ctx.add_variable_from_value(
-        "team_score_current",
-        session.team_score(current_player),
-    );
+    ctx.add_variable_from_value("team_of_current", session.team_name(current_player));
+    ctx.add_variable_from_value("team_score_current", session.team_score(current_player));
 
     // Per-player team info
     let player_names: Vec<String> = session.runtime.players.keys().cloned().collect();
     for player in &player_names {
-        ctx.add_variable_from_value(
-            format!("team_of_{player}"),
-            session.team_name(player),
-        );
-        ctx.add_variable_from_value(
-            format!("team_score_{player}"),
-            session.team_score(player),
-        );
+        ctx.add_variable_from_value(format!("team_of_{player}"), session.team_name(player));
+        ctx.add_variable_from_value(format!("team_score_{player}"), session.team_score(player));
     }
 
     // Pairwise partnership booleans
     for (i, a) in player_names.iter().enumerate() {
         for b in player_names.iter().skip(i + 1) {
             let partnered = session.is_partner(a, b);
-            ctx.add_variable_from_value(
-                format!("is_partner_{a}_{b}"),
-                partnered,
-            );
-            ctx.add_variable_from_value(
-                format!("is_partner_{b}_{a}"),
-                partnered,
-            );
+            ctx.add_variable_from_value(format!("is_partner_{a}_{b}"), partnered);
+            ctx.add_variable_from_value(format!("is_partner_{b}_{a}"), partnered);
         }
     }
 }
@@ -174,8 +156,7 @@ fn populate_partnership_context(ctx: &mut Context<'_>, session: &GameSession, cu
 /// - `board_width`, `board_height`, `cell_count`, `occupied_count`
 fn populate_grid_lines(ctx: &mut Context<'_>, session: &GameSession) {
     for zone in session.runtime.zones.values() {
-        if let RuntimeZone::Grid { storage, .. } = zone
-        {
+        if let RuntimeZone::Grid { storage, .. } = zone {
             let (w, h) = match storage.dimensions() {
                 Some((w, h)) => (w as usize, h as usize),
                 None => break, // sparse with no dimensions: skip CEL grid context
@@ -186,20 +167,14 @@ fn populate_grid_lines(ctx: &mut Context<'_>, session: &GameSession) {
                 ctx.add_variable_from_value("board_width", w as i64);
                 ctx.add_variable_from_value("board_height", h as i64);
                 ctx.add_variable_from_value("cell_count", (w * h) as i64);
-                ctx.add_variable_from_value(
-                    "occupied_count",
-                    storage.occupied_count() as i64,
-                );
+                ctx.add_variable_from_value("occupied_count", storage.occupied_count() as i64);
                 break;
             }
 
             ctx.add_variable_from_value("board_width", w as i64);
             ctx.add_variable_from_value("board_height", h as i64);
             ctx.add_variable_from_value("cell_count", (w * h) as i64);
-            ctx.add_variable_from_value(
-                "occupied_count",
-                storage.occupied_count() as i64,
-            );
+            ctx.add_variable_from_value("occupied_count", storage.occupied_count() as i64);
 
             // Closure used by both full lines and windowed sub-lines below.
             let owner_at = |col: usize, row: usize| -> Value {
@@ -253,8 +228,7 @@ fn populate_grid_lines(ctx: &mut Context<'_>, session: &GameSession) {
                 if n <= w {
                     for row in 0..h {
                         for sc in 0..=(w - n) {
-                            let win: Vec<Value> =
-                                (0..n).map(|i| owner_at(sc + i, row)).collect();
+                            let win: Vec<Value> = (0..n).map(|i| owner_at(sc + i, row)).collect();
                             windows.push(Value::List(Arc::new(win)));
                         }
                     }
@@ -262,8 +236,7 @@ fn populate_grid_lines(ctx: &mut Context<'_>, session: &GameSession) {
                 if n <= h {
                     for col in 0..w {
                         for sr in 0..=(h - n) {
-                            let win: Vec<Value> =
-                                (0..n).map(|i| owner_at(col, sr + i)).collect();
+                            let win: Vec<Value> = (0..n).map(|i| owner_at(col, sr + i)).collect();
                             windows.push(Value::List(Arc::new(win)));
                         }
                     }
@@ -318,7 +291,10 @@ fn populate_grid_lines(ctx: &mut Context<'_>, session: &GameSession) {
             ctx.add_variable_from_value("type_cols", Value::List(Arc::new(type_cols)));
 
             // Cell properties: expose prop_{key} as 2D arrays (rows format).
-            if let RuntimeZone::Grid { cell_properties, .. } = zone {
+            if let RuntimeZone::Grid {
+                cell_properties, ..
+            } = zone
+            {
                 let mut all_keys = std::collections::BTreeSet::new();
                 for props in cell_properties.values() {
                     for key in props.keys() {
@@ -460,10 +436,8 @@ mod tests {
     #[test]
     fn lines_exist_composable_win() {
         // Simulate the composable win condition used by tic-tac-toe
-        let program = Program::compile(
-            "lines.exists(line, line.all(cell, cell == current_player))",
-        )
-        .unwrap();
+        let program =
+            Program::compile("lines.exists(line, line.all(cell, cell == current_player))").unwrap();
         let mut ctx = Context::default();
         ctx.add_variable_from_value("current_player", "X".to_string());
         // A winning board: X owns the entire first row
@@ -483,10 +457,8 @@ mod tests {
 
     #[test]
     fn lines_no_win() {
-        let program = Program::compile(
-            "lines.exists(line, line.all(cell, cell == current_player))",
-        )
-        .unwrap();
+        let program =
+            Program::compile("lines.exists(line, line.all(cell, cell == current_player))").unwrap();
         let mut ctx = Context::default();
         ctx.add_variable_from_value("current_player", "X".to_string());
         let row0 = Value::List(Arc::new(vec![
@@ -510,10 +482,7 @@ mod tests {
     #[test]
     fn type_rows_filter_size() {
         // Test that filter+size works for uniqueness checking
-        let program = Program::compile(
-            "type_rows[0].filter(v, v == target).size() == 1",
-        )
-        .unwrap();
+        let program = Program::compile("type_rows[0].filter(v, v == target).size() == 1").unwrap();
         let mut ctx = Context::default();
         let row0 = Value::List(Arc::new(vec![
             Value::String(Arc::new("pawn".into())),
@@ -527,7 +496,8 @@ mod tests {
 
     #[test]
     fn invalid_cel_returns_none() {
-        let result = try_eval_move_condition(true, false, "three_in_line(current.marks, row OR column)");
+        let result =
+            try_eval_move_condition(true, false, "three_in_line(current.marks, row OR column)");
         assert_eq!(result, None);
     }
 

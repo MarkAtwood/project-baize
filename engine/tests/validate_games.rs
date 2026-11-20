@@ -24,16 +24,13 @@ fn all_game_definitions_parse() {
 
         if path.extension().is_some_and(|ext| ext == "json") {
             let name = path.file_name().unwrap().to_string_lossy().to_string();
-            let content = fs::read_to_string(&path)
-                .unwrap_or_else(|e| panic!("failed to read {name}: {e}"));
+            let content =
+                fs::read_to_string(&path).unwrap_or_else(|e| panic!("failed to read {name}: {e}"));
 
             let def = GameDefinition::from_json(&content)
                 .unwrap_or_else(|e| panic!("{name} failed to parse: {e}"));
 
-            assert!(
-                !def.game.name.is_empty(),
-                "{name} has empty game name"
-            );
+            assert!(!def.game.name.is_empty(), "{name} has empty game name");
             assert!(
                 !def.end_conditions.is_empty(),
                 "{name} has no end conditions"
@@ -43,5 +40,8 @@ fn all_game_definitions_parse() {
         }
     }
 
-    assert!(count >= 6, "expected at least 6 game definitions, found {count}");
+    assert!(
+        count >= 6,
+        "expected at least 6 game definitions, found {count}"
+    );
 }

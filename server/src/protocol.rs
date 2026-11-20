@@ -117,9 +117,7 @@ pub fn handle_client_message(
         return HandleResult::Error(error_response(
             &game_id,
             "seat_mismatch",
-            &format!(
-                "you are seated as '{seat}' but claimed to be '{msg_player}'"
-            ),
+            &format!("you are seated as '{seat}' but claimed to be '{msg_player}'"),
         ));
     }
 
@@ -132,9 +130,7 @@ pub fn handle_client_message(
         return HandleResult::Error(error_response(
             &game_id,
             "game_id_mismatch",
-            &format!(
-                "this room is '{game_id}' but message targets '{msg_game_id}'"
-            ),
+            &format!("this room is '{game_id}' but message targets '{msg_game_id}'"),
         ));
     }
 
@@ -148,9 +144,7 @@ pub fn handle_client_message(
             return HandleResult::Error(error_response(
                 &game_id,
                 "sequence_error",
-                &format!(
-                    "sequence {seq} is out of order (expected >= {expected_seq})"
-                ),
+                &format!("sequence {seq} is out of order (expected >= {expected_seq})"),
             ));
         }
         *expected_seq = seq + 1;
@@ -161,9 +155,7 @@ pub fn handle_client_message(
 
     // Dispatch to handlers
     match msg {
-        ClientMessage::SubmitMove {
-            action, player, ..
-        } => {
+        ClientMessage::SubmitMove { action, player, .. } => {
             if is_spectator {
                 return HandleResult::Error(error_response(
                     &game_id,
@@ -173,14 +165,8 @@ pub fn handle_client_message(
             }
             // Validate action fields against definition
             if let Err(e) = validate_action(&action, &room.session.definition) {
-                eprintln!(
-                    "[security] invalid action from seat '{seat}' in room '{game_id}': {e}"
-                );
-                return HandleResult::Error(error_response(
-                    &game_id,
-                    "invalid_action",
-                    &e,
-                ));
+                eprintln!("[security] invalid action from seat '{seat}' in room '{game_id}': {e}");
+                return HandleResult::Error(error_response(&game_id, "invalid_action", &e));
             }
             handle_submit_move(room, seat, &player, action)
         }
@@ -198,18 +184,12 @@ pub fn handle_client_message(
                 ));
             }
             // Turn check: only the current player may request random values
-            let current = room
-                .session
-                .current_player()
-                .unwrap_or("")
-                .to_string();
+            let current = room.session.current_player().unwrap_or("").to_string();
             if current != player {
                 return HandleResult::Error(error_response(
                     &game_id,
                     "not_your_turn",
-                    &format!(
-                        "not your turn to request random (current: {current})"
-                    ),
+                    &format!("not your turn to request random (current: {current})"),
                 ));
             }
             if let Err(e) = validate_random_request(&random_request, &room.session.definition) {
@@ -217,29 +197,16 @@ pub fn handle_client_message(
                     "[security] invalid random request from seat '{seat}' \
                      in room '{game_id}': {e}"
                 );
-                return HandleResult::Error(error_response(
-                    &game_id,
-                    "invalid_random_request",
-                    &e,
-                ));
+                return HandleResult::Error(error_response(&game_id, "invalid_random_request", &e));
             }
-            HandleResult::Broadcast(handle_request_random(
-                room,
-                seat,
-                &player,
-                random_request,
-            ))
+            HandleResult::Broadcast(handle_request_random(room, seat, &player, random_request))
         }
 
         ClientMessage::AcknowledgeState {
-            state_hash,
-            player,
-            ..
+            state_hash, player, ..
         } => {
             // BLAKE3 hex digest is exactly 64 chars
-            if state_hash.len() != 64
-                || !state_hash.chars().all(|c| c.is_ascii_hexdigit())
-            {
+            if state_hash.len() != 64 || !state_hash.chars().all(|c| c.is_ascii_hexdigit()) {
                 return HandleResult::Error(error_response(
                     &game_id,
                     "invalid_state_hash",
@@ -248,17 +215,10 @@ pub fn handle_client_message(
             }
             // StateSync is sent only to the requesting player to prevent
             // leaking hidden/private zone contents to other players.
-            HandleResult::Reply(handle_acknowledge_state(
-                room,
-                seat,
-                &player,
-                &state_hash,
-            ))
+            HandleResult::Reply(handle_acknowledge_state(room, seat, &player, &state_hash))
         }
 
-        ClientMessage::SubmitClaim {
-            claim, player, ..
-        } => {
+        ClientMessage::SubmitClaim { claim, player, .. } => {
             if is_spectator {
                 return HandleResult::Error(error_response(
                     &game_id,
@@ -288,9 +248,7 @@ pub fn handle_client_message(
             handle_submit_claim(room, seat, &player, &claim)
         }
 
-        ClientMessage::Ready {
-            ready, player, ..
-        } => {
+        ClientMessage::Ready { ready, player, .. } => {
             if is_spectator {
                 return HandleResult::Error(error_response(
                     &game_id,
@@ -499,11 +457,7 @@ fn handle_submit_move(
     }
 
     // Check it is this player's turn
-    let current = room
-        .session
-        .current_player()
-        .unwrap_or("")
-        .to_string();
+    let current = room.session.current_player().unwrap_or("").to_string();
     if current != player {
         return HandleResult::Reply(vec![ServerMessage::MoveRejected {
             game_id,
@@ -529,7 +483,12 @@ fn handle_submit_move(
 
             let mut per_player = HashMap::new();
             for seat_name in room.players.keys() {
-                let filtered = filter_for_viewer_with_fog(&wire_state, seat_name, definition, Some(&room.session.runtime.zones));
+                let filtered = filter_for_viewer_with_fog(
+                    &wire_state,
+                    seat_name,
+                    definition,
+                    Some(&room.session.runtime.zones),
+                );
                 let result_state = Some(
                     serde_json::to_value(&filtered)
                         .expect("filtered state should serialize to JSON"),
@@ -561,12 +520,7 @@ fn handle_submit_move(
 /// 3. Apply the claim through the engine
 /// 4. If the window resolved (all claims in), clear the deadline and
 ///    broadcast the result state; otherwise broadcast only to the submitter
-fn handle_submit_claim(
-    room: &mut Room,
-    _seat: &str,
-    player: &str,
-    claim: &str,
-) -> HandleResult {
+fn handle_submit_claim(room: &mut Room, _seat: &str, player: &str, claim: &str) -> HandleResult {
     let game_id = room.id.clone();
 
     // Check game is in progress
@@ -684,11 +638,7 @@ fn handle_submit_claim(
 
             HandleResult::FilteredBroadcast { per_player }
         }
-        Err(e) => HandleResult::Error(error_response(
-            &game_id,
-            "claim_rejected",
-            &e.to_string(),
-        )),
+        Err(e) => HandleResult::Error(error_response(&game_id, "claim_rejected", &e.to_string())),
     }
 }
 
@@ -715,8 +665,8 @@ fn handle_request_random(
                 .unwrap_or(6);
 
             let results = vault::roll_dice(&mut room.vault, dice_count, faces);
-            let random_value = serde_json::to_value(&results)
-                .expect("dice roll results should serialize to JSON");
+            let random_value =
+                serde_json::to_value(&results).expect("dice roll results should serialize to JSON");
 
             vec![ServerMessage::RandomResult {
                 game_id,
@@ -760,8 +710,8 @@ fn handle_request_random(
                 drawn.len()
             );
 
-            let random_value = serde_json::to_value(&drawn)
-                .expect("vault: drawn cards should serialize to JSON");
+            let random_value =
+                serde_json::to_value(&drawn).expect("vault: drawn cards should serialize to JSON");
 
             vec![ServerMessage::RandomResult {
                 game_id,
@@ -816,14 +766,17 @@ fn handle_acknowledge_state(
         Vec::new()
     } else {
         // Desync detected -- send filtered state for this player
-        eprintln!(
-            "state desync in room {game_id}: client={client_hash}, server={server_hash}"
-        );
+        eprintln!("state desync in room {game_id}: client={client_hash}, server={server_hash}");
         let wire_state = room.session.to_wire_state();
         let sequence = wire_state.sequence;
-        let filtered = filter_for_viewer_with_fog(&wire_state, seat, &room.session.definition, Some(&room.session.runtime.zones));
-        let full_state = serde_json::to_value(&filtered)
-            .expect("filtered state should serialize to JSON");
+        let filtered = filter_for_viewer_with_fog(
+            &wire_state,
+            seat,
+            &room.session.definition,
+            Some(&room.session.runtime.zones),
+        );
+        let full_state =
+            serde_json::to_value(&filtered).expect("filtered state should serialize to JSON");
 
         vec![ServerMessage::StateSync {
             game_id,
@@ -838,12 +791,7 @@ fn handle_acknowledge_state(
 /// 2. Build a ready_state snapshot for all defined seats
 /// 3. If all seated players are ready, set AllReady; otherwise Waiting
 /// 4. Broadcast the ready_state to all connected players
-fn handle_ready(
-    room: &mut Room,
-    _seat: &str,
-    player: &str,
-    ready: bool,
-) -> HandleResult {
+fn handle_ready(room: &mut Room, _seat: &str, player: &str, ready: bool) -> HandleResult {
     let game_id = room.id.clone();
 
     // Only toggle ready in Waiting or AllReady phases
@@ -862,13 +810,7 @@ fn handle_ready(
     }
 
     // Build seats map for the broadcast
-    let defined_players: Vec<String> = room
-        .session
-        .runtime
-        .players
-        .keys()
-        .cloned()
-        .collect();
+    let defined_players: Vec<String> = room.session.runtime.players.keys().cloned().collect();
 
     let mut seats = serde_json::Map::new();
     for p in &defined_players {
@@ -884,9 +826,9 @@ fn handle_ready(
     }
 
     // Check if all defined (non-spectator) players are connected and ready
-    let all_ready = defined_players.iter().all(|p| {
-        room.players.contains_key(p) && room.ready_players.contains(p)
-    });
+    let all_ready = defined_players
+        .iter()
+        .all(|p| room.players.contains_key(p) && room.ready_players.contains(p));
 
     if all_ready {
         room.room_phase = room::RoomPhase::AllReady;

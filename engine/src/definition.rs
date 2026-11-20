@@ -196,7 +196,9 @@ impl<'de> Deserialize<'de> for UnlimitedTag {
         if s == "unlimited" {
             Ok(UnlimitedTag)
         } else {
-            Err(serde::de::Error::custom(format!("expected \"unlimited\", got \"{s}\"")))
+            Err(serde::de::Error::custom(format!(
+                "expected \"unlimited\", got \"{s}\""
+            )))
         }
     }
 }
@@ -286,7 +288,9 @@ impl<'de> Deserialize<'de> for PerPlayerTag {
         if s == "per_player" {
             Ok(PerPlayerTag)
         } else {
-            Err(serde::de::Error::custom(format!("expected \"per_player\", got \"{s}\"")))
+            Err(serde::de::Error::custom(format!(
+                "expected \"per_player\", got \"{s}\""
+            )))
         }
     }
 }

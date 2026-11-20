@@ -140,7 +140,9 @@ fn generate_grid_moves(
                 for (dx, dy) in &dirs {
                     let mut nx = col as i32 + dx;
                     let mut ny = row as i32 + dy;
-                    while nx >= 0 && ny >= 0 && zone.grid_cell_valid(nx as u32, ny as u32)
+                    while nx >= 0
+                        && ny >= 0
+                        && zone.grid_cell_valid(nx as u32, ny as u32)
                         && moves.len() < MAX_LEGAL_MOVES
                     {
                         let target = zone.grid_get(nx as u32, ny as u32);
@@ -222,7 +224,11 @@ fn generate_grid_moves(
                         moves.push(LegalMove {
                             component_id: cid,
                             action: make_move_action(
-                                zone_name, col, row, land_x as u32, land_y as u32,
+                                zone_name,
+                                col,
+                                row,
+                                land_x as u32,
+                                land_y as u32,
                             ),
                         });
                     }
@@ -345,9 +351,10 @@ fn resolve_directions(
 
     match dir {
         Direction::Single(name) => direction_vectors(name, adjacency),
-        Direction::Multiple(names) => {
-            names.iter().flat_map(|n| direction_vectors(n, adjacency)).collect()
-        }
+        Direction::Multiple(names) => names
+            .iter()
+            .flat_map(|n| direction_vectors(n, adjacency))
+            .collect(),
         Direction::Custom(_) => adjacent_directions(adjacency),
     }
 }
@@ -418,8 +425,7 @@ fn check_cell_condition(
         "empty" => occupant.is_none(),
         "enemy" => occupant.is_some_and(|id| is_enemy(session, id, player)),
         "empty_or_enemy" => {
-            occupant.is_none()
-                || occupant.is_some_and(|id| is_enemy(session, id, player))
+            occupant.is_none() || occupant.is_some_and(|id| is_enemy(session, id, player))
         }
         other => {
             let cell_empty = occupant.is_none();

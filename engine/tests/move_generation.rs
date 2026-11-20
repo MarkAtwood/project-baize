@@ -1,6 +1,6 @@
+use baize_engine::GameDefinition;
 use baize_engine::moves::legal_moves;
 use baize_engine::runtime::*;
-use baize_engine::GameDefinition;
 use indexmap::IndexMap;
 
 fn simple_chess_def() -> GameDefinition {
@@ -60,17 +60,21 @@ fn place_piece(
     col: u32,
     row: u32,
 ) -> ComponentId {
-    let cid = session.runtime.components.insert(ComponentData {
-        id: ComponentId(0),
-        string_id: name.into(),
-        component_type: comp_type.into(),
-        owner: Some(owner.into()),
-        facing: None,
-        state: None,
-        properties: IndexMap::new(),
+    let cid = session
+        .runtime
+        .components
+        .insert(ComponentData {
+            id: ComponentId(0),
+            string_id: name.into(),
+            component_type: comp_type.into(),
+            owner: Some(owner.into()),
+            facing: None,
+            state: None,
+            properties: IndexMap::new(),
             span_cells: Vec::new(),
-                orientation: None,
-    }).unwrap();
+            orientation: None,
+        })
+        .unwrap();
     session
         .runtime
         .zones

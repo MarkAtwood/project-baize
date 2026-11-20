@@ -26,11 +26,7 @@ pub trait GameExtension {
     /// Apply a triggered effect after a move (chain reactions, cascades).
     /// Returns a modified state and any additional events.
     /// Called when the game definition declares `wasm_required` effects.
-    fn apply_effect(
-        &self,
-        state: &GameState,
-        trigger: &str,
-    ) -> Result<GameState, ExtensionError>;
+    fn apply_effect(&self, state: &GameState, trigger: &str) -> Result<GameState, ExtensionError>;
 
     /// Compute scores for all players.
     /// Used for scoring that's too complex for declarative predicates
@@ -91,11 +87,7 @@ impl GameExtension for NoExtension {
         Vec::new()
     }
 
-    fn apply_effect(
-        &self,
-        state: &GameState,
-        _trigger: &str,
-    ) -> Result<GameState, ExtensionError> {
+    fn apply_effect(&self, state: &GameState, _trigger: &str) -> Result<GameState, ExtensionError> {
         Ok(state.clone())
     }
 

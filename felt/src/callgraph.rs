@@ -66,8 +66,7 @@ fn dfs<'a>(
             } else if in_stack.contains(next) {
                 // Found cycle — extract it from path
                 let start = path.iter().position(|&n| n == next).unwrap();
-                let mut cycle: Vec<String> =
-                    path[start..].iter().map(|s| s.to_string()).collect();
+                let mut cycle: Vec<String> = path[start..].iter().map(|s| s.to_string()).collect();
                 cycle.push(next.to_string());
                 return Some(cycle);
             }
@@ -125,7 +124,10 @@ fn collect_calls<'a>(expr: &'a Expr, fn_names: &HashSet<&str>, callees: &mut Vec
         }
         Expr::FieldAccess(expr, _) => collect_calls(expr, fn_names, callees),
         Expr::SomeWrap(inner) => collect_calls(inner, fn_names, callees),
-        Expr::IntLit(_) | Expr::FloatLit(_) | Expr::BoolLit(_) | Expr::StringLit(_)
+        Expr::IntLit(_)
+        | Expr::FloatLit(_)
+        | Expr::BoolLit(_)
+        | Expr::StringLit(_)
         | Expr::NoneLit => {}
     }
 }
@@ -155,17 +157,14 @@ mod tests {
 
     #[test]
     fn test_mutual_recursion_rejected() {
-        let err =
-            check("fn f(x: Int) -> Int = g x\nfn g(x: Int) -> Int = f x").unwrap_err();
+        let err = check("fn f(x: Int) -> Int = g x\nfn g(x: Int) -> Int = f x").unwrap_err();
         assert!(err.cycle.len() >= 2);
     }
 
     #[test]
     fn test_deep_acyclic() {
-        check(
-            "fn a(x: Int) -> Int = b x\nfn b(x: Int) -> Int = c x\nfn c(x: Int) -> Int = x",
-        )
-        .unwrap();
+        check("fn a(x: Int) -> Int = b x\nfn b(x: Int) -> Int = c x\nfn c(x: Int) -> Int = x")
+            .unwrap();
     }
 
     #[test]
@@ -180,9 +179,10 @@ mod tests {
 
     #[test]
     fn test_cycle_reports_path() {
-        let err =
-            check("fn a(x: Int) -> Int = b x\nfn b(x: Int) -> Int = c x\nfn c(x: Int) -> Int = a x")
-                .unwrap_err();
+        let err = check(
+            "fn a(x: Int) -> Int = b x\nfn b(x: Int) -> Int = c x\nfn c(x: Int) -> Int = a x",
+        )
+        .unwrap_err();
         // Cycle should include a, b, c
         let msg = err.to_string();
         assert!(msg.contains("a"));

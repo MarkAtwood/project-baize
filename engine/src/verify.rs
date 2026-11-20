@@ -10,8 +10,7 @@ use subtle::ConstantTimeEq;
 use crate::error::BaizeError;
 
 /// The genesis hash: 64 hex zero characters.
-const GENESIS_HASH: &str =
-    "0000000000000000000000000000000000000000000000000000000000000000";
+const GENESIS_HASH: &str = "0000000000000000000000000000000000000000000000000000000000000000";
 
 /// Canonical field names included in the event hash, per the schema.
 const CANONICAL_KEYS: &[&str] = &[
@@ -39,9 +38,9 @@ pub struct VerifyResult {
 
 /// Recompute the event_hash from the canonical fields of a schema-format event.
 fn compute_event_hash(event: &serde_json::Value) -> Result<String, BaizeError> {
-    let obj = event.as_object().ok_or_else(|| {
-        BaizeError::Validation("event must be a JSON object".into())
-    })?;
+    let obj = event
+        .as_object()
+        .ok_or_else(|| BaizeError::Validation("event must be a JSON object".into()))?;
     // Build a sorted map of only the canonical keys.
     let mut canonical = serde_json::Map::new();
     for &key in CANONICAL_KEYS {
@@ -67,8 +66,7 @@ pub fn verify_event_log(reader: impl BufRead) -> Result<VerifyResult, BaizeError
     let mut events: Vec<serde_json::Value> = Vec::new();
 
     for line_result in reader.lines() {
-        let line =
-            line_result.map_err(|e| BaizeError::Validation(format!("IO error: {e}")))?;
+        let line = line_result.map_err(|e| BaizeError::Validation(format!("IO error: {e}")))?;
         let trimmed = line.trim().to_string();
         if trimmed.is_empty() {
             continue;
@@ -122,7 +120,12 @@ pub fn verify_event_log(reader: impl BufRead) -> Result<VerifyResult, BaizeError
 
         // Check genesis prev_hash (constant-time to prevent timing side-channels)
         if i == 0 {
-            if prev_hash.as_bytes().ct_eq(GENESIS_HASH.as_bytes()).unwrap_u8() != 1 {
+            if prev_hash
+                .as_bytes()
+                .ct_eq(GENESIS_HASH.as_bytes())
+                .unwrap_u8()
+                != 1
+            {
                 return Ok(VerifyResult {
                     valid: false,
                     events_checked: 0,
@@ -136,7 +139,12 @@ pub fn verify_event_log(reader: impl BufRead) -> Result<VerifyResult, BaizeError
                 .get("event_hash")
                 .and_then(|v| v.as_str())
                 .unwrap_or("");
-            if prev_hash.as_bytes().ct_eq(expected_prev.as_bytes()).unwrap_u8() != 1 {
+            if prev_hash
+                .as_bytes()
+                .ct_eq(expected_prev.as_bytes())
+                .unwrap_u8()
+                != 1
+            {
                 return Ok(VerifyResult {
                     valid: false,
                     events_checked: i,
@@ -154,7 +162,12 @@ pub fn verify_event_log(reader: impl BufRead) -> Result<VerifyResult, BaizeError
             .get("event_hash")
             .and_then(|v| v.as_str())
             .unwrap_or("");
-        if actual_hash.as_bytes().ct_eq(expected_hash.as_bytes()).unwrap_u8() != 1 {
+        if actual_hash
+            .as_bytes()
+            .ct_eq(expected_hash.as_bytes())
+            .unwrap_u8()
+            != 1
+        {
             return Ok(VerifyResult {
                 valid: false,
                 events_checked: i,

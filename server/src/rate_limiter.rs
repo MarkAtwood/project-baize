@@ -32,11 +32,7 @@ impl RateLimiter {
         let window_start = now - Duration::from_secs(1);
 
         // Drop timestamps older than the 1-second window
-        while self
-            .timestamps
-            .front()
-            .is_some_and(|&t| t < window_start)
-        {
+        while self.timestamps.front().is_some_and(|&t| t < window_start) {
             self.timestamps.pop_front();
         }
 

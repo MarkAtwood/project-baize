@@ -5,8 +5,8 @@ use crate::definition::{TriggerDef, Visibility, VisibilityTier};
 use crate::end_conditions::check_end_conditions;
 use crate::error::{BaizeError, Result};
 use crate::runtime::{
-    ClaimWindow, ComponentData, ComponentId, GameSession, RuntimeZone, MAX_EVENTS_PER_GAME,
-    MAX_STATE_SIZE_BYTES, STATE_SIZE_CHECK_INTERVAL,
+    ClaimWindow, ComponentData, ComponentId, GameSession, MAX_EVENTS_PER_GAME,
+    MAX_STATE_SIZE_BYTES, RuntimeZone, STATE_SIZE_CHECK_INTERVAL,
 };
 use crate::state::GameStatus;
 
@@ -71,10 +71,7 @@ pub enum EventType {
 
 /// Return the current Phase definition, or None if no phases are defined.
 fn current_phase(session: &GameSession) -> Option<&crate::definition::Phase> {
-    session
-        .definition
-        .phases
-        .get(session.runtime.phase_index)
+    session.definition.phases.get(session.runtime.phase_index)
 }
 
 /// Apply an action to the game session, mutating state and returning events.
@@ -195,9 +192,7 @@ fn apply_simultaneous(
 
         // Resolve: apply each action in player-definition order
         for p in &all_players {
-            let act_value = buffered
-                .get(p)
-                .expect("all_submitted guarantees presence");
+            let act_value = buffered.get(p).expect("all_submitted guarantees presence");
             let act: Action = serde_json::from_value(act_value.clone()).map_err(|e| {
                 BaizeError::IllegalAction(format!(
                     "failed to deserialize buffered action for {p}: {e}"
@@ -414,8 +409,7 @@ fn execute_action(
                 .component_id
                 .as_deref()
                 .ok_or_else(|| BaizeError::IllegalAction("remove requires component_id".into()))?;
-            let (cid, zone_name, col, row) =
-                find_component_on_grid(session, comp_id_str)?;
+            let (cid, zone_name, col, row) = find_component_on_grid(session, comp_id_str)?;
 
             // Check if this is a spanning component
             let span_cells = session
@@ -458,10 +452,8 @@ fn execute_action(
                 .as_deref()
                 .ok_or_else(|| BaizeError::IllegalAction("swap requires swap_with".into()))?;
 
-            let (_cid_a, zone_a, col_a, row_a) =
-                find_component_on_grid(session, comp_id_str)?;
-            let (_cid_b, zone_b, col_b, row_b) =
-                find_component_on_grid(session, swap_with_str)?;
+            let (_cid_a, zone_a, col_a, row_a) = find_component_on_grid(session, comp_id_str)?;
+            let (_cid_b, zone_b, col_b, row_b) = find_component_on_grid(session, swap_with_str)?;
 
             if zone_a != zone_b {
                 return Err(BaizeError::IllegalAction(
@@ -494,15 +486,11 @@ fn execute_action(
             let comp_id_str = action
                 .component_id
                 .as_deref()
-                .ok_or_else(|| {
-                    BaizeError::IllegalAction("promote requires component_id".into())
-                })?;
+                .ok_or_else(|| BaizeError::IllegalAction("promote requires component_id".into()))?;
             let promote_to = action
                 .promote_to
                 .as_deref()
-                .ok_or_else(|| {
-                    BaizeError::IllegalAction("promote requires promote_to".into())
-                })?;
+                .ok_or_else(|| BaizeError::IllegalAction("promote requires promote_to".into()))?;
 
             let cid = session
                 .runtime
@@ -577,12 +565,9 @@ fn execute_action(
         ActionType::PlaceShip => {
             let (to_col, to_row) = parse_position(action.to.as_ref())?;
             let zone_name = position_zone(action.to.as_ref()).unwrap_or("board".to_string());
-            let comp_type = action
-                .component_type
-                .as_deref()
-                .ok_or_else(|| {
-                    BaizeError::IllegalAction("place_ship requires component_type".into())
-                })?;
+            let comp_type = action.component_type.as_deref().ok_or_else(|| {
+                BaizeError::IllegalAction("place_ship requires component_type".into())
+            })?;
 
             let horizontal = match action.orientation {
                 Some(crate::action::Orientation::Horizontal) => true,
@@ -590,7 +575,7 @@ fn execute_action(
                 None => {
                     return Err(BaizeError::IllegalAction(
                         "place_ship requires orientation".into(),
-                    ))
+                    ));
                 }
             };
 
@@ -645,10 +630,7 @@ fn execute_action(
         ActionType::Fire => {
             let (target_col, target_row) = parse_position(action.to.as_ref())?;
             let target_zone_name = position_zone(action.to.as_ref()).unwrap_or("ocean".to_string());
-            let peg_zone_name = action
-                .zone
-                .as_deref()
-                .unwrap_or("target");
+            let peg_zone_name = action.zone.as_deref().unwrap_or("target");
 
             // Find the opponent
             let opponent = session
@@ -692,7 +674,12 @@ fn execute_action(
 
             // Create a peg (hit or miss) on the attacker's target grid
             let peg_type = if is_hit { "hit" } else { "miss" };
-            let peg_id = format!("{}-{}-{}", peg_type, player, session.runtime.components.len());
+            let peg_id = format!(
+                "{}-{}-{}",
+                peg_type,
+                player,
+                session.runtime.components.len()
+            );
             let peg_cid = session.runtime.components.insert(ComponentData {
                 id: ComponentId(0),
                 string_id: peg_id.clone(),
@@ -729,9 +716,16 @@ fn execute_action(
 
                 // Increment hit_count on the ship component
                 let (ship_type, hit_count, span_len) = {
-                    let comp = session.runtime.components.get_mut(hit_comp_id)
-                        .ok_or_else(|| BaizeError::IllegalAction("hit component not found".into()))?;
-                    let prev = comp.properties
+                    let comp =
+                        session
+                            .runtime
+                            .components
+                            .get_mut(hit_comp_id)
+                            .ok_or_else(|| {
+                                BaizeError::IllegalAction("hit component not found".into())
+                            })?;
+                    let prev = comp
+                        .properties
                         .get("hit_count")
                         .and_then(|v| v.as_u64())
                         .unwrap_or(0);
@@ -740,7 +734,11 @@ fn execute_action(
                         "hit_count".to_string(),
                         serde_json::Value::Number(serde_json::Number::from(new_count)),
                     );
-                    (comp.component_type.clone(), new_count, comp.span_cells.len() as u64)
+                    (
+                        comp.component_type.clone(),
+                        new_count,
+                        comp.span_cells.len() as u64,
+                    )
                 };
 
                 events.push(make_event(
@@ -794,9 +792,9 @@ fn execute_action(
                 BaizeError::IllegalAction("commit action requires declaration (hash)".into())
             })?;
             if session.runtime.pending_commits.contains_key(player) {
-                return Err(BaizeError::IllegalAction(
-                    format!("player {player} already has a pending commitment"),
-                ));
+                return Err(BaizeError::IllegalAction(format!(
+                    "player {player} already has a pending commitment"
+                )));
             }
             session
                 .runtime
@@ -844,12 +842,9 @@ fn execute_action(
             session.runtime.pending_commits.swap_remove(player);
 
             // Place the revealed component if component_type and position are provided
-            if let (Some(comp_type), Some(to_pos)) =
-                (&action.component_type, &action.to)
-            {
+            if let (Some(comp_type), Some(to_pos)) = (&action.component_type, &action.to) {
                 let (to_col, to_row) = parse_position(Some(to_pos))?;
-                let zone_name =
-                    position_zone(Some(to_pos)).unwrap_or("board".to_string());
+                let zone_name = position_zone(Some(to_pos)).unwrap_or("board".to_string());
 
                 let instance_id = format!(
                     "{}-{}-{}",
@@ -870,17 +865,13 @@ fn execute_action(
                 })?;
 
                 // Try global zones first, then player zones
-                let zone = session
-                    .runtime
-                    .zones
-                    .get_mut(&zone_name)
-                    .or_else(|| {
-                        session
-                            .runtime
-                            .players
-                            .get_mut(player)
-                            .and_then(|p| p.zones.get_mut(&zone_name))
-                    });
+                let zone = session.runtime.zones.get_mut(&zone_name).or_else(|| {
+                    session
+                        .runtime
+                        .players
+                        .get_mut(player)
+                        .and_then(|p| p.zones.get_mut(&zone_name))
+                });
                 if let Some(zone) = zone {
                     zone.grid_set(to_col, to_row, Some(cid));
                 }
@@ -906,7 +897,10 @@ fn execute_action(
     }
 
     // Recompute fog of war for the acting player on any fog-enabled zones
-    if matches!(action.action_type, ActionType::MovePiece | ActionType::Place) {
+    if matches!(
+        action.action_type,
+        ActionType::MovePiece | ActionType::Place
+    ) {
         recompute_player_fog(session, player);
     }
 
@@ -1001,13 +995,10 @@ fn finalize_turn(
     }
 
     // Periodic state size check (amortized)
-    if session.runtime.move_count % STATE_SIZE_CHECK_INTERVAL == 0
-        && session.runtime.move_count > 0
+    if session.runtime.move_count % STATE_SIZE_CHECK_INTERVAL == 0 && session.runtime.move_count > 0
     {
         let wire = session.to_wire_state();
-        let size = serde_json::to_string(&wire)
-            .map(|s| s.len())
-            .unwrap_or(0);
+        let size = serde_json::to_string(&wire).map(|s| s.len()).unwrap_or(0);
         if size > MAX_STATE_SIZE_BYTES {
             return Err(BaizeError::ResourceBudget(format!(
                 "serialized state size ({size} bytes) exceeds limit ({MAX_STATE_SIZE_BYTES} bytes)"
@@ -1049,19 +1040,12 @@ fn finalize_turn(
     // Check if any trigger matches the action that was just applied
     if let Some(action) = action {
         if session.runtime.claim_window.is_none() {
-            if let Some((trigger_name, trigger_def)) =
-                find_matching_trigger(session, action)
-            {
-                let eligible = compute_eligible_players(
-                    session,
-                    &trigger_def.claim_window.eligible,
-                )?;
+            if let Some((trigger_name, trigger_def)) = find_matching_trigger(session, action) {
+                let eligible =
+                    compute_eligible_players(session, &trigger_def.claim_window.eligible)?;
 
                 if !eligible.is_empty() {
-                    let triggering_player = session
-                        .current_player()
-                        .unwrap_or("")
-                        .to_string();
+                    let triggering_player = session.current_player().unwrap_or("").to_string();
 
                     session.runtime.claim_window = Some(ClaimWindow {
                         trigger_name: trigger_name.clone(),
@@ -1102,10 +1086,7 @@ fn finalize_turn(
     // Advance turn
     session.advance_turn();
     let new_hash = session.compute_state_hash();
-    session
-        .runtime
-        .history_hashes
-        .push(new_hash.clone());
+    session.runtime.history_hashes.push(new_hash.clone());
 
     // Update hashes on all events
     for event in &mut events {
@@ -1171,9 +1152,7 @@ fn find_component_on_grid(
         .iter()
         .find(|c| c.string_id == *comp_id_str)
         .map(|c| c.id)
-        .ok_or_else(|| {
-            BaizeError::IllegalAction(format!("component {comp_id_str:?} not found"))
-        })?;
+        .ok_or_else(|| BaizeError::IllegalAction(format!("component {comp_id_str:?} not found")))?;
 
     for (zone_name, zone) in &session.runtime.zones {
         if let crate::runtime::RuntimeZone::Grid { storage, .. } = zone {
@@ -1199,10 +1178,7 @@ fn find_component_on_grid(
 /// 1. Component types[comp_type].span (per-type span)
 /// 2. Component-level span (uniform span)
 /// 3. Default: 1
-fn lookup_span(
-    definition: &crate::definition::GameDefinition,
-    comp_type: &str,
-) -> Result<u32> {
+fn lookup_span(definition: &crate::definition::GameDefinition, comp_type: &str) -> Result<u32> {
     for comp_def in definition.components.values() {
         // Check per-type span
         if let Some(ref types) = comp_def.types {
@@ -1281,17 +1257,13 @@ fn recompute_player_fog(session: &mut GameSession, player: &str) {
                     .occupied_cells()
                     .iter()
                     .filter_map(|&(col, row, cid)| {
-                        session
-                            .runtime
-                            .components
-                            .get(cid)
-                            .and_then(|comp| {
-                                if comp.owner.as_deref() == Some(player) {
-                                    Some((col, row))
-                                } else {
-                                    None
-                                }
-                            })
+                        session.runtime.components.get(cid).and_then(|comp| {
+                            if comp.owner.as_deref() == Some(player) {
+                                Some((col, row))
+                            } else {
+                                None
+                            }
+                        })
                     })
                     .collect()
             } else {
@@ -1334,17 +1306,12 @@ fn find_matching_trigger<'a>(
 }
 
 /// Compute which players are eligible for a claim window.
-fn compute_eligible_players(
-    session: &GameSession,
-    eligible_rule: &str,
-) -> Result<Vec<String>> {
+fn compute_eligible_players(session: &GameSession, eligible_rule: &str) -> Result<Vec<String>> {
     let current = session.current_player().unwrap_or("").to_string();
     let all_players: Vec<String> = session.runtime.players.keys().cloned().collect();
 
     match eligible_rule {
-        "all_except_current" => {
-            Ok(all_players.into_iter().filter(|p| p != &current).collect())
-        }
+        "all_except_current" => Ok(all_players.into_iter().filter(|p| p != &current).collect()),
         "next_in_order" => {
             let player_count = all_players.len();
             if player_count == 0 {
@@ -1353,9 +1320,9 @@ fn compute_eligible_players(
             let next_index = (session.runtime.turn_index + 1) % player_count;
             Ok(vec![all_players[next_index].clone()])
         }
-        other => Err(BaizeError::IllegalAction(
-            format!("unknown eligible rule: {other:?}"),
-        )),
+        other => Err(BaizeError::IllegalAction(format!(
+            "unknown eligible rule: {other:?}"
+        ))),
     }
 }
 
@@ -1364,11 +1331,7 @@ fn compute_eligible_players(
 /// When all eligible players have responded, resolves the window:
 /// the highest-priority claim wins, that player becomes active,
 /// and normal turn flow resumes.
-pub fn apply_claim(
-    session: &mut GameSession,
-    player: &str,
-    claim: &str,
-) -> Result<Vec<GameEvent>> {
+pub fn apply_claim(session: &mut GameSession, player: &str, claim: &str) -> Result<Vec<GameEvent>> {
     let window = session
         .runtime
         .claim_window
@@ -1394,9 +1357,7 @@ pub fn apply_claim(
         .definition
         .triggers
         .get(&window.trigger_name)
-        .ok_or_else(|| {
-            BaizeError::IllegalAction("trigger definition not found".into())
-        })?;
+        .ok_or_else(|| BaizeError::IllegalAction("trigger definition not found".into()))?;
     let valid_claims: Vec<&str> = trigger_def
         .claim_window
         .actions
@@ -1496,9 +1457,7 @@ fn resolve_claim_window(
             .iter()
             .position(|p| p == winner)
             .ok_or_else(|| {
-                BaizeError::IllegalAction(format!(
-                    "winning claimant {winner} not in player list"
-                ))
+                BaizeError::IllegalAction(format!("winning claimant {winner} not in player list"))
             })?;
         session.runtime.turn_index = winner_index;
 

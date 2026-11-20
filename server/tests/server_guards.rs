@@ -2,7 +2,7 @@ use std::collections::HashMap;
 
 use baize_engine::GameDefinition;
 use baize_engine::GameSession;
-use baize_server::protocol::{handle_client_message, HandleResult};
+use baize_server::protocol::{HandleResult, handle_client_message};
 use baize_server::room::{self, Room};
 use baize_server::vault::{self, Vault};
 
@@ -66,7 +66,9 @@ fn extract_error_code(result: &HandleResult) -> Option<String> {
     match result {
         HandleResult::Error(json) => {
             let v: serde_json::Value = serde_json::from_str(json).ok()?;
-            v.get("error_code").and_then(|c| c.as_str()).map(String::from)
+            v.get("error_code")
+                .and_then(|c| c.as_str())
+                .map(String::from)
         }
         _ => None,
     }
@@ -80,7 +82,10 @@ fn extract_error_code(result: &HandleResult) -> Option<String> {
 fn vault_draw_from_nonexistent_deck_returns_error() {
     let mut v = Vault::with_seed(100);
     let result = vault::draw_cards(&mut v, "no_such_deck", 5);
-    assert!(result.is_err(), "draw from nonexistent deck must return Err");
+    assert!(
+        result.is_err(),
+        "draw from nonexistent deck must return Err"
+    );
     let err = result.unwrap_err();
     assert!(
         err.contains("no_such_deck"),
@@ -136,7 +141,10 @@ fn vault_draw_from_empty_deck_returns_empty() {
 #[test]
 fn vault_deck_exists_check() {
     let mut v = Vault::with_seed(104);
-    assert!(!v.deck_exists("missing"), "unregistered deck must not exist");
+    assert!(
+        !v.deck_exists("missing"),
+        "unregistered deck must not exist"
+    );
 
     v.register_deck("present", vec!["card_1".into()]);
     assert!(v.deck_exists("present"), "registered deck must exist");
@@ -214,7 +222,10 @@ fn room_player_count_after_remove() {
 
     room.players.remove("white");
     assert_eq!(room.players.len(), 1);
-    assert!(room::room_has_capacity(&room), "should have capacity after removal");
+    assert!(
+        room::room_has_capacity(&room),
+        "should have capacity after removal"
+    );
 }
 
 #[test]
@@ -427,10 +438,7 @@ async fn room_registry_respects_room_limit() {
     let result = registry
         .create_room("overflow".to_string(), &def_json)
         .await;
-    assert!(
-        result.is_err(),
-        "creating room beyond MAX_ROOMS must fail"
-    );
+    assert!(result.is_err(), "creating room beyond MAX_ROOMS must fail");
     let err = result.unwrap_err();
     assert!(
         err.contains("capacity"),

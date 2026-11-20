@@ -8,11 +8,11 @@
 //! - Actions after game is over (resign then move)
 //! - Commit-reveal abuse (reveal without commit, wrong nonce)
 
+use baize_engine::GameDefinition;
 use baize_engine::action::{Action, ActionType, Position};
 use baize_engine::runtime::*;
 use baize_engine::state::GameStatus;
 use baize_engine::transition::{apply_action, apply_action_for_player};
-use baize_engine::GameDefinition;
 use indexmap::IndexMap;
 use sha2::{Digest, Sha256};
 
@@ -130,7 +130,10 @@ fn resign_action() -> Action {
 }
 
 fn make_commitment(choice: &str, nonce: &str) -> String {
-    format!("{:x}", Sha256::digest(format!("{choice}|{nonce}").as_bytes()))
+    format!(
+        "{:x}",
+        Sha256::digest(format!("{choice}|{nonce}").as_bytes())
+    )
 }
 
 fn commit_action(hash: &str) -> Action {
@@ -260,10 +263,12 @@ fn move_from_empty_cell_rejected() {
     // Try to move from an empty cell
     let result = apply_action(&mut session, &move_action(0, 0, 1, 1));
     assert!(result.is_err());
-    assert!(result
-        .unwrap_err()
-        .to_string()
-        .contains("no piece at source"));
+    assert!(
+        result
+            .unwrap_err()
+            .to_string()
+            .contains("no piece at source")
+    );
 }
 
 // -----------------------------------------------------------------------
@@ -417,10 +422,12 @@ fn reveal_without_prior_commit() {
     // Try to reveal without committing first
     let result = apply_action(&mut session, &reveal_action("rock", "nonce"));
     assert!(result.is_err());
-    assert!(result
-        .unwrap_err()
-        .to_string()
-        .contains("no pending commitment"));
+    assert!(
+        result
+            .unwrap_err()
+            .to_string()
+            .contains("no pending commitment")
+    );
 }
 
 #[test]
@@ -436,10 +443,12 @@ fn commit_twice_rejected() {
     let hash2 = make_commitment("paper", "nonce2");
     let result = apply_action(&mut session, &commit_action(&hash2));
     assert!(result.is_err());
-    assert!(result
-        .unwrap_err()
-        .to_string()
-        .contains("already has a pending commitment"));
+    assert!(
+        result
+            .unwrap_err()
+            .to_string()
+            .contains("already has a pending commitment")
+    );
 }
 
 #[test]
@@ -492,10 +501,12 @@ fn reveal_with_swapped_choice_and_nonce() {
     // Swap the choice and nonce — SHA256("secret_nonce"|"rock") != stored
     let result = apply_action(&mut session, &reveal_action(nonce, "rock"));
     assert!(result.is_err());
-    assert!(result
-        .unwrap_err()
-        .to_string()
-        .contains("commitment verification failed"));
+    assert!(
+        result
+            .unwrap_err()
+            .to_string()
+            .contains("commitment verification failed")
+    );
 }
 
 #[test]
@@ -595,10 +606,7 @@ fn place_without_component_type() {
 
     let result = apply_action(&mut session, &action);
     assert!(result.is_err());
-    assert!(result
-        .unwrap_err()
-        .to_string()
-        .contains("component_type"));
+    assert!(result.unwrap_err().to_string().contains("component_type"));
 }
 
 // -----------------------------------------------------------------------
