@@ -808,12 +808,15 @@ class TestFirstTrickRestrictions:
         game2 = HeartsGame()
         game2.deal({
             "North": [("clubs", "2")] + [("clubs", r) for r in RANKS[1:13]],
-            "East": [("diamonds", r) for r in RANKS],
-            "South": [("hearts", r) for r in RANKS],
+            "East": [("hearts", r) for r in RANKS[:6]]
+            + [("diamonds", r) for r in RANKS[:7]],
+            "South": [("hearts", r) for r in RANKS[6:]]
+            + [("diamonds", r) for r in RANKS[7:]],
             "West": [("spades", r) for r in RANKS],
         })
         game2.play_card("North", "clubs", "2")
-        # East void in clubs, cannot play hearts on first trick
+        # East is void in clubs and holds diamonds, so it may not play a
+        # heart on the first trick.
         with pytest.raises(ValueError, match="penalty cards on the first trick"):
             game2.play_card("East", "hearts", "2")
 
@@ -1231,15 +1234,17 @@ class TestEdgeCases:
         game.deal({
             "North": [("clubs", r) for r in RANKS],
             "East": [("diamonds", r) for r in RANKS],
-            "South": [("spades", r) for r in RANKS],
-            "West": [("hearts", r) for r in RANKS],
+            # Only penalty cards, so South may discard QS on the first trick.
+            "South": [("spades", "Q")] + [("hearts", r) for r in RANKS[:12]],
+            "West": [("spades", r) for r in RANKS if r != "Q"]
+            + [("hearts", RANKS[12])],
         })
         game.play_card("North", "clubs", "2")
         game.play_card("East", "diamonds", "2")
         game.play_card("South", "spades", "Q")  # QS but not hearts
-        game.play_card("West", "hearts", "2")  # this breaks hearts
-        # Hearts broken because West played a heart
-        assert game.hearts_broken is True
+        assert game.hearts_broken is False
+        game.play_card("West", "spades", "2")
+        assert game.hearts_broken is False
 
     def test_tie_score_lowest_wins(self) -> None:
         """If multiple players tie for lowest, min() picks one deterministically."""
