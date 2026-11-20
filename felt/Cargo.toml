@@ -20,4 +20,4 @@ wasm-encoder = "0.225"
 clap = { version = "4", features = ["derive"] }
 
 [dev-dependencies]
-wasmtime = "45"
+wasmtime = "48"
