@@ -231,7 +231,7 @@ mod tests {
 
     #[test]
     fn test_float_lit() {
-        assert_eq!(tok("3.14"), vec![Token::FloatLit(3.14)]);
+        assert_eq!(tok("2.5"), vec![Token::FloatLit(2.5)]);
     }
 
     #[test]

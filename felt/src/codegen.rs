@@ -183,7 +183,7 @@ impl Compiler {
         }
 
         // Set heap base above string data, aligned to 16 bytes
-        compiler.heap_base = ((compiler.data_offset + 15) / 16) * 16;
+        compiler.heap_base = compiler.data_offset.next_multiple_of(16);
         if compiler.heap_base < HEAP_BASE_DEFAULT {
             compiler.heap_base = HEAP_BASE_DEFAULT;
         }
@@ -666,13 +666,10 @@ impl<'a> FnCompiler<'a> {
                     }
                 }
                 // Otherwise recurse on function
-                match f_expr.as_ref() {
-                    Expr::Ident(name) => {
-                        if let Some(bi) = self.compiler.builtin_info.get(name.as_str()) {
-                            return bi.result;
-                        }
+                if let Expr::Ident(name) = f_expr.as_ref() {
+                    if let Some(bi) = self.compiler.builtin_info.get(name.as_str()) {
+                        return bi.result;
                     }
-                    _ => {}
                 }
                 ValType::I64
             }

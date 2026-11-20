@@ -892,7 +892,7 @@ mod tests {
 
     #[test]
     fn test_float_lit() {
-        assert_eq!(expr("3.14"), Expr::FloatLit(3.14));
+        assert_eq!(expr("2.5"), Expr::FloatLit(2.5));
     }
 
     #[test]
