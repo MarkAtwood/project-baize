@@ -53,17 +53,20 @@ bd close <id>         # Complete work
 ## Build & Test
 
 ```bash
-# Rust engine (329 tests)
+# Rust engine (331 tests)
 cd engine && cargo test
 
 # Rust server (130 tests)
 cd server && cargo test
 
-# Python (3635 tests)
+# Felt compiler (127 tests)
+cd felt && cargo test
+
+# Python (3709 tests)
 cd python && python3 -m pytest tests/ -v
 
-# TypeScript client (type-check only, no runtime tests)
-cd client && npx tsc --noEmit
+# TypeScript client (86 tests, plus type-check)
+cd client && npm ci && npm test && npx tsc --noEmit
 ```
 
 ## Architecture Overview

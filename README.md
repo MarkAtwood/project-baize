@@ -107,7 +107,7 @@ implementation, even before full mental poker support.
 
 ## Status
 
-Core engine complete. 336 of 361 issues closed. Sixty-four games
+Core engine complete. 340 of 368 issues closed. Sixty-four games
 defined and playable with gameplay tests — no skipped tests, no
 stub implementations. Texas Hold'em poker plays full betting,
 hand evaluation, and showdown. The engine parses and validates
@@ -122,7 +122,7 @@ Comprehensive defensive hardening: constant-time crypto, input
 validation, fuel limits, WASM sandboxing, resource budgets, and
 fuzzing infrastructure. Felt compiler complete — a pure, total,
 board-native DSL for game extensions, compiles to WASM GC (127 tests,
-35 builtins wired as host imports).
+38 builtins compiled to host imports).
 Grid storage supports both dense (Vec) and sparse (HashMap) backends
 with auto-selection. Grid cell stacking with configurable limits.
 Partnership declarations with team win propagation. Dynamic visibility
@@ -146,10 +146,10 @@ key reveal with tamper detection, authority-aware trust mode dispatch.
 | Component | Tests | What works |
 |-----------|-------|-----------|
 | Schema (5 JSON Schemas) | — | Game definitions, state, actions, events, component registry |
-| Rust engine | 329 | Parse, validate, state machine, move gen, transitions, CEL end conditions, perturber effects (cycle, remove, flip, promote, counters, invoke), commit-reveal, simultaneous phases, action triggers with claim windows, mental poker (SRA commutative encryption, N-player shuffle, selective deal, showdown verification), hash-chained events, tamper detection, visibility filtering, dynamic visibility transitions, fog of war (per-cell per-player), valid_cells grid mask, graph zone, sparse/dense grid storage, cell stacking with limits, partnerships with team win propagation, hostile input rejection, invariant guards, fuel limits, resource budgets, serialization round-trips, cross-engine determinism |
-| Python engine | 3,690 | Feature-parallel with Rust, plus game analysis, Jupyter notebook, terminal CLI, interactive REPL, agent framework (Random/Greedy/MCTS), notation adapter, adversarial input tests, error leak audit, hypothesis fuzzing, cross-engine determinism, poker (hand evaluator, betting FSM, showdown), sparse/dense grid storage, cell stacking, partnerships, dynamic visibility, fog of war, action triggers with claim windows, 64 game definitions with gameplay tests |
-| Server | 130 | Room management, WebSocket protocol, hidden-state vault (ChaCha20Rng), per-player visibility, rate limiting, token auth, spectator isolation, persistence, WASM sandboxing (fuel + memory caps), abuse resistance, protocol hardening, claim window timeouts, cell_property host import, debug redaction, graceful shutdown, Felt host imports |
-| Felt compiler | 127 | Lexer (logos), parser (chumsky), type checker with polymorphic type variables, call graph checker, WASM GC codegen (wasm-encoder), 37 builtins wired as host imports, CLI (compile/check), host import API, example extensions (poker, chess, go, wargame terrain/CRT/ZOC), word_valid for dictionary resources |
+| Rust engine | 331 | Parse, validate, state machine, move gen, transitions, CEL end conditions, perturber effects (cycle, remove, flip, promote, counters, invoke), commit-reveal, simultaneous phases, action triggers with claim windows, mental poker (SRA commutative encryption, N-player shuffle, selective deal, showdown verification), hash-chained events, tamper detection, visibility filtering, dynamic visibility transitions, fog of war (per-cell per-player), valid_cells grid mask, graph zone, sparse/dense grid storage, cell stacking with limits, partnerships with team win propagation, hostile input rejection, invariant guards, fuel limits, resource budgets, serialization round-trips, cross-engine determinism |
+| Python engine | 3,709 | Feature-parallel with Rust, plus game analysis, Jupyter notebook, terminal CLI, interactive REPL, agent framework (Random/Greedy/MCTS), notation adapter, adversarial input tests, error leak audit, hypothesis fuzzing, cross-engine determinism, poker (hand evaluator, betting FSM, showdown), sparse/dense grid storage, cell stacking, partnerships, dynamic visibility, fog of war, action triggers with claim windows, 64 game definitions with gameplay tests |
+| Server | 130 | Room management, WebSocket protocol, hidden-state vault (ChaCha20Rng), per-player visibility, rate limiting, token auth, spectator isolation, persistence, WASM sandbox host (fuel + memory caps; optional `wasm-host` feature, not yet called from rooms), abuse resistance, protocol hardening, claim window timeouts, cell_property host import, debug redaction, graceful shutdown, Felt host imports |
+| Felt compiler | 127 | Lexer (logos), hand-written recursive-descent parser, type checker with polymorphic type variables, call graph checker, WASM GC codegen (wasm-encoder), 38 builtins compiled to host imports, CLI (compile/check), host import API, example extensions (poker, chess, go, wargame terrain/CRT/ZOC), word_valid for dictionary resources |
 | Client (TypeScript) | 86 | Full type definitions for all schemas (game state, actions, events, registry, effects); Web Components (`<baize-game>`, `<baize-board>`, `<baize-hand>`, `<baize-clock>`, `<baize-score>`); WASM engine wrapper; WebSocket connection with auto-reconnect; server message validation with prototype-pollution defense; drag-and-drop board interaction; Go-style intersection rendering; stacking visualization |
 
 ### Tools
@@ -269,6 +269,9 @@ cd engine && cargo test
 
 # Python engine
 cd python && python3 -m pytest tests/ -v
+
+# Felt compiler
+cd felt && cargo test
 
 # Server
 cd server && cargo build
