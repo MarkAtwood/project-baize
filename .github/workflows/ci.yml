@@ -7,16 +7,19 @@ on:
 
 jobs:
   rust:
-    name: Rust (engine + server)
+    name: Rust (engine + felt + server)
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
 
-      - name: Install Rust 1.85
-        uses: dtolnay/rust-toolchain@master
+      # engine/rust-toolchain.toml selects stable anyway, and felt's
+      # wasmtime dev-dependency needs a recent compiler, so lint and test
+      # on stable. The msrv job below checks rust-version separately.
+      - name: Install stable Rust
+        uses: dtolnay/rust-toolchain@stable
         with:
-          toolchain: "1.85"
-          components: clippy
+          components: clippy, rustfmt
+          targets: wasm32-unknown-unknown
 
       - name: Cache cargo registry and build artifacts
         uses: actions/cache@v4
@@ -25,26 +28,74 @@ jobs:
             ~/.cargo/registry
             ~/.cargo/git
             engine/target
+            engine/fuzz/target
+            felt/target
             server/target
-          key: rust-${{ runner.os }}-cargo-${{ hashFiles('engine/Cargo.lock', 'server/Cargo.lock', 'engine/Cargo.toml', 'server/Cargo.toml') }}
+          key: rust-${{ runner.os }}-cargo-${{ hashFiles('engine/Cargo.lock', 'engine/fuzz/Cargo.lock', 'felt/Cargo.lock', 'server/Cargo.lock', 'engine/Cargo.toml', 'felt/Cargo.toml', 'server/Cargo.toml') }}
           restore-keys: |
             rust-${{ runner.os }}-cargo-
 
+      - name: Format check
+        run: |
+          for crate in engine engine/fuzz felt server; do
+            (cd "$crate" && cargo fmt --check)
+          done
+
       - name: Clippy engine
         working-directory: engine
-        run: cargo clippy -- -D warnings
+        run: cargo clippy --all-targets -- -D warnings
 
       - name: Test engine
         working-directory: engine
         run: cargo test
 
+      - name: Build engine for wasm32
+        working-directory: engine
+        run: cargo build --target wasm32-unknown-unknown --features wasm
+
+      - name: Check fuzz targets
+        working-directory: engine/fuzz
+        run: cargo check
+
+      - name: Clippy felt
+        working-directory: felt
+        run: cargo clippy --all-targets -- -D warnings
+
+      - name: Test felt
+        working-directory: felt
+        run: cargo test
+
+      # Default features only: with wasm-host, wasm_host.rs and
+      # felt_host.rs compile but nothing calls them yet, so dead-code
+      # warnings would fail -D warnings. They are still built and tested
+      # below.
       - name: Clippy server
         working-directory: server
-        run: cargo clippy -- -D warnings
+        run: cargo clippy --all-targets -- -D warnings
 
       - name: Test server
         working-directory: server
-        run: cargo test
+        run: cargo test --all-features
+
+  msrv:
+    name: Rust MSRV (engine + server, 1.85)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust 1.85
+        uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: "1.85"
+
+      # `+1.85` overrides engine/rust-toolchain.toml.
+      - name: Check engine
+        working-directory: engine
+        run: cargo +1.85 check
+
+      - name: Check server
+        working-directory: server
+        run: cargo +1.85 check
 
   python:
     name: Python (library + cross-implementation tests)
@@ -98,3 +149,11 @@ jobs:
       - name: Type-check
         working-directory: client
         run: npx tsc --noEmit
+
+      - name: Test
+        working-directory: client
+        run: npm test
+
+      - name: Build
+        working-directory: client
+        run: npm run build
