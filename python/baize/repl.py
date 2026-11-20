@@ -63,7 +63,7 @@ def _render_grid(session: GameSession, zone_name: str, zone: GridZone) -> str:
 
 def _format_action(action: Action) -> str:
     """Format an action for display."""
-    parts = [action.action_type]
+    parts: list[str] = [action.action_type]
     if action.component_type:
         parts.append(action.component_type)
     if action.component_id:
@@ -546,8 +546,8 @@ class BaizeRepl(cmd.Cmd):
     do_exit = do_quit
     do_EOF = do_quit
 
-    def emptyline(self) -> None:
-        pass
+    def emptyline(self) -> bool:
+        return False
 
     def default(self, line: str) -> None:
         print(f"Unknown command: {line}  (type 'help' for commands)")

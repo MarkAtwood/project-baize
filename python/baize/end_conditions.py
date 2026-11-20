@@ -104,10 +104,11 @@ def _populate_grid_lines(
     for zone in session.runtime.zones.values():
         if not isinstance(zone, GridZone):
             continue
+        grid: GridZone = zone
         w, h = zone.width, zone.height
 
         def owner_at(col: int, row: int) -> str:
-            cid = zone.grid_get(col, row)
+            cid = grid.grid_get(col, row)
             if cid is None:
                 return ""
             comp = session.runtime.components.get(cid)
@@ -165,7 +166,7 @@ def _populate_grid_lines(
 
         # Component-type-based rows/cols (for placement constraints)
         def type_at(col: int, row: int) -> str:
-            cid = zone.grid_get(col, row)
+            cid = grid.grid_get(col, row)
             if cid is None:
                 return ""
             comp = session.runtime.components.get(cid)
@@ -220,10 +221,10 @@ def _populate_grid_lines(
             else:
                 if zone.width > 0 and zone.height > 0 and zone.cells:
                     type_list: list[str] = []
-                    for cid in zone.cells:
-                        if cid is None:
+                    for cell in zone.cells:
+                        if cell is None:
                             break
-                        comp = session.runtime.components.get(cid)
+                        comp = session.runtime.components.get(cell)
                         if comp is None:
                             break
                         type_list.append(comp.component_type)

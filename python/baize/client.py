@@ -56,7 +56,7 @@ class BaizeClient:
 
     def connect(self, timeout: float = 10.0) -> None:
         """Connect to the server and complete the handshake."""
-        import websocket  # type: ignore[import-untyped]
+        import websocket  # type: ignore[import-untyped, import-not-found, unused-ignore]
 
         ws_url = f"{self.server_url}/ws/{self.room_id}"
         self._welcome_event.clear()

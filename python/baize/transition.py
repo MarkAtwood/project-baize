@@ -493,30 +493,30 @@ def _execute_action(
             )
         )
 
-        zone: GridZone | None = None
+        place_zone: GridZone | None = None
         pstate = session.runtime.players.get(player)
         if pstate is not None:
             pz = pstate.zones.get(zone_name)
             if isinstance(pz, GridZone):
-                zone = pz
-        if zone is None:
+                place_zone = pz
+        if place_zone is None:
             gz = session.runtime.zones.get(zone_name)
             if isinstance(gz, GridZone):
-                zone = gz
-        if zone is None:
+                place_zone = gz
+        if place_zone is None:
             raise UnknownZoneError(zone_name)
-        _validate_grid_coords(zone, to_col, to_row, zone_name)
+        _validate_grid_coords(place_zone, to_col, to_row, zone_name)
 
-        existing = zone.grid_get(to_col, to_row)
+        existing = place_zone.grid_get(to_col, to_row)
         if existing is not None:
-            if zone.stacking_limit == 1:
+            if place_zone.stacking_limit == 1:
                 raise IllegalActionError(
                     f"cell ({to_col},{to_row}) is already occupied"
                 )
             # stacking_limit > 1 or 0 (unlimited): push onto stack
-            zone.grid_push(to_col, to_row, cid)
+            place_zone.grid_push(to_col, to_row, cid)
         else:
-            zone.grid_set(to_col, to_row, cid)
+            place_zone.grid_set(to_col, to_row, cid)
 
         events.append(
             _make_event(
@@ -530,7 +530,7 @@ def _execute_action(
         )
 
         # Recompute fog after place on fog-enabled zones
-        _recompute_fog_for_player(session, zone, player)
+        _recompute_fog_for_player(session, place_zone, player)
 
     elif action.action_type == "pass":
         events.append(
@@ -724,20 +724,20 @@ def _execute_action(
         )
 
         # Try player zone first, then shared zones
-        zone: GridZone | None = None
+        ship_zone: GridZone | None = None
         player_state = session.runtime.players.get(player)
         if player_state is not None:
             pz = player_state.zones.get(zone_name)
             if isinstance(pz, GridZone):
-                zone = pz
-        if zone is None:
+                ship_zone = pz
+        if ship_zone is None:
             z = session.runtime.zones.get(zone_name)
             if isinstance(z, GridZone):
-                zone = z
-        if zone is None:
+                ship_zone = z
+        if ship_zone is None:
             raise UnknownZoneError(zone_name)
 
-        span_cells = zone.grid_place_span(
+        span_cells = ship_zone.grid_place_span(
             to_col, to_row, horizontal, span, cid
         )
 
@@ -822,13 +822,13 @@ def _execute_action(
         if is_hit:
             assert hit_cid is not None
             # Increment hit_count on the ship
-            comp = session.runtime.components.get(hit_cid)
-            if comp is not None:
-                prev_hits = comp.properties.get("hit_count", 0)
+            hit_comp = session.runtime.components.get(hit_cid)
+            if hit_comp is not None:
+                prev_hits = hit_comp.properties.get("hit_count", 0)
                 new_hits = int(prev_hits) + 1
-                comp.properties["hit_count"] = new_hits
-                ship_type = comp.component_type
-                span_len = len(comp.span_cells)
+                hit_comp.properties["hit_count"] = new_hits
+                ship_type = hit_comp.component_type
+                span_len = len(hit_comp.span_cells)
 
             events.append(
                 _make_event(
@@ -842,7 +842,7 @@ def _execute_action(
             )
 
             # Check sunk
-            if comp is not None and span_len > 0 and new_hits >= span_len:
+            if hit_comp is not None and span_len > 0 and new_hits >= span_len:
                 events.append(
                     GameEvent(
                         sequence=session.runtime.sequence,

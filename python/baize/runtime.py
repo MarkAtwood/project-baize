@@ -510,11 +510,11 @@ class GridZone:
             for (col, row), cid in self._sparse_cells.items():
                 yield col, row, cid
         else:
-            for idx, cid in enumerate(self.cells):
-                if cid is not None:
+            for idx, cell in enumerate(self.cells):
+                if cell is not None:
                     col = idx % self.width
                     row = idx // self.width
-                    yield col, row, cid
+                    yield col, row, cell
 
     # -- Fog of war methods -------------------------------------------------
 
@@ -883,9 +883,9 @@ def runtime_zone_from_definition(zone_def: Zone) -> RuntimeZone:
         node_props: dict[int, dict[str, str | int | bool]] = {}
         if zone_def.node_properties is not None:
             for name, props in zone_def.node_properties.items():
-                idx = name_to_index.get(name)
-                if idx is not None:
-                    node_props[idx] = dict(props)
+                node_idx = name_to_index.get(name)
+                if node_idx is not None:
+                    node_props[node_idx] = dict(props)
         return GraphZone(
             node_names=list(nodes),
             name_to_index=name_to_index,
@@ -1304,9 +1304,9 @@ class GameSession:
 
         if isinstance(zone, GraphZone):
             components = []
-            for cid in zone.occupants:
-                if cid is not None:
-                    comp = self.runtime.components.get(cid)
+            for occupant in zone.occupants:
+                if occupant is not None:
+                    comp = self.runtime.components.get(occupant)
                     if comp is not None:
                         components.append(comp.to_wire_instance())
             return SetState(components=components)

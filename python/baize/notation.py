@@ -196,7 +196,9 @@ def format_move(
     if pos is None:
         return str(action)
 
-    dest = coords_to_label(pos.get("col", 0), pos.get("row", 0), labels)
+    dest = coords_to_label(
+        pos.get("col", 0), pos.get("row", 0), labels  # type: ignore[union-attr]
+    )
 
     if notation and "piece_symbols" in notation:
         symbols = notation.get("piece_symbols", {})
