@@ -86,7 +86,9 @@ fuzz_target!(|data: &[u8]| {
             dice_type: None,
             swap_with: None,
             declaration: None,
+            commitment: None,
             custom_data: None,
+            mental_poker_data: None,
         };
         let _ = baize_engine::transition::apply_action(&mut session, &action);
     }
