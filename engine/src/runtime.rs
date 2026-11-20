@@ -88,7 +88,7 @@ pub struct RuntimeState {
     pub history_hashes: Vec<String>,
     pub result: Option<GameResult>,
     pub partnerships: Vec<Vec<String>>,
-    /// Per-zone visibility overrides. Key: zone_name or "zone_name[player]" for per-player zones.
+    /// Per-zone visibility overrides. Key: zone_name or `"zone_name[player]"` for per-player zones.
     /// If a zone has an override, it takes precedence over the definition's visibility.
     pub visibility_overrides: IndexMap<String, Visibility>,
     /// Active claim window, if a trigger has fired and claims are being collected.
